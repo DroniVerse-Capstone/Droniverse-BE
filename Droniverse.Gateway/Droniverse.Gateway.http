@@ -1,0 +1,6 @@
+@Droniverse.Gateway_HostAddress = http://localhost:5252
+
+GET {{Droniverse.Gateway_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

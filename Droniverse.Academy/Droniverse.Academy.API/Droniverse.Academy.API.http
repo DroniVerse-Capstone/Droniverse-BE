@@ -1,0 +1,6 @@
+@Droniverse.Academy.API_HostAddress = http://localhost:5261
+
+GET {{Droniverse.Academy.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
