@@ -3,7 +3,7 @@ using Droniverse.Community.Domain.IRepository;
 using Droniverse.Community.Infrastructure.Persistence.MySql;
 
 namespace Droniverse.Community.Infrastructure.Repositories;
-internal class CategoryRepository : Repository<Category>, ICategoryRepository
+internal class CategoryRepository : MySqlRepository<Category>, ICategoryRepository
 {
     public CategoryRepository(MySqlDbContext context) : base(context)
     {

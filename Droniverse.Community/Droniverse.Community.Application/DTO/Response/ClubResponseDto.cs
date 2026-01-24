@@ -1,0 +1,17 @@
+﻿using Droniverse.Community.Domain.Enums;
+
+namespace Droniverse.Community.Application.DTO.Response;
+
+public record ClubResponseDto(
+    Guid ClubID,
+    string NameVN,
+    string NameEN,
+    string DescriptionVN,
+    string DescriptionEN,
+    Guid ClubCode,
+    ClubStatus Status,
+    bool IsPublic,
+    int LimitParticipation,
+    int LimitClubManagers
+    )
+{}

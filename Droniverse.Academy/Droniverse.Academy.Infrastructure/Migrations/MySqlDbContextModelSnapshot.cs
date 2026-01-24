@@ -352,7 +352,8 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                         .HasColumnType("char(36)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime");
 
                     b.Property<sbyte>("Rating")
                         .HasColumnType("tinyint");

@@ -1,0 +1,85 @@
+﻿using AutoMapper;
+using Droniverse.Community.Application.DTO.Request;
+using Droniverse.Community.Application.DTO.Response;
+using Droniverse.Community.Application.IService;
+using Droniverse.Community.Domain.Entities;
+using Droniverse.Community.Domain.IRepository;
+
+namespace Droniverse.Community.Application.Services;
+internal class ClubService : IClubService
+{
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IMapper _mapper;
+    public ClubService(IUnitOfWork unitOfWork, IMapper mapper)
+    {
+        _unitOfWork = unitOfWork;
+        _mapper = mapper;
+    }
+
+    public async Task<ClubResponseDto> CreateClub(ClubCreateDto clubRequestDto)
+    {
+        if(clubRequestDto == null)
+        {
+            throw new ArgumentNullException(nameof(clubRequestDto), "Club request data cannot be null.");
+        }
+        Club club = _mapper.Map<Club>(clubRequestDto);
+        club.ClubID = Guid.NewGuid();
+        club.ClubCode = Guid.NewGuid();
+        await _unitOfWork.Clubs.Add(club);
+        await _unitOfWork.SaveChangeAsync();
+        ClubResponseDto response = _mapper.Map<ClubResponseDto>(club);
+        return response;
+    }
+
+    public async Task<bool> DeleteClub(Guid id)
+    {
+        Club? club = await _unitOfWork.Clubs.GetByCondition(c => c.ClubID == id);
+        if (club == null)
+        {
+            throw new KeyNotFoundException($"Club with ID {id} not found.");
+        }
+        try
+        {
+            await _unitOfWork.Clubs.Delete(club);
+            await _unitOfWork.SaveChangeAsync();
+            return true;
+        }
+        catch (Exception e)
+        {
+            return false;
+        }
+    }
+
+    public async Task<IEnumerable<ClubResponseDto>> GetAllClubs()
+    {
+        IEnumerable<Club> clubList = await _unitOfWork.Clubs.GetAll();
+        IEnumerable<ClubResponseDto> responses = _mapper.Map<IEnumerable<ClubResponseDto>>(clubList);
+        return responses;
+    }
+
+    public async Task<ClubResponseDto> GetClubById(Guid id)
+    {
+        Club? club = await _unitOfWork.Clubs.GetByCondition(c => c.ClubID == id);
+        if (club == null)
+        {
+            throw new KeyNotFoundException($"Club with ID {id} not found.");
+        }
+        ClubResponseDto response = _mapper.Map<ClubResponseDto>(club);
+        return response;
+    }
+
+    public async Task<ClubResponseDto> UpdateClub(Guid id, ClubUpdateDto clubUpdateDto)
+    {
+        Club? club = await _unitOfWork.Clubs.GetByCondition(c => c.ClubID == id);
+        if(club == null)
+        {
+            throw new KeyNotFoundException($"Club with ID {id} not found.");
+        }
+        _mapper.Map(clubUpdateDto, club);
+        await _unitOfWork.Clubs.Update(club);
+        await _unitOfWork.SaveChangeAsync();
+        ClubResponseDto response = _mapper.Map<ClubResponseDto>(club);
+        return response;
+    }
+}
+

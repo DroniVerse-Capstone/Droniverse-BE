@@ -4,11 +4,11 @@ using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
 namespace Droniverse.Community.Infrastructure.Repositories;
-public class Repository<T> : IRepository<T> where T : class
+public class MySqlRepository<T> : IRepository<T> where T : class
 {
     protected readonly DbSet<T> _dbSet;
     protected readonly MySqlDbContext _context;
-    public Repository(MySqlDbContext context)
+    public MySqlRepository(MySqlDbContext context)
     {
         _context = context;
         _dbSet = context.Set<T>();

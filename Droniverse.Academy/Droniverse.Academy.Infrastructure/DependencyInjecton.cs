@@ -1,4 +1,6 @@
-﻿using Droniverse.Academy.Infrastructure.Persistence.MySql;
+﻿using Droniverse.Academy.Domain.IRepository;
+using Droniverse.Academy.Infrastructure.Persistence.MySql;
+using Droniverse.Academy.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,7 +28,7 @@ namespace Droniverse.Academy.Infrastructure
                 return client.GetDatabase(databaseName);
             });
 
-            //services.AddScoped<IUnitOfWork, UnitOfWork>();
+            services.AddScoped<IUnitOfWork, UnitOfWork>();
             return services;
         }
     }

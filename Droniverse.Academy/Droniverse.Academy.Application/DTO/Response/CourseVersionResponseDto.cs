@@ -1,0 +1,21 @@
+﻿using Droniverse.Academy.Domain.Enums;
+
+namespace Droniverse.Academy.Application.DTO.Response;
+
+public record CourseVersionResponseDto(
+    Guid CourseVersionID,
+    string TitleVN,
+    string TitleEN,
+    string DescriptionVN,
+    string DescriptionEN,
+    CourseStatus Status,
+    int Version,
+    string ImageUrl,
+    CourseLevel Level,
+    int EstimatedDuration,
+    Guid UpdateBy,
+    DateTime UpdateAt,
+    CourseResponseDto Course
+    )
+{}
+

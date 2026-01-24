@@ -20,6 +20,7 @@ public class FeedbackConfiguration : IEntityTypeConfiguration<Feedback>
         builder.Property(f => f.UserID).HasColumnType("char(36)");
         builder.Property(f => f.CourseVersionID).HasColumnType("char(36)");
         builder.Property(f => f.Content).HasColumnType("text");
+        builder.Property(f => f.CreatedAt).HasColumnType("datetime").ValueGeneratedOnAdd();
         builder.Property(f => f.Rating).HasColumnType("tinyint").HasConversion<byte>();
         builder.ToTable(t => t.HasCheckConstraint("CK_Feedback_Rating", "`Rating` IN (1, 5)"));
 

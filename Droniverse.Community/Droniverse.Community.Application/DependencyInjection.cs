@@ -8,8 +8,8 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
 
-        services.AddAutoMapper(typeof(CourseMappingProfile).Assembly);
-        services.AddScoped<ICourseService, CourseService>();
+        services.AddAutoMapper(typeof(ClubMappingProfile).Assembly);
+        services.AddScoped<IClubService, ClubService>();
         return services;
     }
 }

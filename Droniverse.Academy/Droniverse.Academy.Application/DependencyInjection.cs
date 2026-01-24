@@ -1,4 +1,7 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.Application.Mapper;
+using Droniverse.Academy.Application.Services;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Droniverse.Academy.Application;
@@ -6,7 +9,9 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddApplication(this IServiceCollection services, IConfiguration configuration)
     {
-
+        services.AddAutoMapper(typeof(CourseMappingProfile).Assembly); //chỉ cần thêm 1 profile là đc
+        services.AddScoped<ICourseService, CourseService>();
+        services.AddScoped<IFeedbackService, FeedbackService>();
         return services;
     }
 
