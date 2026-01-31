@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Droniverse.Identity.Infrastructure.Migrations
 {
     [DbContext(typeof(IdentityDbContext))]
-    [Migration("20260111114627_Initial")]
+    [Migration("20260131020959_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -140,6 +140,9 @@ namespace Droniverse.Identity.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
 
+                    b.Property<int>("BufferEstimatedDuration")
+                        .HasColumnType("int");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -149,18 +152,18 @@ namespace Droniverse.Identity.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("LogoCertificate")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("LogoSystem")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
                         .HasMaxLength(15)
                         .HasColumnType("varchar(15)");
-
-                    b.Property<string>("logoCertificate")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("logoSystem")
-                        .IsRequired()
-                        .HasColumnType("text");
 
                     b.HasKey("SysConfigID");
 

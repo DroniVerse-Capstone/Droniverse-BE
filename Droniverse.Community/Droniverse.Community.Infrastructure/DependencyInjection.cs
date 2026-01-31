@@ -1,12 +1,16 @@
 ﻿using Droniverse.Community.Domain.IRepository;
+using Droniverse.Community.Domain.IRepository.Mongo;
 using Droniverse.Community.Infrastructure.Persistence.MySql;
 using Droniverse.Community.Infrastructure.Repositories;
+using Droniverse.Community.Infrastructure.Repositories.Mongo;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace Droniverse.Community.Infrastructure;
+
 public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
@@ -20,7 +24,11 @@ public static class DependencyInjection
         //mongodb
         var connectionString = configuration["MongoDbSettings:ConnectionString"];
         var databaseName = configuration["MongoDbSettings:DatabaseName"];
-        services.AddSingleton<IMongoClient>(_ => new MongoClient(connectionString));
+        services.AddSingleton<IMongoClient>(_ =>
+        {
+            var settings = MongoClientSettings.FromConnectionString(connectionString);
+            return new MongoClient(settings);
+        });
         services.AddScoped<IMongoDatabase>(provider =>
         {
             var client = provider.GetRequiredService<IMongoClient>();
@@ -28,6 +36,8 @@ public static class DependencyInjection
         });
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IOrderRepository, OrderRepository>();
+        services.AddScoped<IInvoiceRepository, InvoiceRepository >();
         return services;
     }
 }

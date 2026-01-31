@@ -12,5 +12,8 @@
 	<ItemGroup>
 	  <ProjectReference Include="..\Droniverse.Community.Domain\Droniverse.Community.Domain.csproj" />
 	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="HttpClient\" />
+	</ItemGroup>
 
 </Project>

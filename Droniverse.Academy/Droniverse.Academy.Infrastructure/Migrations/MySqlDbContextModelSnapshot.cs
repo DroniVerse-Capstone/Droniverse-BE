@@ -309,8 +309,14 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                     b.Property<Guid>("CourseID")
                         .HasColumnType("char(36)");
 
+                    b.Property<Guid>("CourseVersionID")
+                        .HasColumnType("char(36)");
+
                     b.Property<DateTime>("EnrollDate")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime");
+
+                    b.Property<DateTime>("ExpireDate")
                         .HasColumnType("datetime");
 
                     b.Property<sbyte>("IsCompleted")
@@ -331,6 +337,8 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                     b.HasKey("EnrollmentID");
 
                     b.HasIndex("CourseID");
+
+                    b.HasIndex("CourseVersionID");
 
                     b.ToTable("Enrollment", null, t =>
                         {
@@ -901,7 +909,15 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Droniverse.Academy.Domain.Entities.CourseVersion", "CourseVersion")
+                        .WithMany("Enrollments")
+                        .HasForeignKey("CourseVersionID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Course");
+
+                    b.Navigation("CourseVersion");
                 });
 
             modelBuilder.Entity("Droniverse.Academy.Domain.Entities.Feedback", b =>
@@ -1091,6 +1107,8 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                     b.Navigation("Codes");
 
                     b.Navigation("CourseVersionCategories");
+
+                    b.Navigation("Enrollments");
 
                     b.Navigation("Feedbacks");
 

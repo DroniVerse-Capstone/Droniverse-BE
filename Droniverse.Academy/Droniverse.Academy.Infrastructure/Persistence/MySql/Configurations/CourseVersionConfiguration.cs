@@ -28,6 +28,8 @@ public class CourseVersionConfiguration : IEntityTypeConfiguration<CourseVersion
             .WithOne(f => f.CourseVersion);
         builder.HasMany(cv => cv.RequiredDrones)
             .WithOne(f => f.CourseVersion);
+        builder.HasMany(cv => cv.Enrollments)
+            .WithOne(e => e.CourseVersion);
 
 
         builder.Property(c => c.CourseID).HasColumnType("char(36)").IsRequired();

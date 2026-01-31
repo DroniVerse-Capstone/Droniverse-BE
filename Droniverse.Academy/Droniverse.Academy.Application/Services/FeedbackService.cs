@@ -24,7 +24,9 @@ internal class FeedbackService : IFeedbackService
         }
         Feedback feedback = _mapper.Map<Feedback>(feedbackCreateDto);
         feedback.FeedbackID = Guid.NewGuid();
-        //feedback.CreatedAt = DateTime.UtcNow;
+        feedback.CourseVersionID = feedbackCreateDto.CourseVersionID;
+        //gán UserID
+        
         await _unitOfWork.Feedbacks.Add(feedback);
         await _unitOfWork.SaveChangesAsync();
         FeedbackResponseDto response = _mapper.Map<FeedbackResponseDto>(feedback);

@@ -7,6 +7,8 @@ public class Enrollment
 
     public Course Course { get; set; }
     public Guid CourseID { get; set; }
+    public CourseVersion CourseVersion { get; set; }
+    public Guid CourseVersionID { get; set; }
     public Guid UserID { get; set; } // reference to UserID
     public Guid? ClubID { get; set; }
 
@@ -15,4 +17,5 @@ public class Enrollment
     public float Progress { get; set; } = 0;
     public EnrollStatus Status { get; set; } = EnrollStatus.ACTIVE;
     public bool IsCompleted { get; set; } = false;
-}
+    public DateTime ExpireDate { get; set; }
+    }

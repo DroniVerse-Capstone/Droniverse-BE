@@ -34,7 +34,12 @@
       "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}/swagger",
       "environmentVariables": {
         "ASPNETCORE_HTTPS_PORTS": "8081",
-        "ASPNETCORE_HTTP_PORTS": "8080"
+        "ASPNETCORE_HTTP_PORTS": "8080",
+        "MYSQL_PORT": "10556",
+        "MYSQL_DATABASE": "IdentityDB",
+        "MYSQL_USER": "avnadmin",
+        "MYSQL_PASSWORD": "AVNS_-X0xwlWefp-g6mMhVdK",
+        "MYSQL_HOST": "fstreak-mysql-fstreak.e.aivencloud.com"
       },
       "publishAllPorts": true,
       "useSSL": true

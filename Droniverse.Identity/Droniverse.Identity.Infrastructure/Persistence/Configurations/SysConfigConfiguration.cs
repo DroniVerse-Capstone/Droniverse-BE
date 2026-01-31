@@ -19,12 +19,13 @@ public class SysConfigConfiguration : IEntityTypeConfiguration<SysConfig>
         builder.Property(sc => sc.PhoneNumber)
             .HasMaxLength(15)
             .IsRequired();
-        builder.Property(sc => sc.logoSystem)
-            .HasColumnType("text")
-            .IsRequired();
-        builder.Property(sc => sc.logoCertificate)
-            .HasColumnType("text")
-            .IsRequired();
+        builder.Property(sc => sc.LogoSystem)
+            .HasColumnType("text").IsRequired();
+        builder.Property(sc => sc.BufferEstimatedDuration)
+            .HasColumnType("int")
+            ;
+        builder.Property(sc => sc.LogoCertificate)
+            .HasColumnType("text").IsRequired();
 
     }
 }

@@ -12,7 +12,8 @@ namespace Droniverse.Identity.Domain.Entities
         public string Email { get; set; }
         public string FacebookUrl { get; set; }
         public string PhoneNumber { get; set; }
-        public string logoSystem { get; set; }
-        public string logoCertificate { get; set; }
+        public string LogoSystem { get; set; }
+        public int BufferEstimatedDuration { get; set; }
+        public string LogoCertificate { get; set; }
     }
 }

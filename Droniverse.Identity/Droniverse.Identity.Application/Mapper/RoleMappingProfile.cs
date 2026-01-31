@@ -17,6 +17,10 @@ public class RoleMappingProfile : Profile
             .ForMember(dest => dest.RoleID, opt => opt.Ignore() )
             .ForMember(dest => dest.RoleName, opt => opt.MapFrom(src => src.roleName))
             .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.description));
+
+        CreateMap<RoleUpdateDto, Role>()
+            .ForMember(dest => dest.RoleName, opt => opt.MapFrom(src => src.RoleName))
+            .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description));
     }
 }
 

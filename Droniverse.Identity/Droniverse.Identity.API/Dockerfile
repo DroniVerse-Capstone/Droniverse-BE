@@ -30,4 +30,5 @@ RUN dotnet publish "./Droniverse.Identity.API.csproj" -c $BUILD_CONFIGURATION -o
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+
 ENTRYPOINT ["dotnet", "Droniverse.Identity.API.dll"]

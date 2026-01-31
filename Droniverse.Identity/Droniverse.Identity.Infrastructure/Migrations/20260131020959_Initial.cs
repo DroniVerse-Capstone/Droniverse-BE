@@ -51,8 +51,9 @@ namespace Droniverse.Identity.Infrastructure.Migrations
                     Email = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false),
                     FacebookUrl = table.Column<string>(type: "text", nullable: false),
                     PhoneNumber = table.Column<string>(type: "varchar(15)", maxLength: 15, nullable: false),
-                    logoSystem = table.Column<string>(type: "text", nullable: false),
-                    logoCertificate = table.Column<string>(type: "text", nullable: false)
+                    LogoSystem = table.Column<string>(type: "text", nullable: false),
+                    BufferEstimatedDuration = table.Column<int>(type: "int", nullable: false),
+                    LogoCertificate = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {

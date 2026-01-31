@@ -12,6 +12,7 @@ public class CourseVersion
     public ICollection<Code> Codes { get; set; }
     public ICollection<Feedback> Feedbacks { get; set; }
     public ICollection<RequiredDrone> RequiredDrones { get; set; }
+    public ICollection<Enrollment> Enrollments { get; set; }
     public Guid UpdateBy { get; set; } // reference to UserID
 
     public string TitleVN { get; set; } //varchar(255)

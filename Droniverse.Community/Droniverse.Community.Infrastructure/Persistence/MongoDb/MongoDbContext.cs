@@ -1,5 +1,4 @@
 ﻿using Droniverse.Community.Domain.Entities.Mongo;
-using Droniverse.Community.Infrastructure.Persistence.MongoDb.Configurations;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.EntityFrameworkCore.Extensions;
 

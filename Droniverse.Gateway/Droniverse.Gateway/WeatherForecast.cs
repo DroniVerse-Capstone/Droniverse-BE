@@ -1,4 +1,4 @@
-namespace Droniverse.Gateway
+namespace Droniverse.Identity.API
 {
     public class WeatherForecast
     {

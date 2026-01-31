@@ -8,5 +8,7 @@ public record FeedbackResponseDto(
     DateTime CreateAt,
     CourseVersionResponseDto CourseVersion
     )
-{}
+{
+    public FeedbackResponseDto() : this(default, default, default, default, default, default) { }
+}
 
