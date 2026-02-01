@@ -9,7 +9,7 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
-
+        // Chỉ cần thêm 1 mapping profile là đc
         services.AddAutoMapper(typeof(ClubMappingProfile).Assembly);
         services.AddScoped<IClubService, ClubService>();
         services.AddScoped<IOrderService, OrderService>();

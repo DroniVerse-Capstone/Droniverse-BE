@@ -1,27 +1,128 @@
 {
   "Routes": [
-    //--------------------------------IDENTITY-SERVICE---------------------------------------
     {
-      "DownstreamPathTemplate": "/api/users/{everything}",
+      "DownstreamPathTemplate": "/academy/feedbacks/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "droniverse-users",
-          "Port": 80
+          "Host": "academy-microservice",
+          "Port": 8080
         }
       ],
-      "UpstreamPathTemplate": "/users/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ]
+      "UpstreamPathTemplate": "/api/feedbacks/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+      "SwaggerKey": "academy"
     },
-    //--------------------------------------------------------------------------------------------------
-
-    //---------------------------------ACADEMY-SERVICE--------------------------------------------------
-
-    //--------------------------------------------------------------------------------------------------
-
-    //---------------------------------COMMUNITY-SERVICE------------------------------------------------
-
-    //--------------------------------------------------------------------------------------------------
+    {
+      "DownstreamPathTemplate": "/academy/courses/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "academy-microservice",
+          "Port": 8080
+        }
+      ],
+      "UpstreamPathTemplate": "/api/courses/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+      "SwaggerKey": "academy"
+    },
+    {
+      "DownstreamPathTemplate": "/community/clubs/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "community-microservice",
+          "Port": 8080
+        }
+      ],
+      "UpstreamPathTemplate": "/api/clubs/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+      "SwaggerKey": "community"
+    },
+    {
+      "DownstreamPathTemplate": "/community/orders/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "community-microservice",
+          "Port": 8080
+        }
+      ],
+      "UpstreamPathTemplate": "/api/orders/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+      "SwaggerKey": "community"
+    },
+    {
+      "DownstreamPathTemplate": "/identity/users/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "identity-microservice",
+          "Port": 8080
+        }
+      ],
+      "UpstreamPathTemplate": "/api/users/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+      "SwaggerKey": "identity"
+    },
+    {
+      "DownstreamPathTemplate": "/identity/roles/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "identity-microservice",
+          "Port": 8080
+        }
+      ],
+      "UpstreamPathTemplate": "/api/roles/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+      "SwaggerKey": "identity"
+    },
+    {
+      "DownstreamPathTemplate": "/identity/permissions/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "identity-microservice",
+          "Port": 8080
+        }
+      ],
+      "UpstreamPathTemplate": "/api/permissions/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+      "SwaggerKey": "identity"
+    }
+  ],
+  "SwaggerEndPoints": [
+    {
+      "Key": "academy",
+      "Config": [
+        {
+          "Name": "Academy Service API",
+          "Version": "v1",
+          "Url": "http://academy-microservice:8080/swagger/v1/swagger.json"
+        }
+      ]
+    },
+    {
+      "Key": "identity",
+      "Config": [
+        {
+          "Name": "Identity Service API",
+          "Version": "v1",
+          "Url": "http://identity-microservice:8080/swagger/v1/swagger.json"
+        }
+      ]
+    },
+    {
+      "Key": "community",
+      "Config": [
+        {
+          "Name": "Community Service API",
+          "Version": "v1",
+          "Url": "http://community-microservice:8080/swagger/v1/swagger.json"
+        }
+      ]
+    }
   ],
   "GlobalConfiguration": {
     "BaseUrl": "http://localhost:8888"

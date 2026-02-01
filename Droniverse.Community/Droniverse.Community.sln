@@ -13,11 +13,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Droniverse.Community.Domain
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Droniverse.Tests", "Droniverse.Tests\Droniverse.Tests.csproj", "{664FF17C-FE8D-4AA3-8B1A-EC1F3F328035}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{ACD68E08-454B-44F5-BB71-FAF8CF0D625E}"
-	ProjectSection(SolutionItems) = preProject
-		.env = .env
-	EndProjectSection
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

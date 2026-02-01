@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "Docker Compose": {
+      "commandName": "DockerCompose",
+      "commandVersion": "1.0",
+      "serviceActions": {
+        "droniverse.gateway": "StartDebugging"
+      },
+      "applicationUrl": "http://localhost:8888/swagger/"
+    }
+  }
+}

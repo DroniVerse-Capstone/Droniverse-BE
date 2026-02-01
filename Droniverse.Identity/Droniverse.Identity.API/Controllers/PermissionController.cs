@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Droniverse.Identity.API.Controllers
 {
-    [Route("api/permissions")]
+    [Route("identity/permissions")]
     [ApiController]
     public class PermissionController : ControllerBase
     {

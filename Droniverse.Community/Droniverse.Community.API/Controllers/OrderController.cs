@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Droniverse.Community.API.Controllers
 {
-    [Route("api/orders")]
+    [Route("community/orders")]
     [ApiController]
     public class OrderController : ControllerBase
     {

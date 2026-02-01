@@ -1,4 +1,4 @@
-{
+ {
   "profiles": {
     "http": {
       "commandName": "Project",
@@ -37,6 +37,7 @@
         "ASPNETCORE_HTTP_PORTS": "8080"
       },
       "publishAllPorts": true,
+      "httpPort": 8888,
       "useSSL": true
     }
   },

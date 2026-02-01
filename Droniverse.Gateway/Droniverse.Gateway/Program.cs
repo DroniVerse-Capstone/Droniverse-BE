@@ -1,4 +1,7 @@
-﻿using Swashbuckle.AspNetCore.SwaggerUI;
+﻿using Microsoft.AspNetCore.Builder;
+using Ocelot.DependencyInjection;
+using Ocelot.Middleware;
+using Swashbuckle.AspNetCore.SwaggerUI;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,7 +10,27 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+//builder.Services.AddSwaggerGen();
+
+// Configure HttpClient to accept self-signed certificates in development
+builder.Services.AddHttpClient().ConfigureHttpClientDefaults(http =>
+{
+    if (builder.Environment.IsDevelopment())
+    {
+        http.ConfigurePrimaryHttpMessageHandler(() =>
+            new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback =
+                    HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+            });
+    }
+});
+
+//add Ocelot
+builder.Configuration.AddJsonFile("ocelot.json", optional: false, reloadOnChange: true);
+builder.Services.AddOcelot(builder.Configuration);
+builder.Services.AddSwaggerForOcelot(builder.Configuration);
+
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
@@ -23,19 +46,18 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
+    app.UseSwaggerForOcelotUI(opt =>
     {
-        c.DocExpansion(DocExpansion.None); //Đóng các api lại cho gọn
+        opt.PathToSwaggerGenerator = "/swagger/docs";
     });
 }
 
-app.UseHttpsRedirection();
-
+app.UseRouting();
 app.UseAuthorization();
 
 app.UseCors();
 
 app.MapControllers();
-
+// Use Ocelot
+await app.UseOcelot();
 app.Run();

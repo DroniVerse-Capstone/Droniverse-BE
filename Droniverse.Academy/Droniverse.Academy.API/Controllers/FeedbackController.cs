@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Droniverse.Academy.API.Controllers
 {
-    [Route("api/feedbacks")]
+    [Route("academy/feedbacks")]
     [ApiController]
     public class FeedbackController : ControllerBase
     {

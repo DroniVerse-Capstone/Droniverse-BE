@@ -1,0 +1,75 @@
+services:
+  droniverse.gateway:
+    container_name: droniverse-gateway
+    image: droniverse-gateway
+    build:
+      context: .
+      dockerfile: Droniverse.Gateway/Droniverse.Gateway/Dockerfile
+    ports:
+    - "8888:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ASPNETCORE_URLS=http://+:8080
+    depends_on:
+      - academy-microservice
+      - community-microservice
+      - identity-microservice
+     
+      
+    networks:
+      - droniverse-network
+
+  academy-microservice:
+    container_name: academy-microservice
+    image: academy-microservice
+    build:
+      context: ./Droniverse.Academy
+      dockerfile: Droniverse.Academy.API/Dockerfile
+    environment:
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+    ports:
+      - "7000:8080"
+    networks:
+      - droniverse-network
+
+  community-microservice:
+    container_name: community-microservice
+    image: community-microservice
+    build:
+      context: ./Droniverse.Community
+      dockerfile: Droniverse.Community.API/Dockerfile
+    environment:
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+    ports:
+      - "5000:8080"
+    networks:
+      - droniverse-network
+  
+  identity-microservice:
+    container_name: identity-microservice
+    image: identity-microservice
+    build:
+      context: ./Droniverse.Identity
+      dockerfile: Droniverse.Identity.API/Dockerfile
+    environment:
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - MYSQL_HOST=fstreak-mysql-fstreak.e.aivencloud.com
+      - MYSQL_PORT=10556
+      - MYSQL_DATABASE=IdentityDB
+      - MYSQL_USER=avnadmin
+      - MYSQL_PASSWORD=AVNS_-X0xwlWefp-g6mMhVdK
+    ports:
+      - "4000:8080"
+    networks:
+      - droniverse-network
+
+networks:
+  droniverse-network:
+    driver: bridge

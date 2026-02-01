@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Droniverse.Identity.API.Controllers
 {
-    [Route("api/users")]
+    [Route("identity/users")]
     [ApiController]
     public class UserController : ControllerBase
     {
