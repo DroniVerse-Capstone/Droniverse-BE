@@ -1,5 +1,6 @@
 {
   "Routes": [
+    //----------------------------------ACADEMY-SERVICE--------------------------------------------
     {
       "DownstreamPathTemplate": "/academy/feedbacks/{everything}",
       "DownstreamScheme": "http",
@@ -26,6 +27,8 @@
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
       "SwaggerKey": "academy"
     },
+    //--------------------------------------------------------------------------------------------------
+    //----------------------------------COMMUNITY-SERVICE-----------------------------------------------
     {
       "DownstreamPathTemplate": "/community/clubs/{everything}",
       "DownstreamScheme": "http",
@@ -52,6 +55,8 @@
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
       "SwaggerKey": "community"
     },
+    //--------------------------------------------------------------------------------------------------
+    //----------------------------------IDENTITY-SERVICE-----------------------------------------------
     {
       "DownstreamPathTemplate": "/identity/users/{everything}",
       "DownstreamScheme": "http",
@@ -92,6 +97,7 @@
       "SwaggerKey": "identity"
     }
   ],
+  //--------------------------------------------------------------------------------------------------
   "SwaggerEndPoints": [
     {
       "Key": "academy",

@@ -1,4 +1,4 @@
-﻿namespace Droniverse.Community.Application.DTO.Response;
+﻿namespace Droniverse.Shared.DTOs.Response;
 public record UserResponse(
     Guid UserId,
     string Username,

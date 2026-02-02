@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
 namespace Droniverse.Identity.Infrastructure.Repositories;
+
 public class Repository<T> : IRepository<T> where T : class
 {
     protected readonly DbSet<T> _dbSet;
@@ -19,10 +20,19 @@ public class Repository<T> : IRepository<T> where T : class
         return entity;
     }
 
-    public Task Delete(T entity)
+    public Task<bool> Delete(T entity)
     {
-        _dbSet.Remove(entity);
-        return Task.CompletedTask;
+        try
+        {
+            var a = _dbSet.Remove(entity);
+            return Task.FromResult(true);
+        }
+        catch (Exception)
+        {
+            throw;
+        }
+        
+
     }
 
     public async Task<IEnumerable<T>> GetAll()

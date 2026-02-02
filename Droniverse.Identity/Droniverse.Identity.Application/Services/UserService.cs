@@ -4,17 +4,20 @@ using Droniverse.Identity.Application.DTO.Response;
 using Droniverse.Identity.Application.IService;
 using Droniverse.Identity.Domain.Entities;
 using Droniverse.Identity.Domain.Interfaces;
-using System.Security.Principal;
+using Droniverse.Shared.DTOs.Response;
+using Droniverse.Shared.Messages.User;
 
 namespace Droniverse.Identity.Application.Services;
 internal class UserService : IUserService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
-    public UserService(IUnitOfWork unitOfWork, IMapper mapper)
+    private readonly IUserPublisher _publisher;
+    public UserService(IUnitOfWork unitOfWork, IMapper mapper, IUserPublisher publisher)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
+        _publisher = publisher;
     }
 
     public async Task<IEnumerable<UserResponse>> GetAllUsers()
@@ -106,9 +109,22 @@ internal class UserService : IUserService
         try
         {
             Account? account = await _unitOfWork.Accounts.GetByCondition(a => a.UserID == id);
-            await _unitOfWork.Accounts.Delete(account);
+            bool isDelete = await _unitOfWork.Accounts.Delete(account);
             await _unitOfWork.SaveChangeAsync();
-            return true;
+            if (isDelete)
+            { 
+                Dictionary<string, object> headers = new Dictionary<string, object>()
+                {
+                    {"event", "user.delete" },
+                    {"rowCount", 1 }
+                };
+                UserDeletionMessage userDeletionMessage = new UserDeletionMessage(account.UserID, account.Username);
+
+                //ktra redis
+
+                _publisher.Publish<UserDeletionMessage>(headers, userDeletionMessage);
+            }
+            return isDelete;
         }
         catch (Exception)
         {

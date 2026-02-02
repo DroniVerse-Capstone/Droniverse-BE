@@ -2,6 +2,7 @@
 using Droniverse.Identity.Application.DTO.Response;
 using Droniverse.Identity.Application.IService;
 using Droniverse.Identity.Domain.Entities;
+using Droniverse.Shared.DTOs.Response;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 

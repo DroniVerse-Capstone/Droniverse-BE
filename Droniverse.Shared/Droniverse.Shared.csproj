@@ -9,6 +9,7 @@
   <ItemGroup>
     <Folder Include="Exceptions\" />
     <Folder Include="Extensions\" />
+    <Folder Include="Middleware\" />
   </ItemGroup>
 
 </Project>

@@ -22,6 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Droniverse.Shared\Droniverse.Shared.csproj" />
     <ProjectReference Include="..\Droniverse.Identity.Application\Droniverse.Identity.Application.csproj" />
     <ProjectReference Include="..\Droniverse.Identity.Infrastructure\Droniverse.Identity.Infrastructure.csproj" />
   </ItemGroup>

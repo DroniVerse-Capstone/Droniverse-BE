@@ -1,4 +1,5 @@
 ﻿using Droniverse.Community.Domain.Enums;
+using Droniverse.Shared.DTOs.Response;
 
 namespace Droniverse.Community.Application.DTO.Response;
 

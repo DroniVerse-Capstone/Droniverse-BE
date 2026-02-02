@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Droniverse.Community.Domain
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Droniverse.Tests", "Droniverse.Community\Droniverse.Tests\Droniverse.Tests.csproj", "{DBFE9F7C-3D38-A3F7-9BDB-6FCCFFA91DEE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Droniverse.Shared", "Droniverse.Shared\Droniverse.Shared.csproj", "{EAE2E953-71AA-33CC-AD79-9EA40985995C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{DBFE9F7C-3D38-A3F7-9BDB-6FCCFFA91DEE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DBFE9F7C-3D38-A3F7-9BDB-6FCCFFA91DEE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DBFE9F7C-3D38-A3F7-9BDB-6FCCFFA91DEE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EAE2E953-71AA-33CC-AD79-9EA40985995C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EAE2E953-71AA-33CC-AD79-9EA40985995C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EAE2E953-71AA-33CC-AD79-9EA40985995C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EAE2E953-71AA-33CC-AD79-9EA40985995C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

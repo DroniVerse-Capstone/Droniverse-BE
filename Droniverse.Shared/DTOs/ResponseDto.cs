@@ -4,13 +4,13 @@ public class ResponseDto<T>
 {
     public bool IsSuccess { get; set; } = true;
     public string Message { get; set; } = string.Empty;
-    public T? Result { get; set; }
+    public T? Data { get; set; }
 
     // Constructor tiện lợi
     public void SetSuccess(T data, string msg = "Success")
     {
         IsSuccess = true;
-        Result = data;
+        Data = data;
         Message = msg;
     }
 

@@ -1,5 +1,5 @@
 ﻿using DnsClient.Internal;
-using Droniverse.Community.Application.DTO.Response;
+using Droniverse.Shared.DTOs.Response;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
 
@@ -24,6 +24,8 @@ public class IdentityMicroserviceClient
     {
 
         //Read from cache
+        //key:value
+        //userid:{object} ttl:30p
 
         HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/api/users/{userId}");
         if (!httpResponseMsg.IsSuccessStatusCode)
@@ -56,6 +58,7 @@ public class IdentityMicroserviceClient
         }
 
         //Write to cache
+        //key:value
 
 
         return user;
