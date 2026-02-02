@@ -1,0 +1,49 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.2.11415.280
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Droniverse.Identity.API", "Droniverse.Identity\Droniverse.Identity.API\Droniverse.Identity.API.csproj", "{47149E35-B0F5-82CE-A310-18198A8C5453}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Droniverse.Identity.Application", "Droniverse.Identity\Droniverse.Identity.Application\Droniverse.Identity.Application.csproj", "{6DE58C1A-2310-85F8-9676-42C2E2CC5A74}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Droniverse.Identity.Infrastructure", "Droniverse.Identity\Droniverse.Identity.Infrastructure\Droniverse.Identity.Infrastructure.csproj", "{15D4758D-892D-5924-4F8E-204BF50D43C4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Droniverse.Identity.Domain", "Droniverse.Identity\Droniverse.Identity.Domain\Droniverse.Identity.Domain.csproj", "{8BDE88C5-F221-9770-D4AC-F373BD13727F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Droniverse.Shared", "Droniverse.Shared\Droniverse.Shared.csproj", "{EAE2E953-71AA-33CC-AD79-9EA40985995C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{47149E35-B0F5-82CE-A310-18198A8C5453}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{47149E35-B0F5-82CE-A310-18198A8C5453}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{47149E35-B0F5-82CE-A310-18198A8C5453}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{47149E35-B0F5-82CE-A310-18198A8C5453}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6DE58C1A-2310-85F8-9676-42C2E2CC5A74}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6DE58C1A-2310-85F8-9676-42C2E2CC5A74}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6DE58C1A-2310-85F8-9676-42C2E2CC5A74}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6DE58C1A-2310-85F8-9676-42C2E2CC5A74}.Release|Any CPU.Build.0 = Release|Any CPU
+		{15D4758D-892D-5924-4F8E-204BF50D43C4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{15D4758D-892D-5924-4F8E-204BF50D43C4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{15D4758D-892D-5924-4F8E-204BF50D43C4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{15D4758D-892D-5924-4F8E-204BF50D43C4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8BDE88C5-F221-9770-D4AC-F373BD13727F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8BDE88C5-F221-9770-D4AC-F373BD13727F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8BDE88C5-F221-9770-D4AC-F373BD13727F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8BDE88C5-F221-9770-D4AC-F373BD13727F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EAE2E953-71AA-33CC-AD79-9EA40985995C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EAE2E953-71AA-33CC-AD79-9EA40985995C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EAE2E953-71AA-33CC-AD79-9EA40985995C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EAE2E953-71AA-33CC-AD79-9EA40985995C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {F50182D9-61D1-4256-9405-AAB492E38B54}
+	EndGlobalSection
+EndGlobal

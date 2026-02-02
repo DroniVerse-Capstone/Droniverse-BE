@@ -1,0 +1,49 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.2.11415.280
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Droniverse.Community.API", "Droniverse.Community\Droniverse.Community.API\Droniverse.Community.API.csproj", "{5E63A1EB-D3F7-9C22-68BE-B730347C3C73}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Droniverse.Community.Application", "Droniverse.Community\Droniverse.Community.Application\Droniverse.Community.Application.csproj", "{E4323D11-7539-106B-DCBC-626A909AF7A0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Droniverse.Community.Infrastructure", "Droniverse.Community\Droniverse.Community.Infrastructure\Droniverse.Community.Infrastructure.csproj", "{3E8B5C94-DAB7-5FEA-6A23-715FBA4EF89B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Droniverse.Community.Domain", "Droniverse.Community\Droniverse.Community.Domain\Droniverse.Community.Domain.csproj", "{049C553C-AE78-7017-727B-056DEAE6E9AA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Droniverse.Tests", "Droniverse.Community\Droniverse.Tests\Droniverse.Tests.csproj", "{DBFE9F7C-3D38-A3F7-9BDB-6FCCFFA91DEE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5E63A1EB-D3F7-9C22-68BE-B730347C3C73}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5E63A1EB-D3F7-9C22-68BE-B730347C3C73}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5E63A1EB-D3F7-9C22-68BE-B730347C3C73}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5E63A1EB-D3F7-9C22-68BE-B730347C3C73}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E4323D11-7539-106B-DCBC-626A909AF7A0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E4323D11-7539-106B-DCBC-626A909AF7A0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E4323D11-7539-106B-DCBC-626A909AF7A0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E4323D11-7539-106B-DCBC-626A909AF7A0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3E8B5C94-DAB7-5FEA-6A23-715FBA4EF89B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3E8B5C94-DAB7-5FEA-6A23-715FBA4EF89B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3E8B5C94-DAB7-5FEA-6A23-715FBA4EF89B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3E8B5C94-DAB7-5FEA-6A23-715FBA4EF89B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{049C553C-AE78-7017-727B-056DEAE6E9AA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{049C553C-AE78-7017-727B-056DEAE6E9AA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{049C553C-AE78-7017-727B-056DEAE6E9AA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{049C553C-AE78-7017-727B-056DEAE6E9AA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DBFE9F7C-3D38-A3F7-9BDB-6FCCFFA91DEE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DBFE9F7C-3D38-A3F7-9BDB-6FCCFFA91DEE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DBFE9F7C-3D38-A3F7-9BDB-6FCCFFA91DEE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DBFE9F7C-3D38-A3F7-9BDB-6FCCFFA91DEE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {D9AC48BF-7F58-47EA-8515-1A2113B8DE39}
+	EndGlobalSection
+EndGlobal

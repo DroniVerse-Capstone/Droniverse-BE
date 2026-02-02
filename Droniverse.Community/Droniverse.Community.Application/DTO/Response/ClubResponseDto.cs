@@ -12,6 +12,11 @@ public record ClubResponseDto(
     ClubStatus Status,
     bool IsPublic,
     int LimitParticipation,
-    int LimitClubManagers
+    int LimitClubManagers,
+    UserResponse Creator
     )
-{}
+{
+    public ClubResponseDto() : this(default, default, default, default, default, default, default, default, default, default, default)
+    {
+    }
+}

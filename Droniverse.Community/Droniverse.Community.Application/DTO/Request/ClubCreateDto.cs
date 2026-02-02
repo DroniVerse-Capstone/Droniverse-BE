@@ -10,6 +10,8 @@ public record ClubCreateDto(
     ClubStatus Status,
     bool IsPublic,
     int LimitParticipation,
-    int LimitClubManagers
+    int LimitClubManagers,
+    Guid CreatedBy,
+    Guid FeedbackId
     )
 {}

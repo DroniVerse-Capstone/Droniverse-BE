@@ -24,8 +24,8 @@ services:
     container_name: academy-microservice
     image: academy-microservice
     build:
-      context: ./Droniverse.Academy
-      dockerfile: Droniverse.Academy.API/Dockerfile
+      context: .
+      dockerfile: Droniverse.Academy/Droniverse.Academy.API/Dockerfile
     environment:
       - ASPNETCORE_HTTP_PORTS=8080
       - ASPNETCORE_ENVIRONMENT=Development
@@ -39,12 +39,16 @@ services:
     container_name: community-microservice
     image: community-microservice
     build:
-      context: ./Droniverse.Community
-      dockerfile: Droniverse.Community.API/Dockerfile
+      context: .
+      dockerfile: Droniverse.Community/Droniverse.Community.API/Dockerfile
     environment:
       - ASPNETCORE_HTTP_PORTS=8080
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
+      - IdentityMicroserviceName=droniverse.gateway
+      - IdentityMicroservicePort=8080
+      - AcademyMicroserviceName=droniverse.gateway
+      - AcademyMicroservicePort=8080
     ports:
       - "5000:8080"
     networks:
@@ -54,8 +58,8 @@ services:
     container_name: identity-microservice
     image: identity-microservice
     build:
-      context: ./Droniverse.Identity
-      dockerfile: Droniverse.Identity.API/Dockerfile
+      context: .
+      dockerfile: Droniverse.Identity/Droniverse.Identity.API/Dockerfile
     environment:
       - ASPNETCORE_HTTP_PORTS=8080
       - ASPNETCORE_ENVIRONMENT=Development

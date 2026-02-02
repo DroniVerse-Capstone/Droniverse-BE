@@ -1,7 +1,5 @@
-﻿using Microsoft.AspNetCore.Builder;
-using Ocelot.DependencyInjection;
+﻿using Ocelot.DependencyInjection;
 using Ocelot.Middleware;
-using Swashbuckle.AspNetCore.SwaggerUI;
 
 var builder = WebApplication.CreateBuilder(args);
 

@@ -12,13 +12,13 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["Droniverse.Community.API/Droniverse.Community.API.csproj", "Droniverse.Community.API/"]
-COPY ["Droniverse.Community.Application/Droniverse.Community.Application.csproj", "Droniverse.Community.Application/"]
-COPY ["Droniverse.Community.Domain/Droniverse.Community.Domain.csproj", "Droniverse.Community.Domain/"]
-COPY ["Droniverse.Community.Infrastructure/Droniverse.Community.Infrastructure.csproj", "Droniverse.Community.Infrastructure/"]
-RUN dotnet restore "./Droniverse.Community.API/Droniverse.Community.API.csproj"
+COPY ["Droniverse.Community/Droniverse.Community.API/Droniverse.Community.API.csproj", "Droniverse.Community/Droniverse.Community.API/"]
+COPY ["Droniverse.Community/Droniverse.Community.Application/Droniverse.Community.Application.csproj", "Droniverse.Community/Droniverse.Community.Application/"]
+COPY ["Droniverse.Community/Droniverse.Community.Domain/Droniverse.Community.Domain.csproj", "Droniverse.Community/Droniverse.Community.Domain/"]
+COPY ["Droniverse.Community/Droniverse.Community.Infrastructure/Droniverse.Community.Infrastructure.csproj", "Droniverse.Community/Droniverse.Community.Infrastructure/"]
+RUN dotnet restore "./Droniverse.Community/Droniverse.Community.API/Droniverse.Community.API.csproj"
 COPY . .
-WORKDIR "/src/Droniverse.Community.API"
+WORKDIR "/src/Droniverse.Community/Droniverse.Community.API"
 RUN dotnet build "./Droniverse.Community.API.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # This stage is used to publish the service project to be copied to the final stage
@@ -30,4 +30,10 @@ RUN dotnet publish "./Droniverse.Community.API.csproj" -c $BUILD_CONFIGURATION -
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+
+ENV IdentityMicroserviceName=identity-microservice
+ENV IdentityMicroservicePort=8080
+ENV AcademyMicroserviceName=academy-microservice
+ENV AcademyMicroservicePort=8080
+
 ENTRYPOINT ["dotnet", "Droniverse.Community.API.dll"]

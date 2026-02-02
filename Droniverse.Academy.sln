@@ -1,0 +1,49 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.2.11415.280
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Droniverse.Academy.API", "Droniverse.Academy\Droniverse.Academy.API\Droniverse.Academy.API.csproj", "{5FF75FCC-2AEC-E6DB-1285-C98D447E747E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Droniverse.Academy.Application", "Droniverse.Academy\Droniverse.Academy.Application\Droniverse.Academy.Application.csproj", "{BDC6E233-07E8-3FBD-58FA-9535BF88E97D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Droniverse.Academy.Domain", "Droniverse.Academy\Droniverse.Academy.Domain\Droniverse.Academy.Domain.csproj", "{3B606ED4-B004-86F0-F769-D242AD2F64CC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Droniverse.Academy.Infrastructure", "Droniverse.Academy\Droniverse.Academy.Infrastructure\Droniverse.Academy.Infrastructure.csproj", "{B31DBAA8-D21D-FA59-0328-3B0292F01868}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Droniverse.Shared", "Droniverse.Shared\Droniverse.Shared.csproj", "{EAE2E953-71AA-33CC-AD79-9EA40985995C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5FF75FCC-2AEC-E6DB-1285-C98D447E747E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5FF75FCC-2AEC-E6DB-1285-C98D447E747E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5FF75FCC-2AEC-E6DB-1285-C98D447E747E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5FF75FCC-2AEC-E6DB-1285-C98D447E747E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BDC6E233-07E8-3FBD-58FA-9535BF88E97D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BDC6E233-07E8-3FBD-58FA-9535BF88E97D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BDC6E233-07E8-3FBD-58FA-9535BF88E97D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BDC6E233-07E8-3FBD-58FA-9535BF88E97D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3B606ED4-B004-86F0-F769-D242AD2F64CC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3B606ED4-B004-86F0-F769-D242AD2F64CC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3B606ED4-B004-86F0-F769-D242AD2F64CC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3B606ED4-B004-86F0-F769-D242AD2F64CC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B31DBAA8-D21D-FA59-0328-3B0292F01868}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B31DBAA8-D21D-FA59-0328-3B0292F01868}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B31DBAA8-D21D-FA59-0328-3B0292F01868}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B31DBAA8-D21D-FA59-0328-3B0292F01868}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EAE2E953-71AA-33CC-AD79-9EA40985995C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EAE2E953-71AA-33CC-AD79-9EA40985995C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EAE2E953-71AA-33CC-AD79-9EA40985995C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EAE2E953-71AA-33CC-AD79-9EA40985995C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B7A09C4B-D9EE-4D2C-998A-D2F8EC3D6F7E}
+	EndGlobalSection
+EndGlobal

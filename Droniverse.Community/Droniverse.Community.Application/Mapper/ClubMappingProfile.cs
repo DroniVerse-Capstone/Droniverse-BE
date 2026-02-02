@@ -19,7 +19,8 @@ public class ClubMappingProfile : Profile
             .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
             .ForMember(dest => dest.IsPublic, opt => opt.MapFrom(src => src.IsPublic))
             .ForMember(dest => dest.LimitParticipation, opt => opt.MapFrom(src => src.LimitParticipation))
-            .ForMember(dest => dest.LimitClubManagers, opt => opt.MapFrom(src => src.LimitClubManagers));
+            .ForMember(dest => dest.LimitClubManagers, opt => opt.MapFrom(src => src.LimitClubManagers))
+            .ForMember(dest => dest.Creator, opt => opt.Ignore());
 
         CreateMap<ClubCreateDto, Club>()
             .ForMember(dest => dest.ClubID, opt => opt.Ignore())
