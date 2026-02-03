@@ -1,7 +1,10 @@
 ﻿namespace Droniverse.Academy.Domain.Enums;
 public enum CourseStatus
 {
-    INACTIVE = 0,
-    ACTIVE = 1
+    DRAFT = 0,
+    ACTIVE = 1,
+    INACTIVE = 2,
+    PUBLISH = 3,
+    UNPUBLISH = 4
 }
 

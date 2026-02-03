@@ -10,5 +10,5 @@ public class UserCertificate
     public Guid UserID { get; set; } // reference to UserID
     public Guid SerialNumber { get; set; } //char(36)
     public DateTime AchievedDate { get; set; }
-    public CertificateStatus Status { get; set; } //
+    public UserCertificateStatus Status { get; set; } //
 }
