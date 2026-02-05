@@ -18,7 +18,7 @@ public class UserCertificateConfiguration : IEntityTypeConfiguration<UserCertifi
         builder.Property(c => c.UserID).HasColumnType("char(36)");
         builder.Property(c => c.SerialNumber).HasColumnType("char(36)");
         builder.Property(c => c.AchievedDate).HasColumnType("date");
-        builder.Property(c => c.Status).HasColumnType("bit").HasConversion<byte>();
+        builder.Property(c => c.Status).HasColumnType("tinyint").HasConversion<byte>();
         builder.ToTable(t => t.HasCheckConstraint("CK_UserCertificate_Status", "`Status` IN (0, 1)"));
         
     }

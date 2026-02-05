@@ -38,7 +38,7 @@ public class CourseVersionConfiguration : IEntityTypeConfiguration<CourseVersion
         builder.Property(c => c.DescriptionVN).HasColumnType("text");
         builder.Property(c => c.DescriptionEN).HasColumnType("text");
         builder.Property(c => c.Status)
-            .HasColumnType("bit")
+            .HasColumnType("tinyint")
             .IsRequired()
             //.HasDefaultValue(CourseStatus.ACTIVE)
             .HasConversion<byte>();
@@ -64,7 +64,7 @@ public class CourseVersionConfiguration : IEntityTypeConfiguration<CourseVersion
 
         builder.ToTable(t =>
         {
-            t.HasCheckConstraint("CK_CourseVersion_Status", "`Status` IN (0, 1)");
+            t.HasCheckConstraint("CK_CourseVersion_Status", "`Status` IN (0,1,2,3)");
             t.HasCheckConstraint("CK_CourseVersion_Level", "`Level` IN ('EASY', 'MEDIUM', 'HARD')");
         });
     }

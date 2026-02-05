@@ -23,6 +23,8 @@ public class CourseConfiguration : IEntityTypeConfiguration<Course>
 
         builder.Property(c => c.CreateBy).HasColumnType("char(36)").IsRequired();
         builder.Property(c => c.CreateAt).HasColumnType("datetime").ValueGeneratedOnAdd();
+        builder.Property(e => e.Status).HasColumnType("tinyint").HasConversion<byte>();
+        builder.ToTable(t => t.HasCheckConstraint("CK_Course_Status", "`Status` IN (0,1,2,3,4)"));
     }
 }
 

@@ -1,4 +1,6 @@
-﻿namespace Droniverse.Academy.Domain.Entities;
+﻿using Droniverse.Academy.Domain.Enums;
+
+namespace Droniverse.Academy.Domain.Entities;
 public class Course
 {
     public Guid CourseID { get; set; }
@@ -9,4 +11,5 @@ public class Course
     public Guid CreateBy { get; set; } // reference to UserID
 
     public DateTime CreateAt { get; set; }
+    public CourseStatus Status { get; set; } = CourseStatus.ACTIVE;
 }
