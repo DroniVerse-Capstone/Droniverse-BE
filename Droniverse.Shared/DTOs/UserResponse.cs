@@ -9,7 +9,7 @@ public record UserResponse(
     string RoleName
     )
 {
-    public UserResponse() : this(default, default, default, default, default, default, default)
+    public UserResponse() : this(Guid.Empty, string.Empty, string.Empty, string.Empty, string.Empty, null, string.Empty)
     {
     }
 }
