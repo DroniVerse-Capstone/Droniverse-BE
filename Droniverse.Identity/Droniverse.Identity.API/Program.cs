@@ -1,4 +1,5 @@
-﻿using Droniverse.Identity.Application;
+﻿using Droniverse.Identity.API;
+using Droniverse.Identity.Application;
 using Droniverse.Identity.Infrastructure;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using System.Text.Json.Serialization;
@@ -42,7 +43,7 @@ if (app.Environment.IsDevelopment())
 }
 
 //app.UseHttpsRedirection();
-
+app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 app.UseAuthorization();
 
 app.UseCors();

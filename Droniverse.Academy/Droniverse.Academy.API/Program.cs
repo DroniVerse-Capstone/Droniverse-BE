@@ -1,5 +1,6 @@
 ﻿using Droniverse.Academy.Application;
 using Droniverse.Academy.Infrastructure;
+using Droniverse.Identity.API;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
@@ -41,6 +42,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
