@@ -2,7 +2,6 @@
 using Droniverse.Identity.Application.DTO.Response;
 using Droniverse.Identity.Application.IService;
 using Droniverse.Shared.DTOs;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Droniverse.Identity.API.Controllers
@@ -30,8 +29,8 @@ namespace Droniverse.Identity.API.Controllers
         public async Task<IActionResult> Register([FromBody] RegisterDto request)
         {
             AuthResponse? response = await _authService.RegisterUser(request);
-            _logger.LogInformation($"User login with email {request.Email} successfully.");
-            return Ok(SuccessResponse<AuthResponse>.Create(response, "Login successfully."));
+            _logger.LogInformation($"User register with email {request.Email} successfully.");
+            return Ok(SuccessResponse<AuthResponse>.Create(response, "Register successfully."));
         }
     }
 }
