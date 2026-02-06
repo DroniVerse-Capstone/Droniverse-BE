@@ -21,19 +21,31 @@ namespace Droniverse.Academy.Infrastructure.Repositories
             _dbSet = _context.Set<T>();
         }
 
-        public async Task<T?> GetByConditionAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default)
+        public virtual async Task<T?> GetByConditionAsync(Expression<Func<T, bool>> predicate, string? includeProperties = null, CancellationToken cancellationToken = default)
         {
-            return await _dbSet.Where(predicate).FirstOrDefaultAsync(cancellationToken);
+            IQueryable<T> query = _dbSet.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(includeProperties))
+            {
+                var includes = includeProperties.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                                .Select(p => p.Trim());
+                foreach (var include in includes)
+                {
+                    query = query.Include(include);
+                }
+            }
+
+            return await query.Where(predicate).FirstOrDefaultAsync(cancellationToken);
         }
 
-        public async Task<T?> GetByIdAsync(object id, CancellationToken cancellationToken = default)
+        public virtual async Task<T?> GetByIdAsync(object id, CancellationToken cancellationToken = default)
         {
             // DbSet.FindAsync accepts a params object[] for key values
             var value = await _dbSet.FindAsync(new object[] { id }, cancellationToken);
             return value;
         }
 
-        public async Task<PaginationResult<IEnumerable<T>>> GetAllAsync(
+        public virtual async Task<PaginationResult<IEnumerable<T>>> GetAllAsync(
             Expression<Func<T, bool>>? filter = null,
             Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null,
             int pageIndex = 1,
@@ -75,19 +87,19 @@ namespace Droniverse.Academy.Infrastructure.Repositories
             return result;
         }
 
-        public async Task<T> AddAsync(T entity, CancellationToken cancellationToken = default)
+        public virtual async Task<T> AddAsync(T entity, CancellationToken cancellationToken = default)
         {
             await _dbSet.AddAsync(entity, cancellationToken);
             return entity;
         }
 
-        public Task<T?> UpdateAsync(T entity, CancellationToken cancellationToken = default)
+        public virtual Task<T?> UpdateAsync(T entity, CancellationToken cancellationToken = default)
         {
             _dbSet.Update(entity);
             return Task.FromResult<T?>(entity);
         }
 
-        public Task DeleteAsync(T entity, CancellationToken cancellationToken = default)
+        public virtual Task DeleteAsync(T entity, CancellationToken cancellationToken = default)
         {
             _context.Remove(entity);
             return Task.CompletedTask;
