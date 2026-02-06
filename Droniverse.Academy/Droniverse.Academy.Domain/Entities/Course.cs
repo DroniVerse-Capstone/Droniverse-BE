@@ -1,4 +1,5 @@
 ﻿using Droniverse.Academy.Domain.Enums;
+using Droniverse.Shared.Exceptions;
 
 namespace Droniverse.Academy.Domain.Entities;
 public class Course
