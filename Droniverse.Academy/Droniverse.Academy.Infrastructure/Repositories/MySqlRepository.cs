@@ -1,45 +1,97 @@
-﻿using Droniverse.Academy.Domain.IRepository;
-using Droniverse.Academy.Infrastructure.Persistence.MySql;
-using Microsoft.EntityFrameworkCore;
+﻿using System;
+using System.Linq;
 using System.Linq.Expressions;
+using System.Threading;
+using System.Threading.Tasks;
+using Droniverse.Academy.Domain.IRepository;
+using Droniverse.Academy.Infrastructure.Persistence.MySql;
+using Droniverse.Shared.DTOs.Response;
+using Microsoft.EntityFrameworkCore;
 
-namespace Droniverse.Academy.Infrastructure.Repositories;
-
-internal class MySqlRepository<T> : IRepository<T> where T : class
+namespace Droniverse.Academy.Infrastructure.Repositories
 {
-    protected readonly MySqlDbContext _context;
-    protected readonly DbSet<T> _dbSet;
-    public MySqlRepository(MySqlDbContext context)
+    internal class MySqlRepository<T> : IRepository<T> where T : class
     {
-        _context = context;
-        _dbSet = _context.Set<T>();
-    }
-    public async Task<T> Add(T entity)
-    {
-        await _dbSet.AddAsync(entity);
-        return entity;
-    }
+        protected readonly MySqlDbContext _context;
+        protected readonly DbSet<T> _dbSet;
 
-    public Task Delete(T entity)
-    {
-        _context.Remove(entity);
-        return Task.CompletedTask;
-    }
+        public MySqlRepository(MySqlDbContext context)
+        {
+            _context = context;
+            _dbSet = _context.Set<T>();
+        }
 
-    public async Task<IEnumerable<T>> GetAll()
-    {
-        return await _dbSet.ToListAsync();
-    }
+        public async Task<T?> GetByConditionAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default)
+        {
+            return await _dbSet.Where(predicate).FirstOrDefaultAsync(cancellationToken);
+        }
 
-    public async Task<T?> GetByCondition(Expression<Func<T, bool>> expression)
-    {
-        return await _dbSet.Where(expression).FirstOrDefaultAsync();
-    }
+        public async Task<T?> GetByIdAsync(object id, CancellationToken cancellationToken = default)
+        {
+            // DbSet.FindAsync accepts a params object[] for key values
+            var value = await _dbSet.FindAsync(new object[] { id }, cancellationToken);
+            return value;
+        }
 
-    public async Task<T?> Update(T entity)
-    {
-        _dbSet.Update(entity);
-        return await Task.FromResult(entity);
+        public async Task<PaginationResult<IEnumerable<T>>> GetAllAsync(
+            Expression<Func<T, bool>>? filter = null,
+            Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null,
+            int pageIndex = 1,
+            int pageSize = 10,
+            string? includeProperties = null,
+            CancellationToken cancellationToken = default)
+        {
+            if (pageIndex < 1) pageIndex = 1;
+            if (pageSize < 1) pageSize = 10;
+
+            IQueryable<T> query = _dbSet.AsQueryable();
+
+            if (filter is not null)
+            {
+                query = query.Where(filter);
+            }
+
+            if (!string.IsNullOrWhiteSpace(includeProperties))
+            {
+                var includes = includeProperties.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                                .Select(p => p.Trim());
+                foreach (var include in includes)
+                {
+                    query = query.Include(include);
+                }
+            }
+
+            var totalRecords = await query.CountAsync(cancellationToken);
+
+            if (orderBy is not null)
+            {
+                query = orderBy(query);
+            }
+
+            var skip = (pageIndex - 1) * pageSize;
+            var items = await query.Skip(skip).Take(pageSize).ToListAsync(cancellationToken);
+
+            var result = new PaginationResult<IEnumerable<T>>(items, totalRecords, pageIndex, pageSize);
+            return result;
+        }
+
+        public async Task<T> AddAsync(T entity, CancellationToken cancellationToken = default)
+        {
+            await _dbSet.AddAsync(entity, cancellationToken);
+            return entity;
+        }
+
+        public Task<T?> UpdateAsync(T entity, CancellationToken cancellationToken = default)
+        {
+            _dbSet.Update(entity);
+            return Task.FromResult<T?>(entity);
+        }
+
+        public Task DeleteAsync(T entity, CancellationToken cancellationToken = default)
+        {
+            _context.Remove(entity);
+            return Task.CompletedTask;
+        }
     }
 }
 
