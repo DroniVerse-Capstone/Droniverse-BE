@@ -3,7 +3,7 @@ public class Module
 {
     public Guid ModuleID { get; set; }
     public CourseVersion CourseVersion { get; set; }
-    public Guid CourseID { get; set; }
+    public Guid CourseVersionID { get; set; }
     public ICollection<UserModule> UserModules { get; set; }
     public ICollection<Lesson> Lessons { get; set; }
 

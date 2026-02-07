@@ -17,7 +17,6 @@ internal class CourseRepository : MySqlRepository<Course>, ICourseRepository
         return await base._dbSet
                 .Where(c => c.CourseID == (Guid)id)
                 .Include(c => c.CourseVersions)
-                .Include(c => c.Certificate)
                 .FirstOrDefaultAsync(cancellationToken);
     }
 }

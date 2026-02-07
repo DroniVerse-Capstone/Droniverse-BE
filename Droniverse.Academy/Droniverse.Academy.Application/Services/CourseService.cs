@@ -44,8 +44,4 @@ internal class CourseService : ICourseService
         throw new NotImplementedException();
     }
 
-    public Task<CourseVersionResponseDto> UpdateCourseStatus(Guid courseId, CourseStatus status)
-    {
-        throw new NotImplementedException();
-    }
 }

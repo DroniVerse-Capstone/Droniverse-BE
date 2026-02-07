@@ -15,9 +15,6 @@ public interface ICourseService
     // Create new course
     Task<CourseVersionResponseDto> CreateCourse(CreateCourseRequestDto request);
 
-    // Update course status (partial update)
-    Task<CourseVersionResponseDto> UpdateCourseStatus(Guid courseId, CourseStatus status);
-
     // Publish / Unpublish course
     Task PublishCourse(Guid courseId);
     Task UnpublishCourse(Guid courseId);
