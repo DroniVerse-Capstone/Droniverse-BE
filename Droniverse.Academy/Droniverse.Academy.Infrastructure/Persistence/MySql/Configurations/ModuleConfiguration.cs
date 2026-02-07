@@ -12,7 +12,7 @@ public class ModuleConfiguration : IEntityTypeConfiguration<Module>
         builder.HasKey(m => m.ModuleID);
         builder.HasOne(m => m.CourseVersion)
             .WithMany(c => c.Modules)
-            .HasForeignKey(m => m.CourseID)
+            .HasForeignKey(m => m.CourseVersionID)
             .OnDelete(DeleteBehavior.Restrict);
         builder.HasMany(m => m.UserModules)
             .WithOne(um => um.Module);
@@ -20,7 +20,7 @@ public class ModuleConfiguration : IEntityTypeConfiguration<Module>
             .WithOne(l => l.Module);
 
         builder.Property(m => m.ModuleID).HasColumnType("char(36)");
-        builder.Property(m => m.CourseID).HasColumnType("char(36)");
+        builder.Property(m => m.CourseVersionID).HasColumnType("char(36)");
         builder.Property(m => m.TitleVN).HasMaxLength(255);
         builder.Property(m => m.TitleEN).HasMaxLength(255);
         builder.Property(m => m.ModuleNumber).HasColumnType("int");
