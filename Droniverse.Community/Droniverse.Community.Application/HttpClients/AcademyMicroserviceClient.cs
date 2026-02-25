@@ -6,6 +6,20 @@ using System.Net.Http.Json;
 
 namespace Droniverse.Community.Application.HttpClients;
 
+// DTO for Academy microservice response
+public class CourseResponse
+{
+    public Guid CourseId { get; set; }
+    public string CourseName { get; set; } = string.Empty;
+    public string CourseDescription { get; set; } = string.Empty;
+    public string Instructor { get; set; } = string.Empty;
+    public int Duration { get; set; }
+    public string Level { get; set; } = string.Empty;
+    public DateTime CreatedDate { get; set; }
+    public DateTime? UpdatedDate { get; set; }
+    public bool IsActive { get; set; }
+}
+
 public class AcademyMicroserviceClient
 {
     private readonly HttpClient _httpClient;
@@ -51,6 +65,46 @@ public class AcademyMicroserviceClient
         }
         return feedback;
     }
-    
+
+    public async Task<CourseResponse> GetCourseById(Guid courseId)
+    {
+        try
+        {
+            HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/api/courses/{courseId}");
+            if (!httpResponseMsg.IsSuccessStatusCode)
+            {
+                if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                {
+                    _logger.LogWarning("Academy service is unavailable.");
+                    return null;
+                }
+                else if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    _logger.LogWarning("Course with ID {CourseId} not found in Academy Microservice.", courseId);
+                    return null;
+                }
+                else if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    throw new HttpRequestException("Bad request", null, System.Net.HttpStatusCode.BadRequest);
+                }
+                else
+                {
+                    throw new HttpRequestException($"Academy service error: {httpResponseMsg.StatusCode}", null, httpResponseMsg.StatusCode);
+                }
+            }
+
+            CourseResponse? course = await httpResponseMsg.Content.ReadFromJsonAsync<CourseResponse>();
+            if (course == null)
+            {
+                throw new ArgumentException("Invalid courseID");
+            }
+            return course;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching course with ID {CourseId} from Academy service.", courseId);
+            throw;
+        }
+    }
 }
 

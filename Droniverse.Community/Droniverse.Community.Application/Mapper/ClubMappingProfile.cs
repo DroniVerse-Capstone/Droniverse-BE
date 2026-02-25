@@ -20,6 +20,7 @@ public class ClubMappingProfile : Profile
             .ForMember(dest => dest.IsPublic, opt => opt.MapFrom(src => src.IsPublic))
             .ForMember(dest => dest.LimitParticipation, opt => opt.MapFrom(src => src.LimitParticipation))
             .ForMember(dest => dest.LimitClubManagers, opt => opt.MapFrom(src => src.LimitClubManagers))
+            .ForMember(dest => dest.Categories, opt => opt.MapFrom(src => src.ClubCategories.Select(cc => cc.Category)))
             .ForMember(dest => dest.Creator, opt => opt.Ignore());
 
         CreateMap<ClubCreateDto, Club>()
@@ -32,6 +33,7 @@ public class ClubMappingProfile : Profile
             .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
             .ForMember(dest => dest.IsPublic, opt => opt.MapFrom(src => src.IsPublic))
             .ForMember(dest => dest.LimitParticipation, opt => opt.MapFrom(src => src.LimitParticipation))
+            .ForMember(dest => dest.ClubCategories, opt => opt.Ignore())
             .ForMember(dest => dest.LimitClubManagers, opt => opt.MapFrom(src => src.LimitClubManagers));
 
         CreateMap<ClubUpdateDto, Club>()
@@ -44,6 +46,7 @@ public class ClubMappingProfile : Profile
             .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
             .ForMember(dest => dest.IsPublic, opt => opt.MapFrom(src => src.IsPublic))
             .ForMember(dest => dest.LimitParticipation, opt => opt.MapFrom(src => src.LimitParticipation))
+            .ForMember(dest => dest.ClubCategories, opt => opt.Ignore())
             .ForMember(dest => dest.LimitClubManagers, opt => opt.MapFrom(src => src.LimitClubManagers));
     }
 }

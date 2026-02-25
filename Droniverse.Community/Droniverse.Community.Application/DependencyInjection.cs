@@ -14,8 +14,12 @@ public static class DependencyInjection
     {
         // Chỉ cần thêm 1 mapping profile là đc
         services.AddAutoMapper(typeof(ClubMappingProfile).Assembly);
+        services.AddAutoMapper(typeof(ClubRequestMappingProfile).Assembly);
+        services.AddAutoMapper(typeof(CategoryMappingProfile).Assembly);
         services.AddScoped<IClubService, ClubService>();
+        services.AddScoped<IClubRequestService, ClubRequestService>();
         services.AddScoped<IOrderService, OrderService>();
+        services.AddScoped<ICategoryService, CategoryService>();
 
         services.AddHttpClient<IdentityMicroserviceClient>(client =>
         {
