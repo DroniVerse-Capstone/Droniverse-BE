@@ -2,7 +2,9 @@
 using Droniverse.Identity.Application.DTO.Response;
 using Droniverse.Identity.Application.IService;
 using Droniverse.Shared.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace Droniverse.Identity.API.Controllers
 {
@@ -21,7 +23,7 @@ namespace Droniverse.Identity.API.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginEmailDto request)
         {
-            AuthResponse? response =  await _authService.AuthenticatedUser(request.Email, request.Password);
+            AuthResponse? response = await _authService.AuthenticatedUser(request.Email, request.Password);
             _logger.LogInformation($"User login with email {request.Email} successfully.");
             return Ok(SuccessResponse<AuthResponse>.Create(response, "Login successfully."));
         }
@@ -31,6 +33,24 @@ namespace Droniverse.Identity.API.Controllers
             AuthResponse? response = await _authService.RegisterUser(request);
             _logger.LogInformation($"User register with email {request.Email} successfully.");
             return Ok(SuccessResponse<AuthResponse>.Create(response, "Register successfully."));
+        }
+
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenDto request)
+        {
+            AuthResponse? response = await _authService.RefreshToken(request.AccessToken, request.RefreshToken);
+            _logger.LogInformation($"Token refreshed successfully.");
+            return Ok(SuccessResponse<AuthResponse>.Create(response, "Token refreshed successfully."));
+        }
+
+        [Authorize]
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout(string accessToken, string refreshToken)
+        {
+            
+            await _authService.Logout(accessToken, refreshToken);
+            _logger.LogInformation($"User logged out successfully.");
+            return Ok(SuccessResponse<string>.Create(null, "Logout successfully."));
         }
     }
 }

@@ -26,6 +26,27 @@ internal class AuthService : IAuthService
         _mapper = mapper;
         _configuration = configuration;
     }
+    public async Task<AuthResponse> RefreshToken(string accessToken, string refreshToken)
+    {
+        var principal = GetPrincipalFromExpiredToken(accessToken);
+        string email = principal.Identity?.Name ?? throw new UnauthorizedAccessException("Invalid access token.");
+        //check trong redis xem có bị blacklist hay không (cả access và refresh)
+        
+        Account? account = await _unitOfWork.Accounts.GetByCondition(a => a.Email == email);
+        if (account is null)
+        {
+            throw new UnauthorizedAccessException("User not found.");
+        }
+        UserResponse user = _mapper.Map<UserResponse>(account);
+        string newAccessToken = GenerateAccessToken(account);
+        string newRefreshToken = GenerateRefreshToken();
+        return new AuthResponse
+        {
+            AccessToken = newAccessToken,
+            RefreshToken = newRefreshToken,
+            User = user
+        };
+    }
     public async Task<AuthResponse> RegisterUser(RegisterDto registerDto)
     {
         Account? existingAccount = await _unitOfWork.Accounts.GetByCondition(a => a.Email == registerDto.Email);
@@ -47,8 +68,6 @@ internal class AuthService : IAuthService
             User = user
         };
     }
-
-
     public async Task<AuthResponse> AuthenticatedUser(string email, string password)
     {
         Account? account = await _unitOfWork.Accounts.GetByCondition(a => a.Email == email && a.PasswordHash == password);
@@ -59,6 +78,13 @@ internal class AuthService : IAuthService
         UserResponse user = _mapper.Map<UserResponse>(account);
         string accessToken = GenerateAccessToken(account);
         string refreshToken = GenerateRefreshToken();
+
+        //Lưu refresh token & refresh token expiryTime vào db
+        account.RefreshToken = refreshToken;
+        account.RefreshTokenExpiryTime = DateTime.Now.AddDays(7);
+        
+        //lưu vào redis
+
         return new AuthResponse
         {
             AccessToken = accessToken,
@@ -67,6 +93,24 @@ internal class AuthService : IAuthService
         };
     }
 
+    public async Task<bool> Logout(string accessToken, string refreshToken)
+    {
+        var principal = GetPrincipalFromExpiredToken(accessToken);
+        string email = principal.Identity?.Name ?? throw new UnauthorizedAccessException("Invalid access token.");
+
+        Account? account = await _unitOfWork.Accounts.GetByCondition(a => a.Email == email);
+        if (account is null)
+        {
+            throw new UnauthorizedAccessException("Invalid email or password.");
+        }
+        account.RefreshToken = null;
+        account.RefreshTokenExpiryTime = null;
+
+        //thêm access và refresh token vào blacklist trong redis...
+
+        return await _unitOfWork.SaveChangeAsync() > 0;
+
+    }
     private string GenerateAccessToken(Account account)
     {
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
@@ -75,27 +119,48 @@ internal class AuthService : IAuthService
         var claims = new[]
         {
             new Claim("UserID", account.UserID.ToString()),
-            new Claim("Email", account.Email),
-            new Claim("Role", account.Role.RoleName),
+            new Claim(ClaimTypes.Name, account.Email),
+            new Claim(ClaimTypes.Email, account.Email),
+            new Claim(ClaimTypes.Role, account.Role.RoleName),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+
         };
 
         var token = new JwtSecurityToken(
             issuer: _configuration["Jwt:Issuer"],
             audience: _configuration["Jwt:Audience"],
             claims: claims,
-            expires: DateTime.Now.AddMinutes(120),
+            expires: DateTime.UtcNow.AddMinutes(120),
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
-
     private string GenerateRefreshToken()
     {
         var randomNumber = new byte[32];
         using var rng = RandomNumberGenerator.Create();
         rng.GetBytes(randomNumber);
         return Convert.ToBase64String(randomNumber);
+    }
+    private ClaimsPrincipal GetPrincipalFromExpiredToken(string token)
+    {
+        var tokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateAudience = false,
+            ValidateIssuer = false,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"])),
+            ValidateLifetime = false
+        };
+        var tokenHandler = new JwtSecurityTokenHandler();
+        SecurityToken securityToken;
+        ClaimsPrincipal principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out securityToken);
+        JwtSecurityToken jwtSecurityToken = securityToken as JwtSecurityToken;
+        if (jwtSecurityToken == null || !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+        {
+            throw new SecurityTokenException("Invalid token");
+        }
+        return principal;
     }
 }
 
