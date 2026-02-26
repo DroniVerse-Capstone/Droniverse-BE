@@ -9,15 +9,17 @@ public record ClubResponseDto(
     string NameEN,
     string DescriptionVN,
     string DescriptionEN,
-    Guid ClubCode,
+    string ClubCode,
     ClubStatus Status,
     bool IsPublic,
     int LimitParticipation,
     int LimitClubManagers,
-    UserResponse Creator
+    UserResponse Creator,
+    IEnumerable<CategoryResponseDto> Categories
+
     )
 {
-    public ClubResponseDto() : this(default, default, default, default, default, default, default, default, default, default, default)
+    public ClubResponseDto() : this(default, default, default, default, default, default, default, default, default, default, default, default)
     {
     }
 }

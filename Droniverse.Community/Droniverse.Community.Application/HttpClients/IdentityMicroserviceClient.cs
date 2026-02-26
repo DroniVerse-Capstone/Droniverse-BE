@@ -27,7 +27,7 @@ public class IdentityMicroserviceClient
         //key:value
         //userid:{object} ttl:30p
 
-        HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/api/users/{userId}");
+        HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/identity/users/{userId}");
         if (!httpResponseMsg.IsSuccessStatusCode)
         {
             if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
@@ -37,7 +37,7 @@ public class IdentityMicroserviceClient
 
             else if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
-                _logger.LogWarning("User with ID {UserId} not found in Identity Microservice.", userId);
+                _logger.LogWarning($"User with ID {userId} not found in Identity Microservice.");
                 return null;
             }
             else if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.BadRequest)
@@ -60,9 +60,61 @@ public class IdentityMicroserviceClient
         //Write to cache
         //key:value
 
-
         return user;
+    }
 
+    public async Task<IEnumerable<UserResponse>> GetUsersBulk(IEnumerable<Guid> userIds)
+    {
+        if (userIds == null || !userIds.Any())
+            return Enumerable.Empty<UserResponse>();
+
+        var distinctIds = userIds
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync(
+                "/identity/users/bulk",
+                distinctIds
+            );
+
+            if (!response.IsSuccessStatusCode)
+            {
+                if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                {
+                    _logger.LogError("Identity service unavailable (bulk request).");
+                    throw new HttpRequestException(
+                        "Identity service unavailable",
+                        null,
+                        System.Net.HttpStatusCode.ServiceUnavailable);
+                }
+
+                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    throw new HttpRequestException(
+                        "Bad request when calling Identity bulk API",
+                        null,
+                        System.Net.HttpStatusCode.BadRequest);
+                }
+
+                throw new HttpRequestException(
+                    $"Identity bulk API error: {response.StatusCode}",
+                    null,
+                    response.StatusCode);
+            }
+
+            var users = await response.Content
+                                      .ReadFromJsonAsync<IEnumerable<UserResponse>>();
+
+            return users ?? Enumerable.Empty<UserResponse>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error calling Identity bulk API");
+            throw;
+        }
     }
 }
 

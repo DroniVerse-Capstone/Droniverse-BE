@@ -69,6 +69,11 @@ public class GlobalExceptionHandlerMiddleware
                 StatusCodes.Status400BadRequest,
                 ErrorResponse.Create(ex.Message, "BAD_REQUEST")
             ),
+            DomainException ex => (
+                StatusCodes.Status400BadRequest,
+                ErrorResponse.Create(ex.Message, ex.ErrorCode)
+            ),
+
             _ => (
                 StatusCodes.Status500InternalServerError,
                 CreateInternalServerError(exception)

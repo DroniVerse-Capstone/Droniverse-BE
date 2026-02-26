@@ -7,6 +7,8 @@ public interface IUnitOfWork : IDisposable
 {
     IRepository<Category> Categories { get; }
     IRepository<Club> Clubs { get; }
+    IRepository<ClubCategory> ClubCategories { get; }
+    //IRepository<ClubCourse> ClubCourses { get; }
     IRepository<ClubRequest> ClubRequests { get; }
     IRepository<Competition> Competitions { get; }
     IRepository<Media> Medias { get; }

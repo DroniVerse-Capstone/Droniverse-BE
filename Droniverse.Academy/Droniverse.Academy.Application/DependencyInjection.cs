@@ -11,7 +11,7 @@ public static class DependencyInjection
     {
         services.AddAutoMapper(typeof(CourseMappingProfile).Assembly); //chỉ cần thêm 1 profile là đc
         services.AddScoped<ICourseService, CourseService>();
-        services.AddScoped<IFeedbackService, FeedbackService>();
+        //services.AddScoped<IFeedbackService, FeedbackService>();
         return services;
     }
 

@@ -23,7 +23,16 @@ builder.Services.AddControllers()
 BsonSerializer.RegisterSerializer(new GuidSerializer(BsonType.String));
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.MapType<DateOnly>(() => new Microsoft.OpenApi.Models.OpenApiSchema
+    {
+        Type = "string",
+        Format = "date",
+        Example = new Microsoft.OpenApi.Any.OpenApiString("2000-01-01")
+    });
+});
+
 
 builder.Services.AddAuthorization();
 

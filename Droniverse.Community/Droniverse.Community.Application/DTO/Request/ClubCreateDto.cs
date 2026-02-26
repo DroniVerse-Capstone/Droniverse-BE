@@ -12,6 +12,6 @@ public record ClubCreateDto(
     int LimitParticipation,
     int LimitClubManagers,
     Guid CreatedBy,
-    Guid FeedbackId
+    List<Guid> CategoryIDs
     )
 {}

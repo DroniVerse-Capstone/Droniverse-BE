@@ -9,6 +9,8 @@ internal class UnitOfWork : IUnitOfWork
 
     private IRepository<Category> _category;
     private IRepository<Club> _club;
+    private IRepository<ClubCategory> _clubCategory;
+    //private IRepository<ClubCourse> _clubCourse;
     private IRepository<ClubRequest> _clubRequest;
     private IRepository<Competition> _competiton;
     private IRepository<Media> _media;
@@ -26,6 +28,8 @@ internal class UnitOfWork : IUnitOfWork
     public IRepository<Club> Clubs => _club ??= new ClubRepository(_context);
 
     public IRepository<ClubRequest> ClubRequests => _clubRequest ??= new ClubRequestRepository(_context);
+    public IRepository<ClubCategory> ClubCategories => _clubCategory ??= new ClubCategoryRepository(_context);
+    //public IRepository<ClubCourse> ClubCourses => _clubCourse ??= new Repository<ClubCourse>(_context);
 
     public IRepository<Competition> Competitions => _competiton ??= new CompetitionRepository(_context);
     public IRepository<Media> Medias => _media ??= new MediaRepository(_context);
