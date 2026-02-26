@@ -139,6 +139,10 @@ internal class ClubService : IClubService
         {
             throw new KeyNotFoundException($"Club with ID {id} not found.");
         }
+
+        // check total members
+        int totalMemembers = await _unitOfWork.Participations.CountMembersByClubIdAsync(id);
+        int totalCourses = await _unitOfWork.ClubCourses.CountCoursesByClubIdAsync(id);
         ClubResponseDto response = _mapper.Map<ClubResponseDto>(club);
         return response;
     }
@@ -192,6 +196,11 @@ internal class ClubService : IClubService
         IEnumerable<Participation> participations = await _unitOfWork.Participations.GetManyByCondition(p => p.UserID == userID  && p.Status == Domain.Enums.ParticipationStatus.ACTIVE);
         var clubs = participations.Select(p => p.Club);
         return _mapper.Map<IEnumerable<ClubResponseDto>>(clubs);
+    }
+    public async Task<IEnumerable<DTO.Response.CourseResponseDto>> GetClubCourses(Guid clubId)
+    {
+        // todo
+        throw new Exception();
     }
 }
 
