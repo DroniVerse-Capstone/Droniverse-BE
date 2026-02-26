@@ -3,5 +3,6 @@
 namespace Droniverse.Community.Domain.IRepository;
 public interface IParticipationRepository : IRepository<Participation>
 {
+    Task<int> CountMembersByClubIdAsync(Guid clubId);
 }
 

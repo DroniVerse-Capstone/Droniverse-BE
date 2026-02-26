@@ -53,7 +53,7 @@ namespace Droniverse.Community.Application.Services
             return response;
         }
 
-        public async Task<CategoryResponseDto> GetCategoryById(Guid id)
+        public async Task<CategoryResponseDto> GetCategoryById(Guid id) 
         {
             Category? category = await _unitOfWork.Categories.GetByCondition(c => c.CategoryID == id);
             if (category == null)

@@ -14,12 +14,11 @@ public record ClubResponseDto(
     bool IsPublic,
     int LimitParticipation,
     int LimitClubManagers,
+    int totalMembers,
+    int totalCourses,   
     UserResponse Creator,
     IEnumerable<CategoryResponseDto> Categories
-
     )
 {
-    public ClubResponseDto() : this(default, default, default, default, default, default, default, default, default, default, default, default)
-    {
-    }
+
 }

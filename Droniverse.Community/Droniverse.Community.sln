@@ -1,0 +1,48 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Droniverse.Community.API", "Droniverse.Community.API\Droniverse.Community.API.csproj", "{EB47FECE-4D5D-EE8E-F5CB-2BB3E2E100AC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Droniverse.Community.Application", "Droniverse.Community.Application\Droniverse.Community.Application.csproj", "{64825E90-3C14-E6FD-5895-483BA176FC69}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Droniverse.Community.Domain", "Droniverse.Community.Domain\Droniverse.Community.Domain.csproj", "{E1361AD6-925B-DA14-B44D-FBEF21CD2FCB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Droniverse.Community.Infrastructure", "Droniverse.Community.Infrastructure\Droniverse.Community.Infrastructure.csproj", "{2690ED76-42FB-9B70-55C2-471062DCB86E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Droniverse.Tests", "Droniverse.Tests\Droniverse.Tests.csproj", "{0A32AF49-FBA1-93D9-3366-1E22989E8EFE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EB47FECE-4D5D-EE8E-F5CB-2BB3E2E100AC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EB47FECE-4D5D-EE8E-F5CB-2BB3E2E100AC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EB47FECE-4D5D-EE8E-F5CB-2BB3E2E100AC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EB47FECE-4D5D-EE8E-F5CB-2BB3E2E100AC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{64825E90-3C14-E6FD-5895-483BA176FC69}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{64825E90-3C14-E6FD-5895-483BA176FC69}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{64825E90-3C14-E6FD-5895-483BA176FC69}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{64825E90-3C14-E6FD-5895-483BA176FC69}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E1361AD6-925B-DA14-B44D-FBEF21CD2FCB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E1361AD6-925B-DA14-B44D-FBEF21CD2FCB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E1361AD6-925B-DA14-B44D-FBEF21CD2FCB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E1361AD6-925B-DA14-B44D-FBEF21CD2FCB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2690ED76-42FB-9B70-55C2-471062DCB86E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2690ED76-42FB-9B70-55C2-471062DCB86E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2690ED76-42FB-9B70-55C2-471062DCB86E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2690ED76-42FB-9B70-55C2-471062DCB86E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0A32AF49-FBA1-93D9-3366-1E22989E8EFE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0A32AF49-FBA1-93D9-3366-1E22989E8EFE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0A32AF49-FBA1-93D9-3366-1E22989E8EFE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0A32AF49-FBA1-93D9-3366-1E22989E8EFE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C98985F6-14F4-498F-9D6C-67835699045B}
+	EndGlobalSection
+EndGlobal

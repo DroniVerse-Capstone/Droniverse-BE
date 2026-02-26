@@ -7,52 +7,66 @@ internal class UnitOfWork : IUnitOfWork
 {
     private readonly MySqlDbContext _context;
 
-    private IRepository<Category> _category;
-    private IRepository<Club> _club;
-    private IRepository<ClubCategory> _clubCategory;
-    //private IRepository<ClubCourse> _clubCourse;
-    private IRepository<ClubRequest> _clubRequest;
-    private IRepository<Competition> _competiton;
-    private IRepository<Media> _media;
-    private IRepository<MediaType> _mediaType;
-    private IRepository<Participation> _participation;
-    private IRepository<Product> _product;
-    private IRepository<ProductCategory> _productCategory;
-    private IRepository<Round> _round;
+    private ICategoryRepository _category;
+    private IClubRepository _club;
+    private IClubCategoryRepository _clubCategory;
+    private IClubRequestRepository _clubRequest;
+    private ICompetitionRepository _competition;
+    private IMediaRepository _media;
+    private IMediaTypeRepository _mediaType;
+    private IParticipationRepository _participation;
+    private IProductRepository _product;
+    private IProductCategoryRepository _productCategory;
+    private IRoundRepository _round;
+    private IClubCourseRepository _clubCourse;
+
     public UnitOfWork(MySqlDbContext context)
     {
         _context = context;
     }
-    public IRepository<Category> Categories => _category ??= new CategoryRepository(_context);
 
-    public IRepository<Club> Clubs => _club ??= new ClubRepository(_context);
+    public ICategoryRepository Categories
+        => _category ??= new CategoryRepository(_context);
 
-    public IRepository<ClubRequest> ClubRequests => _clubRequest ??= new ClubRequestRepository(_context);
-    public IRepository<ClubCategory> ClubCategories => _clubCategory ??= new ClubCategoryRepository(_context);
-    //public IRepository<ClubCourse> ClubCourses => _clubCourse ??= new Repository<ClubCourse>(_context);
+    public IClubRepository Clubs
+        => _club ??= new ClubRepository(_context);
 
-    public IRepository<Competition> Competitions => _competiton ??= new CompetitionRepository(_context);
-    public IRepository<Media> Medias => _media ??= new MediaRepository(_context);
+    public IClubCategoryRepository ClubCategories
+        => _clubCategory ??= new ClubCategoryRepository(_context);
 
-    public IRepository<MediaType> MediaTypes => _mediaType ??= new MediaTypeRepository(_context);
+    public IClubRequestRepository ClubRequests
+        => _clubRequest ??= new ClubRequestRepository(_context);
 
-    public IRepository<Participation> Participations => _participation ??= new ParticipationRepository(_context);
+    public ICompetitionRepository Competitions
+        => _competition ??= new CompetitionRepository(_context);
 
-    public IRepository<ProductCategory> ProductCategories => _productCategory ??= new ProductCategoryRepository(_context);
+    public IMediaRepository Medias
+        => _media ??= new MediaRepository(_context);
 
-    public IRepository<Product> Products => _product ??= new ProductRepository(_context);
+    public IMediaTypeRepository MediaTypes
+        => _mediaType ??= new MediaTypeRepository(_context);
 
-    public IRepository<Round> Rounds => _round ??= new RoundRepository(_context);
+    public IParticipationRepository Participations
+        => _participation ??= new ParticipationRepository(_context);
 
-    public void Dispose() // dùng để đóng kết nối với DbContext
+    public IProductCategoryRepository ProductCategories
+        => _productCategory ??= new ProductCategoryRepository(_context);
+
+    public IProductRepository Products
+        => _product ??= new ProductRepository(_context);
+
+    public IRoundRepository Rounds
+        => _round ??= new RoundRepository(_context);
+
+    public IClubCourseRepository ClubCourses => _clubCourse ??= new ClubCourseRepository(_context);
+
+    public async Task<int> SaveChangeAsync()
+        => await _context.SaveChangesAsync();
+
+    public void Dispose()
     {
         _context.Dispose();
         GC.SuppressFinalize(this);
-    }
-
-    public async Task<int> SaveChangeAsync()
-    {
-        return await _context.SaveChangesAsync();
     }
 }
 
