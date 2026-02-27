@@ -14,8 +14,7 @@ public record CourseVersionResponseDto(
     CourseLevel Level,
     int EstimatedDuration,
     Guid UpdateBy,
-    DateTime UpdateAt,
-    CourseResponseDto Course
+    DateTime UpdateAt
     )
 {}
 
