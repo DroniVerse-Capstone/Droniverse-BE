@@ -6,7 +6,7 @@ namespace Droniverse.Academy.Domain.IRepository
         IRepository<Certificate> Certificates { get; }
         IRepository<Code> Codes { get; }
         IRepository<CodeUsage> CodeUsages { get; }
-        IRepository<Course> Courses { get; }
+        ICourseRepository Courses { get; }
         IRepository<CourseVersion> CourseVersions { get; }
         IRepository<CourseVersionCategory> CourseVersionCategories { get; }
         IRepository<Drone> Drones { get; }

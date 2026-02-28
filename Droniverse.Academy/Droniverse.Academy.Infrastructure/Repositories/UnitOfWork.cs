@@ -10,7 +10,7 @@ internal class UnitOfWork : IUnitOfWork
     private IRepository<Certificate> _certificate;
     private IRepository<Code> _code;
     private IRepository<CodeUsage> _codeUsage;
-    private IRepository<Course> _course;
+    private ICourseRepository _course;
     private IRepository<CourseVersion> _courseVersion;
     private IRepository<CourseVersionCategory> _courseVersionCategory;
     private IRepository<Drone> _drone;
@@ -41,7 +41,7 @@ internal class UnitOfWork : IUnitOfWork
 
     public IRepository<CodeUsage> CodeUsages => _codeUsage ??= new CodeUsageRepository(_mySqlContext);
 
-    public IRepository<Course> Courses => _course ??= new CourseRepository(_mySqlContext);
+    public ICourseRepository Courses => _course ??= new CourseRepository(_mySqlContext);
 
     public IRepository<CourseVersion> CourseVersions => _courseVersion ??= new CourseVersionRepository(_mySqlContext);
 

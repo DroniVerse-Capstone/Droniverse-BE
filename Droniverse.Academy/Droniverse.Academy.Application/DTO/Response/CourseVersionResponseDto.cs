@@ -2,7 +2,7 @@
 
 namespace Droniverse.Academy.Application.DTO.Response;
 
-public record CourseVersionResponseDto(
+public record CourseVersionResponseDTO(
     Guid CourseVersionID,
     string TitleVN,
     string TitleEN,
@@ -14,7 +14,12 @@ public record CourseVersionResponseDto(
     CourseLevel Level,
     int EstimatedDuration,
     Guid UpdateBy,
-    DateTime UpdateAt
+    DateTime UpdateAt,
+    string comtextVN,
+    string contextEN,
+
+    IEnumerable<CategoryResponseDto> Categories,
+    IEnumerable<RequiredDroneResponseDto> RequiredDrones
     )
 {}
 

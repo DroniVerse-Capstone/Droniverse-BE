@@ -6,7 +6,7 @@ public record FeedbackResponseDto(
     int Rating,
     string Content,
     DateTime CreateAt,
-    CourseVersionResponseDto CourseVersion
+    CourseVersionResponseDTO CourseVersion
     )
 {
     public FeedbackResponseDto() : this(default, default, default, default, default, default) { }

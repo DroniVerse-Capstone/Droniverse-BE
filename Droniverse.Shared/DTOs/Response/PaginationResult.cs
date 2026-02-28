@@ -1,20 +1,21 @@
-﻿namespace Droniverse.Shared.DTOs.Response
+﻿public class PaginationResult<T>
 {
-    public class PaginationResult<T>
-    {
-        public int PageIndex { get; set; }
-        public int PageSize { get; set; }
-        public int TotalRecords { get; set; }
-        public int TotalPages { get; set; }
-        public T Data { get; set; }
+    public IReadOnlyList<T> Data { get; }
+    public int TotalRecords { get; }
+    public int PageIndex { get; }
+    public int PageSize { get; }
+    public int TotalPages { get; }
 
-        public PaginationResult(T data, int totalRecords, int pageIndex, int pageSize)
-        {
-            Data = data;
-            TotalRecords = totalRecords;
-            PageIndex = pageIndex;
-            PageSize = pageSize;
-            TotalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);
-        }
+    public PaginationResult(
+        IReadOnlyList<T> data,
+        int totalRecords,
+        int pageIndex,
+        int pageSize)
+    {
+        Data = data;
+        TotalRecords = totalRecords;
+        PageIndex = pageIndex;
+        PageSize = pageSize;
+        TotalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);
     }
 }
