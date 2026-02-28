@@ -4,7 +4,6 @@ using Droniverse.Identity.Application.IService;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 
 namespace Droniverse.Identity.API.Controllers
 {

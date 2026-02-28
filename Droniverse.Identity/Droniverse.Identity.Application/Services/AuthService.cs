@@ -6,7 +6,9 @@ using Droniverse.Identity.Domain.Entities;
 using Droniverse.Identity.Domain.Interfaces;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Exceptions;
+using Droniverse.Shared.Settings;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -19,12 +21,12 @@ internal class AuthService : IAuthService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
-    private readonly IConfiguration _configuration;
-    public AuthService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration configuration)
+    private readonly JwtSettings _jwtSettings;
+    public AuthService(IUnitOfWork unitOfWork, IMapper mapper, IOptions<JwtSettings> jwtSettings)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
-        _configuration = configuration;
+        _jwtSettings = jwtSettings.Value;
     }
     public async Task<AuthResponse> RefreshToken(string accessToken, string refreshToken)
     {
@@ -37,9 +39,17 @@ internal class AuthService : IAuthService
         {
             throw new UnauthorizedAccessException("User not found.");
         }
+        if (account.RefreshToken != refreshToken ||
+            account.RefreshTokenExpiryTime <= DateTime.UtcNow)
+        {
+            throw new UnauthorizedAccessException("Invalid or expired refresh token.");
+        }
         UserResponse user = _mapper.Map<UserResponse>(account);
         string newAccessToken = GenerateAccessToken(account);
         string newRefreshToken = GenerateRefreshToken();
+        account.RefreshToken = newRefreshToken;
+        account.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays); // ✅ From settings
+        await _unitOfWork.SaveChangeAsync();
         return new AuthResponse
         {
             AccessToken = newAccessToken,
@@ -81,8 +91,8 @@ internal class AuthService : IAuthService
 
         //Lưu refresh token & refresh token expiryTime vào db
         account.RefreshToken = refreshToken;
-        account.RefreshTokenExpiryTime = DateTime.Now.AddDays(7);
-        
+        account.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays); // ✅ From settings
+        await _unitOfWork.SaveChangeAsync();
         //lưu vào redis
 
         return new AuthResponse
@@ -113,7 +123,10 @@ internal class AuthService : IAuthService
     }
     private string GenerateAccessToken(Account account)
     {
-        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+        //var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+        var securityKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(_jwtSettings.Key) // From .env
+        );
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
         var claims = new[]
@@ -127,8 +140,8 @@ internal class AuthService : IAuthService
         };
 
         var token = new JwtSecurityToken(
-            issuer: _configuration["Jwt:Issuer"],
-            audience: _configuration["Jwt:Audience"],
+            issuer: _jwtSettings.Issuer,
+            audience: _jwtSettings.Issuer,
             claims: claims,
             expires: DateTime.UtcNow.AddMinutes(120),
             signingCredentials: credentials);
@@ -149,8 +162,9 @@ internal class AuthService : IAuthService
             ValidateAudience = false,
             ValidateIssuer = false,
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"])),
-            ValidateLifetime = false
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(_jwtSettings.Key)
+            ),
         };
         var tokenHandler = new JwtSecurityTokenHandler();
         SecurityToken securityToken;

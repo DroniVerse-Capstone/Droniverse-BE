@@ -1,6 +1,9 @@
 ﻿using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.IService;
+using Droniverse.Shared.DTOs.Response;
+using Droniverse.Shared.Extensions;
+using Droniverse.Shared.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Droniverse.Community.API.Controllers
@@ -10,9 +13,17 @@ namespace Droniverse.Community.API.Controllers
     public class ClubController : ControllerBase
     {
         private readonly IClubService _clubService;
-        public ClubController(IClubService clubService)
+        private readonly ICloudinaryService _cloudinaryService;
+        public ClubController(IClubService clubService, ICloudinaryService cloudinaryService)
         {
             _clubService = clubService;
+            _cloudinaryService = cloudinaryService;
+        }
+
+        [HttpPost("upload-temp-image")]
+        public async Task<IActionResult> UploadTempImage([FromForm] FileUploadDto file)
+        {
+            return await this.UploadImageAsync(_cloudinaryService, file, "droniverse/temp");
         }
 
         [HttpGet]
