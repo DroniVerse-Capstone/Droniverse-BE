@@ -10,6 +10,7 @@ public record ClubUpdateDto(
     ClubStatus Status,
     bool IsPublic,
     int LimitParticipation,
-    int LimitClubManagers
+    int LimitClubManagers,
+    List<Guid> CategoryIDs
     )
 {}

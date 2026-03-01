@@ -12,6 +12,9 @@
       ],
       "UpstreamPathTemplate": "/api/feedbacks/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      },
       "SwaggerKey": "academy"
     },
     {
@@ -25,6 +28,9 @@
       ],
       "UpstreamPathTemplate": "/api/courses/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      },
       "SwaggerKey": "academy"
     },
     //--------------------------------------------------------------------------------------------------
@@ -57,6 +63,19 @@
     },
     //--------------------------------------------------------------------------------------------------
     //----------------------------------IDENTITY-SERVICE-----------------------------------------------
+    {
+      "DownstreamPathTemplate": "/identity/auth/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "identity-microservice",
+          "Port": 8080
+        }
+      ],
+      "UpstreamPathTemplate": "/api/auth/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+      "SwaggerKey": "identity"
+    },
     {
       "DownstreamPathTemplate": "/identity/users/{everything}",
       "DownstreamScheme": "http",

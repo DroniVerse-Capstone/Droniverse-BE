@@ -1,20 +1,21 @@
 ﻿using Droniverse.Community.Domain.Entities;
-using System.Data;
-using System.Security;
 
 namespace Droniverse.Community.Domain.IRepository;
+
 public interface IUnitOfWork : IDisposable
 {
-    IRepository<Category> Categories { get; }
-    IRepository<Club> Clubs { get; }
-    IRepository<ClubRequest> ClubRequests { get; }
-    IRepository<Competition> Competitions { get; }
-    IRepository<Media> Medias { get; }
-    IRepository<MediaType> MediaTypes { get; }
-    IRepository<Participation> Participations { get; }
-    IRepository<ProductCategory> ProductCategories { get; }
-    IRepository<Product> Products { get; }
-    IRepository<Round> Rounds { get; }
+    ICategoryRepository Categories { get; }
+    IClubRepository Clubs { get; }
+    IClubCategoryRepository ClubCategories { get; }
+    IClubRequestRepository ClubRequests { get; }
+    ICompetitionRepository Competitions { get; }
+    IMediaRepository Medias { get; }
+    IMediaTypeRepository MediaTypes { get; }
+    IParticipationRepository Participations { get; }
+    IProductCategoryRepository ProductCategories { get; }
+    IProductRepository Products { get; }
+    IRoundRepository Rounds { get; }
+    IClubCourseRepository ClubCourses { get; }
+
     Task<int> SaveChangeAsync();
 }
-

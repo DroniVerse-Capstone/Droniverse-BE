@@ -3,8 +3,15 @@
     "Docker Compose": {
       "commandName": "DockerCompose",
       "commandVersion": "1.0",
+      "composeLaunchAction": "LaunchBrowser",
+      "composeLaunchServiceName": "droniverse.gateway",
+      "composeLaunchUrl": "{Scheme}://localhost:{ServicePort}/swagger/index.html",
+      "launchBrowser": true,
       "serviceActions": {
-        "droniverse.gateway": "StartDebugging"
+        "droniverse.gateway": "StartDebugging",
+        "academy-microservice": "StartWithoutDebugging",
+        "community-microservice": "StartWithoutDebugging",
+        "identity-microservice": "StartWithoutDebugging"
       }
     }
   }

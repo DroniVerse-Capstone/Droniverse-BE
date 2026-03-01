@@ -4,10 +4,16 @@ using Droniverse.Identity.Application.DTO.Response;
 using Droniverse.Identity.Application.IService;
 using Droniverse.Identity.Domain.Entities;
 using Droniverse.Identity.Domain.Interfaces;
-using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Exceptions;
-using Microsoft.EntityFrameworkCore;
+using Droniverse.Shared.Settings;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Droniverse.Identity.Application.Services;
 
@@ -15,10 +21,41 @@ internal class AuthService : IAuthService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
-    public AuthService(IUnitOfWork unitOfWork, IMapper mapper)
+    private readonly JwtSettings _jwtSettings;
+    public AuthService(IUnitOfWork unitOfWork, IMapper mapper, IOptions<JwtSettings> jwtSettings)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
+        _jwtSettings = jwtSettings.Value;
+    }
+    public async Task<AuthResponse> RefreshToken(string accessToken, string refreshToken)
+    {
+        var principal = GetPrincipalFromExpiredToken(accessToken);
+        string email = principal.Identity?.Name ?? throw new UnauthorizedAccessException("Invalid access token.");
+        //check trong redis xem có bị blacklist hay không (cả access và refresh)
+        
+        Account? account = await _unitOfWork.Accounts.GetByCondition(a => a.Email == email);
+        if (account is null)
+        {
+            throw new UnauthorizedAccessException("User not found.");
+        }
+        if (account.RefreshToken != refreshToken ||
+            account.RefreshTokenExpiryTime <= DateTime.UtcNow)
+        {
+            throw new UnauthorizedAccessException("Invalid or expired refresh token.");
+        }
+        UserResponse user = _mapper.Map<UserResponse>(account);
+        string newAccessToken = GenerateAccessToken(account);
+        string newRefreshToken = GenerateRefreshToken();
+        account.RefreshToken = newRefreshToken;
+        account.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays); // ✅ From settings
+        await _unitOfWork.SaveChangeAsync();
+        return new AuthResponse
+        {
+            AccessToken = newAccessToken,
+            RefreshToken = newRefreshToken,
+            User = user
+        };
     }
     public async Task<AuthResponse> RegisterUser(RegisterDto registerDto)
     {
@@ -41,8 +78,6 @@ internal class AuthService : IAuthService
             User = user
         };
     }
-
-
     public async Task<AuthResponse> AuthenticatedUser(string email, string password)
     {
         Account? account = await _unitOfWork.Accounts.GetByCondition(a => a.Email == email && a.PasswordHash == password);
@@ -53,6 +88,13 @@ internal class AuthService : IAuthService
         UserResponse user = _mapper.Map<UserResponse>(account);
         string accessToken = GenerateAccessToken(account);
         string refreshToken = GenerateRefreshToken();
+
+        //Lưu refresh token & refresh token expiryTime vào db
+        account.RefreshToken = refreshToken;
+        account.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays); // ✅ From settings
+        await _unitOfWork.SaveChangeAsync();
+        //lưu vào redis
+
         return new AuthResponse
         {
             AccessToken = accessToken,
@@ -61,16 +103,78 @@ internal class AuthService : IAuthService
         };
     }
 
+    public async Task<bool> Logout(string accessToken, string refreshToken)
+    {
+        var principal = GetPrincipalFromExpiredToken(accessToken);
+        string email = principal.Identity?.Name ?? throw new UnauthorizedAccessException("Invalid access token.");
+
+        Account? account = await _unitOfWork.Accounts.GetByCondition(a => a.Email == email);
+        if (account is null)
+        {
+            throw new UnauthorizedAccessException("Invalid email or password.");
+        }
+        account.RefreshToken = null;
+        account.RefreshTokenExpiryTime = null;
+
+        //thêm access và refresh token vào blacklist trong redis...
+
+        return await _unitOfWork.SaveChangeAsync() > 0;
+
+    }
     private string GenerateAccessToken(Account account)
     {
-        // Implementation for generating access token
-        return "generated_access_token";
-    }
+        //var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+        var securityKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(_jwtSettings.Key) // From .env
+        );
+        var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
+        var claims = new[]
+        {
+            new Claim("UserID", account.UserID.ToString()),
+            new Claim(ClaimTypes.Name, account.Email),
+            new Claim(ClaimTypes.Email, account.Email),
+            new Claim(ClaimTypes.Role, account.Role.RoleName),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+
+        };
+
+        var token = new JwtSecurityToken(
+            issuer: _jwtSettings.Issuer,
+            audience: _jwtSettings.Issuer,
+            claims: claims,
+            expires: DateTime.UtcNow.AddMinutes(120),
+            signingCredentials: credentials);
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
     private string GenerateRefreshToken()
     {
-        // Implementation for generating access token
-        return "generated_refresh_token";
+        var randomNumber = new byte[32];
+        using var rng = RandomNumberGenerator.Create();
+        rng.GetBytes(randomNumber);
+        return Convert.ToBase64String(randomNumber);
+    }
+    private ClaimsPrincipal GetPrincipalFromExpiredToken(string token)
+    {
+        var tokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateAudience = false,
+            ValidateIssuer = false,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(_jwtSettings.Key)
+            ),
+        };
+        var tokenHandler = new JwtSecurityTokenHandler();
+        SecurityToken securityToken;
+        ClaimsPrincipal principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out securityToken);
+        JwtSecurityToken jwtSecurityToken = securityToken as JwtSecurityToken;
+        if (jwtSecurityToken == null || !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+        {
+            throw new SecurityTokenException("Invalid token");
+        }
+        return principal;
     }
 }
 

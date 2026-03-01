@@ -17,8 +17,8 @@ public class ClubRequestConfiguration : IEntityTypeConfiguration<ClubRequest>
         
         builder.Property(c => c.ClubRequestID).HasColumnType("char(36)");
         builder.Property(c => c.ClubID).HasColumnType("char(36)").IsRequired();
-        builder.Property(c => c.RequestID).HasColumnType("char(36)").IsRequired();
-        builder.Property(c => c.ApproveID).HasColumnType("char(36)");
+        builder.Property(c => c.RequesterID).HasColumnType("char(36)").IsRequired();
+        builder.Property(c => c.ApproverID).HasColumnType("char(36)");
         
     }
 }

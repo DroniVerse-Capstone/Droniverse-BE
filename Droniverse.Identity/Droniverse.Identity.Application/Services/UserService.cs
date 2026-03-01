@@ -1,11 +1,12 @@
 ﻿using AutoMapper;
 using Droniverse.Identity.Application.DTO.Request;
-using Droniverse.Identity.Application.DTO.Response;
 using Droniverse.Identity.Application.IService;
 using Droniverse.Identity.Domain.Entities;
 using Droniverse.Identity.Domain.Interfaces;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Messages.User;
+using Droniverse.Shared.Services;
+using Microsoft.AspNetCore.Http;
 
 namespace Droniverse.Identity.Application.Services;
 internal class UserService : IUserService
@@ -13,11 +14,17 @@ internal class UserService : IUserService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly IUserPublisher _publisher;
-    public UserService(IUnitOfWork unitOfWork, IMapper mapper, IUserPublisher publisher)
+    private readonly ICloudinaryService _cloudinaryService;
+    public UserService(
+        IUnitOfWork unitOfWork,
+        IMapper mapper, 
+        IUserPublisher publisher,
+        ICloudinaryService cloudinaryService)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _publisher = publisher;
+        _cloudinaryService = cloudinaryService;
     }
 
     public async Task<IEnumerable<UserResponse>> GetAllUsers()
@@ -131,5 +138,10 @@ internal class UserService : IUserService
             return false;
             throw;
         }
+    }
+
+    public async Task<string> UploadUserAvatar(Guid userId, IFormFile imageFile)
+    {
+        throw new NotImplementedException();
     }
 }

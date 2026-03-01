@@ -2,6 +2,7 @@
 using Droniverse.Identity.Application.DTO.Response;
 using Droniverse.Identity.Application.IService;
 using Droniverse.Identity.Domain.Entities;
+using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Response;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -51,11 +52,18 @@ namespace Droniverse.Identity.API.Controllers
         public async Task<IActionResult> DeleteUser(Guid id)
         {
             bool isDeleted = await _userService.DeleteUser(id);
-            if(!isDeleted)
+            if (!isDeleted)
             {
                 return NotFound($"Account id not found #{id}");
             }
             return NoContent();
+        }
+
+        [HttpPost("{userId}/image-url")]
+        public async Task<IActionResult> UploadUserAvatar(Guid userId, IFormFile image)
+        {
+            string imageUrl = await _userService.UploadUserAvatar(userId, image);
+            return Ok(SuccessResponse<string>.Create(imageUrl, "Image uploaded successfully."));
         }
     }
 }

@@ -16,10 +16,10 @@ internal class UserPublisher : IPublisher, IDisposable, IUserPublisher
     {
         _configuration = configuration;
 
-        string hostName = _configuration["RabbitMQ_HostName"];
-        string userName = _configuration["RabbitMQ_UserName"];
-        string password = _configuration["RabbitMQ_Password"];
-        string port = _configuration["RabbitMQ_Port"];
+        string hostName = _configuration["RabbitMQ_HostName"] ?? "localhost";
+        string userName = _configuration["RabbitMQ_UserName"] ?? "guest";
+        string password = _configuration["RabbitMQ_Password"] ?? "guest";
+        string port = _configuration["RabbitMQ_Port"] ?? "5672";
 
         ConnectionFactory connectionFactory = new ConnectionFactory()
         {
@@ -71,7 +71,7 @@ internal class UserPublisher : IPublisher, IDisposable, IUserPublisher
     public void Dispose()
     {
         _channel.Dispose();
-        _connection.Dispose();
+        _connection.Dispose();  
     }
 }
 

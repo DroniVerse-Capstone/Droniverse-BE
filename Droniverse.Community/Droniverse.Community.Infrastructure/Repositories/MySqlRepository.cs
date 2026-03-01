@@ -30,9 +30,28 @@ public class MySqlRepository<T> : IRepository<T> where T : class
         return await _dbSet.ToListAsync();
     }
 
-    public async Task<T?> GetByCondition(Expression<Func<T, bool>> expression)
+    public async Task<T?> GetByCondition(Expression<Func<T, bool>> expression, Func<IQueryable<T>, IQueryable<T>>? include = null)
     {
-        return await _dbSet.Where(expression).FirstOrDefaultAsync();
+
+        IQueryable<T> query = _context.Set<T>();
+
+        if (include != null)
+        {
+            query = include(query);
+        }
+
+        return await query.FirstOrDefaultAsync(expression);
+    }
+    public async Task<IEnumerable<T>> GetManyByCondition(Expression<Func<T, bool>> expression, params Expression<Func<T, object>>[] includes)
+    {
+        IQueryable<T> query = _context.Set<T>().Where(expression);
+
+        foreach (var include in includes)
+        {
+            query = query.Include(include);
+        }
+
+        return await query.ToListAsync();
     }
 
     public async Task<T?> Update(T entity)
