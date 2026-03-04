@@ -7,9 +7,10 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<Folder Include="Config\" />
 		<Folder Include="DTOs\Request\" />
-		<Folder Include="Extensions\" />
 		<Folder Include="Middleware\" />
+		<PackageReference Include="CloudinaryDotNet" Version="1.27.8" />
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
 		<PackageReference Include="MySql.EntityFrameworkCore" Version="9.0.9" />
 	</ItemGroup>

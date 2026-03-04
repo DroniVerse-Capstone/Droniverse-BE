@@ -1,4 +1,6 @@
-﻿namespace Droniverse.Identity.Application.DTO.Request;
+﻿using Microsoft.AspNetCore.Http;
+
+namespace Droniverse.Identity.Application.DTO.Request;
 public record UserUpdateDto(
     Guid UserId,
     string Username,
@@ -6,7 +8,8 @@ public record UserUpdateDto(
     //string Email,
     string FirstName,
     string LastName,
-    DateTime DateOfBirth
+    DateTime DateOfBirth,
+    IFormFile ImageFile
     //Guid RoleId
     )
 {
