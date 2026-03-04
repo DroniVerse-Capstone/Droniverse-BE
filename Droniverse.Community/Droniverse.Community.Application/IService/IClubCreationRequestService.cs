@@ -1,6 +1,6 @@
 ﻿using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
-using Droniverse.Community.Domain.Entities;
+using Droniverse.Shared.DTOs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,9 +9,8 @@ using System.Threading.Tasks;
 
 namespace Droniverse.Community.Application.IService
 {
-    public interface IClubRequestService
+    public interface IClubCreationRequestService
     {
-        Task CreateClubRequest(Guid requesterID, Guid clubID);
-        Task<IEnumerable<ClubRequestResponseDto>> GetClubRequestsByID(Guid clubID);
+        Task<ClubCreationRequestCreateResponseDto> CreateRequestToCreateClub(ClubCreationRequestCreateDto request);
     }
 }

@@ -1,5 +1,7 @@
 ﻿using Droniverse.Community.Application.DTO.Request.Mongo;
+using Droniverse.Community.Application.DTO.Response.Mongo;
 using Droniverse.Community.Application.IService.Mongo;
+using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Droniverse.Community.API.Controllers
@@ -17,21 +19,38 @@ namespace Droniverse.Community.API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetOrders()
+        public async Task<ApiResponse> GetOrders()
         {
-            var orders = await _orderService.GetOrders();
-            return Ok(orders);
+            try
+            {
+                var orders = await _orderService.GetOrders();
+                return SuccessResponse<List<OrderResponseDto?>>
+                    .Create(orders, "Lấy danh sách đơn hàng thành công!");
+            }
+            catch (Exception ex)
+            {
+                return ErrorResponse.Create(ex.Message, "ER2001");
+            }
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddOrder([FromBody]OrderCreateDto orderCreateDto)
+        public async Task<ApiResponse> AddOrder([FromBody]OrderCreateDto orderCreateDto)
         {
-            var createdOrder = await _orderService.AddOrder(orderCreateDto);
-            if (createdOrder == null)
+            try
             {
-                return BadRequest("Invalid order data.");
+                var createdOrder = await _orderService.AddOrder(orderCreateDto);
+                if (createdOrder == null)
+                {
+                    return ErrorResponse.Create("Dữ liệu đơn hàng không hợp lệ.", "ER2002");
+                }
+
+                return SuccessResponse<OrderResponseDto?>
+                    .Create(createdOrder, "Tạo đơn hàng thành công!");
             }
-            return CreatedAtAction(nameof(GetOrders), new { id = createdOrder.OrderID }, createdOrder);
+            catch (Exception ex)
+            {
+                return ErrorResponse.Create(ex.Message, "ER102");
+            }
         }
     }
 }

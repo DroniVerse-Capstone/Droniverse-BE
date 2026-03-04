@@ -11,7 +11,7 @@ public class Club
     public ICollection<ClubCourse> ClubCourses { get; set; }
     public ICollection<Participation> Participations { get; set; }
     public ICollection<Competition> Competitions { get; set; }
-    public ICollection<ClubRequest> ClubRequests { get; set; }
+    public ICollection<ClubAttemptRequest> ClubRequests { get; set; }
     [Length(1,255, ErrorMessage = "Club name must be between 1 to 255 characters !")]
     public string NameVN { get; set; } //varchar(255)
     [Length(1, 255, ErrorMessage = "Club name must be between 1 to 255 characters !")]

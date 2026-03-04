@@ -12,4 +12,11 @@ namespace Droniverse.Community.Application.DTO.Extensions
         public string? ParicipationName { get; set; }
         public DateOnly? DateOfBirth { get; set; }
     }
+
+    public class ClubCourseSearchRequest : SearchRequest
+    {
+        // số người học
+        // số người học
+        // các course mà club sở hữu
+    }
 }

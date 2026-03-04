@@ -12,7 +12,7 @@ public class MySqlDbContext : DbContext
     public DbSet<Club> Clubs { get; set; }
     public DbSet<ClubCategory> ClubCategories { get; set; }
     public DbSet<ClubCourse> ClubCourses { get; set; }
-    public DbSet<ClubRequest> ClubRequests { get; set; }
+    public DbSet<ClubAttemptRequest> ClubRequests { get; set; }
     public DbSet<Competition> Competitions { get; set; }
     public DbSet<CompetitionCertificate> CompetitionCertificates { get; set; }
     public DbSet<Media> Medias { get; set; }

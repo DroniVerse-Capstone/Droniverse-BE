@@ -5,6 +5,7 @@
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<UserSecretsId>7a1a43f0-7533-4ba1-9bb0-df2c2288d5c9</UserSecretsId>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
 		<DockerfileContext>..\..</DockerfileContext>
 	</PropertyGroup>
@@ -17,6 +18,7 @@
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
+		<PackageReference Include="Swashbuckle.AspNetCore.Filters" Version="7.0.5" />
 		
 		<ProjectReference Include="..\Droniverse.Community.Application\Droniverse.Community.Application.csproj" />
 		<ProjectReference Include="..\Droniverse.Community.Infrastructure\Droniverse.Community.Infrastructure.csproj" />

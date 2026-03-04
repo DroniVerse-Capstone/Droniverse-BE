@@ -1,4 +1,5 @@
-﻿using Droniverse.Community.Application.DTO.Request;
+﻿using Droniverse.Community.Application.DTO.Extensions;
+using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Domain.Entities;
 
@@ -10,7 +11,7 @@ public interface IClubService
     Task<ClubResponseDto> CreateClub(ClubCreateDto club);
     Task<ClubResponseDto> UpdateClub(Guid id, ClubUpdateDto club);
     Task<bool> DeleteClub(Guid id);
-    Task<ClubResponseDto> JoinClub(ClubJoinDto request);
-    Task<IEnumerable<CourseResponseDto>> GetClubCourses(Guid clubId);
+    Task<JoinClubResponse> JoinClub(ClubJoinDto request);
+    Task<IEnumerable<CourseResponseDto>> GetClubCourses(Guid clubId, ClubCourseSearchRequest searchRequest);
 }
 

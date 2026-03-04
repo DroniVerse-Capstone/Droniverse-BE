@@ -15,11 +15,11 @@ public class ClubCategoryConfiguration : IEntityTypeConfiguration<ClubCategory>
         builder.HasOne(c => c.Category)
             .WithMany(cg => cg.ClubCategories)
             .HasForeignKey(c => c.CategoryID)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Cascade);
         builder.HasOne(c => c.Club)
             .WithMany(cg => cg.ClubCategories)
             .HasForeignKey(c => c.ClubID)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Cascade);
 
     }
 }

@@ -23,6 +23,7 @@ public class GlobalExceptionHandlerMiddleware
 
     public async Task InvokeAsync(HttpContext httpContext)
     {
+
         try
         {
             await _next(httpContext);
@@ -47,6 +48,10 @@ public class GlobalExceptionHandlerMiddleware
             NotFoundException ex => (
                 StatusCodes.Status404NotFound,
                 ErrorResponse.Create(ex.Message, ex.ErrorCode)
+            ),
+            KeyNotFoundException ex => (
+                StatusCodes.Status404NotFound,
+                ErrorResponse.Create(ex.Message, "KEYNOTFOUND")
             ),
             DuplicateEmailException ex => (
                 StatusCodes.Status409Conflict,

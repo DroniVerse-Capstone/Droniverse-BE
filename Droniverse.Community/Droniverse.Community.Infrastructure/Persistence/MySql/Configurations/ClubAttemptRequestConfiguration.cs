@@ -3,11 +3,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Droniverse.Community.Infrastructure.Persistence.MySql.Configurations;
-public class ClubRequestConfiguration : IEntityTypeConfiguration<ClubRequest>
+public class ClubAttemptRequestConfiguration : IEntityTypeConfiguration<ClubAttemptRequest>
 {
-    public void Configure(EntityTypeBuilder<ClubRequest> builder)
+    public void Configure(EntityTypeBuilder<ClubAttemptRequest> builder)
     {
-        builder.ToTable("ClubRequest");
+        builder.ToTable("ClubAttemptRequest");
 
         builder.HasKey(cr => cr.ClubRequestID);
         builder.HasOne(cr => cr.Club)
@@ -19,7 +19,19 @@ public class ClubRequestConfiguration : IEntityTypeConfiguration<ClubRequest>
         builder.Property(c => c.ClubID).HasColumnType("char(36)").IsRequired();
         builder.Property(c => c.RequesterID).HasColumnType("char(36)").IsRequired();
         builder.Property(c => c.ApproverID).HasColumnType("char(36)");
-        
+        builder.Property(c => c.Status).HasConversion<int>().IsRequired();
+
+        builder.Property(c => c.CreateAt)
+           .HasColumnType("datetime(6)")
+           .IsRequired();
+
+        builder.Property(c => c.ProcessedAt)
+            .HasColumnType("datetime(6)")
+            .IsRequired(false);
+
+        builder.HasIndex(c => c.ClubID);
+        builder.HasIndex(c => c.RequesterID);
+        builder.HasIndex(c => c.Status);
     }
 }
 

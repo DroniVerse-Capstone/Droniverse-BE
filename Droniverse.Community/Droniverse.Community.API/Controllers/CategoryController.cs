@@ -22,7 +22,7 @@ namespace Droniverse.Community.API.Controllers
             try
             {
                 return SuccessResponse<IEnumerable<CategoryResponseDto>>
-                    .Create(await _categoryService.GetAllCategory(), "Get categories successfully !");
+                    .Create(await _categoryService.GetAllCategory(), "Lấy danh sách danh mục thành công!");
             }
             catch (Exception ex)
             {
@@ -36,7 +36,7 @@ namespace Droniverse.Community.API.Controllers
             try
             {
                 return SuccessResponse<CategoryResponseDto>
-                    .Create(await _categoryService.GetCategoryById(id), $"Get category with id [{id}] successfully !");
+                    .Create(await _categoryService.GetCategoryById(id), $"Lấy danh mục với ID [{id}] thành công!");
             }
             catch (Exception ex)
             {
@@ -53,10 +53,10 @@ namespace Droniverse.Community.API.Controllers
 
                 if (!deleted)
                 {
-                    return ErrorResponse.Create("Delete fail!", "Err91");
+                    return ErrorResponse.Create("Xóa danh mục thất bại!", "Err91");
                 }
 
-                return SuccessResponse<string>.Create(null, $"Delete category with id [{id}] successfully!");
+                return SuccessResponse<string>.Create(null, $"Xóa danh mục với ID [{id}] thành công!");
             }
             catch (Exception ex)
             {
@@ -71,7 +71,7 @@ namespace Droniverse.Community.API.Controllers
             try
             {
                 return SuccessResponse<CategoryResponseDto>
-                    .Create(await _categoryService.UpdateCategory(id, request), $"Update category with id [{id}] successfully !");
+                    .Create(await _categoryService.UpdateCategory(id, request), $"Cập nhật danh mục với ID [{id}] thành công!");
             }
             catch (Exception ex)
             {
@@ -85,7 +85,7 @@ namespace Droniverse.Community.API.Controllers
             try
             {
                 return SuccessResponse<CategoryResponseDto>
-                    .Create(await _categoryService.CreateCategory(request), $"Create category successfully !");
+                    .Create(await _categoryService.CreateCategory(request), "Tạo danh mục thành công!");
             }
             catch (Exception ex)
             {

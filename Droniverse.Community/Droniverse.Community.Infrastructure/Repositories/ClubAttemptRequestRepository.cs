@@ -3,9 +3,9 @@ using Droniverse.Community.Domain.IRepository;
 using Droniverse.Community.Infrastructure.Persistence.MySql;
 
 namespace Droniverse.Community.Infrastructure.Repositories;
-internal class ClubRequestRepository : MySqlRepository<ClubRequest>, IClubRequestRepository
+internal class ClubAttemptRequestRepository : MySqlRepository<ClubAttemptRequest>, IClubAttemptRequestRepository
 {
-    public ClubRequestRepository(MySqlDbContext context) : base(context)
+    public ClubAttemptRequestRepository(MySqlDbContext context) : base(context)
     {
     }
 }

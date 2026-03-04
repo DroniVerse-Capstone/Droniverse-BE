@@ -7,7 +7,8 @@ public interface IUnitOfWork : IDisposable
     ICategoryRepository Categories { get; }
     IClubRepository Clubs { get; }
     IClubCategoryRepository ClubCategories { get; }
-    IClubRequestRepository ClubRequests { get; }
+    IClubAttemptRequestRepository ClubAttemptRequests { get; }
+    IClubCreationRequestRepository ClubCreationRequests { get; }
     ICompetitionRepository Competitions { get; }
     IMediaRepository Medias { get; }
     IMediaTypeRepository MediaTypes { get; }
