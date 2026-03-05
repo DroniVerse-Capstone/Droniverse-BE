@@ -9,16 +9,14 @@ internal class AccountMappingProfile : Profile
     public AccountMappingProfile()
     {
         CreateMap<RegisterDto, Account>()
-            .ForMember(dest => dest.Username, opt => opt.MapFrom(src => src.Username))
+            .ForMember(dest => dest.Username, opt => opt.Ignore())
             .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Email))
             .ForMember(dest => dest.PasswordHash, opt => opt.MapFrom(src => src.Password))
             .ForMember(dest => dest.Role, opt => opt.Ignore())
             .ForMember(dest => dest.UserInfo, opt => opt.MapFrom(src => new UserInfo
             {
                 FirstName = src.FirstName,
-                LastName = src.LastName,
-                DateOfBirth = src.DateOfBirth,
-                Phone = src.Phone
+                LastName = src.LastName
             }));
 
         CreateMap<Account, UserResponse>()

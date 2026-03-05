@@ -7,7 +7,7 @@ public interface IAuthService
 {
     Task<bool> Logout(string accessToken, string refreshToken);
     Task<AuthResponse> RefreshToken(string accessToken, string refreshToken);
-    Task<AuthResponse> AuthenticatedUser(string email, string password);
+    Task<AuthResponse> AuthenticatedUser(LoginEmailDto loginEmailDto);
     Task<AuthResponse> RegisterUser(RegisterDto registerDto);
 }
 
