@@ -24,6 +24,7 @@ namespace Droniverse.Community.API.Controllers
         /// Trả về danh sách các danh mục dưới dạng <see cref="CategoryResponseDto"/>.
         /// </returns>
         [HttpGet]
+        [ProducesResponseType(typeof(SuccessResponse<IEnumerable<CategoryResponseDto>>), StatusCodes.Status200OK)]
         public async Task<ApiResponse> GetAllCategories()
         {
             var categories = await _categoryService.GetAllCategory();
@@ -40,6 +41,8 @@ namespace Droniverse.Community.API.Controllers
         /// Trả về thông tin danh mục dưới dạng <see cref="CategoryResponseDto"/>.
         /// </returns>
         [HttpGet("{id}")]
+        [ProducesResponseType(typeof(SuccessResponse<CategoryResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ApiResponse> GetCategoryById(Guid id)
         {
             var category = await _categoryService.GetCategoryById(id);
@@ -56,6 +59,8 @@ namespace Droniverse.Community.API.Controllers
         /// Trả về kết quả xóa danh mục.
         /// </returns>
         [HttpDelete("{id}")]
+        [ProducesResponseType(typeof(SuccessResponse<string>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ApiResponse> DeleteCategory(Guid id)
         {
             var deleted = await _categoryService.Delete(id);
@@ -78,6 +83,8 @@ namespace Droniverse.Community.API.Controllers
         /// Trả về thông tin danh mục sau khi được cập nhật.
         /// </returns>
         [HttpPut("{id}")]
+        [ProducesResponseType(typeof(SuccessResponse<CategoryResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ApiResponse> UpdateCategory(Guid id, [FromBody] CategoryRequestDto request)
         {
             var category = await _categoryService.UpdateCategory(id, request);
@@ -94,6 +101,8 @@ namespace Droniverse.Community.API.Controllers
         /// Trả về thông tin danh mục sau khi được tạo.
         /// </returns>
         [HttpPost]
+        [ProducesResponseType(typeof(SuccessResponse<CategoryResponseDto>), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ApiResponse> CreateCategory([FromBody] CategoryRequestDto request)
         {
             var category = await _categoryService.CreateCategory(request);

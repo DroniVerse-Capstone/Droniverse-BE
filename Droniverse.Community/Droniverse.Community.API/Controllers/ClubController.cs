@@ -40,7 +40,7 @@ namespace Droniverse.Community.API.Controllers
         /// 200 OK - Trả về danh sách ClubResponseDto
         /// </returns>
         [HttpGet]
-        [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(SuccessResponse<IEnumerable<ClubResponseDto>>), StatusCodes.Status200OK)]
         public async Task<ApiResponse> GetAllCLubs()
         {
 
@@ -62,7 +62,7 @@ namespace Droniverse.Community.API.Controllers
         /// 404 NotFound - Nếu không tồn tại club
         /// </returns>
         [HttpGet("{id}")]
-        [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(SuccessResponse<ClubResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ApiResponse> GetClubById(
             [FromRoute]
@@ -84,7 +84,7 @@ namespace Droniverse.Community.API.Controllers
         /// 500 InternalServerError - Nếu xảy ra lỗi hệ thống
         /// </returns>
         [HttpGet("{id}/courses")]
-        [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(SuccessResponse<IEnumerable<Application.DTO.Response.CourseResponseDto>>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ApiResponse> GetClubCourses(Guid id, [FromQuery] ClubCourseSearchRequest searchRequest)
@@ -115,7 +115,7 @@ namespace Droniverse.Community.API.Controllers
         /// 400 BadRequest - Nếu dữ liệu đầu vào không hợp lệ.
         /// </returns>
         [HttpPost]
-        [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(SuccessResponse<ClubResponseDto>), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [SwaggerRequestExample(typeof(ClubAttemptRequestCreateDto), typeof(ClubCreateMultipleExample))]
         public async Task<ApiResponse> CreateClub([FromBody] ClubCreateDto clubRequest)
@@ -141,7 +141,7 @@ namespace Droniverse.Community.API.Controllers
         /// 200 OK - Trả về thông tin club sau khi xử lý tham gia
         /// </returns>
         [HttpPost("attemption")]
-        [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(SuccessResponse<JoinClubResponse>), StatusCodes.Status200OK)]
         public async Task<ApiResponse> JoinClub([FromBody] ClubJoinDto request)
         {
             string message = "Tham gia câu lạc bộ thành công";
@@ -164,7 +164,7 @@ namespace Droniverse.Community.API.Controllers
         /// 404 NotFound - Nếu không tồn tại club
         /// </returns>
         [HttpPut("{id}")]
-        [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(SuccessResponse<ClubResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [SwaggerRequestExample(typeof(ClubUpdateDto), typeof(ClubUpdateExample))]
         public async Task<ApiResponse> UpdateClub(Guid id, [FromBody] ClubUpdateDto clubRequest)
@@ -184,7 +184,7 @@ namespace Droniverse.Community.API.Controllers
         /// 500 InternalServerError - Nếu có lỗi xảy ra khi xóa
         /// </returns>
         [HttpDelete("{id}")]
-        [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(SuccessResponse<string>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ApiResponse> DeleteClub(Guid id)
         {
@@ -209,7 +209,7 @@ namespace Droniverse.Community.API.Controllers
         /// 200 OK - Trả về danh sách thành viên có phân trang
         /// </returns>
         [HttpGet("{id}/participations")]
-        [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<UserResponse>>>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ApiResponse> GetClubParticipations(Guid id, [FromQuery] ParticipationSearchRequest searchRequest)
         {
@@ -225,13 +225,12 @@ namespace Droniverse.Community.API.Controllers
         /// 200 OK - Trả về danh sách club của người dùng hiện tại
         /// </returns>
         [HttpGet("myclub")]
-        [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(SuccessResponse<IEnumerable<ClubResponseDto>>), StatusCodes.Status200OK)]
         public async Task<ApiResponse> GetMyClubs()
         {
             var clubs = await _clubService.GetClubsByCurrentUsersID();
             return SuccessResponse<IEnumerable<ClubResponseDto>>
                 .Create(clubs, "Lấy danh sách câu lạc bộ đang tham gia thành công!");
         }
-
     }
 }

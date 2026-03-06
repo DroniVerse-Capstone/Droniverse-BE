@@ -18,7 +18,14 @@ namespace Droniverse.Community.API.Controllers
             _orderService = orderService;
         }
 
+        /// <summary>
+        /// Lấy danh sách tất cả các đơn hàng
+        /// </summary>
+        /// <returns>
+        /// 200 OK - Trả về danh sách đơn hàng
+        /// </returns>
         [HttpGet]
+        [ProducesResponseType(typeof(SuccessResponse<List<OrderResponseDto?>>), StatusCodes.Status200OK)]
         public async Task<ApiResponse> GetOrders()
         {
             try
@@ -33,7 +40,17 @@ namespace Droniverse.Community.API.Controllers
             }
         }
 
+        /// <summary>
+        /// Tạo mới một đơn hàng
+        /// </summary>
+        /// <param name="orderCreateDto">Thông tin đơn hàng cần tạo</param>
+        /// <returns>
+        /// 200 OK - Tạo đơn hàng thành công
+        /// 400 BadRequest - Dữ liệu không hợp lệ
+        /// </returns>
         [HttpPost]
+        [ProducesResponseType(typeof(SuccessResponse<OrderResponseDto?>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ApiResponse> AddOrder([FromBody]OrderCreateDto orderCreateDto)
         {
             try

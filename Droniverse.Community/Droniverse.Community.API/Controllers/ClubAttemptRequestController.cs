@@ -19,7 +19,14 @@ namespace Droniverse.Community.API.Controllers
             _clubAttemptRequestService = clubAttemptRequestService;
         }
 
+        /// <summary>
+        /// Lấy danh sách yêu cầu tham gia câu lạc bộ của người dùng hiện tại
+        /// </summary>
+        /// <returns>
+        /// 200 OK - Trả về danh sách yêu cầu tham gia câu lạc bộ
+        /// </returns>
         [HttpGet("my-requests")]
+        [ProducesResponseType(typeof(SuccessResponse<IEnumerable<ClubRequestResponseDto>>), StatusCodes.Status200OK)]
         public async Task<ApiResponse> GetMyClubAttemptRequests()
         {
             // Temporary: fix RequesterId
@@ -30,7 +37,18 @@ namespace Droniverse.Community.API.Controllers
                 "Lấy danh sách yêu cầu tham gia câu lạc bộ thành công");
         }
 
+        /// <summary>
+        /// Cập nhật trạng thái yêu cầu tham gia câu lạc bộ
+        /// </summary>
+        /// <param name="id">ID của yêu cầu tham gia</param>
+        /// <param name="request">Thông tin cập nhật trạng thái</param>
+        /// <returns>
+        /// 200 OK - Cập nhật trạng thái thành công
+        /// 404 NotFound - Không tìm thấy yêu cầu
+        /// </returns>
         [HttpPut("{id}/status")]
+        [ProducesResponseType(typeof(SuccessResponse<ClubAttemptRequestUpdateStatusResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [SwaggerRequestExample(typeof(ClubAttemptRequestUpdateStatusDto), typeof(ClubAttemptRequestUpdateStatusExample))]
         public async Task<ApiResponse> UpdateRequestStatus(Guid id, [FromBody] ClubAttemptRequestUpdateStatusDto request)
         {
