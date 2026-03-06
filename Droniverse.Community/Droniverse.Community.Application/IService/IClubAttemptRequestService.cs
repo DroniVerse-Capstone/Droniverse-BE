@@ -12,6 +12,8 @@ namespace Droniverse.Community.Application.IService
     public interface IClubAttemptRequestService
     {
         Task CreateAttemptClubRequest(Guid requesterID, Guid clubID);
-        Task<IEnumerable<ClubRequestResponseDto>> GetClubAttemptRequestsByID(Guid clubID); 
+        Task<IEnumerable<ClubRequestResponseDto>> GetClubAttemptRequestsByID(Guid clubID);
+        Task<ClubAttemptRequestUpdateStatusResponseDto> UpdateRequestStatus(Guid id, ClubAttemptRequestUpdateStatusDto request);
+        Task<IEnumerable<ClubRequestResponseDto>> GetClubAttemptRequestsByRequester(Guid requesterID);
     }
 }

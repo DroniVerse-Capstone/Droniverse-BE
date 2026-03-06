@@ -22,17 +22,7 @@ namespace Droniverse.Community.Application.DTO.Request
 
         [Required]
         [StringLength(2000)]
-        public string DescriptionVN { get; set; }
-
-        [Required]
-        [StringLength(2000)]
-        public string DescriptionEN { get; set; }
-
-        [Required]
-        [StringLength(6, MinimumLength = 3)]
-        [RegularExpression("^[A-Z0-9]+$",
-            ErrorMessage = "ClubCode must contain only uppercase letters and numbers.")]
-        public string ClubCode { get; set; }
+        public string Description { get; set; }
 
         [Required]
         public bool IsPublic { get; set; }

@@ -20,6 +20,8 @@ internal class UnitOfWork : IUnitOfWork
     private IRoundRepository _round;
     private IClubCourseRepository _clubCourse;
     private IClubCreationRequestRepository _clubCreationRequest;
+    private ICompetitionPrizeRepository _competitionPrize;
+    private IUserPrizeRepository _userPrize;
 
     public UnitOfWork(MySqlDbContext context)
     {
@@ -61,6 +63,10 @@ internal class UnitOfWork : IUnitOfWork
     public IClubCreationRequestRepository ClubCreationRequests => _clubCreationRequest ??= new ClubCreationRequestRepository(_context);
 
     public IClubAttemptRequestRepository ClubAttemptRequests => _clubAttemptRequest ??= new ClubAttemptRequestRepository(_context);
+
+    public ICompetitionPrizeRepository CompetitionPrizes => _competitionPrize ??= new CompetitionPrizeRepository(_context);
+
+    public IUserPrizeRepository UserPrizes => _userPrize ??= new UserPrizeRepository(_context);
 
     public async Task<int> SaveChangeAsync()
         => await _context.SaveChangesAsync();

@@ -50,7 +50,7 @@ internal class ClubService : IClubService
         club.ClubID = Guid.NewGuid();
         club.ClubCode = GenerateClubCode();
 
-        //Gọi httpclient đến identity microservice lấy thông tin user
+        //Gọi httpclient đến identity microservice lấy thông tin user
         UserResponse user = null;
         try
         {
@@ -65,7 +65,7 @@ internal class ClubService : IClubService
         {
             throw new KeyNotFoundException($"User with ID {clubRequestDto.CreatedBy} not found.");
         }
-        club.CreateBy = user.UserId;
+        club.CreatedBy = user.UserId;
 
         await _unitOfWork.Clubs.Add(club);
         await _unitOfWork.SaveChangeAsync();
@@ -129,8 +129,7 @@ internal class ClubService : IClubService
     public async Task<IEnumerable<ClubResponseDto>> GetAllClubs()
     {
         IEnumerable<Club> clubList = await _unitOfWork.Clubs.GetAll();
-        IEnumerable<ClubResponseDto> responses = _mapper.Map<IEnumerable<ClubResponseDto>>(clubList);
-        return responses;
+        return await MapClubsWithStats(clubList);
     }
 
     public async Task<ClubResponseDto> GetClubById(Guid id)
@@ -141,10 +140,12 @@ internal class ClubService : IClubService
             throw new KeyNotFoundException($"Club with ID {id} not found.");
         }
 
-        // check total members
-        int totalMemembers = await _unitOfWork.Participations.CountMembersByClubIdAsync(id);
-        int totalCourses = await _unitOfWork.ClubCourses.CountCoursesByClubIdAsync(id);
+        var memberCounts = await _unitOfWork.Clubs.GetMemberCountsByClubIds(new[] { id });
+        var courseCounts = await _unitOfWork.Clubs.GetCourseCountsByClubIds(new[] { id });
+
         ClubResponseDto response = _mapper.Map<ClubResponseDto>(club);
+        response.TotalMembers = memberCounts.GetValueOrDefault(id, 0);
+        response.TotalCourses = courseCounts.GetValueOrDefault(id, 0);
         return response;
     }
 
@@ -170,8 +171,14 @@ internal class ClubService : IClubService
         if (club == null)
             throw new KeyNotFoundException($"Club with club code {request.clubCode} not found.");
 
-        // TODO: Lấy từ token / context
-        Guid currentUserId = Guid.Parse("ae6da7f5-1473-456f-9e55-70df702d47ee");
+        Guid currentUserId = Guid.Parse("3197734d-d25d-42b1-b968-84b6ee4d33c2"); // member
+
+        var isCurrent = _unitOfWork.Participations.GetByCondition(c => c.UserID == currentUserId);
+
+        if (isCurrent != null)
+        {
+            throw new InvalidOperationException($"Thành viên này đã là thuộc câu lạc bộ [{club.NameVN}]");
+        }
 
         JoinClubResponse response = new()
         {
@@ -186,7 +193,7 @@ internal class ClubService : IClubService
             var participation = new Participation(
                 currentUserId,
                 club.ClubID,
-                currentUserId 
+                null
             );
 
             await _unitOfWork.Participations.Add(participation);
@@ -203,14 +210,75 @@ internal class ClubService : IClubService
         }
 
         await _unitOfWork.SaveChangeAsync();
-        
+
         return response;
     }
 
-    public async Task<PaginationResult<UserResponse>> GetClubParcitipations(Guid clubID, ParticipationSearchRequest searchRequest)
+    public async Task<PaginationResult<IEnumerable<UserResponse>>> GetClubParcitipations(Guid clubID, ParticipationSearchRequest searchRequest)
     {
-        // todo
-        throw new Exception();
+        Club? club = await _unitOfWork.Clubs.GetByCondition(c => c.ClubID == clubID);
+        if (club == null)
+        {
+            throw new KeyNotFoundException($"Club with ID {clubID} not found.");
+        }
+
+        var participations = await _unitOfWork.Participations.GetManyByCondition(
+            p => p.ClubID == clubID && p.Status == Domain.Enums.ParticipationStatus.ACTIVE
+        );
+
+        var userIds = participations
+            .Select(p => p.UserID)
+            .Distinct()
+            .ToList();
+
+        if (!userIds.Any())
+        {
+            return Enumerable.Empty<UserResponse>().ToPaginationResult(searchRequest);
+        }
+
+        var users = await GetUsersByIds(userIds);
+        var filteredUsers = ApplyParticipationUserFilters(users, searchRequest);
+
+        return filteredUsers.ToPaginationResult(searchRequest);
+    }
+
+    private async Task<IEnumerable<UserResponse>> GetUsersByIds(IEnumerable<Guid> userIds)
+    {
+        var ids = userIds
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        if (!ids.Any())
+            return Enumerable.Empty<UserResponse>();
+
+        return await _identityMicroserviceClient.GetUsersBulk(ids);
+    }
+
+    private static IEnumerable<UserResponse> ApplyParticipationUserFilters(
+        IEnumerable<UserResponse> users,
+        ParticipationSearchRequest searchRequest)
+    {
+        IEnumerable<UserResponse> query = users;
+
+        if (!string.IsNullOrWhiteSpace(searchRequest.ParicipationName))
+        {
+            var keyword = searchRequest.ParicipationName.Trim();
+            query = query.Where(u =>
+                ($"{u.FirstName} {u.LastName}").Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                || u.FirstName.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                || u.LastName.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                || u.Username.Contains(keyword, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (searchRequest.DateOfBirth.HasValue)
+        {
+            query = query.Where(u =>
+                u.DateOfBirth.HasValue
+                && DateOnly.FromDateTime(u.DateOfBirth.Value.Date) == searchRequest.DateOfBirth.Value);
+        }
+
+        return query;
     }
 
     public async Task<IEnumerable<DTO.Response.CourseResponseDto>> GetClubCourses(Guid clubId, ClubCourseSearchRequest searchRequest)
@@ -221,11 +289,28 @@ internal class ClubService : IClubService
 
     public async Task<IEnumerable<ClubResponseDto>> GetClubsByCurrentUsersID()
     {
-        var userID = Guid.Parse("3197734d-d25d-42b1-b968-84b6ee4d33c2");
-        IEnumerable<Participation> participations = await _unitOfWork.Participations.GetManyByCondition(p => p.UserID == userID && p.Status == Domain.Enums.ParticipationStatus.ACTIVE);
-        var clubs = participations.Select(p => p.Club);
-        return _mapper.Map<IEnumerable<ClubResponseDto>>(clubs);
+        var userID = Guid.Parse("b36eaa51-35f1-4ac7-9ca1-7c3d50bc20c6");
+        var clubs = await _unitOfWork.Clubs.GetClubsByActiveParticipantUserId(userID);
+        return await MapClubsWithStats(clubs);
     }
 
+    private async Task<IEnumerable<ClubResponseDto>> MapClubsWithStats(IEnumerable<Club> clubs)
+    {
+        var clubList = clubs?.ToList() ?? new List<Club>();
+        if (!clubList.Any())
+            return Enumerable.Empty<ClubResponseDto>();
+
+        var clubIds = clubList.Select(c => c.ClubID).Distinct().ToList();
+        var memberCounts = await _unitOfWork.Clubs.GetMemberCountsByClubIds(clubIds);
+        var courseCounts = await _unitOfWork.Clubs.GetCourseCountsByClubIds(clubIds);
+
+        return clubList.Select(club =>
+        {
+            var response = _mapper.Map<ClubResponseDto>(club);
+            response.TotalMembers = memberCounts.GetValueOrDefault(club.ClubID, 0);
+            response.TotalCourses = courseCounts.GetValueOrDefault(club.ClubID, 0);
+            return response;
+        }).ToList();
+    }
 }
 

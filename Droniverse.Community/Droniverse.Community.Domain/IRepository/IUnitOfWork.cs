@@ -17,6 +17,8 @@ public interface IUnitOfWork : IDisposable
     IProductRepository Products { get; }
     IRoundRepository Rounds { get; }
     IClubCourseRepository ClubCourses { get; }
+    ICompetitionPrizeRepository CompetitionPrizes { get; }
+    IUserPrizeRepository UserPrizes { get; }
 
     Task<int> SaveChangeAsync();
 }

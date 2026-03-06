@@ -9,7 +9,7 @@ public class ClubAttemptRequest
     public Guid ClubID { get; private set; }
     public Club Club { get; private set; }
     public ClubAttemptRequestStatus Status { get; private set; }
-    public DateTime CreateAt { get; private set; }
+    public DateTime CreatedAt { get; private set; }
     public DateTime? ProcessedAt { get; private set; }
 
     private ClubAttemptRequest() { } // For EF
@@ -20,7 +20,7 @@ public class ClubAttemptRequest
         RequesterID = requesterId;
         ClubID = clubId;
         Status = ClubAttemptRequestStatus.PENDING;
-        CreateAt = DateTime.UtcNow;
+        CreatedAt = DateTime.UtcNow;
     }
 
     public void Approve(Guid approverId)

@@ -21,6 +21,7 @@ public static class DependencyInjection
         //rabbitmq
         services.AddTransient<IPublisher, UserPublisher>();
         services.AddTransient<IUserPublisher, UserPublisher>();
+        
         return services;
     }
 }

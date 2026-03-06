@@ -4,6 +4,7 @@ using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Entities;
+using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Shared.DTOs;
 using System;
@@ -35,22 +36,14 @@ namespace Droniverse.Community.Application.Services
 
             //var requesterId = _currentUserService.UserId;
 
-            // ===== 2. TODO: Upload image to third-party storage =====
-            // string imageUrl = await _fileService.UploadAsync(dto.Image);
-
-            // Fix cứng tạm thời
-            string imageUrl = "https://tokyocamera.vn/wp-content/uploads/2021/11/DJI-Mavic-3-Cine-DroneDJ-Featured-Image-1400x700.jpeg";
-
             var request = new ClubCreationRequest(
                 dto.NameVN,
                 dto.NameEN,
-                dto.DescriptionVN,
-                dto.DescriptionEN,
-                dto.ClubCode,
+                dto.Description,
                 dto.IsPublic,
                 dto.LimitParticipant,
                 dto.LimitClubManager,
-                imageUrl,
+                dto.Image,
                 requesterId
             );
 
@@ -67,5 +60,84 @@ namespace Droniverse.Community.Application.Services
             return response;
         }
 
+        public async Task<ClubCreationRequestUpdateStatusResponseDto> UpdateRequestStatus(Guid id, ClubCreationRequestUpdateStatusDto dto)
+        {
+            // Temporary: fix ApproverId
+            var approverId = Guid.Parse("ae6da7f5-1473-456f-9e55-70df702d47ee");
+            
+            // Get the request from database
+            var request = await _unitOfWork.ClubCreationRequests.GetByCondition(r => r.ClubCreationRequestID == id);
+            
+            if (request == null)
+                throw new InvalidOperationException($"Club creation request with ID {id} not found.");
+
+            // Update status based on the requested status
+            switch (dto.Status)
+            {
+                case ClubCreationRequestStatus.APPROVED:
+                    // Create new Club with ACTIVE status
+                    var newClub = new Club(
+                        request.NameVN,
+                        request.NameEN,
+                        request.Description,
+                        GenerateClubCode(),
+                        request.IsPublic,
+                        request.LimitParticipant,
+                        request.LimitClubManager,
+                        request.RequesterID
+                    );
+
+                    // Add club to database
+                    await _unitOfWork.Clubs.Add(newClub);
+                    await _unitOfWork.SaveChangeAsync();
+
+                    // Approve request with the created club's ID
+                    request.Approve(approverId, newClub.ClubID);
+                    break;
+
+                case ClubCreationRequestStatus.REJECTED:
+                    if (string.IsNullOrWhiteSpace(dto.RejectReason))
+                        throw new ArgumentException("Reject reason is required for rejection.");
+                    request.Reject(approverId, dto.RejectReason);
+                    break;
+
+                case ClubCreationRequestStatus.CANCEL:
+                    request.Cancel(request.RequesterID);
+                    break;
+
+                default:
+                    throw new InvalidOperationException($"Cannot update to status {dto.Status}.");
+            }
+
+            // Save changes
+            await _unitOfWork.ClubCreationRequests.Update(request);
+            await _unitOfWork.SaveChangeAsync();
+
+            // Return response
+            var response = new ClubCreationRequestUpdateStatusResponseDto
+            {
+                ClubCreationRequestID = request.ClubCreationRequestID,
+                NameVN = request.NameVN,
+                NameEN = request.NameEN,
+                Status = request.Status,
+                UpdatedAt = request.UpdatedAt ?? DateTime.UtcNow,
+                RejectReason = request.RejectReason,
+                ClubID = request.ClubID
+            };
+
+            return response;
+        }
+
+        /// <summary>
+        /// Generate a unique 6-character club code
+        /// </summary>
+        private string GenerateClubCode()
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            var random = new Random();
+            return new string(Enumerable.Range(0, 6)
+                .Select(_ => chars[random.Next(chars.Length)])
+                .ToArray());
+        }
     }
 }

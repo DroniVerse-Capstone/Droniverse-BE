@@ -18,6 +18,7 @@ public static class DependencyInjection
         services.AddAutoMapper(typeof(CategoryMappingProfile).Assembly);
         services.AddScoped<IClubService, ClubService>();
         services.AddScoped<IClubAttemptRequestService, ClubAttemptRequestService>();
+        services.AddScoped<IClubCreationRequestService, ClubCreationRequestService>();
         services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<ICategoryService, CategoryService>();
 

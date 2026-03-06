@@ -11,15 +11,11 @@ namespace Droniverse.Community.API.Examples
             {
                 NameVN = "Câu lạc bộ Drone Việt Nam",
                 NameEN = "Vietnam Drone Club",
-                DescriptionVN = "Câu lạc bộ dành cho những người yêu thích drone và công nghệ bay không người lái.",
-                DescriptionEN = "A club for people passionate about drones and UAV technology.",
-                ClubCode = "DRONE1",
+                Description = "Câu lạc bộ dành cho những người yêu thích drone và công nghệ bay không người lái.",
                 IsPublic = true,
                 LimitParticipant = 200,
                 LimitClubManager = 5,
-
-                // File upload không thể set example thật
-                Image = null
+                Image = "https://bom.edu.vn/public/upload/2024/12/avatar-goku-cute-1.webp"
             };
         }
     }

@@ -23,17 +23,17 @@ namespace Droniverse.Community.Infrastructure.Persistence.MySql.Configurations
             builder.Property(x => x.NameVN)
                 .HasMaxLength(255);
 
+            builder.Property(x => x.Description)
+             .HasMaxLength(255);
+
             builder.Property(x => x.NameEN)
                 .HasMaxLength(255);
-
-            builder.Property(x => x.ClubCode)
-                .HasColumnType("char(6)");
 
             builder.Property(x => x.ImageUrl)
                 .HasColumnType("text");
 
             builder.Property(x => x.IsPublic)
-                .HasColumnType("boolean");
+                .HasColumnType("tinyint(1)");
 
             builder.Property(x => x.CreatedAt)
                 .IsRequired();

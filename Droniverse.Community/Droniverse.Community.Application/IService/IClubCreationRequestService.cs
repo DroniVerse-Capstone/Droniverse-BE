@@ -12,5 +12,6 @@ namespace Droniverse.Community.Application.IService
     public interface IClubCreationRequestService
     {
         Task<ClubCreationRequestCreateResponseDto> CreateRequestToCreateClub(ClubCreationRequestCreateDto request);
+        Task<ClubCreationRequestUpdateStatusResponseDto> UpdateRequestStatus(Guid id, ClubCreationRequestUpdateStatusDto request);
     }
 }

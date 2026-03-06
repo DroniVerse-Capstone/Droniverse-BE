@@ -21,7 +21,7 @@ public class ClubAttemptRequestConfiguration : IEntityTypeConfiguration<ClubAtte
         builder.Property(c => c.ApproverID).HasColumnType("char(36)");
         builder.Property(c => c.Status).HasConversion<int>().IsRequired();
 
-        builder.Property(c => c.CreateAt)
+        builder.Property(c => c.CreatedAt)
            .HasColumnType("datetime(6)")
            .IsRequired();
 

@@ -7,7 +7,7 @@ public class Participation
     public Guid ParticipationID { get; private set; }
     public Guid UserID { get; private set; }
     public Guid ClubID { get; private set; }
-    public Guid ApproverID { get; private set; }
+    public Guid? ApproverID { get; private set; }
     public Club Club { get; private set; }
     public ParticipationStatus Status { get; private set; }
     public DateTime JoinDate { get; private set; }
@@ -15,7 +15,7 @@ public class Participation
 
     private Participation() { } // For EF
 
-    public Participation(Guid userId, Guid clubId, Guid approverId)
+    public Participation(Guid userId, Guid clubId, Guid? approverId)
     {
         ParticipationID = Guid.NewGuid();
         UserID = userId;

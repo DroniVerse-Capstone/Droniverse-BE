@@ -23,7 +23,7 @@ public class MySqlDbContext : DbContext
     public DbSet<UserProduct> UserProducts { get; set; }
     public DbSet<Round> Rounds { get; set; }
     public DbSet<UserRound> UserRounds { get; set; }
-    public DbSet<UserCompetion> UserCompetitions { get; set; }
+    public DbSet<UserCompetition> UserCompetitions { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

@@ -25,7 +25,25 @@ namespace Droniverse.Community.API.Controllers
         {
             return SuccessResponse<ClubCreationRequestCreateResponseDto>.Create(
                 await _clubCreationRequestService.CreateRequestToCreateClub(request),
-                "Gửi yêu cầu tạo câu lạc bộ thành công thành công tới");
+                "Gửi yêu cầu tạo câu lạc bộ thành công");
+        }
+
+        /// <summary>
+        /// API cập nhật trạng thái của request
+        /// </summary>
+        /// <param name="id">ClubCreationRequestID : f5364a01-da2f-4543-a850-3cf49d14e174</param>
+        /// <param name="request"></param>
+        /// <remarks>
+        /// [0: PENDING, 1: APPROVED, 2: REJECTED, 3: CANCELLED]
+        /// </remarks>
+        /// <returns></returns>
+        [HttpPut("{id}/status")]
+        [SwaggerRequestExample(typeof(ClubCreationRequestUpdateStatusDto), typeof(ClubCreationRequestUpdateStatusExample))]
+        public async Task<ApiResponse> UpdateRequestStatus(Guid id, [FromBody] ClubCreationRequestUpdateStatusDto request)
+        {
+            return SuccessResponse<ClubCreationRequestUpdateStatusResponseDto>.Create(
+                await _clubCreationRequestService.UpdateRequestStatus(id, request),
+                "Cập nhật trạng thái yêu cầu tạo câu lạc bộ thành công");
         }
     }
 }

@@ -14,9 +14,7 @@ namespace Droniverse.Community.Domain.Entities
         // ===== Editable Business Fields =====
         public string NameVN { get; set; }
         public string NameEN { get; set; }
-        public string DescriptionVN { get; set; }
-        public string DescriptionEN { get; set; }
-        public string ClubCode { get; set; }
+        public string Description { get; set; }
         public bool IsPublic { get; set; }
         public int LimitParticipant { get; set; }
         public int LimitClubManager { get; set; }
@@ -33,13 +31,16 @@ namespace Droniverse.Community.Domain.Entities
         public Guid? ApproverID { get; private set; }
         public ClubCreationRequestStatus Status { get; private set; }
 
+        private ClubCreationRequest()
+        {
+            
+        }
+
         // ===== Constructor =====
         public ClubCreationRequest(
             string nameVN,
             string nameEN,
-            string descriptionVN,
-            string descriptionEN,
-            string clubCode,
+            string description,
             bool isPublic,
             int limitParticipant,
             int limitClubManager,
@@ -49,9 +50,7 @@ namespace Droniverse.Community.Domain.Entities
             ClubCreationRequestID = Guid.NewGuid();
             NameVN = nameVN;
             NameEN = nameEN;
-            DescriptionVN = descriptionVN;
-            DescriptionEN = descriptionEN;
-            ClubCode = clubCode;
+            Description = description;
             IsPublic = isPublic;
             LimitParticipant = limitParticipant;
             LimitClubManager = limitClubManager;

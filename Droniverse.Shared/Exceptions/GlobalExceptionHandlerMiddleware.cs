@@ -67,7 +67,7 @@ public class GlobalExceptionHandlerMiddleware
                 ErrorResponse.Create(ex.Message, "ARGUMENT_NULL")
             ),
             InvalidOperationException ex => (
-                StatusCodes.Status400BadRequest,
+                StatusCodes.Status409Conflict,
                 ErrorResponse.Create(ex.Message, "INVALID_OPERATION")
             ),
             BadRequestException ex => (

@@ -15,8 +15,8 @@ public record ClubResponseDto
     public bool IsPublic { get; init; }
     public int LimitParticipation { get; init; }
     public int LimitClubManagers { get; init; }
-    public int TotalMembers { get; init; }
-    public int TotalCourses { get; init; }
+    public int TotalMembers { get; set; }
+    public int TotalCourses { get; set; }
     public UserResponse Creator { get; init; }
     public IEnumerable<CategoryResponseDto> Categories { get; init; }
 }
