@@ -14,8 +14,8 @@ namespace Droniverse.Community.Application.Mapper
     {
         public ClubRequestMappingProfile()
         {
-            CreateMap<ClubRequestCreateDto, ClubRequest>();
-            CreateMap<ClubRequest, ClubRequestResponseDto>();
+            CreateMap<ClubAttemptRequestCreateDto, ClubAttemptRequest>();
+            CreateMap<ClubAttemptRequest, ClubRequestResponseDto>();
         }
     }
 }

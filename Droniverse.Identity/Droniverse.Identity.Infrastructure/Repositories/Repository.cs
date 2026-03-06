@@ -45,6 +45,11 @@ public class Repository<T> : IRepository<T> where T : class
         return await _dbSet.Where(expression).FirstOrDefaultAsync();
     }
 
+    public async Task<IEnumerable<T>> GetManyByCondition(Expression<Func<T, bool>> expression)
+    {
+        return await _dbSet.Where(expression).ToListAsync();
+    }
+
     public async Task<T?> Update(T entity)
     {
         //_dbSet.Entry(entity).State = EntityState.Modified;

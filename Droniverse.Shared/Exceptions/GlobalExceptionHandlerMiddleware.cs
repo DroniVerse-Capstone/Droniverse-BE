@@ -23,6 +23,7 @@ public class GlobalExceptionHandlerMiddleware
 
     public async Task InvokeAsync(HttpContext httpContext)
     {
+
         try
         {
             await _next(httpContext);
@@ -48,6 +49,10 @@ public class GlobalExceptionHandlerMiddleware
                 StatusCodes.Status404NotFound,
                 ErrorResponse.Create(ex.Message, ex.ErrorCode)
             ),
+            KeyNotFoundException ex => (
+                StatusCodes.Status404NotFound,
+                ErrorResponse.Create(ex.Message, "KEYNOTFOUND")
+            ),
             DuplicateEmailException ex => (
                 StatusCodes.Status409Conflict,
                 ErrorResponse.Create(ex.Message, ex.ErrorCode)
@@ -62,7 +67,7 @@ public class GlobalExceptionHandlerMiddleware
                 ErrorResponse.Create(ex.Message, "ARGUMENT_NULL")
             ),
             InvalidOperationException ex => (
-                StatusCodes.Status400BadRequest,
+                StatusCodes.Status409Conflict,
                 ErrorResponse.Create(ex.Message, "INVALID_OPERATION")
             ),
             BadRequestException ex => (

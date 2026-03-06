@@ -27,4 +27,13 @@ public class UserRepository : Repository<Account>, IUserRepository
             .Where(expression)
             .FirstOrDefaultAsync();
     }   
+
+    public new async Task<IEnumerable<Account>> GetManyByCondition(Expression<Func<Account, bool>> expression)
+    {
+        return await _dbSet
+            .Include(a => a.UserInfo)
+            .Include(a => a.Role)
+            .Where(expression)
+            .ToListAsync();
+    }
 }

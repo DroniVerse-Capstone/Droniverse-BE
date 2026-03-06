@@ -17,9 +17,9 @@ public class ParticipationConfiguration : IEntityTypeConfiguration<Participation
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.Property(p => p.UserID).HasColumnType("char(36)").IsRequired();
-        builder.Property(p => p.ApproverID).HasColumnType("char(36)").IsRequired();
+        builder.Property(p => p.ApproverID).HasColumnType("char(36)");
         builder.Property(p => p.ClubID).HasColumnType("char(36)").IsRequired();
-        builder.Property(p => p.Status).HasColumnType("bit").HasConversion<byte>().IsRequired();
+        builder.Property(p => p.Status).HasColumnType("tinyint").IsRequired();
         builder.ToTable(t => t.HasCheckConstraint("CK_Participation_Status", "`Status` IN (0, 1, 2)"));
         builder.Property(p => p.JoinDate).HasColumnType("datetime").ValueGeneratedOnAdd();
     }

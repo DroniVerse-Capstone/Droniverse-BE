@@ -11,13 +11,16 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
 
         builder.HasKey(c => c.CategoryID);
         builder.Property(c => c.CategoryID).HasColumnType("char(36)");
-        //builder.HasMany(c => c.CourseVersionCategories)
-        //    .WithOne(cvc => cvc.Category);
         
         builder.Property(c => c.TypeNameEN).HasMaxLength(255).IsRequired();
         builder.Property(c => c.TypeNameVN).HasMaxLength(255).IsRequired();
         builder.Property(c => c.DescriptionEN).HasColumnType("text");
         builder.Property(c => c.DescriptionVN).HasColumnType("text");
+
+        builder.HasMany(x => x.ClubCreationRequests)
+                  .WithOne(x => x.Category)
+                  .HasForeignKey(x => x.CategoryID)
+                  .OnDelete(DeleteBehavior.Restrict);
     }
 }
 

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Droniverse.Community.Application.DTO.Request
 {
-    public record ClubRequestCreateDto(
+    public record ClubAttemptRequestCreateDto(
         [Required]
         Guid RequesterID,
         [Required]
