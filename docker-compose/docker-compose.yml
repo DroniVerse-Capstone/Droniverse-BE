@@ -7,6 +7,8 @@ services:
       dockerfile: Droniverse.Gateway/Droniverse.Gateway/Dockerfile
     ports:
     - "8888:8080"
+    env_file:
+      - ../.env
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
@@ -26,6 +28,8 @@ services:
     build:
       context: ..
       dockerfile: Droniverse.Academy/Droniverse.Academy.API/Dockerfile
+    env_file:
+      - ../.env
     environment:
       - ASPNETCORE_HTTP_PORTS=8080
       - ASPNETCORE_ENVIRONMENT=Development
@@ -41,6 +45,8 @@ services:
     build:
       context: ..
       dockerfile: Droniverse.Community/Droniverse.Community.API/Dockerfile
+    env_file:
+      - ../.env
     environment:
       - ASPNETCORE_HTTP_PORTS=8080
       - ASPNETCORE_ENVIRONMENT=Development
@@ -60,6 +66,8 @@ services:
     build:
       context: ..
       dockerfile: Droniverse.Identity/Droniverse.Identity.API/Dockerfile
+    env_file:
+      - ../.env
     environment:
       - ASPNETCORE_HTTP_PORTS=8080
       - ASPNETCORE_ENVIRONMENT=Development

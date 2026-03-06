@@ -1,5 +1,6 @@
 ﻿using DotNetEnv;
 using Droniverse.Identity.API;
+using Droniverse.Identity.API.Swagger;
 using Droniverse.Identity.Application;
 using Droniverse.Identity.Infrastructure;
 using Droniverse.Shared;
@@ -8,6 +9,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Swashbuckle.AspNetCore.Filters;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -31,8 +33,13 @@ builder.Services.AddApplication();
 builder.Services.AddShared(builder.Configuration);
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
+// chỉ cần 1 dòng này là các ExampleProvider trong assembly sẽ đc apply vào swagger
+builder.Services.AddSwaggerExamplesFromAssemblyOf<LoginExampleProvider>();
+
 builder.Services.AddSwaggerGen(c =>
 {
+    c.ExampleFilters(); // Add data mẫu vào các API, Vd: LoginExampleProvider LoginEmailDto,...
+
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "JWT Authorization header sử dụng Bearer scheme. Fe quăng token dô đây nha",
@@ -76,7 +83,7 @@ builder.Services.AddAuthentication(options =>
         ValidIssuer = jwtSettings.Issuer,
         ValidAudience = jwtSettings.Audience,
         IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(jwtSettings.Key) // ✅ From .env
+            Encoding.UTF8.GetBytes(jwtSettings.Key)
         ),
         ClockSkew = TimeSpan.Zero
     };
@@ -87,7 +94,7 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
+        policy.WithOrigins("http://localhost:3000")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -107,10 +114,10 @@ if (app.Environment.IsDevelopment())
 
 //app.UseHttpsRedirection();
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
+app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.UseCors();
 
 app.MapControllers();
 

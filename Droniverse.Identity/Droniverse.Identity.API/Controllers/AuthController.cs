@@ -22,7 +22,7 @@ namespace Droniverse.Identity.API.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginEmailDto request)
         {
-            AuthResponse? response = await _authService.AuthenticatedUser(request.Email, request.Password);
+            AuthResponse? response = await _authService.AuthenticatedUser(request);
             _logger.LogInformation($"User login with email {request.Email} successfully.");
             return Ok(SuccessResponse<AuthResponse>.Create(response, "Login successfully."));
         }
