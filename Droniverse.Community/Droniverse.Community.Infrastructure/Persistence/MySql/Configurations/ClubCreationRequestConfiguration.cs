@@ -65,6 +65,11 @@ namespace Droniverse.Community.Infrastructure.Persistence.MySql.Configurations
                 .WithMany()
                 .HasForeignKey(x => x.ClubID)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasMany(x => x.Categories)
+                    .WithOne(x => x.ClubCreationRequest)
+                    .HasForeignKey(x => x.ClubCreationRequestID)
+                    .OnDelete(DeleteBehavior.Cascade);
         }
 
     }

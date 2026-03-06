@@ -30,10 +30,11 @@ namespace Droniverse.Community.Domain.Entities
         public Guid RequesterID { get; private set; }
         public Guid? ApproverID { get; private set; }
         public ClubCreationRequestStatus Status { get; private set; }
+        public ICollection<ClubCreationRequestCategory> Categories { get; private set; }
 
         private ClubCreationRequest()
         {
-            
+
         }
 
         // ===== Constructor =====
@@ -59,6 +60,7 @@ namespace Droniverse.Community.Domain.Entities
 
             CreatedAt = DateTime.UtcNow;
             Status = ClubCreationRequestStatus.PENDING;
+            Categories = new List<ClubCreationRequestCategory>();
         }
 
         // ===== Domain Methods =====
@@ -66,10 +68,10 @@ namespace Droniverse.Community.Domain.Entities
         public void Approve(Guid approverId, Guid clubId)
         {
             if (clubId == Guid.Empty)
-                throw new ArgumentException("ClubId is invalid.");
+                throw new ArgumentException("ClubId không hợp lệ.");
 
             if (Status != ClubCreationRequestStatus.PENDING)
-                throw new InvalidOperationException("Only pending request can be approved.");
+                throw new InvalidOperationException("Chỉ yêu cầu ở trạng thái PENDING mới có thể được phê duyệt.");
 
             Status = ClubCreationRequestStatus.APPROVED;
             ApproverID = approverId;
@@ -81,10 +83,10 @@ namespace Droniverse.Community.Domain.Entities
         public void Reject(Guid approverId, string reason)
         {
             if (string.IsNullOrWhiteSpace(reason))
-                throw new ArgumentException("Reject reason is required.");
+                throw new ArgumentException("Lý do từ chối là bắt buộc.");
 
             if (Status != ClubCreationRequestStatus.PENDING)
-                throw new InvalidOperationException("Only PENDING request can be rejected.");
+                throw new InvalidOperationException("Chỉ yêu cầu ở trạng thái PENDING mới có thể bị từ chối.");
 
             Status = ClubCreationRequestStatus.REJECTED;
             ApproverID = approverId;
@@ -95,12 +97,38 @@ namespace Droniverse.Community.Domain.Entities
         public void Cancel(Guid requesterId)
         {
             if (Status != ClubCreationRequestStatus.PENDING)
-                throw new InvalidOperationException("Only PENDING request can be canceled.");
+                throw new InvalidOperationException("Chỉ yêu cầu ở trạng thái PENDING mới có thể bị hủy.");
 
             if (RequesterID != requesterId)
-                throw new InvalidOperationException("Only requester can cancel this request.");
+                throw new InvalidOperationException("Chỉ người tạo yêu cầu mới có thể hủy yêu cầu này.");
 
             Status = ClubCreationRequestStatus.CANCEL;
+            UpdatedAt = DateTime.UtcNow;
+        }
+
+        public void UpdateInfo(
+            string nameVN,
+            string nameEN,
+            string description,
+            bool isPublic,
+            int limitParticipant,
+            int limitClubManager,
+            string imageUrl,
+            Guid requesterId)
+        {
+            if (Status != ClubCreationRequestStatus.PENDING)
+                throw new InvalidOperationException("Chỉ yêu cầu ở trạng thái PENDING mới có thể được cập nhật.");
+
+            if (RequesterID != requesterId)
+                throw new InvalidOperationException("Chỉ người tạo yêu cầu mới có thể cập nhật yêu cầu này.");
+
+            NameVN = nameVN;
+            NameEN = nameEN;
+            Description = description;
+            IsPublic = isPublic;
+            LimitParticipant = limitParticipant;
+            LimitClubManager = limitClubManager;
+            ImageUrl = imageUrl;
             UpdatedAt = DateTime.UtcNow;
         }
     }

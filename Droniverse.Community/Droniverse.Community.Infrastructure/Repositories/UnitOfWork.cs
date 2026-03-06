@@ -22,6 +22,7 @@ internal class UnitOfWork : IUnitOfWork
     private IClubCreationRequestRepository _clubCreationRequest;
     private ICompetitionPrizeRepository _competitionPrize;
     private IUserPrizeRepository _userPrize;
+    private IClubCreationRequestCategoryRepository _clubCreationRequestCategory;
 
     public UnitOfWork(MySqlDbContext context)
     {
@@ -67,6 +68,8 @@ internal class UnitOfWork : IUnitOfWork
     public ICompetitionPrizeRepository CompetitionPrizes => _competitionPrize ??= new CompetitionPrizeRepository(_context);
 
     public IUserPrizeRepository UserPrizes => _userPrize ??= new UserPrizeRepository(_context);
+    public IClubCreationRequestCategoryRepository ClubCreationRequestCategories => _clubCreationRequestCategory ??= new ClubCreationRequestCategoryRepository(_context);
+
 
     public async Task<int> SaveChangeAsync()
         => await _context.SaveChangesAsync();

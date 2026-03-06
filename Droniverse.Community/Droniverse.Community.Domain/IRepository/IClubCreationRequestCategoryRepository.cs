@@ -7,8 +7,7 @@ using System.Threading.Tasks;
 
 namespace Droniverse.Community.Domain.IRepository
 {
-    public interface IClubCreationRequestRepository : IRepository<ClubCreationRequest>
+    public interface IClubCreationRequestCategoryRepository : IRepository<ClubCreationRequestCategory>
     {
-        Task<bool> IsUserHavingOtherRequest(Guid userID);
     }
 }

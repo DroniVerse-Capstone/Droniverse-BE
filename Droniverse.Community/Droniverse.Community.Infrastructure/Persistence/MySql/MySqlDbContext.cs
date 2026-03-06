@@ -24,6 +24,8 @@ public class MySqlDbContext : DbContext
     public DbSet<Round> Rounds { get; set; }
     public DbSet<UserRound> UserRounds { get; set; }
     public DbSet<UserCompetition> UserCompetitions { get; set; }
+    public DbSet<ClubCreationRequest> ClubCreationRequests { get; set; }
+    public DbSet<ClubCreationRequestCategory> ClubCreationRequestCategories { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

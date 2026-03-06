@@ -19,7 +19,6 @@ public record ClubCreateDto
 
     [Required(ErrorMessage = "Trạng thái không được để trống")]
     public ClubStatus Status { get; init; }
-
     public bool IsPublic { get; init; }
 
     [Range(1, 10000, ErrorMessage = "Số lượng thành viên phải từ 1 đến 10000")]

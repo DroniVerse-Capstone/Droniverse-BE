@@ -18,5 +18,10 @@ internal class ParticipationRepository : MySqlRepository<Participation>, IPartic
                      && p.Status == ParticipationStatus.ACTIVE)
             .CountAsync();
     }
+
+    public async Task<bool> IsUserInClub(Guid clubId, Guid userId)
+    {
+        return await _context.Set<Participation>().AnyAsync(c => c.ClubID == clubId && c.UserID == userId && c.Status == ParticipationStatus.ACTIVE);
+    }
 }
 

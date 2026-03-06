@@ -51,7 +51,7 @@ namespace Droniverse.Community.Application.Services
             var clubRequests = await _unitOfWork.ClubAttemptRequests
                 .GetManyByCondition(
                     c => c.ClubID == clubID,
-                    c => c.Club
+                    query => query.Include(c => c.Club)
                 );
 
             if (clubRequests == null)
@@ -157,7 +157,7 @@ namespace Droniverse.Community.Application.Services
             var clubRequests = await _unitOfWork.ClubAttemptRequests
                 .GetManyByCondition(
                     c => c.RequesterID == requesterID,
-                    c => c.Club
+                    query => query.Include(c => c.Club)
                 );
 
             if (clubRequests == null || !clubRequests.Any())

@@ -1,16 +1,8 @@
-﻿using Microsoft.AspNetCore.Http;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.ComponentModel.DataAnnotations;
 
 namespace Droniverse.Community.Application.DTO.Request
 {
-    using System.ComponentModel.DataAnnotations;
-    using Microsoft.AspNetCore.Http;
-
-    public class ClubCreationRequestCreateDto
+    public class ClubCreationRequestUpdateInfoDto
     {
         [Required]
         [StringLength(255)]
@@ -37,6 +29,6 @@ namespace Droniverse.Community.Application.DTO.Request
         public string Image { get; set; }
 
         [Required]
-        public List<Guid> CategoryIDs { get; init; } = new();
+        public List<Guid> CategoryIDs { get; set; } = new();
     }
 }

@@ -72,7 +72,6 @@ namespace Droniverse.Community.API.Controllers
             ClubResponseDto club = await _clubService.GetClubById(id);
             return SuccessResponse<ClubResponseDto>
                 .Create(club, $"Lấy thông tin câu lạc bộ với ID [{id}] thành công!");
-
         }
 
         /// <summary>
@@ -105,15 +104,15 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
-        /// Tạo mới một câu lạc bộ
+        /// Tạo mới một câu lạc bộ.
         /// </summary>
-        /// <param name="clubRequest">Thông tin dữ liệu tạo mới club</param>
+        /// <param name="clubRequest">Thông tin dữ liệu dùng để tạo câu lạc bộ mới. (API này dành cho Manager của hệ thống)</param>
         /// <remarks>
-        /// Sau khi tạo thành công sẽ trả về HTTP 201 và đường dẫn tới API lấy chi tiết club.
+        /// Sau khi tạo thành công hệ thống sẽ trả về HTTP 201 và dữ liệu chi tiết của câu lạc bộ.
         /// </remarks>
         /// <returns>
-        /// 201 Created - Tạo thành công và trả về dữ liệu ClubResponseDto  
-        /// 400 BadRequest - Nếu dữ liệu đầu vào không hợp lệ
+        /// 201 Created - Tạo thành công và trả về dữ liệu <see cref="ClubResponseDto"/>.
+        /// 400 BadRequest - Nếu dữ liệu đầu vào không hợp lệ.
         /// </returns>
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status201Created)]
@@ -121,11 +120,10 @@ namespace Droniverse.Community.API.Controllers
         [SwaggerRequestExample(typeof(ClubAttemptRequestCreateDto), typeof(ClubCreateMultipleExample))]
         public async Task<ApiResponse> CreateClub([FromBody] ClubCreateDto clubRequest)
         {
-
             ClubResponseDto createdClub = await _clubService.CreateClub(clubRequest);
+
             return SuccessResponse<ClubResponseDto>
                 .Create(createdClub, "Tạo câu lạc bộ thành công!");
-
         }
 
         /// <summary>

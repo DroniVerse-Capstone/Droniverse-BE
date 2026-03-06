@@ -33,7 +33,6 @@ internal class ClubService : IClubService
             throw new ArgumentNullException(nameof(clubRequestDto), "Club request data cannot be null.");
         }
 
-        // Validate categories exist
         if (clubRequestDto.CategoryIDs != null && clubRequestDto.CategoryIDs.Any())
         {
             foreach (var categoryId in clubRequestDto.CategoryIDs)
@@ -50,7 +49,6 @@ internal class ClubService : IClubService
         club.ClubID = Guid.NewGuid();
         club.ClubCode = GenerateClubCode();
 
-        //Gọi httpclient đến identity microservice lấy thông tin user
         UserResponse user = null;
         try
         {
@@ -84,13 +82,9 @@ internal class ClubService : IClubService
             await _unitOfWork.SaveChangeAsync();
         }
 
-        var createdClub = await _unitOfWork.Clubs.GetByCondition(
-            c => c.ClubID == club.ClubID,
-            c => c.Include(i => i.ClubCategories)
-        );
+        var createdClub = await _unitOfWork.Clubs.GetByIdWithCategories(club.ClubID);
 
         ClubResponseDto response = _mapper.Map<ClubResponseDto>(createdClub);
-        //gán user vào response
         response = response with { Creator = user };
         return response;
     }
@@ -128,13 +122,13 @@ internal class ClubService : IClubService
 
     public async Task<IEnumerable<ClubResponseDto>> GetAllClubs()
     {
-        IEnumerable<Club> clubList = await _unitOfWork.Clubs.GetAll();
+        IEnumerable<Club> clubList = await _unitOfWork.Clubs.GetAllWithCategories();
         return await MapClubsWithStats(clubList);
     }
 
     public async Task<ClubResponseDto> GetClubById(Guid id)
     {
-        Club? club = await _unitOfWork.Clubs.GetByCondition(c => c.ClubID == id);
+        Club? club = await _unitOfWork.Clubs.GetByIdWithCategories(id);
         if (club == null)
         {
             throw new KeyNotFoundException($"Club with ID {id} not found.");
@@ -159,7 +153,9 @@ internal class ClubService : IClubService
         _mapper.Map(clubUpdateDto, club);
         await _unitOfWork.Clubs.Update(club);
         await _unitOfWork.SaveChangeAsync();
-        ClubResponseDto response = _mapper.Map<ClubResponseDto>(club);
+
+        var updatedClub = await _unitOfWork.Clubs.GetByIdWithCategories(id);
+        ClubResponseDto response = _mapper.Map<ClubResponseDto>(updatedClub);
         return response;
     }
 
@@ -173,12 +169,10 @@ internal class ClubService : IClubService
 
         Guid currentUserId = Guid.Parse("3197734d-d25d-42b1-b968-84b6ee4d33c2"); // member
 
-        var isCurrent = _unitOfWork.Participations.GetByCondition(c => c.UserID == currentUserId);
+        bool isUserExisted = await _unitOfWork.Participations.IsUserInClub(club.ClubID, currentUserId);
 
-        if (isCurrent != null)
-        {
+        if (isUserExisted)
             throw new InvalidOperationException($"Thành viên này đã là thuộc câu lạc bộ [{club.NameVN}]");
-        }
 
         JoinClubResponse response = new()
         {
@@ -200,6 +194,11 @@ internal class ClubService : IClubService
         }
         else
         {
+            var user = _unitOfWork.ClubAttemptRequests.IsUserInClubAttemptRequest(currentUserId, club.ClubID);
+
+            if (user != null)
+                throw new InvalidOperationException("Yêu cầu tham gia club của người dùng này đang chờ được duyệt !");
+
             var clubAttemptRequest = new ClubAttemptRequest(
                 currentUserId,
                 club.ClubID

@@ -11,11 +11,30 @@ internal class ClubRepository : MySqlRepository<Club>, IClubRepository
     {
     }
 
+    public async Task<IEnumerable<Club>> GetAllWithCategories()
+    {
+        return await _context.Set<Club>()
+            .Include(c => c.ClubCategories)
+            .ThenInclude(cc => cc.Category)
+            .OrderByDescending(c => c.CreatedAt)
+            .ToListAsync();
+    }
+
+    public async Task<Club?> GetByIdWithCategories(Guid clubId)
+    {
+        return await _context.Set<Club>()
+            .Include(c => c.ClubCategories)
+            .ThenInclude(cc => cc.Category)
+            .FirstOrDefaultAsync(c => c.ClubID == clubId);
+    }
+
     public async Task<IEnumerable<Club>> GetClubsByActiveParticipantUserId(Guid userId)
     {
         return await _context.Set<Participation>()
             .Where(p => p.UserID == userId && p.Status == ParticipationStatus.ACTIVE)
             .Include(p => p.Club)
+                .ThenInclude(c => c.ClubCategories)
+                    .ThenInclude(cc => cc.Category)
             .Where(p => p.Club != null)
             .Select(p => p.Club)
             .Distinct()
