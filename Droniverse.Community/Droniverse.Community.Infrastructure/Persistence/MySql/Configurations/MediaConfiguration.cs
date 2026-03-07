@@ -18,8 +18,8 @@ public class ModuleConfiguration : IEntityTypeConfiguration<Media>
             .OnDelete(DeleteBehavior.Restrict);
         
         builder.Property(c => c.ImageUrl).HasColumnType("text");
-        builder.Property(m => m.CreateAt).HasColumnType("datetime").ValueGeneratedOnAdd();
-        builder.Property(m => m.UpdateAt).HasColumnType("datetime").ValueGeneratedOnUpdate();
+        builder.Property(m => m.CreatedAt).HasColumnType("datetime").ValueGeneratedOnAdd();
+        builder.Property(m => m.UpdatedAt).HasColumnType("datetime").ValueGeneratedOnUpdate();
     }
 }
 

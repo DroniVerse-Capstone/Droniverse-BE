@@ -7,7 +7,8 @@ public interface IUnitOfWork : IDisposable
     ICategoryRepository Categories { get; }
     IClubRepository Clubs { get; }
     IClubCategoryRepository ClubCategories { get; }
-    IClubRequestRepository ClubRequests { get; }
+    IClubAttemptRequestRepository ClubAttemptRequests { get; }
+    IClubCreationRequestRepository ClubCreationRequests { get; }
     ICompetitionRepository Competitions { get; }
     IMediaRepository Medias { get; }
     IMediaTypeRepository MediaTypes { get; }
@@ -16,6 +17,10 @@ public interface IUnitOfWork : IDisposable
     IProductRepository Products { get; }
     IRoundRepository Rounds { get; }
     IClubCourseRepository ClubCourses { get; }
+    ICompetitionPrizeRepository CompetitionPrizes { get; }
+    IUserPrizeRepository UserPrizes { get; }
+    IClubCreationRequestCategoryRepository ClubCreationRequestCategories { get; }
+
 
     Task<int> SaveChangeAsync();
 }

@@ -13,6 +13,7 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["Droniverse.Gateway/Droniverse.Gateway/Droniverse.Gateway.csproj", "Droniverse.Gateway/Droniverse.Gateway/"]
+COPY ["Droniverse.Shared/Droniverse.Shared.csproj", "Droniverse.Shared/"]
 RUN dotnet restore "./Droniverse.Gateway/Droniverse.Gateway/Droniverse.Gateway.csproj"
 COPY . .
 WORKDIR "/src/Droniverse.Gateway"

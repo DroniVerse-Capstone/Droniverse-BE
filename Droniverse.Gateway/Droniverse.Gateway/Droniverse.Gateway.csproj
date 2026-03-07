@@ -10,6 +10,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="DotNetEnv" Version="3.0.0" />
 		<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.23.0" />
 		<PackageReference Include="MMLib.SwaggerForOcelot" Version="9.0.0" />
 		<PackageReference Include="Ocelot" Version="24.1.0" />
@@ -21,6 +22,7 @@
 	<ItemGroup>
 		<Folder Include="Controllers\" />
 		<Folder Include="wwwroot\swagger-ui\" />
+		<ProjectReference Include="..\..\Droniverse.Shared\Droniverse.Shared.csproj" />
 		<None Update="ocelot.json">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>

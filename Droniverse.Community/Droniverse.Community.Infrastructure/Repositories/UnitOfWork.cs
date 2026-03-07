@@ -10,7 +10,7 @@ internal class UnitOfWork : IUnitOfWork
     private ICategoryRepository _category;
     private IClubRepository _club;
     private IClubCategoryRepository _clubCategory;
-    private IClubRequestRepository _clubRequest;
+    private IClubAttemptRequestRepository _clubAttemptRequest;
     private ICompetitionRepository _competition;
     private IMediaRepository _media;
     private IMediaTypeRepository _mediaType;
@@ -19,6 +19,10 @@ internal class UnitOfWork : IUnitOfWork
     private IProductCategoryRepository _productCategory;
     private IRoundRepository _round;
     private IClubCourseRepository _clubCourse;
+    private IClubCreationRequestRepository _clubCreationRequest;
+    private ICompetitionPrizeRepository _competitionPrize;
+    private IUserPrizeRepository _userPrize;
+    private IClubCreationRequestCategoryRepository _clubCreationRequestCategory;
 
     public UnitOfWork(MySqlDbContext context)
     {
@@ -33,9 +37,6 @@ internal class UnitOfWork : IUnitOfWork
 
     public IClubCategoryRepository ClubCategories
         => _clubCategory ??= new ClubCategoryRepository(_context);
-
-    public IClubRequestRepository ClubRequests
-        => _clubRequest ??= new ClubRequestRepository(_context);
 
     public ICompetitionRepository Competitions
         => _competition ??= new CompetitionRepository(_context);
@@ -59,6 +60,16 @@ internal class UnitOfWork : IUnitOfWork
         => _round ??= new RoundRepository(_context);
 
     public IClubCourseRepository ClubCourses => _clubCourse ??= new ClubCourseRepository(_context);
+
+    public IClubCreationRequestRepository ClubCreationRequests => _clubCreationRequest ??= new ClubCreationRequestRepository(_context);
+
+    public IClubAttemptRequestRepository ClubAttemptRequests => _clubAttemptRequest ??= new ClubAttemptRequestRepository(_context);
+
+    public ICompetitionPrizeRepository CompetitionPrizes => _competitionPrize ??= new CompetitionPrizeRepository(_context);
+
+    public IUserPrizeRepository UserPrizes => _userPrize ??= new UserPrizeRepository(_context);
+    public IClubCreationRequestCategoryRepository ClubCreationRequestCategories => _clubCreationRequestCategory ??= new ClubCreationRequestCategoryRepository(_context);
+
 
     public async Task<int> SaveChangeAsync()
         => await _context.SaveChangesAsync();

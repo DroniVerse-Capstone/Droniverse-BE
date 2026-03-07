@@ -22,7 +22,9 @@ namespace Droniverse.Identity.API.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginEmailDto request)
         {
-            AuthResponse? response = await _authService.AuthenticatedUser(request.Email, request.Password);
+            AuthResponse? response = await _authService.AuthenticatedUser(request);
+            SetTokenCookies(response.AccessToken, response.RefreshToken);
+
             _logger.LogInformation($"User login with email {request.Email} successfully.");
             return Ok(SuccessResponse<AuthResponse>.Create(response, "Login successfully."));
         }
@@ -46,10 +48,33 @@ namespace Droniverse.Identity.API.Controllers
         [HttpPost("logout")]
         public async Task<IActionResult> Logout(string accessToken, string refreshToken)
         {
-            
+
             await _authService.Logout(accessToken, refreshToken);
             _logger.LogInformation($"User logged out successfully.");
             return Ok(SuccessResponse<string>.Create(null, "Logout successfully."));
+        }
+
+        private void SetTokenCookies(string accessToken, string refreshToken)
+        {
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = false, //sau này deploy thì sửa là true
+                SameSite = SameSiteMode.Lax,
+                Expires = DateTimeOffset.UtcNow.AddMinutes(120)
+            };
+
+            Response.Cookies.Append("AccessToken", accessToken, cookieOptions);
+
+            var refreshCookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = false, //sau này deploy thì sửa là true
+                SameSite = SameSiteMode.Lax,
+                Expires = DateTimeOffset.UtcNow.AddDays(7)
+            };
+
+            Response.Cookies.Append("RefreshToken", refreshToken, refreshCookieOptions);
         }
     }
 }

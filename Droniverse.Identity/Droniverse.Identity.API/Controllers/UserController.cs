@@ -65,5 +65,17 @@ namespace Droniverse.Identity.API.Controllers
             string imageUrl = await _userService.UploadUserAvatar(userId, image);
             return Ok(SuccessResponse<string>.Create(imageUrl, "Image uploaded successfully."));
         }
+
+        /// <summary>
+        /// Dùng cho giao tiếp giữa các service
+        /// </summary>
+        /// <param name="userIds">List of user IDs to retrieve</param>
+        /// <returns>List of UserResponse objects for the requested user IDs</returns>
+        [HttpPost("bulk")]
+        public async Task<IActionResult> GetUsersByIds([FromBody] IEnumerable<Guid> userIds)
+        {
+            var users = await _userService.GetUsersByIds(userIds);
+            return Ok(users);
+        }
     }
 }

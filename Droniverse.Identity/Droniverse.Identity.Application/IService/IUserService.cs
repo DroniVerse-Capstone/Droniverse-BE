@@ -12,5 +12,6 @@ public interface IUserService
     Task<UserResponse> UpdateUser(Guid userId, UserUpdateDto userUpdateDto);
     Task<UserResponse> GetUserById(Guid id);
     Task<bool> DeleteUser(Guid id);
+    Task<IEnumerable<UserResponse>> GetUsersByIds(IEnumerable<Guid> userIds);
 }
 

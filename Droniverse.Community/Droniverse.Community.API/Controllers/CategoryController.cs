@@ -10,87 +10,105 @@ namespace Droniverse.Community.API.Controllers
     [ApiController]
     public class CategoryController : Controller
     {
-        private ICategoryService _categoryService;
+        private readonly ICategoryService _categoryService;
+
         public CategoryController(ICategoryService categoryService)
         {
             _categoryService = categoryService;
         }
 
+        /// <summary>
+        /// Lấy toàn bộ danh sách danh mục trong hệ thống.
+        /// </summary>
+        /// <returns>
+        /// Trả về danh sách các danh mục dưới dạng <see cref="CategoryResponseDto"/>.
+        /// </returns>
         [HttpGet]
+        [ProducesResponseType(typeof(SuccessResponse<IEnumerable<CategoryResponseDto>>), StatusCodes.Status200OK)]
         public async Task<ApiResponse> GetAllCategories()
         {
-            try
-            {
-                return SuccessResponse<IEnumerable<CategoryResponseDto>>
-                    .Create(await _categoryService.GetAllCategory(), "Get categories successfully !");
-            }
-            catch (Exception ex)
-            {
-                return ErrorResponse.Create(ex.Message, "ER1001");
-            }
+            var categories = await _categoryService.GetAllCategory();
+
+            return SuccessResponse<IEnumerable<CategoryResponseDto>>
+                .Create(categories, "Lấy danh sách danh mục thành công!");
         }
 
-        [HttpGet("/{id}")]
+        /// <summary>
+        /// Lấy thông tin chi tiết của một danh mục theo ID.
+        /// </summary>
+        /// <param name="id">ID của danh mục cần truy vấn.</param>
+        /// <returns>
+        /// Trả về thông tin danh mục dưới dạng <see cref="CategoryResponseDto"/>.
+        /// </returns>
+        [HttpGet("{id}")]
+        [ProducesResponseType(typeof(SuccessResponse<CategoryResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ApiResponse> GetCategoryById(Guid id)
         {
-            try
-            {
-                return SuccessResponse<CategoryResponseDto>
-                    .Create(await _categoryService.GetCategoryById(id), $"Get category with id [{id}] successfully !");
-            }
-            catch (Exception ex)
-            {
-                return ErrorResponse.Create(ex.Message, "ER102");
-            }
+            var category = await _categoryService.GetCategoryById(id);
+
+            return SuccessResponse<CategoryResponseDto>
+                .Create(category, $"Lấy danh mục với ID [{id}] thành công!");
         }
 
-        [HttpDelete("/{id}")]
+        /// <summary>
+        /// Xóa một danh mục theo ID.
+        /// </summary>
+        /// <param name="id">ID của danh mục cần xóa.</param>
+        /// <returns>
+        /// Trả về kết quả xóa danh mục.
+        /// </returns>
+        [HttpDelete("{id}")]
+        [ProducesResponseType(typeof(SuccessResponse<string>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ApiResponse> DeleteCategory(Guid id)
         {
-            try
-            {
-                var deleted = await _categoryService.Delete(id);
+            var deleted = await _categoryService.Delete(id);
 
-                if (!deleted)
-                {
-                    return ErrorResponse.Create("Delete fail!", "Err91");
-                }
-
-                return SuccessResponse<string>.Create(null, $"Delete category with id [{id}] successfully!");
-            }
-            catch (Exception ex)
+            if (!deleted)
             {
-                return ErrorResponse.Create(ex.Message, "ER102");
+                return ErrorResponse.Create("Xóa danh mục thất bại!", "Err91");
             }
+
+            return SuccessResponse<string>
+                .Create(null, $"Xóa danh mục với ID [{id}] thành công!");
         }
 
-        [HttpPut("/{id}")]
-        public async Task<ApiResponse> UpdateCategory(Guid id
-            , [FromBody] CategoryRequestDto request)
+        /// <summary>
+        /// Cập nhật thông tin danh mục theo ID.
+        /// </summary>
+        /// <param name="id">ID của danh mục cần cập nhật.</param>
+        /// <param name="request">Thông tin danh mục mới.</param>
+        /// <returns>
+        /// Trả về thông tin danh mục sau khi được cập nhật.
+        /// </returns>
+        [HttpPut("{id}")]
+        [ProducesResponseType(typeof(SuccessResponse<CategoryResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ApiResponse> UpdateCategory(Guid id, [FromBody] CategoryRequestDto request)
         {
-            try
-            {
-                return SuccessResponse<CategoryResponseDto>
-                    .Create(await _categoryService.UpdateCategory(id, request), $"Update category with id [{id}] successfully !");
-            }
-            catch (Exception ex)
-            {
-                return ErrorResponse.Create(ex.Message, "ER102");
-            }
+            var category = await _categoryService.UpdateCategory(id, request);
+
+            return SuccessResponse<CategoryResponseDto>
+                .Create(category, $"Cập nhật danh mục với ID [{id}] thành công!");
         }
 
+        /// <summary>
+        /// Tạo mới một danh mục.
+        /// </summary>
+        /// <param name="request">Thông tin danh mục cần tạo.</param>
+        /// <returns>
+        /// Trả về thông tin danh mục sau khi được tạo.
+        /// </returns>
         [HttpPost]
+        [ProducesResponseType(typeof(SuccessResponse<CategoryResponseDto>), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ApiResponse> CreateCategory([FromBody] CategoryRequestDto request)
         {
-            try
-            {
-                return SuccessResponse<CategoryResponseDto>
-                    .Create(await _categoryService.CreateCategory(request), $"Create category successfully !");
-            }
-            catch (Exception ex)
-            {
-                return ErrorResponse.Create(ex.Message, "ER102");
-            }
+            var category = await _categoryService.CreateCategory(request);
+
+            return SuccessResponse<CategoryResponseDto>
+                .Create(category, "Tạo danh mục thành công!");
         }
     }
 }

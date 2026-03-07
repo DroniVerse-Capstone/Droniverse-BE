@@ -144,4 +144,26 @@ internal class UserService : IUserService
     {
         throw new NotImplementedException();
     }
+
+    public async Task<IEnumerable<UserResponse>> GetUsersByIds(IEnumerable<Guid> userIds)
+    {
+        if (userIds == null || !userIds.Any())
+        {
+            return Enumerable.Empty<UserResponse>();
+        }
+
+        var distinctIds = userIds
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        if (!distinctIds.Any())
+        {
+            return Enumerable.Empty<UserResponse>();
+        }
+
+        IEnumerable<Account> accounts = await _unitOfWork.Accounts.GetManyByCondition(a => distinctIds.Contains(a.UserID));
+        IEnumerable<UserResponse> userResponses = _mapper.Map<IEnumerable<UserResponse>>(accounts);
+        return userResponses;
+    }
 }

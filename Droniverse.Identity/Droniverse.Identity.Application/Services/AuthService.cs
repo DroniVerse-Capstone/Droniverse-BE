@@ -7,7 +7,6 @@ using Droniverse.Identity.Domain.Interfaces;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Settings;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -33,7 +32,7 @@ internal class AuthService : IAuthService
         var principal = GetPrincipalFromExpiredToken(accessToken);
         string email = principal.Identity?.Name ?? throw new UnauthorizedAccessException("Invalid access token.");
         //check trong redis xem có bị blacklist hay không (cả access và refresh)
-        
+
         Account? account = await _unitOfWork.Accounts.GetByCondition(a => a.Email == email);
         if (account is null)
         {
@@ -65,7 +64,14 @@ internal class AuthService : IAuthService
             throw new DuplicateEmailException(registerDto.Email);
         }
         Account newAccount = _mapper.Map<Account>(registerDto);
-        newAccount.RoleID = (await _unitOfWork.Roles.GetByCondition(r => r.RoleName == "CLUB_MEMBER")).RoleID;
+
+        if (registerDto.RoleName != "CLUB_MEMBER" || registerDto.RoleName != "CLUB_MANAGER")
+            throw new NotFoundException($"Not support this role name {registerDto.RoleName} when register new user");
+        Role? r = await _unitOfWork.Roles.GetByCondition(r => r.RoleName == registerDto.RoleName);
+        if (r is null)
+            throw new NotFoundException("Role not found.");
+        newAccount.RoleID = r.RoleID;
+        newAccount.Username = registerDto.FirstName + " " + registerDto.LastName;
         await _unitOfWork.Accounts.Add(newAccount);
         await _unitOfWork.SaveChangeAsync();
         UserResponse user = _mapper.Map<UserResponse>(newAccount);
@@ -78,10 +84,10 @@ internal class AuthService : IAuthService
             User = user
         };
     }
-    public async Task<AuthResponse> AuthenticatedUser(string email, string password)
+    public async Task<AuthResponse> AuthenticatedUser(LoginEmailDto request)
     {
-        Account? account = await _unitOfWork.Accounts.GetByCondition(a => a.Email == email && a.PasswordHash == password);
-        if(account is null)
+        Account? account = await _unitOfWork.Accounts.GetByCondition(a => a.Email == request.Email && a.PasswordHash == request.Password);
+        if (account is null)
         {
             throw new UnauthorizedAccessException("Invalid email or password.");
         }

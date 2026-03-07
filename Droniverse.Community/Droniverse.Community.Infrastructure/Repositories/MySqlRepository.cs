@@ -42,14 +42,14 @@ public class MySqlRepository<T> : IRepository<T> where T : class
 
         return await query.FirstOrDefaultAsync(expression);
     }
-    public async Task<IEnumerable<T>> GetManyByCondition(Expression<Func<T, bool>> expression, params Expression<Func<T, object>>[] includes)
+    public async Task<IEnumerable<T>> GetManyByCondition(
+     Expression<Func<T, bool>> expression,
+     Func<IQueryable<T>, IQueryable<T>>? include = null)
     {
         IQueryable<T> query = _context.Set<T>().Where(expression);
 
-        foreach (var include in includes)
-        {
-            query = query.Include(include);
-        }
+        if (include != null)
+            query = include(query);
 
         return await query.ToListAsync();
     }

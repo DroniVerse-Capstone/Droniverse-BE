@@ -1,5 +1,7 @@
 ﻿using Droniverse.Community.Application.DTO.Request.Mongo;
+using Droniverse.Community.Application.DTO.Response.Mongo;
 using Droniverse.Community.Application.IService.Mongo;
+using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Droniverse.Community.API.Controllers
@@ -16,22 +18,56 @@ namespace Droniverse.Community.API.Controllers
             _orderService = orderService;
         }
 
+        /// <summary>
+        /// Lấy danh sách tất cả các đơn hàng
+        /// </summary>
+        /// <returns>
+        /// 200 OK - Trả về danh sách đơn hàng
+        /// </returns>
         [HttpGet]
-        public async Task<IActionResult> GetOrders()
+        [ProducesResponseType(typeof(SuccessResponse<List<OrderResponseDto?>>), StatusCodes.Status200OK)]
+        public async Task<ApiResponse> GetOrders()
         {
-            var orders = await _orderService.GetOrders();
-            return Ok(orders);
+            try
+            {
+                var orders = await _orderService.GetOrders();
+                return SuccessResponse<List<OrderResponseDto?>>
+                    .Create(orders, "Lấy danh sách đơn hàng thành công!");
+            }
+            catch (Exception ex)
+            {
+                return ErrorResponse.Create(ex.Message, "ER2001");
+            }
         }
 
+        /// <summary>
+        /// Tạo mới một đơn hàng
+        /// </summary>
+        /// <param name="orderCreateDto">Thông tin đơn hàng cần tạo</param>
+        /// <returns>
+        /// 200 OK - Tạo đơn hàng thành công
+        /// 400 BadRequest - Dữ liệu không hợp lệ
+        /// </returns>
         [HttpPost]
-        public async Task<IActionResult> AddOrder([FromBody]OrderCreateDto orderCreateDto)
+        [ProducesResponseType(typeof(SuccessResponse<OrderResponseDto?>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ApiResponse> AddOrder([FromBody]OrderCreateDto orderCreateDto)
         {
-            var createdOrder = await _orderService.AddOrder(orderCreateDto);
-            if (createdOrder == null)
+            try
             {
-                return BadRequest("Invalid order data.");
+                var createdOrder = await _orderService.AddOrder(orderCreateDto);
+                if (createdOrder == null)
+                {
+                    return ErrorResponse.Create("Dữ liệu đơn hàng không hợp lệ.", "ER2002");
+                }
+
+                return SuccessResponse<OrderResponseDto?>
+                    .Create(createdOrder, "Tạo đơn hàng thành công!");
             }
-            return CreatedAtAction(nameof(GetOrders), new { id = createdOrder.OrderID }, createdOrder);
+            catch (Exception ex)
+            {
+                return ErrorResponse.Create(ex.Message, "ER102");
+            }
         }
     }
 }

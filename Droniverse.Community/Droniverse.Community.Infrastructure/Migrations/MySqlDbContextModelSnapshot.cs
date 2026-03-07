@@ -54,19 +54,19 @@ namespace Droniverse.Community.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
 
-                    b.Property<Guid>("ClubCode")
+                    b.Property<string>("ClubCode")
+                        .IsRequired()
+                        .HasColumnType("char(6)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<Guid>("CreatedBy")
                         .HasColumnType("char(36)");
 
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("char(36)");
-
-                    b.Property<string>("DescriptionEN")
+                    b.Property<string>("Description")
                         .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("DescriptionVN")
-                        .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("varchar(255)");
 
                     b.Property<bool>("IsPublic")
                         .HasColumnType("tinyint(1)");
@@ -90,12 +90,50 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     b.Property<sbyte>("Status")
                         .HasColumnType("tinyint");
 
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime");
+
                     b.HasKey("ClubID");
 
                     b.ToTable("Club", null, t =>
                         {
                             t.HasCheckConstraint("CK_Club_Status", "`Status` IN (0, 1)");
                         });
+                });
+
+            modelBuilder.Entity("Droniverse.Community.Domain.Entities.ClubAttemptRequest", b =>
+                {
+                    b.Property<Guid>("ClubRequestID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid?>("ApproverID")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("ClubID")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreateAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid>("RequesterID")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.HasKey("ClubRequestID");
+
+                    b.HasIndex("ClubID");
+
+                    b.HasIndex("RequesterID");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("ClubAttemptRequest", (string)null);
                 });
 
             modelBuilder.Entity("Droniverse.Community.Domain.Entities.ClubCategory", b =>
@@ -121,31 +159,78 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     b.Property<Guid>("CourseID")
                         .HasColumnType("char(36)");
 
+                    b.Property<byte>("isProfit")
+                        .HasColumnType("tinyint unsigned");
+
                     b.HasKey("ClubID", "CourseID");
 
                     b.ToTable("ClubCourse", (string)null);
                 });
 
-            modelBuilder.Entity("Droniverse.Community.Domain.Entities.ClubRequest", b =>
+            modelBuilder.Entity("Droniverse.Community.Domain.Entities.ClubCreationRequest", b =>
                 {
-                    b.Property<Guid>("ClubRequestID")
+                    b.Property<Guid>("ClubCreationRequestID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
 
-                    b.Property<Guid>("ApproveID")
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid?>("ApproverID")
                         .HasColumnType("char(36)");
 
-                    b.Property<Guid>("ClubID")
+                    b.Property<Guid?>("ClubID")
                         .HasColumnType("char(36)");
 
-                    b.Property<Guid>("RequestID")
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsPublic")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("LimitClubManager")
+                        .HasColumnType("int");
+
+                    b.Property<int>("LimitParticipant")
+                        .HasColumnType("int");
+
+                    b.Property<string>("NameEN")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("NameVN")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("RejectReason")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<Guid>("RequesterID")
                         .HasColumnType("char(36)");
 
-                    b.HasKey("ClubRequestID");
+                    b.Property<byte>("Status")
+                        .HasColumnType("tinyint unsigned");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("ClubCreationRequestID");
 
                     b.HasIndex("ClubID");
 
-                    b.ToTable("ClubRequest", (string)null);
+                    b.ToTable("ClubCreationRequest", (string)null);
                 });
 
             modelBuilder.Entity("Droniverse.Community.Domain.Entities.Competition", b =>
@@ -157,7 +242,10 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     b.Property<Guid>("ClubID")
                         .HasColumnType("char(36)");
 
-                    b.Property<Guid>("CreateBy")
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<Guid>("CreatedBy")
                         .HasColumnType("char(36)");
 
                     b.Property<string>("DescriptionEN")
@@ -171,6 +259,9 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime");
 
+                    b.Property<int?>("MaxParticipants")
+                        .HasColumnType("int");
+
                     b.Property<string>("NameEN")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -181,8 +272,30 @@ namespace Droniverse.Community.Infrastructure.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
 
+                    b.Property<DateTime>("RegistrationEndDate")
+                        .HasColumnType("datetime");
+
+                    b.Property<DateTime>("RegistrationStartDate")
+                        .HasColumnType("datetime");
+
+                    b.Property<DateTime?>("ResultPublishedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("RuleContent")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("datetime");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("char(36)");
 
                     b.HasKey("CompetitionID");
 
@@ -204,13 +317,81 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     b.ToTable("CompetitionCertificate", (string)null);
                 });
 
+            modelBuilder.Entity("Droniverse.Community.Domain.Entities.CompetitionPrize", b =>
+                {
+                    b.Property<Guid>("CompetitionPrizeID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("CompetitionID")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("DescriptionEN")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("DescriptionVN")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("RankFrom")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RankTo")
+                        .HasColumnType("int");
+
+                    b.Property<sbyte>("RewardType")
+                        .HasColumnType("tinyint");
+
+                    b.Property<string>("RewardValueGiftEN")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("RewardValueGiftVN")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<decimal?>("RewardValueMoney")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("TitleEN")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("TitleVN")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("CompetitionPrizeID");
+
+                    b.HasIndex("CompetitionID");
+
+                    b.ToTable("CompetitionPrize", (string)null);
+                });
+
             modelBuilder.Entity("Droniverse.Community.Domain.Entities.Media", b =>
                 {
                     b.Property<Guid>("MediaID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
 
-                    b.Property<DateTime>("CreateAt")
+                    b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime");
 
@@ -221,7 +402,7 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     b.Property<Guid>("MediaTypeID")
                         .HasColumnType("char(36)");
 
-                    b.Property<DateTime>("UpdateAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnUpdate()
                         .HasColumnType("datetime");
 
@@ -238,7 +419,7 @@ namespace Droniverse.Community.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
 
-                    b.Property<DateTime>("CreateAt")
+                    b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime");
 
@@ -260,7 +441,7 @@ namespace Droniverse.Community.Infrastructure.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
 
-                    b.Property<DateTime>("UpdateAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnUpdate()
                         .HasColumnType("datetime");
 
@@ -275,7 +456,7 @@ namespace Droniverse.Community.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
 
-                    b.Property<Guid>("ApproveID")
+                    b.Property<Guid>("ApproverID")
                         .HasColumnType("char(36)");
 
                     b.Property<Guid>("ClubID")
@@ -284,6 +465,9 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     b.Property<DateTime>("JoinDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime");
+
+                    b.Property<DateTime?>("LeftDate")
+                        .HasColumnType("datetime(6)");
 
                     b.Property<ulong>("Status")
                         .HasColumnType("bit");
@@ -297,7 +481,7 @@ namespace Droniverse.Community.Infrastructure.Migrations
 
                     b.ToTable("Participation", null, t =>
                         {
-                            t.HasCheckConstraint("CK_Participation_Status", "`Status` IN (0, 1)");
+                            t.HasCheckConstraint("CK_Participation_Status", "`Status` IN (0, 1, 2)");
                         });
                 });
 
@@ -435,19 +619,116 @@ namespace Droniverse.Community.Infrastructure.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Droniverse.Community.Domain.Entities.UserCompetion", b =>
+            modelBuilder.Entity("Droniverse.Community.Domain.Entities.UserCompetition", b =>
                 {
-                    b.Property<Guid>("UserID")
+                    b.Property<Guid>("UserCompetitionID")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
 
                     b.Property<Guid>("CompetitionID")
                         .HasColumnType("char(36)");
 
-                    b.HasKey("UserID", "CompetitionID");
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<Guid?>("PrizeID")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int?>("Rank")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("Score")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<Guid>("UserID")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("UserCompetitionID");
 
                     b.HasIndex("CompetitionID");
 
-                    b.ToTable("UserCompetion", (string)null);
+                    b.HasIndex("UserID");
+
+                    b.ToTable("User_Competition", (string)null);
+                });
+
+            modelBuilder.Entity("Droniverse.Community.Domain.Entities.UserPrize", b =>
+                {
+                    b.Property<Guid>("UserPrizeID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)")
+                        .HasColumnName("userPrizeID");
+
+                    b.Property<DateTime?>("AwardedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("awardedAt");
+
+                    b.Property<Guid>("CompetitionID")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("createdAt");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("char(36)")
+                        .HasColumnName("createdBy");
+
+                    b.Property<bool>("IsAwarded")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("isAwarded");
+
+                    b.Property<Guid>("PrizeID")
+                        .HasColumnType("char(36)")
+                        .HasColumnName("prizeID");
+
+                    b.Property<int>("Rank")
+                        .HasColumnType("int")
+                        .HasColumnName("rank");
+
+                    b.Property<int>("RewardType")
+                        .HasColumnType("int")
+                        .HasColumnName("rewardType");
+
+                    b.Property<string>("RewardValueGiftEN")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("rewardValueGiftEN");
+
+                    b.Property<string>("RewardValueGiftVN")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("rewardValueGiftVN");
+
+                    b.Property<decimal?>("RewardValueMoney")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("rewardValueMoney");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("updatedAt");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("char(36)")
+                        .HasColumnName("updatedBy");
+
+                    b.Property<Guid>("UserID")
+                        .HasColumnType("char(36)")
+                        .HasColumnName("userID");
+
+                    b.HasKey("UserPrizeID");
+
+                    b.HasIndex("CompetitionID");
+
+                    b.HasIndex("PrizeID");
+
+                    b.ToTable("UserPrize", (string)null);
                 });
 
             modelBuilder.Entity("Droniverse.Community.Domain.Entities.UserProduct", b =>
@@ -530,18 +811,29 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     b.ToTable("UserRound", (string)null);
                 });
 
+            modelBuilder.Entity("Droniverse.Community.Domain.Entities.ClubAttemptRequest", b =>
+                {
+                    b.HasOne("Droniverse.Community.Domain.Entities.Club", "Club")
+                        .WithMany("ClubRequests")
+                        .HasForeignKey("ClubID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Club");
+                });
+
             modelBuilder.Entity("Droniverse.Community.Domain.Entities.ClubCategory", b =>
                 {
                     b.HasOne("Droniverse.Community.Domain.Entities.Category", "Category")
                         .WithMany("ClubCategories")
                         .HasForeignKey("CategoryID")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Droniverse.Community.Domain.Entities.Club", "Club")
                         .WithMany("ClubCategories")
                         .HasForeignKey("ClubID")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Category");
@@ -560,13 +852,12 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     b.Navigation("Club");
                 });
 
-            modelBuilder.Entity("Droniverse.Community.Domain.Entities.ClubRequest", b =>
+            modelBuilder.Entity("Droniverse.Community.Domain.Entities.ClubCreationRequest", b =>
                 {
                     b.HasOne("Droniverse.Community.Domain.Entities.Club", "Club")
-                        .WithMany("ClubRequests")
+                        .WithMany()
                         .HasForeignKey("ClubID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Club");
                 });
@@ -588,6 +879,17 @@ namespace Droniverse.Community.Infrastructure.Migrations
                         .WithMany("CompetitionCertificates")
                         .HasForeignKey("CompetitionID")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Competition");
+                });
+
+            modelBuilder.Entity("Droniverse.Community.Domain.Entities.CompetitionPrize", b =>
+                {
+                    b.HasOne("Droniverse.Community.Domain.Entities.Competition", "Competition")
+                        .WithMany("CompetitionPrizes")
+                        .HasForeignKey("CompetitionID")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Competition");
@@ -637,7 +939,7 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     b.Navigation("Competition");
                 });
 
-            modelBuilder.Entity("Droniverse.Community.Domain.Entities.UserCompetion", b =>
+            modelBuilder.Entity("Droniverse.Community.Domain.Entities.UserCompetition", b =>
                 {
                     b.HasOne("Droniverse.Community.Domain.Entities.Competition", "Competition")
                         .WithMany("UserCompetitions")
@@ -646,6 +948,25 @@ namespace Droniverse.Community.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Competition");
+                });
+
+            modelBuilder.Entity("Droniverse.Community.Domain.Entities.UserPrize", b =>
+                {
+                    b.HasOne("Droniverse.Community.Domain.Entities.Competition", "Competition")
+                        .WithMany()
+                        .HasForeignKey("CompetitionID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Droniverse.Community.Domain.Entities.CompetitionPrize", "Prize")
+                        .WithMany("UserPrizes")
+                        .HasForeignKey("PrizeID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Competition");
+
+                    b.Navigation("Prize");
                 });
 
             modelBuilder.Entity("Droniverse.Community.Domain.Entities.UserProduct", b =>
@@ -692,9 +1013,16 @@ namespace Droniverse.Community.Infrastructure.Migrations
                 {
                     b.Navigation("CompetitionCertificates");
 
+                    b.Navigation("CompetitionPrizes");
+
                     b.Navigation("Rounds");
 
                     b.Navigation("UserCompetitions");
+                });
+
+            modelBuilder.Entity("Droniverse.Community.Domain.Entities.CompetitionPrize", b =>
+                {
+                    b.Navigation("UserPrizes");
                 });
 
             modelBuilder.Entity("Droniverse.Community.Domain.Entities.MediaType", b =>
