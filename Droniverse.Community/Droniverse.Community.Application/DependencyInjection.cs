@@ -21,6 +21,11 @@ public static class DependencyInjection
         services.AddScoped<IClubCreationRequestService, ClubCreationRequestService>();
         services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<ICategoryService, CategoryService>();
+        services.AddScoped<ICompetitionService, CompetitionService>();
+        services.AddScoped<ICompetitionCertificateService, CompetitionCertificateService>();
+        services.AddScoped<IRoundService, RoundService>();
+        services.AddScoped<ICompetitionPrizeService, CompetitionPrizeService>();
+        services.AddScoped<IUserRoundService, UserRoundService>();
 
         services.AddHttpClient<IdentityMicroserviceClient>(client =>
         {

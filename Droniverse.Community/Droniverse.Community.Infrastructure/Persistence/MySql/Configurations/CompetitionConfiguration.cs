@@ -81,11 +81,5 @@ public class CompetitionConfiguration : IEntityTypeConfiguration<Competition>
 
         builder.Property(c => c.UpdatedAt)
             .HasColumnType("datetime");
-
-        builder
-            .HasMany(c => c.CompetitionPrizes)
-            .WithOne()
-            .HasForeignKey(cp => cp.CompetitionID)
-            .OnDelete(DeleteBehavior.Cascade);
     }
 }
