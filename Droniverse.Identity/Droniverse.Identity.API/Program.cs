@@ -88,6 +88,28 @@ builder.Services.AddAuthentication(options =>
         ClockSkew = TimeSpan.Zero
     };
     //JwtBearerEventsConfigurator.Configure(options);
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            // Đọc token từ cookie trước
+            var accessToken = context.Request.Cookies["AccessToken"];
+
+            // Nếu không có trong cookie, thử đọc từ header (cho mobile app)
+            if (string.IsNullOrEmpty(accessToken))
+            {
+                accessToken = context.Request.Headers["Authorization"]
+                    .FirstOrDefault()?.Split(" ").Last();
+            }
+
+            if (!string.IsNullOrEmpty(accessToken))
+            {
+                context.Token = accessToken;
+            }
+
+            return Task.CompletedTask;
+        }
+    };
 });
 
 builder.Services.AddCors(options =>
@@ -96,7 +118,8 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins("http://localhost:3000")
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .AllowAnyMethod()
+              .AllowCredentials(); //cho phép gửi cookie
     });
 });
 

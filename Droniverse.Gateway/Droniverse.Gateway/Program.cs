@@ -43,6 +43,28 @@ builder.Services.AddAuthentication(options =>
         ClockSkew = TimeSpan.Zero
     };
     //JwtBearerEventsConfigurator.Configure(options);
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            // Đọc token từ cookie
+            var accessToken = context.Request.Cookies["AccessToken"];
+
+            // Nếu không có trong cookie, thử từ header
+            if (string.IsNullOrEmpty(accessToken))
+            {
+                accessToken = context.Request.Headers["Authorization"]
+                    .FirstOrDefault()?.Split(" ").Last();
+            }
+
+            if (!string.IsNullOrEmpty(accessToken))
+            {
+                context.Token = accessToken;
+            }
+
+            return Task.CompletedTask;
+        }
+    };
 });
 
 // Load Ocelot configuration
@@ -59,7 +81,8 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins("http://localhost:3000")
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .AllowAnyMethod()
+              .AllowCredentials();
     });
 });
 

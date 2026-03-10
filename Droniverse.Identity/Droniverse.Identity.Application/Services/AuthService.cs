@@ -65,7 +65,7 @@ internal class AuthService : IAuthService
         }
         Account newAccount = _mapper.Map<Account>(registerDto);
 
-        if (registerDto.RoleName != "CLUB_MEMBER" || registerDto.RoleName != "CLUB_MANAGER")
+        if (registerDto.RoleName != "CLUB_MEMBER" && registerDto.RoleName != "CLUB_MANAGER")
             throw new NotFoundException($"Not support this role name {registerDto.RoleName} when register new user");
         Role? r = await _unitOfWork.Roles.GetByCondition(r => r.RoleName == registerDto.RoleName);
         if (r is null)
