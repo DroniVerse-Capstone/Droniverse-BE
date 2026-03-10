@@ -49,6 +49,97 @@
       "SwaggerKey": "community"
     },
     {
+      "DownstreamPathTemplate": "/community/categories/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "community-microservice",
+          "Port": 8080
+        }
+      ],
+      "UpstreamPathTemplate": "/api/categories/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+      "SwaggerKey": "community"
+    },
+    {
+      "DownstreamPathTemplate": "/community/club-attempt-request/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "community-microservice",
+          "Port": 8080
+        }
+      ],
+      "UpstreamPathTemplate": "/api/club-attempt-request/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+      "SwaggerKey": "community"
+    },
+    {
+      "DownstreamPathTemplate": "/community/club-creation-request/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "community-microservice",
+          "Port": 8080
+        }
+      ],
+      "UpstreamPathTemplate": "/api/club-creation-request/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+      "SwaggerKey": "community"
+    },
+    {
+      "DownstreamPathTemplate": "/community/competitions/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "community-microservice",
+          "Port": 8080
+        }
+      ],
+      "UpstreamPathTemplate": "/api/competitions/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+      "SwaggerKey": "community"
+    },
+    {
+      "DownstreamPathTemplate": "/community/competition-prizes/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "community-microservice",
+          "Port": 8080
+        }
+      ],
+      "UpstreamPathTemplate": "/api/competition-prizes/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+      "SwaggerKey": "community"
+    },
+    {
+      "DownstreamPathTemplate": "/community/rounds/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "community-microservice",
+          "Port": 8080
+        }
+      ],
+      "UpstreamPathTemplate": "/api/rounds/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+      "SwaggerKey": "community"
+    },
+    {
+      "DownstreamPathTemplate": "/community/user-rounds/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "community-microservice",
+          "Port": 8080
+        }
+      ],
+      "UpstreamPathTemplate": "/api/user-rounds/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+      "SwaggerKey": "community"
+    },
+    {
       "DownstreamPathTemplate": "/community/orders/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
@@ -61,6 +152,7 @@
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
       "SwaggerKey": "community"
     },
+
     //--------------------------------------------------------------------------------------------------
     //----------------------------------IDENTITY-SERVICE-----------------------------------------------
     {
