@@ -7,6 +7,13 @@ namespace Droniverse.Community.Application.DTO.Response
         public CertificateDetailDto? CertificateDetail { get; set; }
     }
 
+    public class CompetitionCertificatesBulkResponseDto
+    {
+        public Guid CompetitionID { get; set; }
+        public int TotalAdded { get; set; }
+        public List<CompetitionCertificateResponseDto> Certificates { get; set; } = new();
+    }
+
     public class CertificateDetailDto
     {
         public Guid CertificateID { get; set; }

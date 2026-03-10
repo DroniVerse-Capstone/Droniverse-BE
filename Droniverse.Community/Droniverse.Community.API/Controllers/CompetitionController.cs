@@ -249,20 +249,28 @@ namespace Droniverse.Community.API.Controllers
         /// Thêm certificate vào cuộc thi
         /// </summary>
         /// <param name="competitionId">ID của cuộc thi</param>
-        /// <param name="request">Thông tin certificate</param>
+        /// <param name="request">Danh sách certificate IDs cần thêm</param>
         /// <remarks>
         /// **Quy tắc:**
         /// 
         /// 1. **Chỉ cho phép thêm certificate khi Competition ở trạng thái DRAFT**
-        /// 2. **Certificate không được trùng** - mỗi certificate chỉ được thêm 1 lần vào competition
-        /// 3. **Certificate phải tồn tại trong Academy system** - hệ thống sẽ validate với Academy Microservice
+        /// 2. **Certificates không được trùng** - mỗi certificate chỉ được thêm 1 lần vào competition
+        /// 3. **Tất cả certificates phải tồn tại trong Academy system** - hệ thống sẽ validate với Academy Microservice
+        /// 4. **Có thể thêm nhiều certificates cùng lúc** - gửi danh sách CertificateIDs
+        /// 5. **Nếu certificate đã tồn tại sẽ bị skip** - chỉ add những certificate chưa có
         /// 
         /// **Use Case:**
+        /// - Admin thiết lập các loại certificate sẽ trao cho thí sinh (Top 1, Top 3, Participation, etc.)
         /// - Certificate phải được thiết lập trước khi mở đăng ký (OPEN)
+        /// - Có thể add một lúc nhiều certificates để tiết kiệm thời gian
+        /// 
+        /// **Performance:**
+        /// - Sử dụng Bulk API để validate nhiều certificates cùng lúc
+        /// - Parallel validation với Academy service
         /// </remarks>
-        /// <returns>200 OK - Thêm certificate thành công</returns>
+        /// <returns>200 OK - Thêm certificates thành công</returns>
         [HttpPost("{competitionId}/certificates")]
-        [ProducesResponseType(typeof(SuccessResponse<CompetitionCertificateResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(SuccessResponse<CompetitionCertificatesBulkResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [SwaggerRequestExample(typeof(CompetitionCertificateAddDto), typeof(CompetitionCertificateAddExample))]
@@ -270,10 +278,10 @@ namespace Droniverse.Community.API.Controllers
             Guid competitionId,
             [FromBody] CompetitionCertificateAddDto request)
         {
-            var certificate = await _competitionCertificateService.AddCertificateToCompetition(competitionId, request);
-            return SuccessResponse<CompetitionCertificateResponseDto>.Create(
-                certificate,
-                "Thêm certificate vào cuộc thi thành công!"
+            var result = await _competitionCertificateService.AddCertificateToCompetition(competitionId, request);
+            return SuccessResponse<CompetitionCertificatesBulkResponseDto>.Create(
+                result,
+                $"Thêm {result.TotalAdded} certificate(s) vào cuộc thi thành công!"
             );
         }
 

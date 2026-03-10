@@ -146,6 +146,7 @@ namespace Droniverse.Community.Application.Services
                 q => q.Include(c => c.Rounds)
                       .Include(c => c.UserCompetitions)
                       .Include(c => c.CompetitionPrizes)
+                      .OrderByDescending(c => c.CreatedAt)
             );
 
             return await MapToCompetitionResponses(competitions);

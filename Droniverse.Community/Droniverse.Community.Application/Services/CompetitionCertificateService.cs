@@ -2,6 +2,7 @@
 using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
+using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.IRepository;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,7 +21,7 @@ namespace Droniverse.Community.Application.Services
             _academyMicroserviceClient = academyMicroserviceClient;
         }
 
-        public async Task<CompetitionCertificateResponseDto> AddCertificateToCompetition(
+        public async Task<CompetitionCertificatesBulkResponseDto> AddCertificateToCompetition(
             Guid competitionId,
             CompetitionCertificateAddDto request)
         {
@@ -32,38 +33,81 @@ namespace Droniverse.Community.Application.Services
             if (competition == null)
                 throw new KeyNotFoundException($"Không tìm thấy cuộc thi với ID [{competitionId}].");
 
-            // Kiểm tra certificate có tồn tại trong hệ thống Academy
-            var certificateExists = await _academyMicroserviceClient.IsCertificateExist(request.CertificateID);
-            if (!certificateExists)
-                throw new KeyNotFoundException($"Không tìm thấy certificate với ID [{request.CertificateID}] trong hệ thống Academy.");
+            // Validate tất cả certificates tồn tại trong Academy system
+            var validationTasks = request.CertificateIDs.Select(certId => 
+                _academyMicroserviceClient.IsCertificateExist(certId));
+            var validationResults = await Task.WhenAll(validationTasks);
 
-            // Thêm certificate thông qua domain method
-            var competitionCertificate = competition.AddCertificate(request.CertificateID);
+            var invalidCertificates = request.CertificateIDs
+                .Where((certId, index) => !validationResults[index])
+                .ToList();
+
+            if (invalidCertificates.Any())
+            {
+                var invalidIds = string.Join(", ", invalidCertificates);
+                throw new KeyNotFoundException($"Không tìm thấy các certificate với ID: {invalidIds} trong hệ thống Academy.");
+            }
+
+            // Add tất cả certificates
+            var addedCertificates = new List<CompetitionCertificate>();
+            var skippedCertificates = new List<Guid>();
+
+            foreach (var certificateId in request.CertificateIDs)
+            {
+                try
+                {
+                    var competitionCertificate = competition.AddCertificate(certificateId);
+                    addedCertificates.Add(competitionCertificate);
+                }
+                catch (InvalidOperationException)
+                {
+                    // Certificate đã tồn tại - skip và tiếp tục
+                    skippedCertificates.Add(certificateId);
+                }
+            }
+
+            if (!addedCertificates.Any())
+                throw new InvalidOperationException("Tất cả certificates đã được thêm vào cuộc thi trước đó rồi.");
 
             await _unitOfWork.SaveChangeAsync();
 
-            // Lấy thông tin chi tiết certificate từ Academy
-            var certificateDetail = await _academyMicroserviceClient.GetCertificateById(request.CertificateID);
+            // Lấy thông tin chi tiết của tất cả certificates đã thêm (bulk API)
+            var certificateIds = addedCertificates.Select(ac => ac.CertificateID).ToList();
+            var certificateDetails = await _academyMicroserviceClient.GetCertificatesBulk(certificateIds.AsEnumerable());
+            var certificateDict = certificateDetails.ToDictionary(c => c.CertificateID);
 
-            return new CompetitionCertificateResponseDto
+            // Map sang response DTOs
+            var certificateResponseList = addedCertificates.Select(ac =>
+            {
+                certificateDict.TryGetValue(ac.CertificateID, out var detail);
+
+                return new CompetitionCertificateResponseDto
+                {
+                    CompetitionID = ac.CompetitionID,
+                    CertificateID = ac.CertificateID,
+                    CertificateDetail = detail != null ? new CertificateDetailDto
+                    {
+                        CertificateID = detail.CertificateID,
+                        CourseVersionID = detail.CourseVersionID,
+                        CertificateName = detail.CertificateName,
+                        ImageUrl = detail.ImageUrl,
+                        LogoCertificate = detail.LogoCertificate,
+                        Description = detail.Description,
+                        Signature = detail.Signature,
+                        AuthorName = detail.AuthorName,
+                        CreateAt = detail.CreateAt,
+                        CreateBy = detail.CreateBy,
+                        UpdateBy = detail.UpdateBy,
+                        UpdateAt = detail.UpdateAt
+                    } : null
+                };
+            }).ToList();
+
+            return new CompetitionCertificatesBulkResponseDto
             {
                 CompetitionID = competitionId,
-                CertificateID = request.CertificateID,
-                CertificateDetail = certificateDetail != null ? new CertificateDetailDto
-                {
-                    CertificateID = certificateDetail.CertificateID,
-                    CourseVersionID = certificateDetail.CourseVersionID,
-                    CertificateName = certificateDetail.CertificateName,
-                    ImageUrl = certificateDetail.ImageUrl,
-                    LogoCertificate = certificateDetail.LogoCertificate,
-                    Description = certificateDetail.Description,
-                    Signature = certificateDetail.Signature,
-                    AuthorName = certificateDetail.AuthorName,
-                    CreateAt = certificateDetail.CreateAt,
-                    CreateBy = certificateDetail.CreateBy,
-                    UpdateBy = certificateDetail.UpdateBy,
-                    UpdateAt = certificateDetail.UpdateAt
-                } : null
+                TotalAdded = addedCertificates.Count,
+                Certificates = certificateResponseList
             };
         }
 

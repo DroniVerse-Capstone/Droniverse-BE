@@ -5,7 +5,7 @@ namespace Droniverse.Community.Application.IService
 {
     public interface ICompetitionCertificateService
     {
-        Task<CompetitionCertificateResponseDto> AddCertificateToCompetition(Guid competitionId, CompetitionCertificateAddDto request);
+        Task<CompetitionCertificatesBulkResponseDto> AddCertificateToCompetition(Guid competitionId, CompetitionCertificateAddDto request);
         Task<IEnumerable<CompetitionCertificateResponseDto>> GetCertificatesByCompetition(Guid competitionId);
         Task<bool> RemoveCertificateFromCompetition(Guid competitionId, Guid certificateId);
     }

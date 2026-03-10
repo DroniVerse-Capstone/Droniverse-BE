@@ -141,7 +141,7 @@ public class AcademyMicroserviceClient
             
             if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
-                _logger.LogWarning("Certificate with ID {CertificateId} not found in Academy Microservice.", certificateId);
+                _logger.LogWarning("Certificate with ID [{CertificateId}] not found in Academy Microservice.", certificateId);
                 return false;
             }
 
