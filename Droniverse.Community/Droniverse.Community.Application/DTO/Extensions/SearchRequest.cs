@@ -1,4 +1,6 @@
-﻿using Droniverse.Shared.DTOs;
+﻿using Droniverse.Community.Domain.Enums;
+using Droniverse.Shared.DTOs;
+using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,6 +13,17 @@ namespace Droniverse.Community.Application.DTO.Extensions
     {
         public string? ParicipationName { get; set; }
         public DateOnly? DateOfBirth { get; set; }
+    }
+
+    public class CompetitionSearchRequest : SearchRequest
+    {
+        public string? CompetitionName { get; set; }
+        public DateTime? RegistrationStartDate { get; set; }
+        public DateTime? RegistrationEndDate { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        [FromQuery]
+        public CompetitionStatus? Status { get; set; }
     }
 
     public class ClubCourseSearchRequest : SearchRequest
