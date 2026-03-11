@@ -25,7 +25,6 @@ public class ClubCreateMultipleExample
 
                 LimitParticipation = 300,
                 LimitClubManagers = 5,
-                CreatedBy = Guid.Parse("ae6da7f5-1473-456f-9e55-70df702d47ee"),
                 CategoryIDs = new List<Guid>
                 {
                     Guid.Parse("d6cd6805-a231-4661-ad66-0b3382763a81"),
@@ -48,8 +47,6 @@ public class ClubCreateMultipleExample
 
                 LimitParticipation = 80,
                 LimitClubManagers = 3,
-
-                CreatedBy = Guid.Parse("ae6da7f5-1473-456f-9e55-70df702d47ee"),
 
                 CategoryIDs = new List<Guid>
                 {

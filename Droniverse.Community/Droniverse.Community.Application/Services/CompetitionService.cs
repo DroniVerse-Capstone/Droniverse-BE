@@ -5,6 +5,7 @@ using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository;
+using Droniverse.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace Droniverse.Community.Application.Services
@@ -12,15 +13,18 @@ namespace Droniverse.Community.Application.Services
     public class CompetitionService : ICompetitionService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly ICurrentUserService _currentUserService;
 
-        public CompetitionService(IUnitOfWork unitOfWork)
+        public CompetitionService(IUnitOfWork unitOfWork, ICurrentUserService currentUserService)
         {
             _unitOfWork = unitOfWork;
+            _currentUserService = currentUserService;
         }
 
         public async Task<CompetitionResponse> CreateCompetition(CompetitionCreationRequest request)
         {
-            var currentUserId = Guid.Parse("ae6da7f5-1473-456f-9e55-70df702d47ee");
+            var currentUserId = Guid.Parse(_currentUserService.UserID 
+                ?? throw new UnauthorizedAccessException("User is not authenticated."));
 
             var club = await _unitOfWork.Clubs.GetByCondition(c => c.ClubID == request.ClubID);
             if (club == null)
@@ -49,7 +53,8 @@ namespace Droniverse.Community.Application.Services
 
         public async Task<CompetitionResponse> UpdateCompetition(Guid id, CompetitionUpdateDto request)
         {
-            var currentUserId = Guid.Parse("ae6da7f5-1473-456f-9e55-70df702d47ee");
+            var currentUserId = Guid.Parse(_currentUserService.UserID 
+                ?? throw new UnauthorizedAccessException("User is not authenticated."));
 
             var competition = await _unitOfWork.Competitions.GetByCondition(
                 c => c.CompetitionID == id,
@@ -166,7 +171,8 @@ namespace Droniverse.Community.Application.Services
 
         public async Task<UserCompetitionResponseDto> RegisterForCompetition(Guid competitionId)
         {
-            var currentUserId = Guid.Parse("3197734d-d25d-42b1-b968-84b6ee4d33c2");
+            var currentUserId = Guid.Parse(_currentUserService.UserID 
+                ?? throw new UnauthorizedAccessException("Người dùng chưa được xác thực."));
 
             var competition = await _unitOfWork.Competitions.GetByCondition(
                 c => c.CompetitionID == competitionId,
@@ -220,7 +226,8 @@ namespace Droniverse.Community.Application.Services
 
         public async Task<UserCompetitionResponseDto> WithdrawFromCompetition(Guid competitionId)
         {
-            var currentUserId = Guid.Parse("3197734d-d25d-42b1-b968-84b6ee4d33c2");
+            var currentUserId = Guid.Parse(_currentUserService.UserID 
+                ?? throw new UnauthorizedAccessException("User is not authenticated."));
 
             var userCompetition = await _unitOfWork.UserCompetitions.GetByCondition(
                 uc => uc.UserID == currentUserId && uc.CompetitionID == competitionId
@@ -301,7 +308,8 @@ namespace Droniverse.Community.Application.Services
 
         public async Task<CompetitionResponse> FinishCompetition(Guid competitionId)
         {
-            var currentUserId = Guid.Parse("ae6da7f5-1473-456f-9e55-70df702d47ee");
+            var currentUserId = Guid.Parse(_currentUserService.UserID 
+                ?? throw new UnauthorizedAccessException("User is not authenticated."));
 
             var competition = await _unitOfWork.Competitions.GetByCondition(
                 c => c.CompetitionID == competitionId,

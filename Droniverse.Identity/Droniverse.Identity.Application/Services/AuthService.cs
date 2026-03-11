@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Droniverse.Identity.Application.DTO.Request;
 using Droniverse.Identity.Application.DTO.Response;
 using Droniverse.Identity.Application.IService;
@@ -149,7 +149,7 @@ internal class AuthService : IAuthService
             issuer: _jwtSettings.Issuer,
             audience: _jwtSettings.Issuer,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(120),
+            expires: DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpirationMinutes),
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);

@@ -4,6 +4,8 @@ using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Enums;
 using Droniverse.Shared.DTOs;
+using Droniverse.Shared.Constants;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Filters;
 
@@ -11,6 +13,7 @@ namespace Droniverse.Community.API.Controllers
 {
     [Route("community/club-creation-request")]
     [ApiController]
+    [Authorize]
     public class ClubCreationRequestController : ControllerBase
     {
         private readonly IClubCreationRequestService _clubCreationRequestService;
@@ -29,6 +32,7 @@ namespace Droniverse.Community.API.Controllers
         /// </returns>
         [HttpGet("my-requests")]
         [ProducesResponseType(typeof(SuccessResponse<IEnumerable<ClubCreationRequestResponseDto>>), StatusCodes.Status200OK)]
+        [Authorize(Roles = Roles.ClubManager)]
         public async Task<ApiResponse> GetMyClubCreationRequest([FromQuery] ClubCreationRequestStatus? status = null)
         {
             return SuccessResponse<IEnumerable<ClubCreationRequestResponseDto>>.Create(
@@ -47,6 +51,7 @@ namespace Droniverse.Community.API.Controllers
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(SuccessResponse<ClubCreationRequestResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Authorize(Roles = Roles.AdminOrManagerRoles)]
         public async Task<ApiResponse> GetClubCreationRequestById(Guid id)
         {
             return SuccessResponse<ClubCreationRequestResponseDto>.Create(
@@ -66,6 +71,7 @@ namespace Droniverse.Community.API.Controllers
         [ProducesResponseType(typeof(SuccessResponse<ClubCreationRequestCreateResponseDto>), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [SwaggerRequestExample(typeof(ClubCreationRequestCreateDto), typeof(ClubCreateRequestExample))]
+        [Authorize(Roles = Roles.ClubManager)]
         public async Task<ApiResponse> CreateRequestToCreateClub([FromBody] ClubCreationRequestCreateDto request)
         {
             return SuccessResponse<ClubCreationRequestCreateResponseDto>.Create(
@@ -89,6 +95,7 @@ namespace Droniverse.Community.API.Controllers
         [ProducesResponseType(typeof(SuccessResponse<ClubCreationRequestUpdateStatusResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [SwaggerRequestExample(typeof(ClubCreationRequestUpdateStatusDto), typeof(ClubCreationRequestUpdateStatusExample))]
+        [Authorize(Roles = Roles.AdminOrManagerRoles)]
         public async Task<ApiResponse> UpdateRequestStatus(Guid id, [FromBody] ClubCreationRequestUpdateStatusDto request)
         {
             return SuccessResponse<ClubCreationRequestUpdateStatusResponseDto>.Create(
@@ -115,6 +122,7 @@ namespace Droniverse.Community.API.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [SwaggerRequestExample(typeof(ClubCreationRequestUpdateInfoDto), typeof(ClubCreationRequestUpdateInfoExample))]
+        [Authorize(Roles = Roles.ClubManager)]
         public async Task<ApiResponse> UpdateRequestInfo(Guid id, [FromBody] ClubCreationRequestUpdateInfoDto request)
         {
             return SuccessResponse<ClubCreationRequestUpdateInfoResponseDto>.Create(

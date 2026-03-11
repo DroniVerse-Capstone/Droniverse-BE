@@ -15,6 +15,10 @@ public static class DependencyInjection
         services.Configure<JwtSettings>(
             configuration.GetSection(JwtSettings.SectionName)
         );
+
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUserService, CurrentUserService>();
+
         return services;
     }
 }

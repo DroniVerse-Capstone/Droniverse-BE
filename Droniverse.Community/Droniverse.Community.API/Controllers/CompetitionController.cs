@@ -1,10 +1,13 @@
-﻿using Droniverse.Community.API.Examples;
+﻿using CloudinaryDotNet.Actions;
+using Droniverse.Community.API.Examples;
 using Droniverse.Community.Application.DTO.Extensions;
 using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Enums;
+using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Filters;
 
@@ -15,6 +18,7 @@ namespace Droniverse.Community.API.Controllers
     /// </summary>
     [ApiController]
     [Route("community/competitions")]
+    [Authorize]
     public class CompetitionController : ControllerBase
     {
         private readonly ICompetitionService _competitionService;
@@ -37,6 +41,7 @@ namespace Droniverse.Community.API.Controllers
         [ProducesResponseType(typeof(SuccessResponse<CompetitionResponse>), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [SwaggerRequestExample(typeof(CompetitionCreationRequest), typeof(CompetitionCreationRequestExample))]
+        [Authorize(Roles = Roles.SystemRoles)]
         public async Task<ApiResponse> CreateCompetition([FromBody] CompetitionCreationRequest request)
         {
             var competition = await _competitionService.CreateCompetition(request);
@@ -73,6 +78,7 @@ namespace Droniverse.Community.API.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [SwaggerRequestExample(typeof(CompetitionUpdateDto), typeof(CompetitionUpdateExample))]
+        [Authorize(Roles = Roles.AdminOrManagerRoles)]
         public async Task<ApiResponse> UpdateCompetition(Guid id, [FromBody] CompetitionUpdateDto request)
         {
             var competition = await _competitionService.UpdateCompetition(id, request);
@@ -97,6 +103,7 @@ namespace Droniverse.Community.API.Controllers
         [ProducesResponseType(typeof(SuccessResponse<string>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize(Roles = Roles.AdminOrManagerRoles)]
         public async Task<ApiResponse> DeleteCompetition(Guid id)
         {
             var result = await _competitionService.DeleteCompetition(id);
@@ -133,6 +140,7 @@ namespace Droniverse.Community.API.Controllers
         /// <returns>200 OK - Trả về danh sách cuộc thi</returns>
         [HttpGet]
         [ProducesResponseType(typeof(SuccessResponse<IEnumerable<CompetitionResponse>>), StatusCodes.Status200OK)]
+        [Authorize(Roles = Roles.SystemRoles)]
         public async Task<ApiResponse> GetAllCompetitionWithCondition([FromQuery] CompetitionSearchRequest searchRequest)
         {
             var competitions = await _competitionService.GetAllCompetitionsWithCondition(searchRequest);
@@ -168,6 +176,7 @@ namespace Droniverse.Community.API.Controllers
         [HttpPost("{competitionId}/register")]
         [ProducesResponseType(typeof(SuccessResponse<UserCompetitionResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize(Roles = Roles.ClubMember)]
         public async Task<ApiResponse> RegisterForCompetition(Guid competitionId)
         {
             var registration = await _competitionService.RegisterForCompetition(competitionId);
@@ -185,6 +194,7 @@ namespace Droniverse.Community.API.Controllers
         [HttpPost("{competitionId}/withdraw")]
         [ProducesResponseType(typeof(SuccessResponse<UserCompetitionResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize(Roles = Roles.ClubMember)]
         public async Task<ApiResponse> WithdrawFromCompetition(Guid competitionId)
         {
             var result = await _competitionService.WithdrawFromCompetition(competitionId);
@@ -236,6 +246,7 @@ namespace Droniverse.Community.API.Controllers
         [HttpPut("{competitionId}/finish")]
         [ProducesResponseType(typeof(SuccessResponse<CompetitionResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize(Roles = Roles.AdminOrManagerRoles)]
         public async Task<ApiResponse> FinishCompetition(Guid competitionId)
         {
             var competition = await _competitionService.FinishCompetition(competitionId);
@@ -274,6 +285,7 @@ namespace Droniverse.Community.API.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [SwaggerRequestExample(typeof(CompetitionCertificateAddDto), typeof(CompetitionCertificateAddExample))]
+        [Authorize(Roles = Roles.AdminOrManagerRoles)]
         public async Task<ApiResponse> AddCertificateToCompetition(
             Guid competitionId,
             [FromBody] CompetitionCertificateAddDto request)
@@ -328,6 +340,7 @@ namespace Droniverse.Community.API.Controllers
         [ProducesResponseType(typeof(SuccessResponse<string>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Authorize(Roles = Roles.AdminOrManagerRoles)]
         public async Task<ApiResponse> RemoveCertificateFromCompetition(Guid competitionId, Guid certificateId)
         {
             var result = await _competitionCertificateService.RemoveCertificateFromCompetition(competitionId, certificateId);

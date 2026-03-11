@@ -28,17 +28,39 @@ internal class ClubRepository : MySqlRepository<Club>, IClubRepository
             .FirstOrDefaultAsync(c => c.ClubID == clubId);
     }
 
-    public async Task<IEnumerable<Club>> GetClubsByActiveParticipantUserId(Guid userId)
+    public async Task<Club?> GetByClubCodeWithCategories(string clubCode)
     {
-        return await _context.Set<Participation>()
-            .Where(p => p.UserID == userId && p.Status == ParticipationStatus.ACTIVE)
+        return await _context.Set<Club>()
+            .Include(c => c.ClubCategories)
+            .ThenInclude(cc => cc.Category)
+            .FirstOrDefaultAsync(c => c.ClubCode == clubCode);
+    }
+
+    public async Task<IEnumerable<Club>> GetClubsByParticipantUserId(Guid userId, ClubStatus? status = null)
+    {
+        var query = _context.Set<Participation>()
+            .Where(p => p.UserID == userId &&
+                        p.Status == ParticipationStatus.ACTIVE &&
+                        (!status.HasValue || p.Club.Status == status))
             .Include(p => p.Club)
                 .ThenInclude(c => c.ClubCategories)
                     .ThenInclude(cc => cc.Category)
             .Where(p => p.Club != null)
             .Select(p => p.Club)
-            .Distinct()
-            .ToListAsync();
+            .Distinct();
+
+        return await query.ToListAsync();
+    }
+
+    public async Task<IEnumerable<Club>> GetClubsByClubManagerID(Guid clubManagerID, ClubStatus? status = null)
+    {
+        var query = _context.Set<Club>()
+            .Where(c => c.CreatedBy == clubManagerID && (!status.HasValue || c.Status == status))
+            .Include(c => c.ClubCategories)
+                .ThenInclude(cc => cc.Category)
+            .OrderByDescending(c => c.CreatedAt);
+
+        return await query.ToListAsync();
     }
 
     public async Task<Dictionary<Guid, int>> GetMemberCountsByClubIds(IEnumerable<Guid> clubIds)

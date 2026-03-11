@@ -2,7 +2,9 @@
 using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.IService;
+using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Filters;
 
@@ -13,6 +15,7 @@ namespace Droniverse.Community.API.Controllers
     /// </summary>
     [ApiController]
     [Route("community/user-rounds")]
+    [Authorize]
     public class UserRoundController : ControllerBase
     {
         private readonly IUserRoundService _userRoundService;
@@ -32,6 +35,7 @@ namespace Droniverse.Community.API.Controllers
         [ProducesResponseType(typeof(SuccessResponse<UserRoundResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [SwaggerRequestExample(typeof(UserRoundSubmitDto), typeof(UserRoundSubmitExample))]
+        [Authorize(Roles = Roles.ClubMember)]
         public async Task<ApiResponse> SubmitSolution(Guid roundId, [FromBody] UserRoundSubmitDto request)
         {
             var result = await _userRoundService.SubmitSolution(roundId, request);
@@ -49,6 +53,7 @@ namespace Droniverse.Community.API.Controllers
         [HttpGet("{roundId}/my-result")]
         [ProducesResponseType(typeof(SuccessResponse<UserRoundResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Authorize(Roles = Roles.ClubMember)]
         public async Task<ApiResponse> GetUserRoundResult(Guid roundId)
         {
             var result = await _userRoundService.GetUserRoundResult(roundId);

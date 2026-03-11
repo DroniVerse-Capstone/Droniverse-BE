@@ -35,7 +35,6 @@ builder.Services.AddControllers()
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication();
 builder.Services.AddShared(builder.Configuration);
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 // chỉ cần 1 dòng này là các ExampleProvider trong assembly sẽ đc apply vào swagger
 builder.Services.AddSwaggerExamplesFromAssemblyOf<LoginExampleProvider>();
@@ -159,10 +158,13 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
+    app.UseStaticFiles(); // sử dụng static files
+
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
         c.DocExpansion(DocExpansion.None); //Đóng các api lại cho gọn
+        c.InjectJavascript("/swagger-custom.js"); // nhúm static file vào swagger cho ô Authorize
     });
 }
 
