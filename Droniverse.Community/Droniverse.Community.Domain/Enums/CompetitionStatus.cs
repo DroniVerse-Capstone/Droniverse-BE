@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Droniverse.Community.Domain.Enums
 {
-    public enum CompetitionStatus
+    public enum CompetitionStatus : byte
     {
         DRAFT = 0,
         OPEN = 1,

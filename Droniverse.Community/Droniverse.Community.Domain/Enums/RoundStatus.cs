@@ -1,7 +1,8 @@
 ﻿namespace Droniverse.Community.Domain.Enums;
-public enum RoundStatus
+public enum RoundStatus : byte
 {
-    INACTIVE = 0,
-    ACTIVE = 1
+    Pending = 0,
+    Ongoing = 1,
+    Finished = 2,
+    SCHEDULE_INVALID = 3
 }
-

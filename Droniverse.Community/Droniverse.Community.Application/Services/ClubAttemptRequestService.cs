@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Droniverse.Community.Application.DTO.Extensions;
 using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.HttpClients;
@@ -7,6 +8,7 @@ using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Shared.DTOs.Response;
+using Droniverse.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -21,16 +23,20 @@ namespace Droniverse.Community.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IdentityMicroserviceClient _identityMicroserviceClient;
+        private readonly ICurrentUserService _currentUserService;
 
-        public ClubAttemptRequestService(IUnitOfWork unitOfWork, IMapper mapper, IdentityMicroserviceClient identityMicroserviceClient)
+        public ClubAttemptRequestService(IUnitOfWork unitOfWork, IMapper mapper, IdentityMicroserviceClient identityMicroserviceClient, ICurrentUserService currentUserService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _identityMicroserviceClient = identityMicroserviceClient;
+            _currentUserService = currentUserService;
         }
 
-        public async Task CreateAttemptClubRequest(Guid requesterID, Guid clubID)
+        public async Task CreateAttemptClubRequest(Guid clubID)
         {
+            var requesterID = Guid.Parse(_currentUserService.UserID
+                ?? throw new UnauthorizedAccessException("Người dùng chưa được xác thực."));
 
             Club? club = await _unitOfWork.Clubs.GetByCondition(c => c.ClubID == clubID);
             if (club == null)
@@ -95,7 +101,8 @@ namespace Droniverse.Community.Application.Services
 
         public async Task<ClubAttemptRequestUpdateStatusResponseDto> UpdateRequestStatus(Guid id, ClubAttemptRequestUpdateStatusDto dto)
         {
-            var approverId = Guid.Parse("ae6da7f5-1473-456f-9e55-70df702d47ee"); // club_manager
+            var approverId = Guid.Parse(_currentUserService.UserID
+                ?? throw new UnauthorizedAccessException("Người dùng chưa được xác thực."));
 
             var request = await _unitOfWork.ClubAttemptRequests.GetByCondition(
                 r => r.ClubRequestID == id,
@@ -152,8 +159,11 @@ namespace Droniverse.Community.Application.Services
             return response;
         }
 
-        public async Task<IEnumerable<ClubRequestResponseDto>> GetClubAttemptRequestsByRequester(Guid requesterID)
+        public async Task<IEnumerable<ClubRequestResponseDto>> GetClubAttemptRequestsByRequester()
         {
+            var requesterID = Guid.Parse(_currentUserService.UserID
+                ?? throw new UnauthorizedAccessException("Người dùng chưa được xác thực."));
+
             var clubRequests = await _unitOfWork.ClubAttemptRequests
                 .GetManyByCondition(
                     c => c.RequesterID == requesterID,
@@ -195,6 +205,85 @@ namespace Droniverse.Community.Application.Services
             });
 
             return result;
+        }
+
+        public async Task<PaginationResult<IEnumerable<ClubRequestResponseDto>>> GetAllClubAttemptRequests(ClubAttemptRequestSearchRequest searchRequest)
+        {
+            // Calculate pagination parameters
+            var skip = (searchRequest.CurrentPage - 1) * searchRequest.PageSize;
+            var take = searchRequest.PageSize;
+
+            // Use optimized repository method - single DB call with pagination
+            var (requests, totalCount) = await _unitOfWork.ClubAttemptRequests.GetFilteredRequestsAsync(
+                status: searchRequest.Status,
+                createdFrom: searchRequest.CreatedFrom,
+                createdTo: searchRequest.CreatedTo,
+                processedFrom: searchRequest.ProcessedFrom,
+                processedTo: searchRequest.ProcessedTo,
+                sortBy: searchRequest.SortBy,
+                sortDirection: searchRequest.SortDirection,
+                skip: skip,
+                take: take
+            );
+
+            // Early return if no data
+            if (!requests.Any())
+            {
+                return new PaginationResult<IEnumerable<ClubRequestResponseDto>>(
+                    Enumerable.Empty<ClubRequestResponseDto>(),
+                    totalRecords: 0,
+                    pageIndex: searchRequest.CurrentPage,
+                    pageSize: searchRequest.PageSize
+                );
+            }
+
+            // Get unique user IDs for bulk fetch - optimized
+            var userIds = requests
+                .SelectMany(r => new[] { r.RequesterID, r.ApproverID })
+                .Where(id => id.HasValue && id.Value != Guid.Empty)
+                .Select(id => id!.Value)
+                .Distinct()
+                .ToList();
+
+            // Single call to Identity service for all users
+            var users = userIds.Any() 
+                ? await _identityMicroserviceClient.GetUsersBulk(userIds)
+                : Enumerable.Empty<UserResponse>();
+            
+            var userDict = users.ToDictionary(u => u.UserId, u => u);
+
+            // Map to response DTOs - in-memory operation
+            var responseDtos = requests.Select(request =>
+            {
+                userDict.TryGetValue(request.RequesterID, out var requester);
+                UserResponse? approver = null;
+                if (request.ApproverID.HasValue)
+                {
+                    userDict.TryGetValue(request.ApproverID.Value, out approver);
+                }
+
+                return new ClubRequestResponseDto(
+                    request.ClubRequestID,
+                    request.RequesterID,
+                    request.ApproverID,
+                    request.ClubID,
+                    request.Club?.NameVN,
+                    request.Club?.NameEN,
+                    requester?.LastName,
+                    approver?.LastName,
+                    request.Status,
+                    request.CreatedAt,
+                    request.ProcessedAt
+                );
+            }).ToList();
+
+            // Return paginated result with pre-calculated total
+            return new PaginationResult<IEnumerable<ClubRequestResponseDto>>(
+                responseDtos,
+                totalCount,
+                searchRequest.CurrentPage,
+                searchRequest.PageSize
+            );
         }
     }
 }

@@ -23,7 +23,8 @@ internal class UnitOfWork : IUnitOfWork
     private ICompetitionPrizeRepository _competitionPrize;
     private IUserPrizeRepository _userPrize;
     private IClubCreationRequestCategoryRepository _clubCreationRequestCategory;
-
+    private IUserCompetitionRepository _userCompetition;
+    private IUserRoundRepository _userRound;
     public UnitOfWork(MySqlDbContext context)
     {
         _context = context;
@@ -69,10 +70,20 @@ internal class UnitOfWork : IUnitOfWork
 
     public IUserPrizeRepository UserPrizes => _userPrize ??= new UserPrizeRepository(_context);
     public IClubCreationRequestCategoryRepository ClubCreationRequestCategories => _clubCreationRequestCategory ??= new ClubCreationRequestCategoryRepository(_context);
-
+    public IUserCompetitionRepository UserCompetitions => _userCompetition ??= new UserCompetitionRepository(_context);
+    public IUserRoundRepository UserRounds => _userRound ??= new UserRoundRepository(_context);
 
     public async Task<int> SaveChangeAsync()
-        => await _context.SaveChangesAsync();
+    {
+        //var entries = _context.ChangeTracker.Entries();
+
+        //foreach (var e in entries)
+        //{
+        //    Console.WriteLine($"{e.Entity.GetType().Name} - {e.State}");
+        //}
+
+        return await _context.SaveChangesAsync();
+    }
 
     public void Dispose()
     {

@@ -1,8 +1,10 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using Droniverse.Community.Domain.Enums;
 
 namespace Droniverse.Community.Application.DTO.Request;
 
+/// <summary>
+/// DTO cho việc cập nhật thông tin Club (không bao gồm Status)
+/// </summary>
 public record ClubUpdateDto
 {
     [Required(ErrorMessage = "Tên tiếng Việt không được để trống")]
@@ -18,9 +20,6 @@ public record ClubUpdateDto
 
     [StringLength(1000, ErrorMessage = "Mô tả tiếng Anh tối đa 1000 ký tự")]
     public string? DescriptionEN { get; init; }
-
-    [Required(ErrorMessage = "Trạng thái không được để trống")]
-    public ClubStatus Status { get; init; }
 
     public bool IsPublic { get; init; }
 

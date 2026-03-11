@@ -62,7 +62,15 @@ public class GlobalExceptionHandlerMiddleware
                 StatusCodes.Status401Unauthorized,
                 ErrorResponse.Create(ex.Message, "UNAUTHORIZED")
             ),
+            ForbiddenException ex => (
+                StatusCodes.Status403Forbidden,
+                ErrorResponse.Create(ex.Message, ex.ErrorCode)
+            ),
             ArgumentNullException ex => (
+                StatusCodes.Status400BadRequest,
+                ErrorResponse.Create(ex.Message, "ARGUMENT_NULL")
+            ),
+            ArgumentException ex => (
                 StatusCodes.Status400BadRequest,
                 ErrorResponse.Create(ex.Message, "ARGUMENT_NULL")
             ),

@@ -57,7 +57,7 @@ public class UserCompetition
     public void Disqualify()
     {
         if (Status == UserCompetitionStatus.DISQUALIFIED)
-            throw new InvalidOperationException("User already disqualified.");
+            throw new InvalidOperationException("Người dùng đã bị loại khỏi cuộc thi.");
 
         Status = UserCompetitionStatus.DISQUALIFIED;
         UpdatedAt = DateTime.UtcNow;
@@ -66,7 +66,7 @@ public class UserCompetition
     public void Withdraw()
     {
         if (Status == UserCompetitionStatus.WITHDRAWN)
-            throw new InvalidOperationException("User already withdrawn.");
+            throw new InvalidOperationException("Người dùng đã rút khỏi cuộc thi.");
 
         Status = UserCompetitionStatus.WITHDRAWN;
         UpdatedAt = DateTime.UtcNow;

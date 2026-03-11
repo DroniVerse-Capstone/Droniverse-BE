@@ -20,6 +20,8 @@ public interface IUnitOfWork : IDisposable
     ICompetitionPrizeRepository CompetitionPrizes { get; }
     IUserPrizeRepository UserPrizes { get; }
     IClubCreationRequestCategoryRepository ClubCreationRequestCategories { get; }
+    IUserCompetitionRepository UserCompetitions { get; }
+    IUserRoundRepository UserRounds { get; }
 
 
     Task<int> SaveChangeAsync();

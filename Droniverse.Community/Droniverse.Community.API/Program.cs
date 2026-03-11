@@ -11,6 +11,11 @@ using Swashbuckle.AspNetCore.Filters;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using System.Reflection;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Options;
+using Droniverse.Shared.Settings;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 Env.Load("../../.env");
 
@@ -28,7 +33,7 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
 
-// Cho phép serialize Guid dưới dạng string trong MongoDB
+// Cho phép serialize Guid dưới dạng string trong MongoDB
 BsonSerializer.RegisterSerializer(new GuidSerializer(BsonType.String));
 
 builder.Services.AddEndpointsApiExplorer();
@@ -46,9 +51,112 @@ builder.Services.AddSwaggerGen(options =>
     options.IncludeXmlComments(xmlPath);
 
     options.ExampleFilters();
-});
-builder.Services.AddSwaggerExamplesFromAssemblyOf<Program>();
 
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = @"JWT Authorization header sử dụng Bearer scheme.
+                        
+**Hướng dẫn sử dụng:**
+1. Copy một trong các token mẫu bên dưới
+2. Paste vào ô 'Value' (không cần thêm 'Bearer ')
+3. Click 'Authorize'
+
+---
+
+### Token mẫu theo Role có thời hạn tới (19/6/2026):
+
+#### CLUB_MEMBER
+```
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJVc2VySUQiOiI5NGM2ODkxZi0zMTNkLTRkNGYtYTI1MC00MGI4YTQ3ZjkxMzkiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoidG9hbk1lbWJlckBnbWFpbC5jb20iLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9lbWFpbGFkZHJlc3MiOiJ0b2FuTWVtYmVyQGdtYWlsLmNvbSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkNMVUJfTUVNQkVSIiwianRpIjoiNjA1YTU5OGMtMmQ5My00NDY2LThlNTEtYmJmYjhjZGRiZTk5IiwiZXhwIjoxNzgxODMwMzEwLCJpc3MiOiJEcm9uaXZlcnNlLklkZW50aXR5IiwiYXVkIjoiRHJvbml2ZXJzZS5JZGVudGl0eSJ9.VM1tbYOvNMXIDj00JXn40g4-UsVodnpCyMZzykvQsRk
+```
+
+#### CLUB_MANAGER
+```
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJVc2VySUQiOiI1ZmNlOTk1MC1jOTI4LTQzMzMtYWFiZC02YjMyZTYzNWY3NjYiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiYmxhY2twcm9DbHViTWFuYWdlckBnbWFpbC5jb20iLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9lbWFpbGFkZHJlc3MiOiJibGFja3Byb0NsdWJNYW5hZ2VyQGdtYWlsLmNvbSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkNMVUJfTUFOQUdFUiIsImp0aSI6IjQxZjhlYzQ3LTI3ZmQtNGQ1OS1hNzkyLWIxODk1NDgzNzc2ZCIsImV4cCI6MTc4MTgzMDgzNCwiaXNzIjoiRHJvbml2ZXJzZS5JZGVudGl0eSIsImF1ZCI6IkRyb25pdmVyc2UuSWRlbnRpdHkifQ.pbMSMNn4zk6ZSUGkEzNtcRzcYeIHwajriuQI12iN6a8
+```
+
+#### SYSTEM_MANAGER
+```
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJVc2VySUQiOiIyMTUwZjdmZC05ZDE5LTQ2YjQtYTAzMS0wMjEwYmMxNjE2MGYiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoic3lzbWFuYWdlckBnbWFpbC5jb20iLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9lbWFpbGFkZHJlc3MiOiJzeXNtYW5hZ2VyQGdtYWlsLmNvbSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IlNZU1RFTV9NQU5BR0VSIiwianRpIjoiOGQ5MTJmOWUtNDVkNC00MWMwLWFmNDgtM2EzYzBlZDJhNjg3IiwiZXhwIjoxNzgxODMwNzY3LCJpc3MiOiJEcm9uaXZlcnNlLklkZW50aXR5IiwiYXVkIjoiRHJvbml2ZXJzZS5JZGVudGl0eSJ9.RKHooDfGadVlDkikUsa85EjXbH58BFuo1PiXiiqYKXs
+```
+
+#### ADMIN
+```
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJVc2VySUQiOiI4YTY0ZDk1ZS1mMDQxLTQ5ZjctYmMxOC1hODJhZWNkODE2MTIiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiYWRtaW5AZ21haWwuY29tIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvZW1haWxhZGRyZXNzIjoiYWRtaW5AZ21haWwuY29tIiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy9yb2xlIjoiQURNSU4iLCJqdGkiOiI0YzJjNWMxZC0wNGQ0LTRjZGEtOGRlYy02MTMwZDkxZGEwMWUiLCJleHAiOjE3ODE4MzA4MTIsImlzcyI6IkRyb25pdmVyc2UuSWRlbnRpdHkiLCJhdWQiOiJEcm9uaXZlcnNlLklkZW50aXR5In0.NurEt2VFtkyIkP8slJaNaPBTiswbKDKcAsm0ps5YkCw
+```
+
+---
+
+**Lưu ý:** Token được đọc tự động từ Cookie 'AccessToken' hoặc Authorization header.",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT"
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
+
+builder.Services.AddSwaggerExamplesFromAssemblyOf<Program>();
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddJwtBearer(options =>
+{
+    var serviceProvider = builder.Services.BuildServiceProvider();
+    var jwtSettings = serviceProvider.GetRequiredService<IOptions<JwtSettings>>().Value;
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwtSettings.Issuer,
+        ValidAudience = jwtSettings.Audience,
+        IssuerSigningKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(jwtSettings.Key)
+        ),
+        ClockSkew = TimeSpan.Zero
+    };
+    //JwtBearerEventsConfigurator.Configure(options);
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            // Đọc token từ cookie trước
+            var accessToken = context.Request.Cookies["AccessToken"];
+
+            // Nếu không có trong cookie, thử đọc từ header (cho mobile app)
+            if (string.IsNullOrEmpty(accessToken))
+            {
+                accessToken = context.Request.Headers["Authorization"]
+                    .FirstOrDefault()?.Split(" ").Last();
+            }
+
+            if (!string.IsNullOrEmpty(accessToken))
+            {
+                context.Token = accessToken;
+            }
+
+            return Task.CompletedTask;
+        }
+    };
+});
 
 builder.Services.AddAuthorization();
 builder.Services.AddCors(options =>
@@ -57,7 +165,8 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins("http://localhost:3000")
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .AllowAnyMethod()
+              .AllowCredentials();
     });
 });
 var app = builder.Build();
@@ -71,12 +180,15 @@ if (app.Environment.IsDevelopment())
         c.DocExpansion(DocExpansion.None); //Đóng các api lại cho gọn
     });
 }
-
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 
 //app.UseHttpsRedirection();
+
 app.UseCors();
+
+app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
 
 app.Run();
