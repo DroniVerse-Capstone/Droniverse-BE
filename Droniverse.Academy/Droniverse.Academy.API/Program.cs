@@ -66,14 +66,21 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+builder.Services.Configure<JwtSettings>(
+    builder.Configuration.GetSection("Jwt")
+);
+var jwtSettings = builder.Configuration
+    .GetSection("Jwt")
+    .Get<JwtSettings>();
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-}).AddJwtBearer(options =>
+})
+.AddJwtBearer(options =>
 {
-    var serviceProvider = builder.Services.BuildServiceProvider();
-    var jwtSettings = serviceProvider.GetRequiredService<IOptions<JwtSettings>>().Value;
+    Console.WriteLine("JWT KEY: " + jwtSettings.Key);
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
@@ -87,15 +94,13 @@ builder.Services.AddAuthentication(options =>
         ),
         ClockSkew = TimeSpan.Zero
     };
-    //JwtBearerEventsConfigurator.Configure(options);
+
     options.Events = new JwtBearerEvents
     {
         OnMessageReceived = context =>
         {
-            // Đọc token từ cookie trước
             var accessToken = context.Request.Cookies["AccessToken"];
 
-            // Nếu không có trong cookie, thử đọc từ header (cho mobile app)
             if (string.IsNullOrEmpty(accessToken))
             {
                 accessToken = context.Request.Headers["Authorization"]
@@ -138,6 +143,8 @@ if (app.Environment.IsDevelopment())
 
 //app.UseHttpsRedirection();
 app.UseCors();
+
+app.UseAuthentication();   
 app.UseAuthorization();
 
 app.MapControllers();

@@ -54,7 +54,7 @@ public class CourseService : ICourseService
         await _unitOfWork.SaveChangesAsync();
     }
 
-    public async Task<PaginationResult<CourseResponseDTO>> GetAllCoursesActiveAsync(int pageIndex, int pageSize, string? search = null)
+    public async Task<PaginationResult<IEnumerable<CourseResponseDTO>>> GetAllCoursesActiveAsync(int pageIndex, int pageSize, string? search = null)
     {
         Expression<Func<Course, bool>>? filter = null;
         if (!string.IsNullOrWhiteSpace(search))
@@ -72,10 +72,10 @@ public class CourseService : ICourseService
             .GetAllWithActiveVersionAsync(filter, null, pageIndex, pageSize);
 
         var mapped = result.Data.Select(c => _mapper.Map<CourseResponseDTO>(c)).ToList();
-        return new PaginationResult<CourseResponseDTO>(mapped, result.TotalRecords, result.PageIndex, result.PageSize);
+        return new PaginationResult<IEnumerable<CourseResponseDTO>>(mapped, result.TotalRecords, result.PageIndex, result.PageSize);
     }
 
-    public async Task<PaginationResult<CourseDetailResponseDTO>> GetAllCoursesAllAsync(int pageIndex, int pageSize, string? search = null)
+    public async Task<PaginationResult<IEnumerable<CourseDetailResponseDTO>>> GetAllCoursesAllAsync(int pageIndex, int pageSize, string? search = null)
     {
         Expression<Func<Course, bool>>? filter = null;
         if (!string.IsNullOrWhiteSpace(search))
@@ -90,7 +90,7 @@ public class CourseService : ICourseService
             .GetAllWithAllVersionsAsync(filter, null, pageIndex, pageSize);
 
         var mapped = result.Data.Select(c => _mapper.Map<CourseDetailResponseDTO>(c)).ToList();
-        return new PaginationResult<CourseDetailResponseDTO>(mapped, result.TotalRecords, result.PageIndex, result.PageSize);
+        return new PaginationResult<IEnumerable<CourseDetailResponseDTO>>(mapped, result.TotalRecords, result.PageIndex, result.PageSize);
     }
 
     public async Task<CourseResponseDTO> GetCourseByIdActiveAsync(Guid courseId)

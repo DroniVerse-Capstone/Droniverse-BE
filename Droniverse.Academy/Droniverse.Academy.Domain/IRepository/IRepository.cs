@@ -18,7 +18,7 @@ public interface IRepository<T> where T : class
 
 
     // Read (paged)
-    Task<PaginationResult<T>> GetAllAsync(
+    Task<PaginationResult<IEnumerable<T>>> GetAllAsync(
         Expression<Func<T, bool>>? filter = null,
         Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null,
         int pageIndex = 1,

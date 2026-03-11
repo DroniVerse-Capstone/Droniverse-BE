@@ -45,7 +45,7 @@ namespace Droniverse.Academy.Infrastructure.Repositories
             return value;
         }
 
-        public virtual async Task<PaginationResult<T>> GetAllAsync(
+        public virtual async Task<PaginationResult<IEnumerable<T>>> GetAllAsync(
             Expression<Func<T, bool>>? filter = null,
             Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null,
             int pageIndex = 1,
@@ -83,7 +83,7 @@ namespace Droniverse.Academy.Infrastructure.Repositories
             var skip = (pageIndex - 1) * pageSize;
             var items = await query.Skip(skip).Take(pageSize).ToListAsync(cancellationToken);
 
-            var result = new PaginationResult<T>(items, totalRecords, pageIndex, pageSize);
+            var result = new PaginationResult<IEnumerable<T>>(items, totalRecords, pageIndex, pageSize);
             return result;
         }
 

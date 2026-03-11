@@ -23,7 +23,7 @@ public interface ICourseService
     /// <summary>
     /// Get paginated course list (Active version only)
     /// </summary>
-    Task<PaginationResult<CourseResponseDTO>> 
+    Task<PaginationResult<IEnumerable<CourseResponseDTO>>>
         GetAllCoursesActiveAsync(
             int pageIndex,
             int pageSize,
@@ -32,7 +32,7 @@ public interface ICourseService
     /// <summary>
     /// Get paginated course list (All versions)
     /// </summary>
-    Task<PaginationResult<CourseDetailResponseDTO>> 
+    Task<PaginationResult<IEnumerable<CourseDetailResponseDTO>>> 
         GetAllCoursesAllAsync(
             int pageIndex,
             int pageSize,

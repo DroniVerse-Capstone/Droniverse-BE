@@ -25,7 +25,7 @@ public interface ICourseRepository : IRepository<Course>
         /// Get paginated courses including only ACTIVE version.
         /// Use for marketplace/public listing.
         /// </summary>
-        Task<PaginationResult<Course>>
+        Task<PaginationResult<IEnumerable<Course>>>
             GetAllWithActiveVersionAsync(
                 Expression<Func<Course, bool>>? filter = null,
                 Func<IQueryable<Course>, IOrderedQueryable<Course>>? orderBy = null,
@@ -38,7 +38,7 @@ public interface ICourseRepository : IRepository<Course>
         /// Get paginated courses including ALL versions.
         /// Use for admin portal/reporting.
         /// </summary>
-        Task<PaginationResult<Course>>
+        Task<PaginationResult<IEnumerable<Course>>>
             GetAllWithAllVersionsAsync(
                 Expression<Func<Course, bool>>? filter = null,
                 Func<IQueryable<Course>, IOrderedQueryable<Course>>? orderBy = null,

@@ -36,7 +36,7 @@ internal class CourseRepository : MySqlRepository<Course>, ICourseRepository
             .FirstOrDefaultAsync(cancellationToken);
     }
 
-    public async Task<PaginationResult<Course>>
+    public async Task<PaginationResult<IEnumerable<Course>>>
     GetAllWithActiveVersionAsync(
         Expression<Func<Course, bool>>? filter = null,
         Func<IQueryable<Course>, IOrderedQueryable<Course>>? orderBy = null,
@@ -61,15 +61,15 @@ internal class CourseRepository : MySqlRepository<Course>, ICourseRepository
             .Take(pageSize)
             .ToListAsync(cancellationToken);
 
-        return new PaginationResult<Course>(
-            items.ToList(),
+        return new PaginationResult<IEnumerable<Course>>(
+            items,
             totalCount,
             pageIndex,
             pageSize
         );
     }
 
-    public async Task<PaginationResult<Course>>
+    public async Task<PaginationResult<IEnumerable<Course>>>
     GetAllWithAllVersionsAsync(
         Expression<Func<Course, bool>>? filter = null,
         Func<IQueryable<Course>, IOrderedQueryable<Course>>? orderBy = null,
@@ -93,8 +93,8 @@ internal class CourseRepository : MySqlRepository<Course>, ICourseRepository
             .Take(pageSize)
             .ToListAsync(cancellationToken);
 
-        return new PaginationResult<Course>(
-            items.ToList(),
+        return new PaginationResult<IEnumerable<Course>>(
+            items,
             totalCount,
             pageIndex,
             pageSize
