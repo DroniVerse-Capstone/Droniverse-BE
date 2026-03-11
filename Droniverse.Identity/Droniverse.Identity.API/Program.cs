@@ -5,6 +5,9 @@ using Droniverse.Identity.Application;
 using Droniverse.Identity.Infrastructure;
 using Droniverse.Shared;
 using Droniverse.Shared.Settings;
+using Hangfire;
+using Hangfire.Dashboard;
+using Hangfire.MySql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -13,6 +16,7 @@ using Swashbuckle.AspNetCore.Filters;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using System.Text;
 using System.Text.Json.Serialization;
+using System.Transactions;
 
 Env.Load("../../.env");
 
@@ -123,6 +127,33 @@ builder.Services.AddCors(options =>
     });
 });
 
+
+// ======================
+// HANGFIRE
+// ======================
+
+var connectionString = builder.Configuration.GetConnectionString("IdentityConnection");
+
+builder.Services.AddHangfire(config =>
+{
+    config.UseSimpleAssemblyNameTypeSerializer();
+    config.UseRecommendedSerializerSettings();
+
+    config.UseStorage(new MySqlStorage(
+        connectionString,
+        new MySqlStorageOptions
+        {
+            TablesPrefix = "Hangfire",
+            PrepareSchemaIfNecessary = true,
+            QueuePollInterval = TimeSpan.FromSeconds(15),
+            TransactionTimeout = TimeSpan.FromMinutes(1),
+            TransactionIsolationLevel = IsolationLevel.ReadCommitted
+        }
+    ));
+});
+
+builder.Services.AddHangfireServer();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -139,6 +170,10 @@ if (app.Environment.IsDevelopment())
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 app.UseCors();
 app.UseAuthentication();
+app.UseHangfireDashboard("/hangfire", new DashboardOptions
+{
+    Authorization = new IDashboardAuthorizationFilter[] { }
+});
 app.UseAuthorization();
 
 
