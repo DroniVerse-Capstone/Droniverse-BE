@@ -149,7 +149,7 @@ internal class AuthService : IAuthService
             issuer: _jwtSettings.Issuer,
             audience: _jwtSettings.Issuer,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(120),
+            expires: DateTime.UtcNow.AddMinutes(60*24*100),
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);

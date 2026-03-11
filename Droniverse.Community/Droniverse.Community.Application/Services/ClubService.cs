@@ -5,9 +5,11 @@ using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Entities;
+using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Response;
+using Droniverse.Shared.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,12 +20,20 @@ internal class ClubService : IClubService
     private readonly IMapper _mapper;
     private readonly IdentityMicroserviceClient _identityMicroserviceClient;
     private readonly AcademyMicroserviceClient _academyMicroserviceClient;
-    public ClubService(IUnitOfWork unitOfWork, IMapper mapper, IdentityMicroserviceClient identityMicroserviceClient, AcademyMicroserviceClient academyMicroserviceClient)
+    private readonly ICurrentUserService _currentUserService;
+
+    public ClubService(
+        IUnitOfWork unitOfWork,
+        IMapper mapper,
+        IdentityMicroserviceClient identityMicroserviceClient,
+        AcademyMicroserviceClient academyMicroserviceClient,
+        ICurrentUserService currentUserService)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _identityMicroserviceClient = identityMicroserviceClient;
         _academyMicroserviceClient = academyMicroserviceClient;
+        _currentUserService = currentUserService;
     }
 
     public async Task<ClubResponseDto> CreateClub(ClubCreateDto clubRequestDto)
@@ -49,20 +59,14 @@ internal class ClubService : IClubService
         club.ClubID = Guid.NewGuid();
         club.ClubCode = GenerateClubCode();
 
-        UserResponse user = null;
-        try
-        {
-            user = await _identityMicroserviceClient.GetUserByUserID(clubRequestDto.CreatedBy);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(ex.Message);
-        }
+        UserResponse user;
+
+        Guid currentUserID = Guid.Parse(_currentUserService.UserID ?? throw new UnauthorizedAccessException("Người dùng chưa được xác thực."));
+        user = await _identityMicroserviceClient.GetUserByUserID(currentUserID);
 
         if (user == null)
-        {
-            throw new KeyNotFoundException($"User with ID {clubRequestDto.CreatedBy} not found.");
-        }
+            throw new KeyNotFoundException($"User with ID [{currentUserID}] not found.");
+
         club.CreatedBy = user.UserId;
 
         await _unitOfWork.Clubs.Add(club);
@@ -116,6 +120,7 @@ internal class ClubService : IClubService
         }
         catch (Exception e)
         {
+            Console.WriteLine(e.Message);
             return false;
         }
     }
@@ -143,6 +148,23 @@ internal class ClubService : IClubService
         return response;
     }
 
+    public async Task<ClubResponseDto> GetClubByClubCode(string clubCode)
+    {
+        Club? club = await _unitOfWork.Clubs.GetByClubCodeWithCategories(clubCode);
+        if (club == null)
+        {
+            throw new KeyNotFoundException($"Club with club code [{clubCode}] not found.");
+        }
+
+        var memberCounts = await _unitOfWork.Clubs.GetMemberCountsByClubIds([club.ClubID]);
+        var courseCounts = await _unitOfWork.Clubs.GetCourseCountsByClubIds([club.ClubID]);
+
+        ClubResponseDto response = _mapper.Map<ClubResponseDto>(club);
+        response.TotalMembers = memberCounts.GetValueOrDefault(club.ClubID, 0);
+        response.TotalCourses = courseCounts.GetValueOrDefault(club.ClubID, 0);
+        return response;
+    }
+
     public async Task<ClubResponseDto> UpdateClub(Guid id, ClubUpdateDto clubUpdateDto)
     {
         Club? club = await _unitOfWork.Clubs.GetByCondition(c => c.ClubID == id);
@@ -167,7 +189,7 @@ internal class ClubService : IClubService
         if (club == null)
             throw new KeyNotFoundException($"Club with club code {request.clubCode} not found.");
 
-        Guid currentUserId = Guid.Parse("3197734d-d25d-42b1-b968-84b6ee4d33c2"); // member
+        var currentUserId = Guid.Parse(_currentUserService.UserID ?? throw new UnauthorizedAccessException("Người dùng chưa được xác thực."));
 
         bool isUserExisted = await _unitOfWork.Participations.IsUserInClub(club.ClubID, currentUserId);
 
@@ -194,9 +216,9 @@ internal class ClubService : IClubService
         }
         else
         {
-            var user = _unitOfWork.ClubAttemptRequests.IsUserInClubAttemptRequest(currentUserId, club.ClubID);
+            bool user = await _unitOfWork.ClubAttemptRequests.IsUserInClubAttemptRequest(currentUserId, club.ClubID);
 
-            if (user != null)
+            if (user == true)
                 throw new InvalidOperationException("Yêu cầu tham gia club của người dùng này đang chờ được duyệt !");
 
             var clubAttemptRequest = new ClubAttemptRequest(
@@ -286,10 +308,23 @@ internal class ClubService : IClubService
         throw new Exception();
     }
 
-    public async Task<IEnumerable<ClubResponseDto>> GetClubsByCurrentUsersID()
+    public async Task<IEnumerable<ClubResponseDto>> GetClubsByCurrentUsersID(ClubStatus? status = null)
     {
-        var userID = Guid.Parse("b36eaa51-35f1-4ac7-9ca1-7c3d50bc20c6");
-        var clubs = await _unitOfWork.Clubs.GetClubsByActiveParticipantUserId(userID);
+        var currentUserId = Guid.Parse(_currentUserService.UserID 
+            ?? throw new UnauthorizedAccessException("Người dùng chưa được xác thực."));
+
+        var roles = _currentUserService.Roles.ToList();
+        bool isMember = roles.Contains(Droniverse.Shared.Constants.Roles.ClubMember);
+        
+        IEnumerable<Club> clubs;
+        
+        if (isMember)
+            // CLUB_MEMBER: Lấy clubs đã tham gia
+            clubs = await _unitOfWork.Clubs.GetClubsByParticipantUserId(currentUserId, status);
+        else
+            // CLUB_MANAGER/ADMIN/SYSTEM_MANAGER: Lấy clubs đã tạo
+            clubs = await _unitOfWork.Clubs.GetClubsByClubManagerID(currentUserId, status);
+        
         return await MapClubsWithStats(clubs);
     }
 
@@ -310,6 +345,153 @@ internal class ClubService : IClubService
             response.TotalCourses = courseCounts.GetValueOrDefault(club.ClubID, 0);
             return response;
         }).ToList();
+    }
+
+    // ===== Status Management Methods =====
+    
+    /// <summary>
+    /// Update Club Status với phân quyền động
+    /// </summary>
+    public async Task<ClubResponseDto> UpdateClubStatus(Guid clubId, ClubUpdateStatusDto dto)
+    {
+        var club = await _unitOfWork.Clubs.GetByIdWithCategories(clubId);
+        if (club == null)
+            throw new KeyNotFoundException($"Club with ID {clubId} not found.");
+
+        var currentUserId = Guid.Parse(_currentUserService.UserID 
+            ?? throw new UnauthorizedAccessException("User is not authenticated."));
+        
+        var userRoles = _currentUserService.Roles.ToList();
+
+        ValidateStatusChangePermission(dto.Status, userRoles, club, currentUserId);
+
+        //if ((dto.Status == Domain.Enums.ClubStatus.SUSPENDED || dto.Status == Domain.Enums.ClubStatus.ARCHIVED) 
+        //    && string.IsNullOrWhiteSpace(dto.Reason))
+        //{
+        //    throw new ArgumentException($"Reason is required when changing status to {dto.Status}");
+        //}
+
+        switch (dto.Status)
+        {
+            case Domain.Enums.ClubStatus.ACTIVE:
+                club.Restore(); 
+                break;
+                
+            case Domain.Enums.ClubStatus.INACTIVE:
+                club.Deactivate();
+                break;
+                
+            case Domain.Enums.ClubStatus.SUSPENDED:
+                club.Suspend();
+                break;
+                
+            case Domain.Enums.ClubStatus.ARCHIVED:
+                club.Archive();
+                break;
+                
+            default:
+                throw new ArgumentException($"Invalid status: {dto.Status}");
+        }
+
+        await _unitOfWork.Clubs.Update(club);
+        await _unitOfWork.SaveChangeAsync();
+
+        // Return response with stats
+        var memberCounts = await _unitOfWork.Clubs.GetMemberCountsByClubIds([clubId]);
+        var courseCounts = await _unitOfWork.Clubs.GetCourseCountsByClubIds([clubId]);
+
+        ClubResponseDto response = _mapper.Map<ClubResponseDto>(club);
+        response.TotalMembers = memberCounts.GetValueOrDefault(clubId, 0);
+        response.TotalCourses = courseCounts.GetValueOrDefault(clubId, 0);
+        
+        return response;
+    }
+
+    /// <summary>
+    /// Validate quyền thay đổi status
+    /// </summary>
+    private void ValidateStatusChangePermission(
+        Domain.Enums.ClubStatus targetStatus, 
+        List<string> userRoles, 
+        Club club,
+        Guid currentUserId)
+    {
+        bool isAdmin = userRoles.Contains(Droniverse.Shared.Constants.Roles.Admin);
+        bool isSystemManager = userRoles.Contains(Droniverse.Shared.Constants.Roles.SystemManager);
+        bool isClubManager = userRoles.Contains(Droniverse.Shared.Constants.Roles.ClubManager);
+        bool isClubOwner = club.CreatedBy == currentUserId;
+
+        switch (targetStatus)
+        {
+            case Domain.Enums.ClubStatus.SUSPENDED:
+                // Only ADMIN or SYSTEM_MANAGER can SUSPEND
+                if (!isAdmin && !isSystemManager)
+                    throw new Droniverse.Shared.Exceptions.ForbiddenException(
+                        "Only ADMIN or SYSTEM_MANAGER can suspend a club.");
+                break;
+
+            case Domain.Enums.ClubStatus.INACTIVE:
+                // Only CLUB_MANAGER (owner) can DEACTIVATE
+                if (!isClubManager || !isClubOwner)
+                    throw new Droniverse.Shared.Exceptions.ForbiddenException(
+                        "Only CLUB_MANAGER (owner) can deactivate a club.");
+                break;
+
+            case Domain.Enums.ClubStatus.ARCHIVED:
+                // ADMIN, SYSTEM_MANAGER, or CLUB_MANAGER (owner) can ARCHIVE
+                if (!isAdmin && !isSystemManager && !(isClubManager && isClubOwner))
+                    throw new Droniverse.Shared.Exceptions.ForbiddenException(
+                        "Only ADMIN, SYSTEM_MANAGER, or CLUB_MANAGER (owner) can archive a club.");
+                break;
+
+            case Domain.Enums.ClubStatus.ACTIVE:
+                // Only ADMIN or SYSTEM_MANAGER or CLUB_MANAGER can RESTORE to ACTIVE
+                if (!isAdmin && !isSystemManager && isClubManager)
+                    throw new Droniverse.Shared.Exceptions.ForbiddenException(
+                        "Only ADMIN or SYSTEM_MANAGER or CLUB_MANAGER can restore a club to ACTIVE.");
+                break;
+
+            default:
+                throw new ArgumentException($"Invalid target status: {targetStatus}");
+        }
+    }
+    
+    [Obsolete("Use UpdateClubStatus instead")]
+    public async Task<ClubResponseDto> SuspendClub(Guid clubId, string? reason = null)
+    {
+        return await UpdateClubStatus(clubId, new ClubUpdateStatusDto 
+        { 
+            Status = Domain.Enums.ClubStatus.SUSPENDED, 
+            Reason = reason 
+        });
+    }
+
+    [Obsolete("Use UpdateClubStatus instead")]
+    public async Task<ClubResponseDto> ArchiveClub(Guid clubId, string? reason = null)
+    {
+        return await UpdateClubStatus(clubId, new ClubUpdateStatusDto 
+        { 
+            Status = Domain.Enums.ClubStatus.ARCHIVED, 
+            Reason = reason 
+        });
+    }
+
+    [Obsolete("Use UpdateClubStatus instead")]
+    public async Task<ClubResponseDto> RestoreClub(Guid clubId)
+    {
+        return await UpdateClubStatus(clubId, new ClubUpdateStatusDto 
+        { 
+            Status = Domain.Enums.ClubStatus.ACTIVE 
+        });
+    }
+
+    [Obsolete("Use UpdateClubStatus instead")]
+    public async Task<ClubResponseDto> DeactivateClub(Guid clubId)
+    {
+        return await UpdateClubStatus(clubId, new ClubUpdateStatusDto 
+        { 
+            Status = Domain.Enums.ClubStatus.INACTIVE 
+        });
     }
 }
 

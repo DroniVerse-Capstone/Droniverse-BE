@@ -1,8 +1,9 @@
-using Droniverse.Community.Application.DTO.Request;
+﻿using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.IRepository;
+using Droniverse.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace Droniverse.Community.Application.Services
@@ -10,15 +11,17 @@ namespace Droniverse.Community.Application.Services
     public class UserRoundService : IUserRoundService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly ICurrentUserService _currentUserService;
 
-        public UserRoundService(IUnitOfWork unitOfWork)
+        public UserRoundService(IUnitOfWork unitOfWork, ICurrentUserService currentUserService)
         {
             _unitOfWork = unitOfWork;
+            _currentUserService = currentUserService;
         }
 
         public async Task<UserRoundResponseDto> SubmitSolution(Guid roundId, UserRoundSubmitDto request)
         {
-            var currentUserId = Guid.Parse("3197734d-d25d-42b1-b968-84b6ee4d33c2");
+            var currentUserId = Guid.Parse(_currentUserService.UserID ?? throw new UnauthorizedAccessException("Người dùng chưa được xác thực."));
 
             var round = await _unitOfWork.Rounds.GetByCondition(r => r.RoundID == roundId);
             if (round == null)
@@ -62,7 +65,7 @@ namespace Droniverse.Community.Application.Services
 
         public async Task<UserRoundResponseDto> GetUserRoundResult(Guid roundId)
         {
-            var currentUserId = Guid.Parse("3197734d-d25d-42b1-b968-84b6ee4d33c2");
+            var currentUserId = Guid.Parse(_currentUserService.UserID ?? throw new UnauthorizedAccessException("Người dùng chưa được xác thực."));
 
             var userRound = await _unitOfWork.UserRounds.GetByCondition(
                 ur => ur.UserID == currentUserId && ur.RoundID == roundId
@@ -93,7 +96,7 @@ namespace Droniverse.Community.Application.Services
         {
             var round = await _unitOfWork.Rounds.GetByCondition(r => r.RoundID == roundId);
             if (round == null)
-                throw new KeyNotFoundException($"Round with ID {roundId} not found.");
+                throw new KeyNotFoundException($"Round with ID [{roundId}] not found.");
 
             var userRounds = await _unitOfWork.UserRounds.GetManyByCondition(
                 ur => ur.RoundID == roundId

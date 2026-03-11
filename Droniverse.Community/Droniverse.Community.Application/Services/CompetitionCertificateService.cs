@@ -34,19 +34,19 @@ namespace Droniverse.Community.Application.Services
                 throw new KeyNotFoundException($"Không tìm thấy cuộc thi với ID [{competitionId}].");
 
             // Validate tất cả certificates tồn tại trong Academy system
-            var validationTasks = request.CertificateIDs.Select(certId => 
-                _academyMicroserviceClient.IsCertificateExist(certId));
-            var validationResults = await Task.WhenAll(validationTasks);
+            //var validationTasks = request.CertificateIDs.Select(certId => 
+            //    _academyMicroserviceClient.IsCertificateExist(certId));
+            //var validationResults = await Task.WhenAll(validationTasks);
 
-            var invalidCertificates = request.CertificateIDs
-                .Where((certId, index) => !validationResults[index])
-                .ToList();
+            //var invalidCertificates = request.CertificateIDs
+            //    .Where((certId, index) => !validationResults[index])
+            //    .ToList();
 
-            if (invalidCertificates.Any())
-            {
-                var invalidIds = string.Join(", ", invalidCertificates);
-                throw new KeyNotFoundException($"Không tìm thấy các certificate với ID: {invalidIds} trong hệ thống Academy.");
-            }
+            //if (invalidCertificates.Any())
+            //{
+            //    var invalidIds = string.Join(", ", invalidCertificates);
+            //    throw new KeyNotFoundException($"Không tìm thấy các certificate với ID: {invalidIds} trong hệ thống Academy.");
+            //}
 
             // Add tất cả certificates
             var addedCertificates = new List<CompetitionCertificate>();
@@ -74,7 +74,8 @@ namespace Droniverse.Community.Application.Services
             // Lấy thông tin chi tiết của tất cả certificates đã thêm (bulk API)
             var certificateIds = addedCertificates.Select(ac => ac.CertificateID).ToList();
             var certificateDetails = await _academyMicroserviceClient.GetCertificatesBulk(certificateIds.AsEnumerable());
-            var certificateDict = certificateDetails.ToDictionary(c => c.CertificateID);
+            //var certificateDict = certificateDetails.ToDictionary(c => c.CertificateID);
+            var certificateDict = new Dictionary<Guid, CertificateDetailDto>();
 
             // Map sang response DTOs
             var certificateResponseList = addedCertificates.Select(ac =>
@@ -130,8 +131,11 @@ namespace Droniverse.Community.Application.Services
                 .ToList();
 
             // Gọi API bulk để lấy thông tin chi tiết certificate
-            var certificateDetails = await _academyMicroserviceClient.GetCertificatesBulk(certificateIds);
-            var certificateDict = certificateDetails.ToDictionary(c => c.CertificateID);
+            //var certificateDetails = await _academyMicroserviceClient.GetCertificatesBulk(certificateIds);
+            //var certificateDict = certificateDetails.ToDictionary(c => c.CertificateID);
+
+            var certificateDict = new Dictionary<Guid, CertificateDetailDto>();
+
 
             return competition.CompetitionCertificates.Select(cc =>
             {

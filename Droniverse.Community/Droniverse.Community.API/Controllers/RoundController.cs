@@ -2,7 +2,9 @@
 using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.IService;
+using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Filters;
 
@@ -13,6 +15,7 @@ namespace Droniverse.Community.API.Controllers
     /// </summary>
     [ApiController]
     [Route("community/rounds")]
+    [Authorize]
     public class RoundController : ControllerBase
     {
         private readonly IRoundService _roundService;
@@ -55,6 +58,7 @@ namespace Droniverse.Community.API.Controllers
         [ProducesResponseType(typeof(SuccessResponse<RoundResponseDto>), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [SwaggerRequestExample(typeof(RoundCreateDto), typeof(RoundCreateExample))]
+        [Authorize(Roles = Roles.AdminOrManagerRoles)]
         public async Task<ApiResponse> CreateRound([FromBody] RoundCreateDto request)
         {
             var round = await _roundService.CreateRound(request);
@@ -88,6 +92,7 @@ namespace Droniverse.Community.API.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [SwaggerRequestExample(typeof(RoundUpdateDto), typeof(RoundUpdateExample))]
+        [Authorize(Roles = Roles.AdminOrManagerRoles)]
         public async Task<ApiResponse> UpdateRound(Guid id, [FromBody] RoundUpdateDto request)
         {
             var round = await _roundService.UpdateRound(id, request);
@@ -139,6 +144,7 @@ namespace Droniverse.Community.API.Controllers
         [HttpPut("{id}/start")]
         [ProducesResponseType(typeof(SuccessResponse<RoundResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize(Roles = Roles.AdminOrManagerRoles)]
         public async Task<ApiResponse> StartRound(Guid id)
         {
             var round = await _roundService.StartRound(id);
@@ -156,6 +162,7 @@ namespace Droniverse.Community.API.Controllers
         [HttpPut("{id}/finish")]
         [ProducesResponseType(typeof(SuccessResponse<RoundResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize(Roles = Roles.AdminOrManagerRoles)]
         public async Task<ApiResponse> FinishRound(Guid id)
         {
             var round = await _roundService.FinishRound(id);

@@ -7,6 +7,9 @@ using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Shared.DTOs;
+using Droniverse.Shared.Exceptions;
+using Droniverse.Shared.Services;
+using Droniverse.Shared.Constants;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -21,20 +24,25 @@ namespace Droniverse.Community.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IdentityMicroserviceClient _identityMicroserviceClient;
+        private readonly ICurrentUserService _currentUserService;
 
-        public ClubCreationRequestService(IUnitOfWork unitOfWork, IMapper mapper, IdentityMicroserviceClient identityMicroserviceClient)
+        public ClubCreationRequestService(
+            IUnitOfWork unitOfWork,
+            IMapper mapper,
+            IdentityMicroserviceClient identityMicroserviceClient,
+            ICurrentUserService currentUserService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _identityMicroserviceClient = identityMicroserviceClient;
+            _currentUserService = currentUserService;
         }
 
-        public async Task<ClubCreationRequestCreateResponseDto> CreateRequestToCreateClub(
-ClubCreationRequestCreateDto dto)
+        public async Task<ClubCreationRequestCreateResponseDto> CreateRequestToCreateClub(ClubCreationRequestCreateDto dto)
         {
-            var requesterId = Guid.Parse("ae6da7f5-1473-456f-9e55-70df702d47ee");
+            var requesterID = Guid.Parse(_currentUserService.UserID ?? throw new UnauthorizedAccessException("Người dùng chưa được xác thực."));
 
-            var isUserExisted = await _unitOfWork.ClubCreationRequests.IsUserHavingOtherRequest(requesterId);
+            var isUserExisted = await _unitOfWork.ClubCreationRequests.IsUserHavingOtherRequest(requesterID);
             if (isUserExisted)
                 throw new InvalidOperationException("Người dùng hiện đang có một yêu cầu khác chưa xử lí xong. Không thể tạo mới được");
 
@@ -60,7 +68,7 @@ ClubCreationRequestCreateDto dto)
                 dto.LimitParticipant,
                 dto.LimitClubManager,
                 dto.Image,
-                requesterId
+                requesterID
             );
 
             await _unitOfWork.ClubCreationRequests.Add(request);
@@ -91,7 +99,7 @@ ClubCreationRequestCreateDto dto)
 
         public async Task<IEnumerable<ClubCreationRequestResponseDto>> GetMyClubCreationRequest(ClubCreationRequestStatus? status = null)
         {
-            var managerId = Guid.Parse("ae6da7f5-1473-456f-9e55-70df702d47ee");
+            var managerId = Guid.Parse(_currentUserService.UserID ?? throw new UnauthorizedAccessException("Người dùng chưa được xác thực."));
 
             var requests = await _unitOfWork.ClubCreationRequests.GetManyByCondition(
                                         x => x.RequesterID == managerId && (!status.HasValue || x.Status == status.Value),
@@ -166,9 +174,9 @@ ClubCreationRequestCreateDto dto)
 
         public async Task<ClubCreationRequestUpdateStatusResponseDto> UpdateRequestStatus(Guid id, ClubCreationRequestUpdateStatusDto dto)
         {
-            // Temporary: fix ApproverId
-            var approverId = Guid.Parse("ae6da7f5-1473-456f-9e55-70df702d47ee");
-
+            var approverId = Guid.Parse(_currentUserService.UserID ?? throw new UnauthorizedAccessException("Người dùng chưa được xác thực."));
+            var roles = _currentUserService.Roles.ToList();
+            
             // Get the request from database
             var request = await _unitOfWork.ClubCreationRequests.GetByCondition(r => r.ClubCreationRequestID == id,
                     query => query.Include(i => i.Categories)
@@ -177,11 +185,16 @@ ClubCreationRequestCreateDto dto)
             if (request == null)
                 throw new InvalidOperationException($"Club creation request with ID {id} not found.");
 
-            // Update status based on the requested status
+            bool isAdmin = roles.Contains(Roles.Admin);
+            bool isSystemManager = roles.Contains(Roles.SystemManager);
+            bool isRequester = request.RequesterID == approverId;
+
             switch (dto.Status)
             {
                 case ClubCreationRequestStatus.APPROVED:
-                    // Create new Club with ACTIVE status
+                    if (!isAdmin && !isSystemManager)
+                        throw new ForbiddenException("Chỉ SYSTEM_MANAGER hoặc ADMIN mới có quyền approve.");
+
                     var newClub = new Club(
                         request.NameVN,
                         request.NameEN,
@@ -215,12 +228,18 @@ ClubCreationRequestCreateDto dto)
                     break;
 
                 case ClubCreationRequestStatus.REJECTED:
+                    if (!isAdmin && !isSystemManager)
+                        throw new ForbiddenException("Chỉ SYSTEM_MANAGER hoặc ADMIN mới có quyền reject.");
+
                     if (string.IsNullOrWhiteSpace(dto.RejectReason))
                         throw new ArgumentException("Reject reason is required for rejection.");
                     request.Reject(approverId, dto.RejectReason);
                     break;
 
                 case ClubCreationRequestStatus.CANCEL:
+                    if (!isRequester)
+                        throw new ForbiddenException("Chỉ người tạo request mới được cancel.");
+
                     request.Cancel(request.RequesterID);
                     break;
 
@@ -249,8 +268,7 @@ ClubCreationRequestCreateDto dto)
 
         public async Task<ClubCreationRequestUpdateInfoResponseDto> UpdateRequestInfo(Guid id, ClubCreationRequestUpdateInfoDto dto)
         {
-            // Temporary: fix RequesterId
-            var requesterId = Guid.Parse("ae6da7f5-1473-456f-9e55-70df702d47ee");
+            var requesterId = Guid.Parse(_currentUserService.UserID ?? throw new UnauthorizedAccessException("Người dùng chưa được xác thực."));
 
             // Get the request from database with categories
             var request = await _unitOfWork.ClubCreationRequests.GetByCondition(

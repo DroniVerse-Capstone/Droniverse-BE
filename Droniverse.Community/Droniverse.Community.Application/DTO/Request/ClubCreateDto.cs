@@ -27,9 +27,6 @@ public record ClubCreateDto
     [Range(1, 100, ErrorMessage = "Số lượng quản lý phải từ 1 đến 100")]
     public int LimitClubManagers { get; init; }
 
-    [Required(ErrorMessage = "CreatedBy không được để trống")]
-    public Guid CreatedBy { get; init; }
-
     [MinLength(1, ErrorMessage = "Phải có ít nhất một danh mục")]
     public List<Guid> CategoryIDs { get; init; } = new();
 }

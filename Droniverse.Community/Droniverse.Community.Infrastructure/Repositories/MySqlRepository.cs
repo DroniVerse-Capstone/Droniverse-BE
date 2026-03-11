@@ -42,6 +42,7 @@ public class MySqlRepository<T> : IRepository<T> where T : class
 
         return await query.FirstOrDefaultAsync(expression);
     }
+    
     public async Task<IEnumerable<T>> GetManyByCondition(
      Expression<Func<T, bool>> expression,
      Func<IQueryable<T>, IQueryable<T>>? include = null)
@@ -52,6 +53,18 @@ public class MySqlRepository<T> : IRepository<T> where T : class
             query = include(query);
 
         return await query.ToListAsync();
+    }
+
+    public IQueryable<T> GetManyByConditionAsQueryable(
+        Expression<Func<T, bool>> expression,
+        Func<IQueryable<T>, IQueryable<T>>? include = null)
+    {
+        IQueryable<T> query = _context.Set<T>().Where(expression);
+
+        if (include != null)
+            query = include(query);
+
+        return query;
     }
 
     public async Task<T?> Update(T entity)
