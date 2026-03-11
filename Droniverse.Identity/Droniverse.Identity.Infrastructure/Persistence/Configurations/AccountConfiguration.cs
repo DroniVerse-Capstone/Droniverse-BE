@@ -50,7 +50,7 @@ public class AccountConfiguration : IEntityTypeConfiguration<Account>
             .HasDefaultValue(false);
 
         builder.Property(a => a.RefreshToken)
-            .HasMaxLength(255).IsRequired(false);
+            .HasMaxLength(1000).IsRequired(false);
 
         builder.Property(a => a.RefreshTokenExpiryTime)
             .HasColumnType("datetime").IsRequired(false);

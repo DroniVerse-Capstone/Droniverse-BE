@@ -6,6 +6,7 @@ using Droniverse.Identity.Domain.Entities;
 using Droniverse.Identity.Domain.Interfaces;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Exceptions;
+using Droniverse.Shared.Services;
 using Droniverse.Shared.Settings;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -21,11 +22,18 @@ internal class AuthService : IAuthService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly JwtSettings _jwtSettings;
-    public AuthService(IUnitOfWork unitOfWork, IMapper mapper, IOptions<JwtSettings> jwtSettings)
+    private readonly ICurrentUserService _currentUserService;
+
+    public AuthService(
+        IUnitOfWork unitOfWork, 
+        IMapper mapper, 
+        IOptions<JwtSettings> jwtSettings,
+        ICurrentUserService currentUserService)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _jwtSettings = jwtSettings.Value;
+        _currentUserService = currentUserService;
     }
     public async Task<AuthResponse> RefreshToken(string accessToken, string refreshToken)
     {
@@ -45,7 +53,7 @@ internal class AuthService : IAuthService
         }
         UserResponse user = _mapper.Map<UserResponse>(account);
         string newAccessToken = GenerateAccessToken(account);
-        string newRefreshToken = GenerateRefreshToken();
+        string newRefreshToken = GenerateRefreshToken(account);
         account.RefreshToken = newRefreshToken;
         account.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays); // ✅ From settings
         await _unitOfWork.SaveChangeAsync();
@@ -75,12 +83,10 @@ internal class AuthService : IAuthService
         await _unitOfWork.Accounts.Add(newAccount);
         await _unitOfWork.SaveChangeAsync();
         UserResponse user = _mapper.Map<UserResponse>(newAccount);
-        string accessToken = GenerateAccessToken(newAccount);
-        string refreshToken = GenerateRefreshToken();
+        //string accessToken = GenerateAccessToken(newAccount);
+        //string refreshToken = GenerateRefreshToken(newAccount);
         return new AuthResponse
         {
-            AccessToken = accessToken,
-            RefreshToken = refreshToken,
             User = user
         };
     }
@@ -93,7 +99,7 @@ internal class AuthService : IAuthService
         }
         UserResponse user = _mapper.Map<UserResponse>(account);
         string accessToken = GenerateAccessToken(account);
-        string refreshToken = GenerateRefreshToken();
+        string refreshToken = GenerateRefreshToken(account);
 
         //Lưu refresh token & refresh token expiryTime vào db
         account.RefreshToken = refreshToken;
@@ -109,11 +115,12 @@ internal class AuthService : IAuthService
         };
     }
 
-    public async Task<bool> Logout(string accessToken, string refreshToken)
+    public async Task<bool> Logout()
     {
-        var principal = GetPrincipalFromExpiredToken(accessToken);
-        string email = principal.Identity?.Name ?? throw new UnauthorizedAccessException("Invalid access token.");
+        //var principal = GetPrincipalFromExpiredToken(accessToken);
+        //string email = principal.Identity?.Name ?? throw new UnauthorizedAccessException("Invalid access token.");
 
+        string email = _currentUserService.Email ?? throw new UnauthorizedAccessException("User not authenticated.");
         Account? account = await _unitOfWork.Accounts.GetByCondition(a => a.Email == email);
         if (account is null)
         {
@@ -141,6 +148,7 @@ internal class AuthService : IAuthService
             new Claim(ClaimTypes.Name, account.Email),
             new Claim(ClaimTypes.Email, account.Email),
             new Claim(ClaimTypes.Role, account.Role.RoleName),
+            new Claim("TokenType", "AccessToken"),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
 
         };
@@ -154,12 +162,28 @@ internal class AuthService : IAuthService
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
-    private string GenerateRefreshToken()
+    private string GenerateRefreshToken(Account account)
     {
-        var randomNumber = new byte[32];
-        using var rng = RandomNumberGenerator.Create();
-        rng.GetBytes(randomNumber);
-        return Convert.ToBase64String(randomNumber);
+        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));
+        var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+        var claims = new[]
+        {
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim(ClaimTypes.Email, account.Email),
+            new Claim("TokenType", "RefreshToken"),
+            new Claim(("UserID"), account.UserID.ToString())
+        };
+
+        var token = new JwtSecurityToken(
+            issuer: _jwtSettings.Issuer,
+            audience: _jwtSettings.Audience,
+            claims: claims,
+            expires: DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays),
+            signingCredentials: credentials
+        );
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
     private ClaimsPrincipal GetPrincipalFromExpiredToken(string token)
     {

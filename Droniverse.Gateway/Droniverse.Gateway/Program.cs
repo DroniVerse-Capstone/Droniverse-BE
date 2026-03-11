@@ -90,6 +90,41 @@ var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
+    app.UseStaticFiles();
+
+    app.Use(async (context, next) =>
+    {
+        if (context.Request.Path.StartsWithSegments("/swagger"))
+        {
+            var originalBody = context.Response.Body;
+            using var memoryStream = new MemoryStream();
+            context.Response.Body = memoryStream;
+
+            await next();
+
+            memoryStream.Seek(0, SeekOrigin.Begin);
+            var responseBody = await new StreamReader(memoryStream).ReadToEndAsync();
+
+            if (context.Response.ContentType?.Contains("text/html") == true)
+            {
+                // Inject custom script trước thẻ </body>
+                responseBody = responseBody.Replace(
+                    "</body>",
+                    "<script src=\"/swagger-custom.js\"></script></body>"
+                );
+            }
+
+            var modifiedBody = Encoding.UTF8.GetBytes(responseBody);
+            context.Response.Body = originalBody;
+            context.Response.ContentLength = modifiedBody.Length;
+            await context.Response.Body.WriteAsync(modifiedBody);
+        }
+        else
+        {
+            await next();
+        }
+    });
+
     // Enable Swagger for Ocelot UI với Security Injection
     app.UseSwaggerForOcelotUI(opt =>
     {
