@@ -4,9 +4,9 @@ using Droniverse.Academy.Infrastructure;
 using Droniverse.Identity.API;
 using Droniverse.Shared.Settings;
 using Hangfire;
+using Hangfire.Dashboard;
 using Hangfire.MySql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MongoDB.Bson;
@@ -17,38 +17,42 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Transactions;
 
-Env.Load("../../env");
+// Load .env
+Env.Load("../../.env");
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration.AddEnvironmentVariables();
-// Add services to the container.
 
-builder.Services.AddControllers();
-builder.Services.AddInfrastructure(builder.Configuration);
-builder.Services.AddApplication(builder.Configuration);
 
+// ======================
+// SERVICES
+// ======================
+
+// Controllers + Enum serialize
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        // Convert enum sang string khi serialize/deserialize JSON
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
 
-// Cho phép serialize Guid dưới dạng string trong MongoDB
+// MongoDB serialize Guid -> string
 BsonSerializer.RegisterSerializer(new GuidSerializer(BsonType.String));
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+// Application & Infrastructure
+builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddApplication(builder.Configuration);
+
+// Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    //c.ExampleFilters(); // Add data mẫu vào các API, Vd: LoginExampleProvider LoginEmailDto,...
-
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "JWT Authorization header sử dụng Bearer scheme. Fe quăng token dô đây nha",
+        Description = "JWT Authorization header sử dụng Bearer scheme",
         Name = "Authorization",
         In = ParameterLocation.Header,
-        Type = SecuritySchemeType.Http, // SecuritySchemeType.ApiKey là Bearer {token}
+        Type = SecuritySchemeType.Http,
         Scheme = "Bearer",
         BearerFormat = "JWT"
     });
@@ -69,9 +73,15 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+
+// ======================
+// JWT CONFIG
+// ======================
+
 builder.Services.Configure<JwtSettings>(
     builder.Configuration.GetSection("Jwt")
 );
+
 var jwtSettings = builder.Configuration
     .GetSection("Jwt")
     .Get<JwtSettings>();
@@ -89,11 +99,14 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
+
         ValidIssuer = jwtSettings.Issuer,
         ValidAudience = jwtSettings.Audience,
+
         IssuerSigningKey = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(jwtSettings.Key)
         ),
+
         ClockSkew = TimeSpan.Zero
     };
 
@@ -120,6 +133,12 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAuthorization();
+
+
+// ======================
+// CORS
+// ======================
+
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
@@ -129,6 +148,12 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod();
     });
 });
+
+
+// ======================
+// HANGFIRE
+// ======================
+
 var connectionString = builder.Configuration.GetConnectionString("MySqlConnection");
 
 builder.Services.AddHangfire(config =>
@@ -151,27 +176,40 @@ builder.Services.AddHangfire(config =>
 
 builder.Services.AddHangfireServer();
 
+
+// ======================
+// BUILD APP
+// ======================
+
 var app = builder.Build();
 
+
+// ======================
+// MIDDLEWARE
+// ======================
+
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
-// Configure the HTTP request pipeline.
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
-        c.DocExpansion(DocExpansion.None); //Đóng các api lại cho gọn
+        c.DocExpansion(DocExpansion.None);
     });
 }
 
-//app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
+
 app.UseCors();
 
-app.UseAuthentication();   
+app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseHangfireDashboard("/hangfire", new DashboardOptions
+{
+    Authorization = new IDashboardAuthorizationFilter[] { }
+});
 app.MapControllers();
-
-app.UseHangfireDashboard("/hangfire");
 
 app.Run();
