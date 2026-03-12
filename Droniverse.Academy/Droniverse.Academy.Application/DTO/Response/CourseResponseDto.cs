@@ -2,10 +2,12 @@
 
 namespace Droniverse.Academy.Application.DTO.Response;
 
-public record CourseResponseDto(
+public record CourseResponseDTO(
     Guid CourseID,
     Guid CreateBy,
-    DateTime CreateAt
+    DateTime CreateAt,
+    CourseStatus Status,
+    CourseVersionResponseDTO courseVersion
     )
 { }
 

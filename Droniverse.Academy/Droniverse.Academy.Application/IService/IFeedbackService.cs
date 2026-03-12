@@ -5,9 +5,9 @@ namespace Droniverse.Academy.Application.IService;
 
 public interface IFeedbackService
 {
-    Task<IEnumerable<FeedbackResponseDto>> GetAllFeedbacks();
-    Task<FeedbackResponseDto> GetFeedbackById(Guid id);
-    Task<FeedbackResponseDto> CreateFeedback(FeedbackCreateDto feedbackCreateDto);
+    Task<IEnumerable<FeedbackResponseDTO>> GetAllFeedbacks();
+    Task<FeedbackResponseDTO> GetFeedbackById(Guid id);
+    Task<FeedbackResponseDTO> CreateFeedback(FeedbackCreateDTO feedbackCreateDto);
     //    Task<FeedbackResponseDto> UpdateFeedback(Guid id, FeedbackUpdateDto feedbackUpdateDto);
 }
 
