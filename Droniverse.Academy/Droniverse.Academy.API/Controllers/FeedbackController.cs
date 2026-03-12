@@ -31,7 +31,7 @@ namespace Droniverse.Academy.API.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateFeedback([FromBody] FeedbackCreateDto feedbackCreateDto)
+        public async Task<IActionResult> CreateFeedback([FromBody] FeedbackCreateDTO feedbackCreateDto)
         {
             var createdFeedback = await _feedbackService.CreateFeedback(feedbackCreateDto);
             return CreatedAtAction(nameof(GetFeedbackById), new { id = createdFeedback.FeedbackID }, createdFeedback);

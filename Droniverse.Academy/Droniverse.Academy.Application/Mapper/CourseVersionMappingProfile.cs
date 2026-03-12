@@ -13,7 +13,15 @@ namespace Droniverse.Academy.Application.Mapper
     {
         public CourseVersionMappingProfile()
         {
-            CreateMap<CourseVersion, CourseVersionResponseDTO>();
+            CreateMap<CourseVersion, CourseVersionResponseDTO>()
+                .ForCtorParam("Categories", opt => opt.MapFrom(src => src.CourseVersionCategories))
+                .ForCtorParam("RequiredDrones", opt => opt.MapFrom(src => src.RequiredDrones));
+
+            CreateMap<CourseVersionCategory, CategoryResponseDTO>()
+                .ConstructUsing(c => new CategoryResponseDTO(c.CategoryID));
+
+            CreateMap<RequiredDrone, RequiredDroneResponseDTO>()
+                .ConstructUsing(r => new RequiredDroneResponseDTO(r.CourseVersionID, r.DroneID));
         }
     }
 }

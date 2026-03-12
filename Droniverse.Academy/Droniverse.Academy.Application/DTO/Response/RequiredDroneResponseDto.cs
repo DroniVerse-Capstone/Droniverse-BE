@@ -4,9 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Droniverse.Academy.Application.DTO.Response
-{
-    public class RequiredDroneResponseDto
-    {
-    }
-}
+namespace Droniverse.Academy.Application.DTO.Response;
+
+public record RequiredDroneResponseDTO(Guid RequiredDroneID, Guid DroneID);
+

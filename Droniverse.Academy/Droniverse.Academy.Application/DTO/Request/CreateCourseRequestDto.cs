@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Droniverse.Academy.Application.DTO.Request
 {
-    public class CreateCourseRequestDto
+    public class CreateCourseRequestDTO
     {
     }
 }

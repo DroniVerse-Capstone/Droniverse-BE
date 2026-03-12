@@ -64,7 +64,8 @@ public class CourseVersion
     // Draft → Active
     public void Activate(Guid userId, DateTime now)
     {
-        if (Status != CourseVersionStatus.DRAFT)
+        // Allow activating from DRAFT or DEPRECATED per requirements
+        if (Status != CourseVersionStatus.DRAFT && Status != CourseVersionStatus.DEPRECATED)
         {
             throw new DomainException(
                 $"Cannot activate version from status {Status}");
@@ -77,8 +78,9 @@ public class CourseVersion
     // Active → Deprecated
     public void Deprecate(Guid userId, DateTime now)
     {
-        if (Status != CourseVersionStatus.ACTIVE)
+        if (Status != CourseVersionStatus.ACTIVE && Status != CourseVersionStatus.DRAFT)
         {
+            // allow deprecating active versions; also allow deprecating draft to mark as deprecated if needed
             throw new DomainException(
                 $"Cannot deprecate version from status {Status}");
         }
@@ -96,6 +98,38 @@ public class CourseVersion
         }
 
         Status = CourseVersionStatus.INACTIVE;
+        SetAudit(userId, now);
+    }
+
+    // Update content - only allowed in DRAFT
+    public void UpdateContent(
+        string titleVN,
+        string titleEN,
+        string? descriptionVN,
+        string? descriptionEN,
+        string? contextVN,
+        string? contextEN,
+        string? imageUrl,
+        CourseLevel level,
+        int? estimatedDuration,
+        Guid userId,
+        DateTime now)
+    {
+        if (Status != CourseVersionStatus.DRAFT)
+        {
+            throw new DomainException("Can only update content when version is in DRAFT status");
+        }
+
+        TitleVN = titleVN;
+        TitleEN = titleEN;
+        DescriptionVN = descriptionVN;
+        DescriptionEN = descriptionEN;
+        ContextVN = contextVN;
+        ContextEN = contextEN;
+        ImageUrl = imageUrl;
+        Level = level;
+        EstimatedDuration = estimatedDuration;
+
         SetAudit(userId, now);
     }
 

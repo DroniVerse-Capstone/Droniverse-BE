@@ -4,9 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Droniverse.Academy.Application.DTO.Response
-{
-    public class CategoryResponseDto
-    {
-    }
-}
+namespace Droniverse.Academy.Application.DTO.Response;
+
+public record CategoryResponseDTO(Guid CategoryID);
+

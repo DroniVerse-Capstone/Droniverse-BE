@@ -17,8 +17,7 @@ public record CourseVersionResponseDTO(
     DateTime? UpdateAt,
     string? ContextVN,
     string? ContextEN,
-    IEnumerable<CategoryResponseDto> Categories,
-    IEnumerable<RequiredDroneResponseDto> RequiredDrones
-    )
-{}
+    IEnumerable<CategoryResponseDTO> Categories,
+    IEnumerable<RequiredDroneResponseDTO> RequiredDrones
+    );
 

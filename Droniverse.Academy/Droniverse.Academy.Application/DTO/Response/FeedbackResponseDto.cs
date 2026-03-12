@@ -1,6 +1,6 @@
 ﻿namespace Droniverse.Academy.Application.DTO.Response;
 
-public record FeedbackResponseDto(
+public record FeedbackResponseDTO(
     Guid FeedbackID,
     Guid UserID,
     int Rating,
@@ -9,6 +9,6 @@ public record FeedbackResponseDto(
     CourseVersionResponseDTO CourseVersion
     )
 {
-    public FeedbackResponseDto() : this(default, default, default, default, default, default) { }
+    public FeedbackResponseDTO() : this(default, default, default, default, default, default) { }
 }
 
