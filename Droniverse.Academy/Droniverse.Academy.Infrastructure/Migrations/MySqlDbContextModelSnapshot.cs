@@ -145,22 +145,25 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
 
+                    b.Property<string>("ContextEN")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ContextVN")
+                        .HasColumnType("text");
+
                     b.Property<Guid>("CourseID")
                         .HasColumnType("char(36)");
 
                     b.Property<string>("DescriptionEN")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("DescriptionVN")
-                        .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("EstimatedDuration")
+                    b.Property<int?>("EstimatedDuration")
                         .HasColumnType("int");
 
                     b.Property<string>("ImageUrl")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("Level")
@@ -181,11 +184,10 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
 
-                    b.Property<DateTime>("UpdateAt")
-                        .ValueGeneratedOnUpdate()
+                    b.Property<DateTime?>("UpdateAt")
                         .HasColumnType("datetime");
 
-                    b.Property<Guid>("UpdateBy")
+                    b.Property<Guid?>("UpdateBy")
                         .HasColumnType("char(36)");
 
                     b.Property<int>("Version")
@@ -193,11 +195,16 @@ namespace Droniverse.Academy.Infrastructure.Migrations
 
                     b.HasKey("CourseVersionID");
 
-                    b.HasIndex("CourseID");
+                    b.HasIndex("CourseID")
+                        .IsUnique()
+                        .HasFilter("`Status` = 1");
+
+                    b.HasIndex("CourseID", "Version")
+                        .IsUnique();
 
                     b.ToTable("CourseVersion", null, t =>
                         {
-                            t.HasCheckConstraint("CK_CourseVersion_Level", "`Level` IN ('EASY', 'MEDIUM', 'HARD')");
+                            t.HasCheckConstraint("CK_CourseVersion_Level", "`Level` IN ('EASY','MEDIUM','HARD')");
 
                             t.HasCheckConstraint("CK_CourseVersion_Status", "`Status` IN (0,1,2,3)");
                         });
@@ -1088,8 +1095,7 @@ namespace Droniverse.Academy.Infrastructure.Migrations
 
             modelBuilder.Entity("Droniverse.Academy.Domain.Entities.CourseVersion", b =>
                 {
-                    b.Navigation("Certificate")
-                        .IsRequired();
+                    b.Navigation("Certificate");
 
                     b.Navigation("Codes");
 
