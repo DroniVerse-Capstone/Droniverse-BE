@@ -10,10 +10,10 @@ public class CourseMappingProfile : Profile
     {
 
         CreateMap<Course, CourseResponseDTO>()
-            .ForMember(dest => dest.courseVersion,
+            .ForMember(dest => dest.CourseVersion,
                 opt => opt.MapFrom(src =>
                     src.CourseVersions.FirstOrDefault()));
-
+       
         CreateMap<Course, CourseDetailResponseDTO>()
             .ForMember(dest => dest.courseVersions,
                 opt => opt.MapFrom(src =>
