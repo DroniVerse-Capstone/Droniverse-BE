@@ -1,6 +1,7 @@
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.API.Validators;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
@@ -27,6 +28,7 @@ public class CourseVersionRequiredDroneController : ControllerBase
     {
         try
         {
+            RequiredDroneControllerValidator.ValidateAddRequiredDrone(courseId, versionId, request);
             var added = await _requiredDroneService.AddRequiredDroneAsync(courseId, versionId, request);
             return StatusCode(201, SuccessResponse<DroneClientViewDTO>.Create(added, "Gán drone yêu c?u thành công."));
         }
@@ -43,6 +45,7 @@ public class CourseVersionRequiredDroneController : ControllerBase
     {
         try
         {
+            RequiredDroneControllerValidator.ValidateRemoveRequiredDrone(courseId, versionId, droneId);
             await _requiredDroneService.RemoveRequiredDroneAsync(courseId, versionId, droneId);
             return Ok(SuccessResponse<object>.Create(null!, "G? drone yêu c?u thành công."));
         }
@@ -59,6 +62,7 @@ public class CourseVersionRequiredDroneController : ControllerBase
     {
         try
         {
+            RequiredDroneControllerValidator.ValidateGetRequiredDrones(courseId, versionId);
             var drones = await _requiredDroneService.GetRequiredDronesAsync(courseId, versionId);
             return Ok(SuccessResponse<IEnumerable<DroneClientViewDTO>>.Create(drones, "L?y danh sách drone yêu c?u thành công."));
         }

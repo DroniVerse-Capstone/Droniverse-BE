@@ -1,6 +1,7 @@
 ﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.API.Validators;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
@@ -93,6 +94,7 @@ public class DroneController : ControllerBase
     {
         try
         {
+            RequiredDroneControllerValidator.ValidateGetCourseVersionsByDrone(droneId);
             var courseVersions = await _requiredDroneService.GetCourseVersionsByDroneAsync(droneId);
             return Ok(SuccessResponse<IEnumerable<CourseVersionByDroneClientViewDTO>>.Create(courseVersions, "Lấy danh sách course version theo drone thành công."));
         }
