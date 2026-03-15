@@ -15,6 +15,8 @@ public static class DependencyInjection
         services.AddScoped<ICourseService, CourseService>();
         services.AddScoped<ICourseVersionService, CourseVersionService>();
         services.AddScoped<ICourseVersionCategoryService, CourseVersionCategoryService>();
+        services.AddScoped<IModuleService, ModuleService>();
+        services.AddScoped<ILessonService, LessonService>();
         services.AddScoped<ICertificateService, CertificateService>();
         services.AddScoped<IUserCertificateService, UserCertificateService>();
         services.AddScoped<IFeedbackService, FeedbackService>();

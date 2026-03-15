@@ -1,0 +1,103 @@
+using Droniverse.Academy.Application.DTO.Request;
+using Droniverse.Academy.Application.DTO.Response;
+using Droniverse.Academy.Application.IService;
+using Droniverse.Shared.Constants;
+using Droniverse.Shared.DTOs;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace Droniverse.Academy.API.Controllers;
+
+[Route("academy/modules/{moduleId:guid}/lessons")]
+[ApiController]
+public class LessonController : ControllerBase
+{
+    private readonly ILogger<LessonController> _logger;
+    private readonly ILessonService _lessonService;
+
+    public LessonController(ILogger<LessonController> logger, ILessonService lessonService)
+    {
+        _logger = logger;
+        _lessonService = lessonService;
+    }
+
+    [HttpPost]
+    [Authorize(Roles = Roles.AdminOrSystemManager)]
+    public async Task<IActionResult> CreateLesson(Guid moduleId, [FromBody] CreateLessonRequestDTO request)
+    {
+        try
+        {
+            var created = await _lessonService.CreateLessonAsync(moduleId, request);
+            return StatusCode(201, SuccessResponse<LessonClientViewDTO>.Create(created, "T?o lesson thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "CreateLesson failed for {ModuleId}", moduleId);
+            throw;
+        }
+    }
+
+    [HttpGet]
+    [Authorize(Roles = Roles.AdminOrSystemManager)]
+    public async Task<IActionResult> GetLessons(Guid moduleId)
+    {
+        try
+        {
+            var lessons = await _lessonService.GetLessonsByModuleAsync(moduleId);
+            return Ok(SuccessResponse<IEnumerable<LessonClientViewDTO>>.Create(lessons, "L?y danh sách lesson thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "GetLessons failed for {ModuleId}", moduleId);
+            throw;
+        }
+    }
+
+    [HttpGet("{lessonId:guid}")]
+    [Authorize(Roles = Roles.AllRoles)]
+    public async Task<IActionResult> GetLessonDetail(Guid moduleId, Guid lessonId)
+    {
+        try
+        {
+            var lesson = await _lessonService.GetLessonDetailAsync(moduleId, lessonId);
+            return Ok(SuccessResponse<LessonClientViewDTO>.Create(lesson, "L?y chi ti?t lesson thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "GetLessonDetail failed for {ModuleId}/{LessonId}", moduleId, lessonId);
+            throw;
+        }
+    }
+
+    [HttpPut("{lessonId:guid}")]
+    [Authorize(Roles = Roles.AdminOrSystemManager)]
+    public async Task<IActionResult> UpdateLesson(Guid moduleId, Guid lessonId, [FromBody] UpdateLessonRequestDTO request)
+    {
+        try
+        {
+            var updated = await _lessonService.UpdateLessonAsync(moduleId, lessonId, request);
+            return Ok(SuccessResponse<LessonClientViewDTO>.Create(updated, "C?p nh?t lesson thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "UpdateLesson failed for {ModuleId}/{LessonId}", moduleId, lessonId);
+            throw;
+        }
+    }
+
+    [HttpDelete("{lessonId:guid}")]
+    [Authorize(Roles = Roles.AdminOrSystemManager)]
+    public async Task<IActionResult> DeleteLesson(Guid moduleId, Guid lessonId)
+    {
+        try
+        {
+            await _lessonService.DeleteLessonAsync(moduleId, lessonId);
+            return Ok(SuccessResponse<object>.Create(null!, "Xóa lesson thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "DeleteLesson failed for {ModuleId}/{LessonId}", moduleId, lessonId);
+            throw;
+        }
+    }
+}

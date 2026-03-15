@@ -27,16 +27,11 @@ public class ModuleService : IModuleService
         await EnsureCourseVersionExistsAsync(courseId, versionId);
         await ValidateModuleNumberAsync(versionId, request.ModuleNumber);
 
-        var module = new Module
-        {
-            ModuleID = Guid.NewGuid(),
-            CourseVersionID = versionId,
-            TitleVN = request.TitleVN,
-            TitleEN = request.TitleEN,
-            ModuleNumber = request.ModuleNumber,
-            CreateAt = _clock.Now,
-            UpdateAt = _clock.Now
-        };
+        var module = _mapper.Map<Module>(request);
+        module.ModuleID = Guid.NewGuid();
+        module.CourseVersionID = versionId;
+        module.CreateAt = _clock.Now;
+        module.UpdateAt = _clock.Now;
 
         await _unitOfWork.Modules.AddAsync(module);
         await _unitOfWork.SaveChangesAsync();
@@ -68,9 +63,7 @@ public class ModuleService : IModuleService
         var module = await GetModuleEntityAsync(courseId, versionId, moduleId);
         await ValidateModuleNumberAsync(versionId, request.ModuleNumber, moduleId);
 
-        module.TitleVN = request.TitleVN;
-        module.TitleEN = request.TitleEN;
-        module.ModuleNumber = request.ModuleNumber;
+        _mapper.Map(request, module);
         module.UpdateAt = _clock.Now;
 
         await _unitOfWork.Modules.UpdateAsync(module);

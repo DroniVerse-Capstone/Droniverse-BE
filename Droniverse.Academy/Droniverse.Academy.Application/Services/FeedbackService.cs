@@ -37,15 +37,11 @@ public class FeedbackService : IFeedbackService
 
         ValidateRating(request.Rating);
 
-        var feedback = new Feedback
-        {
-            FeedbackID = Guid.NewGuid(),
-            CourseVersionID = courseVersion.CourseVersionID,
-            UserID = _currentUser.UserId,
-            Rating = request.Rating,
-            Content = request.Content,
-            CreatedAt = _clock.Now
-        };
+        var feedback = _mapper.Map<Feedback>(request);
+        feedback.FeedbackID = Guid.NewGuid();
+        feedback.CourseVersionID = courseVersion.CourseVersionID;
+        feedback.UserID = _currentUser.UserId;
+        feedback.CreatedAt = _clock.Now;
 
         await _unitOfWork.Feedbacks.AddAsync(feedback);
         await _unitOfWork.SaveChangesAsync();
@@ -103,8 +99,7 @@ public class FeedbackService : IFeedbackService
         if (feedback.UserID != _currentUser.UserId)
             throw new ForbiddenException("You can only update your own feedback.");
 
-        feedback.Rating = request.Rating;
-        feedback.Content = request.Content;
+        _mapper.Map(request, feedback);
 
         await _unitOfWork.Feedbacks.UpdateAsync(feedback);
         await _unitOfWork.SaveChangesAsync();
