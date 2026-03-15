@@ -9,5 +9,6 @@ public class RequiredDroneMappingProfile : Profile
     public RequiredDroneMappingProfile()
     {
         CreateMap<RequiredDrone, RequiredDroneResponseDTO>();
+        CreateMap<CourseVersion, CourseVersionByDroneClientViewDTO>();
     }
 }

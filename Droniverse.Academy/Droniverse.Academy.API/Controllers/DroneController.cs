@@ -1,4 +1,4 @@
-using Droniverse.Academy.Application.DTO.Request;
+锘縰sing Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Shared.Constants;
@@ -14,11 +14,13 @@ public class DroneController : ControllerBase
 {
     private readonly ILogger<DroneController> _logger;
     private readonly IDroneService _droneService;
+    private readonly IRequiredDroneService _requiredDroneService;
 
-    public DroneController(ILogger<DroneController> logger, IDroneService droneService)
+    public DroneController(ILogger<DroneController> logger, IDroneService droneService, IRequiredDroneService requiredDroneService)
     {
         _logger = logger;
         _droneService = droneService;
+        _requiredDroneService = requiredDroneService;
     }
 
     [HttpGet]
@@ -28,7 +30,7 @@ public class DroneController : ControllerBase
         try
         {
             var drones = await _droneService.GetDronesAsync();
-            return Ok(SuccessResponse<IEnumerable<DroneClientViewDTO>>.Create(drones, "L?y danh s醕h drone th鄋h c鬾g."));
+            return Ok(SuccessResponse<IEnumerable<DroneClientViewDTO>>.Create(drones, "L岷 danh s谩ch drone th脿nh c么ng."));
         }
         catch (Exception ex)
         {
@@ -44,7 +46,7 @@ public class DroneController : ControllerBase
         try
         {
             var drone = await _droneService.GetDroneByIdAsync(droneId);
-            return Ok(SuccessResponse<DroneClientViewDTO>.Create(drone, "L?y chi ti?t drone th鄋h c鬾g."));
+            return Ok(SuccessResponse<DroneClientViewDTO>.Create(drone, "L岷 chi ti岷縯 drone th脿nh c么ng."));
         }
         catch (Exception ex)
         {
@@ -60,7 +62,7 @@ public class DroneController : ControllerBase
         try
         {
             var updated = await _droneService.UpdateDroneAsync(droneId, request);
-            return Ok(SuccessResponse<DroneClientViewDTO>.Create(updated, "C?p nh?t drone th鄋h c鬾g."));
+            return Ok(SuccessResponse<DroneClientViewDTO>.Create(updated, "C?p nh?t drone th脿nh c么ng."));
         }
         catch (Exception ex)
         {
@@ -76,11 +78,27 @@ public class DroneController : ControllerBase
         try
         {
             await _droneService.DeleteDroneAsync(droneId);
-            return Ok(SuccessResponse<object>.Create(null!, "X骯 drone th鄋h c鬾g."));
+            return Ok(SuccessResponse<object>.Create(null!, "X贸a drone th脿nh c么ng."));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "DeleteDrone failed for {DroneId}", droneId);
+            throw;
+        }
+    }
+
+    [HttpGet("{droneId:guid}/course-versions")]
+    [Authorize(Roles = Roles.Admin)]
+    public async Task<IActionResult> GetCourseVersionsByDrone(Guid droneId)
+    {
+        try
+        {
+            var courseVersions = await _requiredDroneService.GetCourseVersionsByDroneAsync(droneId);
+            return Ok(SuccessResponse<IEnumerable<CourseVersionByDroneClientViewDTO>>.Create(courseVersions, "L岷 danh s谩ch course version theo drone th脿nh c么ng."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "GetCourseVersionsByDrone failed for {DroneId}", droneId);
             throw;
         }
     }
