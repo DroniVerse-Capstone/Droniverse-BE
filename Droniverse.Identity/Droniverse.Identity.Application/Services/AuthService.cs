@@ -1,4 +1,5 @@
 using AutoMapper;
+using BCrypt.Net;
 using Droniverse.Identity.Application.DTO.Request;
 using Droniverse.Identity.Application.DTO.Response;
 using Droniverse.Identity.Application.IService;
@@ -80,6 +81,7 @@ internal class AuthService : IAuthService
             throw new NotFoundException("Role not found.");
         newAccount.RoleID = r.RoleID;
         newAccount.Username = registerDto.FirstName + " " + registerDto.LastName;
+        newAccount.PasswordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password);
         await _unitOfWork.Accounts.Add(newAccount);
         await _unitOfWork.SaveChangeAsync();
         UserResponse user = _mapper.Map<UserResponse>(newAccount);
@@ -92,8 +94,8 @@ internal class AuthService : IAuthService
     }
     public async Task<AuthResponse> AuthenticatedUser(LoginEmailDto request)
     {
-        Account? account = await _unitOfWork.Accounts.GetByCondition(a => a.Email == request.Email && a.PasswordHash == request.Password);
-        if (account is null)
+        Account? account = await _unitOfWork.Accounts.GetByCondition(a => a.Email == request.Email);
+        if (account is null || !BCrypt.Net.BCrypt.Verify(request.Password, account.PasswordHash))
         {
             throw new UnauthorizedAccessException("Invalid email or password.");
         }
