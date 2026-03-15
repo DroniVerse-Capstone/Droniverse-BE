@@ -37,7 +37,7 @@ public class IdentityMicroserviceClient
 
             else if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
-                _logger.LogWarning($"User with ID {userId} not found in Identity Microservice.");
+                _logger.LogWarning($"User with ID [{userId}] not found in Identity Microservice.");
                 return null;
             }
             else if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.BadRequest)

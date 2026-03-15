@@ -16,6 +16,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Droniverse.Shared.DTOs.Response;
+using Droniverse.Community.Application.DTO.Extensions;
 
 namespace Droniverse.Community.Application.Services
 {
@@ -97,6 +99,46 @@ namespace Droniverse.Community.Application.Services
             };
         }
 
+        public async Task<PaginationResult<IEnumerable<ClubCreationRequestResponseDto>>> GetAllClubCreationRequest(ClubCreationRequestSearchRequest searchRequest)
+        {
+            var requests = await _unitOfWork.ClubCreationRequests.GetManyByCondition(
+                                        x => !searchRequest.status.HasValue || x.Status == searchRequest.status.Value,
+                                        q => q.Include(x => x.Categories).ThenInclude(c => c.Category).OrderByDescending(c => c.CreatedAt)
+                                    );
+
+            var result = requests.Select(x => new ClubCreationRequestResponseDto
+            {
+                ClubCreationRequestID = x.ClubCreationRequestID,
+                NameVN = x.NameVN,
+                NameEN = x.NameEN,
+                Description = x.Description,
+                IsPublic = x.IsPublic,
+                LimitParticipant = x.LimitParticipant,
+                LimitClubManager = x.LimitClubManager,
+                ImageUrl = x.ImageUrl,
+                CreatedAt = x.CreatedAt,
+                UpdatedAt = x.UpdatedAt,
+                ApprovedAt = x.ApprovedAt,
+                RejectReason = x.RejectReason,
+                ClubID = x.ClubID,
+                RequesterID = x.RequesterID,
+                ApproverID = x.ApproverID,
+                Status = x.Status,
+                Categories = x.Categories.Select(c => new CategoryResponseDto(
+                    c.Category.CategoryID,
+                    c.Category.TypeNameVN,
+                    c.Category.TypeNameEN,
+                    c.Category.DescriptionVN,
+                    c.Category.DescriptionEN
+                ))
+            });
+
+            if (requests == null || !requests.Any())
+                return Enumerable.Empty<ClubCreationRequestResponseDto>().ToPaginationResult(searchRequest);
+
+            return result.ToPaginationResult(searchRequest);
+        }
+
         public async Task<IEnumerable<ClubCreationRequestResponseDto>> GetMyClubCreationRequest(ClubCreationRequestStatus? status = null)
         {
             var managerId = Guid.Parse(_currentUserService.UserID ?? throw new UnauthorizedAccessException("Người dùng chưa được xác thực."));
@@ -142,7 +184,7 @@ namespace Droniverse.Community.Application.Services
                                     );
 
             if (request == null)
-                throw new KeyNotFoundException($"Club creation request with ID {id} not found.");
+                throw new KeyNotFoundException($"Club creation request with ID [{id}] not found.");
 
             return new ClubCreationRequestResponseDto
             {
@@ -176,7 +218,7 @@ namespace Droniverse.Community.Application.Services
         {
             var approverId = Guid.Parse(_currentUserService.UserID ?? throw new UnauthorizedAccessException("Người dùng chưa được xác thực."));
             var roles = _currentUserService.Roles.ToList();
-            
+
             // Get the request from database
             var request = await _unitOfWork.ClubCreationRequests.GetByCondition(r => r.ClubCreationRequestID == id,
                     query => query.Include(i => i.Categories)

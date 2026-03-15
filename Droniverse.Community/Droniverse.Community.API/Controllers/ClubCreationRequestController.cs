@@ -1,10 +1,12 @@
 ﻿using Droniverse.Community.API.Examples;
+using Droniverse.Community.Application.DTO.Extensions;
 using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Enums;
-using Droniverse.Shared.DTOs;
 using Droniverse.Shared.Constants;
+using Droniverse.Shared.DTOs;
+using Droniverse.Shared.DTOs.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Filters;
@@ -21,6 +23,23 @@ namespace Droniverse.Community.API.Controllers
         public ClubCreationRequestController(IClubCreationRequestService clubCreationRequestService)
         {
             _clubCreationRequestService = clubCreationRequestService;
+        }
+
+        /// <summary>
+        /// Lấy toàn bộ danh sách yêu cầu tạo câu lạc bộ của hệ thống.
+        /// </summary>
+        /// <param name="searchRequest">Trạng thái của yêu cầu: 0-PENDING, 1-APPROVED, 2-REJECTED, 3-CANCEL. Để null để lấy tất cả.</param>
+        /// <returns>
+        /// 200 OK - Trả về danh sách yêu cầu tạo câu lạc bộ
+        /// </returns>
+        [HttpGet]
+        [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<ClubCreationRequestResponseDto>>>), StatusCodes.Status200OK)]
+        [Authorize(Roles = Roles.AdminOrSystemManager)]
+        public async Task<ApiResponse> GetAllClubCreationRequests([FromQuery] ClubCreationRequestSearchRequest searchRequest)
+        {
+            return SuccessResponse<PaginationResult<IEnumerable<ClubCreationRequestResponseDto>>>.Create(
+                await _clubCreationRequestService.GetAllClubCreationRequest(searchRequest),
+                "Lấy toàn bộ danh sách yêu cầu tạo câu lạc bộ thành công!");
         }
 
         /// <summary>

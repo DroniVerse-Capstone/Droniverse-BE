@@ -26,6 +26,10 @@ namespace Droniverse.Community.Application.DTO.Extensions
         public CompetitionStatus? Status { get; set; }
     }
 
+    public class ClubCreationRequestSearchRequest : SearchRequest
+    {
+        public ClubCreationRequestStatus? status { get; set; } = null;
+    }
     public class ClubCourseSearchRequest : SearchRequest
     {
         // số người học
