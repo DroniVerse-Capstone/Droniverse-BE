@@ -30,6 +30,7 @@ public class ClubConfiguration : IEntityTypeConfiguration<Club>
         builder.Property(c => c.NameEN).HasMaxLength(255).IsRequired();
         builder.Property(c => c.Description).HasColumnType("varchar(255)");
         builder.Property(c => c.ClubCode).HasColumnType("char(6)").IsRequired();
+        builder.Property(c => c.ImageUrl).HasColumnType("varchar(255)");
         builder.Property(c => c.Status).HasColumnType("tinyint").HasConversion<byte>().IsRequired();
         builder.ToTable(t => t.HasCheckConstraint("CK_Club_Status", "`Status` IN (0, 1)"));
         builder.Property(c => c.IsPublic).HasColumnType("tinyint(1)").IsRequired();

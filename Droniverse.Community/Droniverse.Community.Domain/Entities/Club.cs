@@ -22,6 +22,7 @@ public class Club
     public string ClubCode { get; set; }
     [Required]
     public ClubStatus Status  { get; set; } 
+    public string? ImageUrl { get; set; }
     [Required]
     public bool IsPublic { get; set; }
     [Required]
@@ -51,7 +52,8 @@ public class Club
         bool isPublic,
         int limitParticipation,
         int limitClubManagers,
-        Guid createdBy)
+        Guid createdBy,
+        string? imageUrl)
     {
         ClubID = Guid.NewGuid();
         NameVN = nameVN;
@@ -59,6 +61,7 @@ public class Club
         Description = description;
         ClubCode = clubCode;
         IsPublic = isPublic;
+        ImageUrl = imageUrl;
         LimitParticipation = limitParticipation;
         LimitClubManagers = limitClubManagers;
         CreatedBy = createdBy;

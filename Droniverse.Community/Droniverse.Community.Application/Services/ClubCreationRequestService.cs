@@ -106,35 +106,66 @@ namespace Droniverse.Community.Application.Services
                                         q => q.Include(x => x.Categories).ThenInclude(c => c.Category).OrderByDescending(c => c.CreatedAt)
                                     );
 
-            var result = requests.Select(x => new ClubCreationRequestResponseDto
-            {
-                ClubCreationRequestID = x.ClubCreationRequestID,
-                NameVN = x.NameVN,
-                NameEN = x.NameEN,
-                Description = x.Description,
-                IsPublic = x.IsPublic,
-                LimitParticipant = x.LimitParticipant,
-                LimitClubManager = x.LimitClubManager,
-                ImageUrl = x.ImageUrl,
-                CreatedAt = x.CreatedAt,
-                UpdatedAt = x.UpdatedAt,
-                ApprovedAt = x.ApprovedAt,
-                RejectReason = x.RejectReason,
-                ClubID = x.ClubID,
-                RequesterID = x.RequesterID,
-                ApproverID = x.ApproverID,
-                Status = x.Status,
-                Categories = x.Categories.Select(c => new CategoryResponseDto(
-                    c.Category.CategoryID,
-                    c.Category.TypeNameVN,
-                    c.Category.TypeNameEN,
-                    c.Category.DescriptionVN,
-                    c.Category.DescriptionEN
-                ))
-            });
-
             if (requests == null || !requests.Any())
                 return Enumerable.Empty<ClubCreationRequestResponseDto>().ToPaginationResult(searchRequest);
+
+            var userIds = requests
+                .Select(x => x.RequesterID)
+                .Union(requests.Select(x => x.ApproverID).OfType<Guid>())
+                .Distinct()
+                .ToList();
+
+            IEnumerable<UserResponse> users = Enumerable.Empty<UserResponse>();
+            if (userIds.Any())
+            {
+                try
+                {
+                    users = await _identityMicroserviceClient.GetUsersBulk(userIds);
+                }
+                catch
+                {
+                    Console.WriteLine("Không lấy được thông tin user từ identity service.");
+                }
+            }
+
+            var userDict = users.ToDictionary(u => u.UserId, u => u);
+
+            var result = requests.Select(x => 
+            {
+                userDict.TryGetValue(x.RequesterID, out var requester);
+                var approver = x.ApproverID.HasValue && userDict.TryGetValue(x.ApproverID.Value, out var a) ? a : null;
+
+                return new ClubCreationRequestResponseDto
+                {
+                    ClubCreationRequestID = x.ClubCreationRequestID,
+                    NameVN = x.NameVN,
+                    NameEN = x.NameEN,
+                    Description = x.Description,
+                    IsPublic = x.IsPublic,
+                    LimitParticipant = x.LimitParticipant,
+                    LimitClubManager = x.LimitClubManager,
+                    ImageUrl = x.ImageUrl,
+                    CreatedAt = x.CreatedAt,
+                    UpdatedAt = x.UpdatedAt,
+                    ApprovedAt = x.ApprovedAt,
+                    RejectReason = x.RejectReason,
+                    ClubID = x.ClubID,
+                    RequesterID = x.RequesterID,
+                    ApproverID = x.ApproverID,
+                    RequesterName = requester?.LastName,
+                    RequesterEmail = requester?.Email,
+                    ApproverName = approver?.LastName,
+                    ApproverEmail = approver?.Email,
+                    Status = x.Status,
+                    Categories = x.Categories.Select(c => new CategoryResponseDto(
+                        c.Category.CategoryID,
+                        c.Category.TypeNameVN,
+                        c.Category.TypeNameEN,
+                        c.Category.DescriptionVN,
+                        c.Category.DescriptionEN
+                    ))
+                };
+            });
 
             return result.ToPaginationResult(searchRequest);
         }
@@ -145,34 +176,68 @@ namespace Droniverse.Community.Application.Services
 
             var requests = await _unitOfWork.ClubCreationRequests.GetManyByCondition(
                                         x => x.RequesterID == managerId && (!status.HasValue || x.Status == status.Value),
-                                        q => q.Include(x => x.Categories).ThenInclude(c => c.Category)
+                                        q => q.Include(x => x.Categories).ThenInclude(c => c.Category).OrderByDescending(c => c.CreatedAt)
                                     );
 
-            return requests.Select(x => new ClubCreationRequestResponseDto
+            if (requests == null || !requests.Any())
+                return Enumerable.Empty<ClubCreationRequestResponseDto>();
+
+            var userIds = requests
+                .Select(x => x.RequesterID)
+                .Union(requests.Select(x => x.ApproverID).OfType<Guid>())
+                .Distinct()
+                .ToList();
+
+            IEnumerable<UserResponse> users = Enumerable.Empty<UserResponse>();
+            if (userIds.Any())
             {
-                ClubCreationRequestID = x.ClubCreationRequestID,
-                NameVN = x.NameVN,
-                NameEN = x.NameEN,
-                Description = x.Description,
-                IsPublic = x.IsPublic,
-                LimitParticipant = x.LimitParticipant,
-                LimitClubManager = x.LimitClubManager,
-                ImageUrl = x.ImageUrl,
-                CreatedAt = x.CreatedAt,
-                UpdatedAt = x.UpdatedAt,
-                ApprovedAt = x.ApprovedAt,
-                RejectReason = x.RejectReason,
-                ClubID = x.ClubID,
-                RequesterID = x.RequesterID,
-                ApproverID = x.ApproverID,
-                Status = x.Status,
-                Categories = x.Categories.Select(c => new CategoryResponseDto(
-                    c.Category.CategoryID,
-                    c.Category.TypeNameVN,
-                    c.Category.TypeNameEN,
-                    c.Category.DescriptionVN,
-                    c.Category.DescriptionEN
-                ))
+                try
+                {
+                    users = await _identityMicroserviceClient.GetUsersBulk(userIds);
+                }
+                catch
+                {
+                    Console.WriteLine("Không lấy được thông tin user từ identity service.");
+                }
+            }
+
+            var userDict = users.ToDictionary(u => u.UserId, u => u);
+
+            return requests.Select(x =>
+            {
+                userDict.TryGetValue(x.RequesterID, out var requester);
+                var approver = x.ApproverID.HasValue && userDict.TryGetValue(x.ApproverID.Value, out var a) ? a : null;
+
+                return new ClubCreationRequestResponseDto
+                {
+                    ClubCreationRequestID = x.ClubCreationRequestID,
+                    NameVN = x.NameVN,
+                    NameEN = x.NameEN,
+                    Description = x.Description,
+                    IsPublic = x.IsPublic,
+                    LimitParticipant = x.LimitParticipant,
+                    LimitClubManager = x.LimitClubManager,
+                    ImageUrl = x.ImageUrl,
+                    CreatedAt = x.CreatedAt,
+                    UpdatedAt = x.UpdatedAt,
+                    ApprovedAt = x.ApprovedAt,
+                    RejectReason = x.RejectReason,
+                    ClubID = x.ClubID,
+                    RequesterID = x.RequesterID,
+                    ApproverID = x.ApproverID,
+                    RequesterName = requester?.LastName,
+                    RequesterEmail = requester?.Email,
+                    ApproverName = approver?.LastName,
+                    ApproverEmail = approver?.Email,
+                    Status = x.Status,
+                    Categories = x.Categories.Select(c => new CategoryResponseDto(
+                        c.Category.CategoryID,
+                        c.Category.TypeNameVN,
+                        c.Category.TypeNameEN,
+                        c.Category.DescriptionVN,
+                        c.Category.DescriptionEN
+                    ))
+                };
             });
         }
 
@@ -185,6 +250,24 @@ namespace Droniverse.Community.Application.Services
 
             if (request == null)
                 throw new KeyNotFoundException($"Club creation request with ID [{id}] not found.");
+
+            var userIds = new List<Guid> { request.RequesterID };
+            if (request.ApproverID.HasValue)
+                userIds.Add(request.ApproverID.Value);
+
+            IEnumerable<UserResponse> users = Enumerable.Empty<UserResponse>();
+            try
+            {
+                users = await _identityMicroserviceClient.GetUsersBulk(userIds.Distinct());
+            }
+            catch
+            {
+                Console.WriteLine("Không lấy được thông tin user từ identity service.");
+            }
+
+            var userDict = users.ToDictionary(u => u.UserId, u => u);
+            userDict.TryGetValue(request.RequesterID, out var requester);
+            var approver = request.ApproverID.HasValue && userDict.TryGetValue(request.ApproverID.Value, out var a) ? a : null;
 
             return new ClubCreationRequestResponseDto
             {
@@ -203,6 +286,10 @@ namespace Droniverse.Community.Application.Services
                 ClubID = request.ClubID,
                 RequesterID = request.RequesterID,
                 ApproverID = request.ApproverID,
+                RequesterName = requester?.LastName,
+                RequesterEmail = requester?.Email,
+                ApproverName = approver?.LastName,
+                ApproverEmail = approver?.Email,
                 Status = request.Status,
                 Categories = request.Categories.Select(c => new CategoryResponseDto(
                     c.Category.CategoryID,
@@ -245,7 +332,8 @@ namespace Droniverse.Community.Application.Services
                         request.IsPublic,
                         request.LimitParticipant,
                         request.LimitClubManager,
-                        request.RequesterID
+                        request.RequesterID,
+                        request.ImageUrl
                     );
 
                     if (request.Categories != null && request.Categories.Any())

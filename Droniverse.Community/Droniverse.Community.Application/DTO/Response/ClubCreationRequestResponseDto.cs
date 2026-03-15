@@ -19,6 +19,10 @@ public class ClubCreationRequestResponseDto
     public Guid? ClubID { get; set; }
     public Guid RequesterID { get; set; }
     public Guid? ApproverID { get; set; }
+    public string? ApproverName { get; set; }
+    public string? ApproverEmail { get; set; }
+    public string? RequesterName { get; set; }
+    public string? RequesterEmail { get; set; }
     public ClubCreationRequestStatus Status { get; set; }
     public IEnumerable<CategoryResponseDto> Categories { get; set; } = Enumerable.Empty<CategoryResponseDto>();
 }
