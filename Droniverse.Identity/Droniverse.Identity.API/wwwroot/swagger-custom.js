@@ -9,7 +9,7 @@ const tokens = {
 // Function để tạo dropdown
 function addTokenDropdown() {
     // Tìm input field trong modal authorize
-    const input = document.querySelector('.modal-ux input[type="text"]');
+    const input = document.querySelector('.modal-ux input[type="text"], .modal-ux input[type="password"]');
 
     if (!input) {
         console.log('Không tìm thấy input field');
@@ -44,8 +44,16 @@ function addTokenDropdown() {
     // Event khi chọn token
     select.onchange = function () {
         if (this.value) {
-            input.value = this.value;
-            console.log('Token đã chọn:', this.value);
+            // Query lại mỗi lần thay vì dùng closure
+            const currentInput = document.querySelector('.modal-ux input[type="text"], .modal-ux input[type="password"]');
+            if (!currentInput) return;
+
+            const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+                window.HTMLInputElement.prototype, 'value'
+            ).set;
+            nativeInputValueSetter.call(currentInput, this.value);
+            currentInput.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }));
+            currentInput.dispatchEvent(new Event('change', { bubbles: true }));
         }
     };
 

@@ -10,6 +10,7 @@ using DotNetEnv;
 using Microsoft.Extensions.Options;
 using Droniverse.Shared.Settings;
 using Droniverse.Shared;
+using System.IO;
 
 Env.Load("../../.env");
 var builder = WebApplication.CreateBuilder(args);
@@ -92,6 +93,11 @@ if (app.Environment.IsDevelopment())
 {
     app.UseStaticFiles();
 
+    var swaggerCustomFile = Path.Combine(app.Environment.WebRootPath, "swagger-custom.js");
+    var swaggerCustomVersion = File.Exists(swaggerCustomFile)
+        ? File.GetLastWriteTimeUtc(swaggerCustomFile).Ticks.ToString()
+        : DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
+
     app.Use(async (context, next) =>
     {
         if (context.Request.Path.StartsWithSegments("/swagger"))
@@ -107,10 +113,9 @@ if (app.Environment.IsDevelopment())
 
             if (context.Response.ContentType?.Contains("text/html") == true)
             {
-                // Inject custom script trước thẻ </body>
                 responseBody = responseBody.Replace(
                     "</body>",
-                    "<script src=\"/swagger-custom.js\"></script></body>"
+                    $"<script src=\"/swagger-custom.js?v={swaggerCustomVersion}\"></script></body>"
                 );
             }
 
@@ -125,12 +130,9 @@ if (app.Environment.IsDevelopment())
         }
     });
 
-    // Enable Swagger for Ocelot UI với Security Injection
     app.UseSwaggerForOcelotUI(opt =>
     {
         opt.PathToSwaggerGenerator = "/swagger/docs";
-        
-        // Inject Security Definition vào tất cả Swagger documents
         opt.ReConfigureUpstreamSwaggerJson = AlterUpstreamSwaggerJson;
     });
 }
