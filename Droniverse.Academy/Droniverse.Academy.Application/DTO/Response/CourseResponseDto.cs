@@ -8,6 +8,6 @@ public class CourseResponseDTO
     public Guid CreateBy { get; set; }
     public DateTime CreateAt { get; set; }
     public CourseStatus Status { get; set; }
-    public CourseVersionResponseDTO CourseVersion { get; set; }
+    public CourseVersionResponseDTO? CurrentVersion { get; set; }
 }
 

@@ -10,12 +10,14 @@ public class CourseMappingProfile : Profile
     {
 
         CreateMap<Course, CourseResponseDTO>()
-            .ForMember(dest => dest.CourseVersion,
+            .ForMember(dest => dest.CurrentVersion,
                 opt => opt.MapFrom(src =>
-                    src.CourseVersions.FirstOrDefault()));
+                    src.CurrentVersion != null ? src.CurrentVersion : null));
        
         CreateMap<Course, CourseDetailResponseDTO>()
-            .ForMember(dest => dest.courseVersions,
+            .ForMember(dest => dest.CurrentVersion,
+                opt => opt.MapFrom(src => src.CurrentVersion))
+            .ForMember(dest => dest.CourseVersions,
                 opt => opt.MapFrom(src =>
                     src.CourseVersions
                         .OrderByDescending(cv => cv.Version)));

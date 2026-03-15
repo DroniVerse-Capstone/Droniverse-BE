@@ -1,10 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace Droniverse.Academy.Application.DTO.Response;
 
-namespace Droniverse.Academy.Application.DTO.Response;
-
-public record CategoryResponseDTO(Guid CategoryID);
+public class CategoryResponseDTO
+{
+    public Guid CategoryID { get; set; }
+}
 

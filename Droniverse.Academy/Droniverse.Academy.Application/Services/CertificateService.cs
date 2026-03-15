@@ -109,4 +109,24 @@ public class CertificateService : ICertificateService
 
         return _mapper.Map<CertificateResponseDTO>(cert);
     }
+
+    public async Task<IEnumerable<CertificateResponseDTO>> GetCertificatesByIdsAsync(IEnumerable<Guid> certificateIds)
+    {
+        var ids = certificateIds?.Distinct().ToList() ?? [];
+        if (ids.Count == 0)
+            return [];
+
+        var result = await _unitOfWork.Certificates.GetAllAsync(
+            filter: c => ids.Contains(c.CertificateID),
+            pageIndex: 1,
+            pageSize: ids.Count);
+
+        var data = result.Data
+            .Select(c => _mapper.Map<CertificateResponseDTO>(c))
+            .ToList();
+
+        return data
+            .OrderBy(c => ids.IndexOf(c.CertificateID))
+            .ToList();
+    }
 }

@@ -2,22 +2,23 @@
 
 namespace Droniverse.Academy.Application.DTO.Response;
 
-public record CourseVersionResponseDTO(
-    Guid CourseVersionID,
-    string TitleVN,
-    string TitleEN,
-    string? DescriptionVN,
-    string? DescriptionEN,
-    CourseVersionStatus Status,
-    int Version,
-    string? ImageUrl,
-    CourseLevel Level,
-    int? EstimatedDuration,
-    Guid? UpdateBy,
-    DateTime? UpdateAt,
-    string? ContextVN,
-    string? ContextEN,
-    IEnumerable<CategoryResponseDTO> Categories,
-    IEnumerable<RequiredDroneResponseDTO> RequiredDrones
-    );
+public class CourseVersionResponseDTO
+{
+    public Guid CourseVersionID { get; set; }
+    public string TitleVN { get; set; } = null!;
+    public string TitleEN { get; set; } = null!;
+    public string? DescriptionVN { get; set; }
+    public string? DescriptionEN { get; set; }
+    public CourseVersionStatus Status { get; set; }
+    public int Version { get; set; }
+    public string? ImageUrl { get; set; }
+    public CourseLevel Level { get; set; }
+    public int? EstimatedDuration { get; set; }
+    public Guid? UpdateBy { get; set; }
+    public DateTime? UpdateAt { get; set; }
+    public string? ContextVN { get; set; }
+    public string? ContextEN { get; set; }
+    public IEnumerable<CategoryResponseDTO> Categories { get; set; } = [];
+    public IEnumerable<RequiredDroneResponseDTO> RequiredDrones { get; set; } = [];
+}
 

@@ -1,3 +1,6 @@
 namespace Droniverse.Academy.Application.DTO.Request;
 
-public record AssignCategoryRequestDTO(Guid CategoryID);
+public class AssignCategoryRequestDTO
+{
+    public Guid CategoryID { get; set; }
+}

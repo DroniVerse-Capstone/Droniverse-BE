@@ -14,4 +14,6 @@ public interface ICertificateService
     Task DeleteCertificateAsync(Guid courseId, Guid versionId, Guid certificateId);
 
     Task<CertificateResponseDTO> GetCertificateByIdAsync(Guid certificateId);
+
+    Task<IEnumerable<CertificateResponseDTO>> GetCertificatesByIdsAsync(IEnumerable<Guid> certificateIds);
 }

@@ -17,7 +17,7 @@ public static class DependencyInjection
         services.AddScoped<ICourseVersionCategoryService, CourseVersionCategoryService>();
         services.AddScoped<ICertificateService, CertificateService>();
         services.AddScoped<IUserCertificateService, UserCertificateService>();
-        //services.AddScoped<IFeedbackService, FeedbackService>();
+        services.AddScoped<IFeedbackService, FeedbackService>();
         return services;
     }
 

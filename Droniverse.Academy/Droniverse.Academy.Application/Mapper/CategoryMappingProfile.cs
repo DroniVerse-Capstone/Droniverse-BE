@@ -9,6 +9,6 @@ public class CategoryMappingProfile : Profile
     public CategoryMappingProfile()
     {
         CreateMap<CourseVersionCategory, CategoryResponseDTO>()
-            .ForCtorParam("CategoryID", opt => opt.MapFrom(src => src.CategoryID));
+            .ForMember(dest => dest.CategoryID, opt => opt.MapFrom(src => src.CategoryID));
     }
 }

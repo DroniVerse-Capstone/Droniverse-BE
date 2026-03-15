@@ -8,7 +8,6 @@ public class RequiredDroneMappingProfile : Profile
 {
     public RequiredDroneMappingProfile()
     {
-        CreateMap<RequiredDrone, RequiredDroneResponseDTO>()
-            .ConstructUsing(r => new RequiredDroneResponseDTO(r.CourseVersionID, r.DroneID));
+        CreateMap<RequiredDrone, RequiredDroneResponseDTO>();
     }
 }
