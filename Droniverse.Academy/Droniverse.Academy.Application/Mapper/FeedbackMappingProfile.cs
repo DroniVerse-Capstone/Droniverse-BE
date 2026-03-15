@@ -23,6 +23,12 @@ public class FeedbackMappingProfile : Profile
             .ForMember(dest => dest.Content, opt => opt.MapFrom(src => src.Content))
             .ForMember(dest => dest.CreateAt, opt => opt.MapFrom(src => src.CreatedAt))
             .ForMember(dest => dest.CourseVersion, opt => opt.MapFrom(src => src.CourseVersion));
+
+        CreateMap<CourseVersion, FeedbackCourseVersionClientViewDTO>();
+
+        CreateMap<Feedback, FeedbackClientViewDTO>()
+            .ForMember(dest => dest.CreateAt, opt => opt.MapFrom(src => src.CreatedAt))
+            .ForMember(dest => dest.CourseVersion, opt => opt.MapFrom(src => src.CourseVersion));
     }
 }
 
