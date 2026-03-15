@@ -1,4 +1,4 @@
-using Droniverse.Academy.Application.DTO.Request;
+锘縰sing Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Shared.Constants;
@@ -28,7 +28,7 @@ public class QuizController : ControllerBase
         try
         {
             var created = await _quizService.CreateQuizAsync(request);
-            return StatusCode(201, SuccessResponse<QuizClientViewDTO>.Create(created, "T?o quiz th鄋h c鬾g."));
+            return StatusCode(201, SuccessResponse<QuizClientViewDTO>.Create(created, "T岷 quiz th脿nh c么ng."));
         }
         catch (Exception ex)
         {
@@ -44,7 +44,7 @@ public class QuizController : ControllerBase
         try
         {
             var quizzes = await _quizService.GetQuizzesAsync();
-            return Ok(SuccessResponse<IEnumerable<QuizClientViewDTO>>.Create(quizzes, "L?y danh s醕h quiz th鄋h c鬾g."));
+            return Ok(SuccessResponse<IEnumerable<QuizClientViewDTO>>.Create(quizzes, "L岷 danh s谩ch quiz th脿nh c么ng."));
         }
         catch (Exception ex)
         {
@@ -60,7 +60,7 @@ public class QuizController : ControllerBase
         try
         {
             var quiz = await _quizService.GetQuizByIdAsync(quizId);
-            return Ok(SuccessResponse<QuizClientViewDTO>.Create(quiz, "L?y chi ti?t quiz th鄋h c鬾g."));
+            return Ok(SuccessResponse<QuizClientViewDTO>.Create(quiz, "L岷 chi ti岷縯 quiz th脿nh c么ng."));
         }
         catch (Exception ex)
         {
@@ -76,7 +76,7 @@ public class QuizController : ControllerBase
         try
         {
             var updated = await _quizService.UpdateQuizAsync(quizId, request);
-            return Ok(SuccessResponse<QuizClientViewDTO>.Create(updated, "C?p nh?t quiz th鄋h c鬾g."));
+            return Ok(SuccessResponse<QuizClientViewDTO>.Create(updated, "C岷璸 nh岷璽 quiz th脿nh c么ng."));
         }
         catch (Exception ex)
         {
@@ -92,7 +92,7 @@ public class QuizController : ControllerBase
         try
         {
             await _quizService.DeleteQuizAsync(quizId);
-            return Ok(SuccessResponse<object>.Create(null!, "X骯 quiz th鄋h c鬾g."));
+            return Ok(SuccessResponse<object>.Create(null!, "X贸a quiz th脿nh c么ng."));
         }
         catch (Exception ex)
         {

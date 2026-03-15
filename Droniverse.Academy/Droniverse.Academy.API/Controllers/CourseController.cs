@@ -1,4 +1,5 @@
 ﻿using Droniverse.Academy.Application.IService;
+using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
@@ -24,7 +25,7 @@ namespace Droniverse.Academy.API.Controllers
             try
             {
                 var created = await _courseService.CreateCourseAsync();
-                return CreatedAtAction(nameof(GetCourseByIdAll), new { courseId = created.CourseID }, created);
+                return CreatedAtAction(nameof(GetCourseByIdAll), new { courseId = created.CourseID }, SuccessResponse<object>.Create(created, "Tạo course thành công."));
             }
             catch (Exception ex)
             {
@@ -40,7 +41,7 @@ namespace Droniverse.Academy.API.Controllers
             try
             {
                 var course = await _courseService.GetCourseByIdActiveAsync(courseId);
-                return Ok(course);
+                return Ok(SuccessResponse<object>.Create(course, "Lấy chi tiết course active thành công."));
             }
             catch (Exception ex)
             {
@@ -56,7 +57,7 @@ namespace Droniverse.Academy.API.Controllers
             try
             {
                 var course = await _courseService.GetCourseByIdAllAsync(courseId);
-                return Ok(course);
+                return Ok(SuccessResponse<object>.Create(course, "Lấy chi tiết course thành công."));
             }
             catch (Exception ex)
             {
@@ -72,7 +73,7 @@ namespace Droniverse.Academy.API.Controllers
             try
             {
                 var result = await _courseService.GetAllCoursesActiveAsync(pageIndex, pageSize, search);
-                return Ok(result);
+                return Ok(SuccessResponse<object>.Create(result, "Lấy danh sách course active thành công."));
             }
             catch (Exception ex)
             {
@@ -88,7 +89,7 @@ namespace Droniverse.Academy.API.Controllers
             try
             {
                 var result = await _courseService.GetAllCoursesAllAsync(pageIndex, pageSize, search);
-                return Ok(result);
+                return Ok(SuccessResponse<object>.Create(result, "Lấy danh sách course thành công."));
             }
             catch (Exception ex)
             {
@@ -104,7 +105,7 @@ namespace Droniverse.Academy.API.Controllers
             try
             {
                 await _courseService.PublishCourseAsync(courseId);
-                return NoContent();
+                return Ok(SuccessResponse<object>.Create(null!, "Publish course thành công."));
             }
             catch (Exception ex)
             {
@@ -120,7 +121,7 @@ namespace Droniverse.Academy.API.Controllers
             try
             {
                 await _courseService.UnpublishCourseAsync(courseId);
-                return NoContent();
+                return Ok(SuccessResponse<object>.Create(null!, "Unpublish course thành công."));
             }
             catch (Exception ex)
             {
@@ -136,7 +137,7 @@ namespace Droniverse.Academy.API.Controllers
             try
             {
                 await _courseService.DeleteCourseAsync(courseId);
-                return NoContent();
+                return Ok(SuccessResponse<object>.Create(null!, "Xóa course thành công."));
             }
             catch (Exception ex)
             {

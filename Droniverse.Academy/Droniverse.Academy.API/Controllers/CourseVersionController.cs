@@ -1,6 +1,7 @@
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Shared.Constants;
+using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -28,7 +29,7 @@ public class CourseVersionController : ControllerBase
         try
         {
             var created = await _service.CreateCourseVersionAsync(courseId, request);
-            return CreatedAtAction(nameof(GetCourseVersionById), new { courseId = courseId, versionId = created.CourseVersionID }, created);
+            return CreatedAtAction(nameof(GetCourseVersionById), new { courseId = courseId, versionId = created.CourseVersionID }, SuccessResponse<object>.Create(created, "T?o course version thành công."));
         }
         catch (Exception ex)
         {
@@ -49,7 +50,7 @@ public class CourseVersionController : ControllerBase
                 st = parsed;
 
             var result = await _service.GetCourseVersionsAsync(courseId, pageIndex, pageSize, st);
-            return Ok(result);
+            return Ok(SuccessResponse<object>.Create(result, "L?y danh sách course version thành công."));
         }
         catch (Exception ex)
         {
@@ -66,7 +67,7 @@ public class CourseVersionController : ControllerBase
         try
         {
             var result = await _service.GetCourseVersionByIdAsync(courseId, versionId);
-            return Ok(result);
+            return Ok(SuccessResponse<object>.Create(result, "L?y chi ti?t course version thành công."));
         }
         catch (Exception ex)
         {
@@ -83,7 +84,7 @@ public class CourseVersionController : ControllerBase
         try
         {
             var updated = await _service.UpdateCourseVersionAsync(courseId, versionId, request);
-            return Ok(updated);
+            return Ok(SuccessResponse<object>.Create(updated, "C?p nh?t course version thành công."));
         }
         catch (Exception ex)
         {
@@ -100,7 +101,7 @@ public class CourseVersionController : ControllerBase
         try
         {
             await _service.DeleteCourseVersionAsync(courseId, versionId);
-            return NoContent();
+            return Ok(SuccessResponse<object>.Create(null!, "Xóa course version thành công."));
         }
         catch (Exception ex)
         {
@@ -117,7 +118,7 @@ public class CourseVersionController : ControllerBase
         try
         {
             await _service.ActivateCourseVersionAsync(courseId, versionId);
-            return NoContent();
+            return Ok(SuccessResponse<object>.Create(null!, "Kích ho?t course version thành công."));
         }
         catch (Exception ex)
         {
@@ -134,7 +135,7 @@ public class CourseVersionController : ControllerBase
         try
         {
             await _service.DeactivateCourseVersionAsync(courseId, versionId);
-            return NoContent();
+            return Ok(SuccessResponse<object>.Create(null!, "Vô hi?u hóa course version thành công."));
         }
         catch (Exception ex)
         {

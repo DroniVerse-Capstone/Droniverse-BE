@@ -63,7 +63,7 @@ public class DroneController : ControllerBase
         try
         {
             var updated = await _droneService.UpdateDroneAsync(droneId, request);
-            return Ok(SuccessResponse<DroneClientViewDTO>.Create(updated, "C?p nh?t drone thành công."));
+            return Ok(SuccessResponse<DroneClientViewDTO>.Create(updated, "Cập nhật drone thành công."));
         }
         catch (Exception ex)
         {
