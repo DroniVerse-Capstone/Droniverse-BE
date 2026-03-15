@@ -4,12 +4,14 @@ using Droniverse.Identity.Application.IService;
 using Droniverse.Identity.Domain.Entities;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Response;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Droniverse.Identity.API.Controllers
 {
     [Route("identity/users")]
+    [Authorize]
     [ApiController]
     public class UserController : ControllerBase
     {
@@ -18,6 +20,7 @@ namespace Droniverse.Identity.API.Controllers
         {
             _userService = userService;
         }
+        
         [HttpGet]
         public async Task<IActionResult> GetAllUsers()
         {

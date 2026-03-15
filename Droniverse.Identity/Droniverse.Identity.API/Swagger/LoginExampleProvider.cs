@@ -16,9 +16,9 @@ namespace Droniverse.Identity.API.Swagger
             );
 
             yield return SwaggerExample.Create(
-                "System Admin Account",
+                "System Manager Account",
                 new LoginEmailDto(
-                    Email: "sysadmin@gmail.com",
+                    Email: "sysmanager@gmail.com",
                     Password: "Abc123"
                 )
             );

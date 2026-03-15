@@ -10,6 +10,7 @@ using DotNetEnv;
 using Microsoft.Extensions.Options;
 using Droniverse.Shared.Settings;
 using Droniverse.Shared;
+using System.IO;
 
 Env.Load("../../.env");
 var builder = WebApplication.CreateBuilder(args);
@@ -90,12 +91,48 @@ var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
-    // Enable Swagger for Ocelot UI với Security Injection
+    app.UseStaticFiles();
+
+    var swaggerCustomFile = Path.Combine(app.Environment.WebRootPath, "swagger-custom.js");
+    var swaggerCustomVersion = File.Exists(swaggerCustomFile)
+        ? File.GetLastWriteTimeUtc(swaggerCustomFile).Ticks.ToString()
+        : DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
+
+    app.Use(async (context, next) =>
+    {
+        if (context.Request.Path.StartsWithSegments("/swagger"))
+        {
+            var originalBody = context.Response.Body;
+            using var memoryStream = new MemoryStream();
+            context.Response.Body = memoryStream;
+
+            await next();
+
+            memoryStream.Seek(0, SeekOrigin.Begin);
+            var responseBody = await new StreamReader(memoryStream).ReadToEndAsync();
+
+            if (context.Response.ContentType?.Contains("text/html") == true)
+            {
+                responseBody = responseBody.Replace(
+                    "</body>",
+                    $"<script src=\"/swagger-custom.js?v={swaggerCustomVersion}\"></script></body>"
+                );
+            }
+
+            var modifiedBody = Encoding.UTF8.GetBytes(responseBody);
+            context.Response.Body = originalBody;
+            context.Response.ContentLength = modifiedBody.Length;
+            await context.Response.Body.WriteAsync(modifiedBody);
+        }
+        else
+        {
+            await next();
+        }
+    });
+
     app.UseSwaggerForOcelotUI(opt =>
     {
         opt.PathToSwaggerGenerator = "/swagger/docs";
-        
-        // Inject Security Definition vào tất cả Swagger documents
         opt.ReConfigureUpstreamSwaggerJson = AlterUpstreamSwaggerJson;
     });
 }

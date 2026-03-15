@@ -48,8 +48,8 @@ namespace Droniverse.Identity.Infrastructure.Migrations
                         .HasColumnType("varchar(255)");
 
                     b.Property<string>("RefreshToken")
-                        .HasMaxLength(255)
-                        .HasColumnType("varchar(255)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
 
                     b.Property<DateTime?>("RefreshTokenExpiryTime")
                         .HasColumnType("datetime");
