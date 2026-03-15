@@ -97,7 +97,7 @@ public class IdentityMicroserviceClient
         try
         {
             var response = await _httpClient.PostAsJsonAsync(
-                "/identity/users/bulk",
+                "/api/users/bulk",
                 distinctIds
             );
 

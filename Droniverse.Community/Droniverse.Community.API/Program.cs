@@ -207,8 +207,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Droniverse Community API v1");
+        //c.SwaggerEndpoint("/swagger/v1/swagger.json", "Droniverse Community API v1");
         c.DocExpansion(DocExpansion.None); //Đóng các api lại cho gọn
+        
     });
 }
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
