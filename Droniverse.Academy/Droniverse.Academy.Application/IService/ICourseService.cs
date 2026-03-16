@@ -61,5 +61,7 @@ public interface ICourseService
     /// Soft delete course
     /// </summary>
     Task DeleteCourseAsync(Guid courseId);
+
+    Task<IEnumerable<CourseResponseDTO>> GetCoursesByIdsAsync(IEnumerable<Guid> courseIds);
 }
 

@@ -1,9 +1,9 @@
 ﻿namespace Droniverse.Academy.Application.DTO.Request;
 
-public record FeedbackCreateDTO(
-    int Rating,
-    string Content,
-    Guid CourseVersionID
-    )
-{ }
+public class FeedbackCreateDTO
+{
+    public int Rating { get; set; }
+    public string Content { get; set; } = null!;
+    public Guid CourseVersionID { get; set; }
+}
 

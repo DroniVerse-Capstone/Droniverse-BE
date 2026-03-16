@@ -15,9 +15,16 @@ public static class DependencyInjection
         services.AddScoped<ICourseService, CourseService>();
         services.AddScoped<ICourseVersionService, CourseVersionService>();
         services.AddScoped<ICourseVersionCategoryService, CourseVersionCategoryService>();
+        services.AddScoped<IModuleService, ModuleService>();
+        services.AddScoped<ILessonService, LessonService>();
+        services.AddScoped<IQuizService, QuizService>();
+        services.AddScoped<ITheoryService, TheoryService>();
+        services.AddScoped<IDroneTypeService, DroneTypeService>();
+        services.AddScoped<IDroneService, DroneService>();
+        services.AddScoped<IRequiredDroneService, RequiredDroneService>();
         services.AddScoped<ICertificateService, CertificateService>();
         services.AddScoped<IUserCertificateService, UserCertificateService>();
-        //services.AddScoped<IFeedbackService, FeedbackService>();
+        services.AddScoped<IFeedbackService, FeedbackService>();
         return services;
     }
 

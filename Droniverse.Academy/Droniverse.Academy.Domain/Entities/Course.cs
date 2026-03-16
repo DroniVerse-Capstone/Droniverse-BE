@@ -7,12 +7,19 @@ public class Course
     public Guid CourseID { get; set; }
 
     public ICollection<CourseVersion> CourseVersions { get; set; }
+    public CourseVersion? CurrentVersion { get; set; }
     public Guid CreateBy { get; set; } // reference to UserID
     public DateTime CreateAt { get; set; }
     public CourseStatus Status { get; private set; } = CourseStatus.DRAFT;
+    public Guid? CurrentVersionID { get; set; } // reference to CourseVersionID
 
     public void Publish()
     {
+        if (CurrentVersionID == null)
+        {
+            throw new DomainException("Cannot publish course without a current version");
+        }
+
         if (Status != CourseStatus.DRAFT &&
             Status != CourseStatus.UNPUBLISH)
         {
@@ -29,6 +36,11 @@ public class Course
         {
             throw new DomainException(
                 $"Cannot unpublish course from status {Status}");
+        }
+
+        if (CurrentVersionID != null)
+        {
+            throw new DomainException("Cannot unpublish course while current version is set");
         }
 
         Status = CourseStatus.UNPUBLISH;

@@ -1,6 +1,7 @@
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Shared.Constants;
+using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -27,7 +28,7 @@ public class CertificateController : ControllerBase
         try
         {
             var created = await _service.CreateCertificateAsync(courseId, versionId, request);
-            return CreatedAtAction(nameof(GetCertificate), new { courseId = courseId, versionId = versionId }, created);
+            return CreatedAtAction(nameof(GetCertificate), new { courseId = courseId, versionId = versionId }, SuccessResponse<object>.Create(created, "T?o certificate thành công."));
         }
         catch (Exception ex)
         {
@@ -44,7 +45,7 @@ public class CertificateController : ControllerBase
         try
         {
             var cert = await _service.GetCertificateAsync(courseId, versionId);
-            return Ok(cert);
+            return Ok(SuccessResponse<object>.Create(cert, "L?y certificate thành công."));
         }
         catch (Exception ex)
         {
@@ -61,7 +62,7 @@ public class CertificateController : ControllerBase
         try
         {
             var updated = await _service.UpdateCertificateAsync(courseId, versionId, certificateId, request);
-            return Ok(updated);
+            return Ok(SuccessResponse<object>.Create(updated, "C?p nh?t certificate thành công."));
         }
         catch (Exception ex)
         {
@@ -78,7 +79,7 @@ public class CertificateController : ControllerBase
         try
         {
             await _service.DeleteCertificateAsync(courseId, versionId, certificateId);
-            return NoContent();
+            return Ok(SuccessResponse<object>.Create(null!, "Xóa certificate thành công."));
         }
         catch (Exception ex)
         {
@@ -95,7 +96,7 @@ public class CertificateController : ControllerBase
         try
         {
             var cert = await _service.GetCertificateByIdAsync(certificateId);
-            return Ok(cert);
+            return Ok(SuccessResponse<object>.Create(cert, "L?y chi ti?t certificate thành công."));
         }
         catch (Exception ex)
         {

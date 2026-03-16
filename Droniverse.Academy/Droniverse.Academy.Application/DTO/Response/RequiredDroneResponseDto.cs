@@ -1,10 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace Droniverse.Academy.Application.DTO.Response;
 
-namespace Droniverse.Academy.Application.DTO.Response;
-
-public record RequiredDroneResponseDTO(Guid RequiredDroneID, Guid DroneID);
+public class RequiredDroneResponseDTO
+{
+    public Guid RequiredDroneID { get; set; }
+    public Guid DroneID { get; set; }
+}
 

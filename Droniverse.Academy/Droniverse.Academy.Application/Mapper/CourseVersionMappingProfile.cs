@@ -14,8 +14,8 @@ namespace Droniverse.Academy.Application.Mapper
         public CourseVersionMappingProfile()
         {
             CreateMap<CourseVersion, CourseVersionResponseDTO>()
-                .ForCtorParam("Categories", opt => opt.MapFrom(src => src.CourseVersionCategories))
-                .ForCtorParam("RequiredDrones", opt => opt.MapFrom(src => src.RequiredDrones));
+                .ForMember(dest => dest.Categories, opt => opt.MapFrom(src => src.CourseVersionCategories))
+                .ForMember(dest => dest.RequiredDrones, opt => opt.MapFrom(src => src.RequiredDrones));
         }
     }
 }

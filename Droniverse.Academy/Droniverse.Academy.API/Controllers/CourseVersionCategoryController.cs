@@ -1,6 +1,7 @@
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Shared.Constants;
+using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -26,7 +27,7 @@ public class CourseVersionCategoryController : ControllerBase
         try
         {
             await _service.AddCategoryAsync(courseId, versionId, request);
-            return NoContent();
+            return Ok(SuccessResponse<object>.Create(null!, "Gán category cho course version thành công."));
         }
         catch (Exception ex)
         {
@@ -42,7 +43,7 @@ public class CourseVersionCategoryController : ControllerBase
         try
         {
             await _service.RemoveCategoryAsync(courseId, versionId, categoryId);
-            return NoContent();
+            return Ok(SuccessResponse<object>.Create(null!, "G? category kh?i course version thành công."));
         }
         catch (Exception ex)
         {
@@ -58,7 +59,7 @@ public class CourseVersionCategoryController : ControllerBase
         try
         {
             var result = await _service.GetCategoriesAsync(courseId, versionId, pageIndex, pageSize);
-            return Ok(result);
+            return Ok(SuccessResponse<object>.Create(result, "L?y danh sách category c?a course version thành công."));
         }
         catch (Exception ex)
         {

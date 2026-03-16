@@ -2,11 +2,12 @@ using Droniverse.Academy.Domain.Enums;
 
 namespace Droniverse.Academy.Application.DTO.Response;
 
-public record UserCertificateResponseDTO(
-    Guid CertificateID,
-    Guid UserID,
-    Guid SerialNumber,
-    DateTime AchievedDate,
-    UserCertificateStatus Status,
-    CertificateResponseDTO? Certificate
-    );
+public class UserCertificateResponseDTO
+{
+    public Guid CertificateID { get; set; }
+    public Guid UserID { get; set; }
+    public Guid SerialNumber { get; set; }
+    public DateTime AchievedDate { get; set; }
+    public UserCertificateStatus Status { get; set; }
+    public CertificateResponseDTO? Certificate { get; set; }
+}

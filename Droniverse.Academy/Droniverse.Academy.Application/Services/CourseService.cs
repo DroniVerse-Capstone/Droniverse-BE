@@ -9,7 +9,6 @@ using Droniverse.Shared.Abstractions;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Exceptions;
 using System.Linq.Expressions;
-using System.Linq;
 
 namespace Droniverse.Academy.Application.Services;
 
@@ -117,15 +116,6 @@ public class CourseService : ICourseService
         if (course == null)
             throw new BaseException($"Course {courseId} not found.", "NOT_FOUND");
 
-        // Find the latest DRAFT version to activate
-        var draftVersion = course.CourseVersions
-            .OrderByDescending(v => v.Version)
-            .FirstOrDefault(v => v.Status == CourseVersionStatus.DRAFT);
-
-        if (draftVersion == null)
-            throw new ValidationException("No draft version available to publish.");
-
-        draftVersion.Activate(_currentUser.UserId, _clock.Now);
         course.Publish();
 
         await _unitOfWork.SaveChangesAsync();
@@ -137,18 +127,28 @@ public class CourseService : ICourseService
         if (course == null)
             throw new BaseException($"Course {courseId} not found.", "NOT_FOUND");
 
-        // Deprecate any active versions
-        var activeVersions = course.CourseVersions
-            .Where(v => v.Status == CourseVersionStatus.ACTIVE)
-            .ToList();
-
-        foreach (var v in activeVersions)
-        {
-            v.Deprecate(_currentUser.UserId, _clock.Now);
-        }
-
         course.Unpublish();
 
         await _unitOfWork.SaveChangesAsync();
+    }
+
+    public async Task<IEnumerable<CourseResponseDTO>> GetCoursesByIdsAsync(IEnumerable<Guid> courseIds)
+    {
+        var ids = courseIds?.Distinct().ToList() ?? [];
+        if (ids.Count == 0)
+            return [];
+
+        var result = await _unitOfWork.Courses.GetAllWithAllVersionsAsync(
+            filter: c => ids.Contains(c.CourseID),
+            pageIndex: 1,
+            pageSize: ids.Count);
+
+        var data = result.Data
+            .Select(c => _mapper.Map<CourseResponseDTO>(c))
+            .ToList();
+
+        return data
+            .OrderBy(c => ids.IndexOf(c.CourseID))
+            .ToList();
     }
 }

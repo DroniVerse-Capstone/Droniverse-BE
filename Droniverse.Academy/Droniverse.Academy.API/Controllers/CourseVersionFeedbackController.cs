@@ -1,0 +1,107 @@
+using Droniverse.Academy.Application.DTO.Request;
+using Droniverse.Academy.Application.DTO.Response;
+using Droniverse.Academy.Application.IService;
+using Droniverse.Shared.Constants;
+using Droniverse.Shared.DTOs;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace Droniverse.Academy.API.Controllers;
+
+[Route("academy/courses/{courseId:guid}/versions/{versionId:guid}/feedbacks")]
+[ApiController]
+public class CourseVersionFeedbackController : ControllerBase
+{
+    private readonly ILogger<CourseVersionFeedbackController> _logger;
+    private readonly IFeedbackService _feedbackService;
+
+    public CourseVersionFeedbackController(ILogger<CourseVersionFeedbackController> logger, IFeedbackService feedbackService)
+    {
+        _logger = logger;
+        _feedbackService = feedbackService;
+    }
+
+    [HttpPost]
+    [Authorize(Roles = Roles.ClubMember)]
+    public async Task<IActionResult> CreateFeedback(Guid courseId, Guid versionId, [FromBody] FeedbackCreateDTO request)
+    {
+        try
+        {
+            var created = await _feedbackService.CreateFeedbackForCourseVersionAsync(courseId, versionId, request);
+            return StatusCode(201,
+                SuccessResponse<FeedbackClientViewDTO>.Create(
+                    created,
+                    "G?i feedback thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "CreateFeedback failed for {CourseId}/{VersionId}", courseId, versionId);
+            throw;
+        }
+    }
+
+    [HttpGet]
+    [Authorize(Roles = $"{Roles.SystemManager},{Roles.ClubManager}")]
+    public async Task<IActionResult> GetFeedbacks(Guid courseId, Guid versionId)
+    {
+        try
+        {
+            var feedbacks = await _feedbackService.GetFeedbacksByCourseVersionAsync(courseId, versionId);
+            return Ok(SuccessResponse<IEnumerable<FeedbackClientViewDTO>>.Create(feedbacks, "L?y danh sách feedback thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "GetFeedbacks failed for {CourseId}/{VersionId}", courseId, versionId);
+            throw;
+        }
+    }
+
+    [HttpGet("{feedbackId:guid}")]
+    [Authorize(Roles = $"{Roles.SystemManager},{Roles.ClubManager}")]
+    public async Task<IActionResult> GetFeedbackDetail(Guid courseId, Guid versionId, Guid feedbackId)
+    {
+        try
+        {
+            var feedback = await _feedbackService.GetFeedbackDetailAsync(courseId, versionId, feedbackId);
+            return Ok(SuccessResponse<FeedbackClientViewDTO>.Create(feedback, "L?y chi ti?t feedback thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "GetFeedbackDetail failed for {CourseId}/{VersionId}/{FeedbackId}", courseId, versionId, feedbackId);
+            throw;
+        }
+    }
+
+    [HttpPut("{feedbackId:guid}")]
+    [Authorize(Roles = Roles.ClubMember)]
+    public async Task<IActionResult> UpdateFeedback(Guid courseId, Guid versionId, Guid feedbackId, [FromBody] FeedbackUpdateDTO request)
+    {
+        try
+        {
+            var updated = await _feedbackService.UpdateFeedbackAsync(courseId, versionId, feedbackId, request);
+            return Ok(SuccessResponse<FeedbackClientViewDTO>.Create(updated, "C?p nh?t feedback thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "UpdateFeedback failed for {CourseId}/{VersionId}/{FeedbackId}", courseId, versionId, feedbackId);
+            throw;
+        }
+    }
+
+    [HttpDelete("{feedbackId:guid}")]
+    [Authorize(Roles = Roles.AdminOrSystemManager)]
+    public async Task<IActionResult> DeleteFeedback(Guid courseId, Guid versionId, Guid feedbackId)
+    {
+        try
+        {
+            await _feedbackService.DeleteFeedbackAsync(courseId, versionId, feedbackId);
+            return Ok(SuccessResponse<object>.Create(null!, "Xóa feedback thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "DeleteFeedback failed for {CourseId}/{VersionId}/{FeedbackId}", courseId, versionId, feedbackId);
+            throw;
+        }
+    }
+
+}

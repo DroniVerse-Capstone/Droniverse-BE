@@ -13,14 +13,29 @@ public class FeedbackMappingProfile : Profile
             .ForMember(dest => dest.UserID, opt => opt.Ignore())
             .ForMember(dest => dest.Rating, opt => opt.MapFrom(src => src.Rating))
             .ForMember(dest => dest.Content, opt => opt.MapFrom(src => src.Content))
+            .ForMember(dest => dest.FeedbackID, opt => opt.Ignore())
+            .ForMember(dest => dest.CourseVersionID, opt => opt.Ignore())
             .ForMember(dest => dest.CourseVersion, opt => opt.Ignore())
             .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+
+        CreateMap<FeedbackUpdateDTO, Feedback>()
+            .ForMember(dest => dest.FeedbackID, opt => opt.Ignore())
+            .ForMember(dest => dest.UserID, opt => opt.Ignore())
+            .ForMember(dest => dest.CourseVersionID, opt => opt.Ignore())
+            .ForMember(dest => dest.CourseVersion, opt => opt.Ignore())
+            .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
 
         CreateMap<Feedback, FeedbackResponseDTO>()
             .ForMember(dest => dest.FeedbackID, opt => opt.MapFrom(src => src.FeedbackID))
             .ForMember(dest => dest.UserID, opt => opt.MapFrom(src => src.UserID))
             .ForMember(dest => dest.Rating, opt => opt.MapFrom(src => src.Rating))
             .ForMember(dest => dest.Content, opt => opt.MapFrom(src => src.Content))
+            .ForMember(dest => dest.CreateAt, opt => opt.MapFrom(src => src.CreatedAt))
+            .ForMember(dest => dest.CourseVersion, opt => opt.MapFrom(src => src.CourseVersion));
+
+        CreateMap<CourseVersion, FeedbackCourseVersionClientViewDTO>();
+
+        CreateMap<Feedback, FeedbackClientViewDTO>()
             .ForMember(dest => dest.CreateAt, opt => opt.MapFrom(src => src.CreatedAt))
             .ForMember(dest => dest.CourseVersion, opt => opt.MapFrom(src => src.CourseVersion));
     }

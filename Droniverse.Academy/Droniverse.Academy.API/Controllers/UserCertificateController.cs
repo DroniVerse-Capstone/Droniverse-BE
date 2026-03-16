@@ -1,5 +1,6 @@
 using Droniverse.Academy.Application.IService;
 using Droniverse.Shared.Constants;
+using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -25,7 +26,7 @@ public class UserCertificateController : ControllerBase
         try
         {
             await _service.GrantCertificateToUserAsync(certificateId, userId);
-            return NoContent();
+            return Ok(SuccessResponse<object>.Create(null!, "C?p certificate cho user thành công."));
         }
         catch (Exception ex)
         {
@@ -42,7 +43,7 @@ public class UserCertificateController : ControllerBase
         try
         {
             var result = await _service.GetUserCertificatesAsync(userId, pageIndex, pageSize);
-            return Ok(result);
+            return Ok(SuccessResponse<object>.Create(result, "L?y danh sách certificate c?a user thành công."));
         }
         catch (Exception ex)
         {
@@ -59,7 +60,7 @@ public class UserCertificateController : ControllerBase
         try
         {
             var result = await _service.GetUserCertificateAsync(userId, certificateId);
-            return Ok(result);
+            return Ok(SuccessResponse<object>.Create(result, "L?y chi ti?t certificate c?a user thành công."));
         }
         catch (Exception ex)
         {
@@ -76,7 +77,7 @@ public class UserCertificateController : ControllerBase
         try
         {
             var result = await _service.GetUsersByCertificateAsync(certificateId, pageIndex, pageSize);
-            return Ok(result);
+            return Ok(SuccessResponse<object>.Create(result, "L?y danh sách user theo certificate thành công."));
         }
         catch (Exception ex)
         {
@@ -93,7 +94,7 @@ public class UserCertificateController : ControllerBase
         try
         {
             await _service.RevokeUserCertificateAsync(userId, certificateId);
-            return NoContent();
+            return Ok(SuccessResponse<object>.Create(null!, "Thu h?i certificate c?a user thành công."));
         }
         catch (Exception ex)
         {

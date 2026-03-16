@@ -26,12 +26,20 @@ public class CourseConfiguration : IEntityTypeConfiguration<Course>
             .HasColumnType("tinyint")
             .HasConversion<byte>()
             .IsRequired();
+        builder.Property(c => c.CurrentVersionID)
+            .HasColumnType("char(36)")
+            .IsRequired(false);
 
         // Relationships
+        builder.HasOne(c => c.CurrentVersion)
+            .WithMany()
+            .HasForeignKey(c => c.CurrentVersionID)
+            .OnDelete(DeleteBehavior.Restrict);
         builder.HasMany(c => c.CourseVersions)
             .WithOne(cv => cv.Course)
             .HasForeignKey(cv => cv.CourseID)
             .OnDelete(DeleteBehavior.Restrict);
+
 
         // Constraints
         builder.ToTable(t =>

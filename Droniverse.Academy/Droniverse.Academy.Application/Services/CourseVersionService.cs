@@ -64,9 +64,16 @@ public class CourseVersionService : ICourseVersionService
 
     public async Task DeleteCourseVersionAsync(Guid courseId, Guid versionId)
     {
+        var course = await _unitOfWork.Courses.GetByIdWithAllVersionsAsync(courseId);
+        if (course == null)
+            throw new BaseException($"Course {courseId} not found.", "NOT_FOUND");
+
         var cv = await _unitOfWork.CourseVersions.GetByConditionAsync(v => v.CourseVersionID == versionId && v.CourseID == courseId);
         if (cv == null)
             throw new BaseException($"Course version not found.", "NOT_FOUND");
+
+        if (course.CurrentVersionID == versionId)
+            throw new ValidationException("Cannot delete current version. Deprecate current version first.");
 
         if (cv.Status == CourseVersionStatus.ACTIVE)
             throw new ValidationException("Cannot delete active version.");
@@ -109,14 +116,19 @@ public class CourseVersionService : ICourseVersionService
             throw new BaseException($"Course version not found.", "NOT_FOUND");
 
         // deprecate other active versions
-        var active = course.CourseVersions.Where(v => v.Status == CourseVersionStatus.ACTIVE).ToList();
+        var active = course.CourseVersions
+            .Where(v => v.Status == CourseVersionStatus.ACTIVE && v.CourseVersionID != versionId)
+            .ToList();
         foreach (var a in active)
         {
             a.Deprecate(_currentUser.UserId, _clock.Now);
         }
 
         cv.Activate(_currentUser.UserId, _clock.Now);
-        course.Publish();
+        // set current version
+        course.CurrentVersion = cv;
+        course.CurrentVersionID = cv.CourseVersionID;
+
 
         await _unitOfWork.SaveChangesAsync();
     }
@@ -136,9 +148,12 @@ public class CourseVersionService : ICourseVersionService
 
         cv.Deprecate(_currentUser.UserId, _clock.Now);
 
-        // if no more active versions, unpublish course
-        if (!course.CourseVersions.Any(v => v.Status == CourseVersionStatus.ACTIVE))
-            course.Unpublish();
+        // deprecated manually -> remove from current version if matched
+        if (course.CurrentVersionID == cv.CourseVersionID)
+        {
+            course.CurrentVersion = null;
+            course.CurrentVersionID = null;
+        }
 
         await _unitOfWork.SaveChangesAsync();
     }
