@@ -304,7 +304,7 @@ namespace Droniverse.Community.API.Controllers
         /// 
         /// ### Ví dụ:
         /// ```
-        /// GET /community/clubs/myclub              // Lấy tất cả
+        /// GET /community/clubs/myclub              // Lấy tất cảmy-club
         /// GET /community/clubs/myclub?status=1     // Chỉ lấy ACTIVE
         /// GET /community/clubs/myclub?status=2     // Chỉ lấy SUSPENDED
         /// ```
@@ -320,7 +320,7 @@ namespace Droniverse.Community.API.Controllers
             var clubs = await _clubService.GetClubsByCurrentUsersID(status);
             
             string message = status.HasValue 
-                ? $"Lấy danh sách câu lạc bộ {GetStatusDisplayName(status.Value)} thành công!"
+                ? $"Lấy danh sách câu lạc bộ [{GetStatusDisplayName(status.Value)}] thành công!"
                 : "Lấy danh sách câu lạc bộ đang tham gia thành công!";
             
             return SuccessResponse<IEnumerable<ClubResponseDto>>

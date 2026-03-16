@@ -18,7 +18,7 @@ namespace Droniverse.Community.Domain.Entities
         public bool IsPublic { get; set; }
         public int LimitParticipant { get; set; }
         public int LimitClubManager { get; set; }
-        public string ImageUrl { get; set; }
+        public string? ImageUrl { get; set; }
 
         // ===== System Fields =====
         public DateTime CreatedAt { get; private set; }

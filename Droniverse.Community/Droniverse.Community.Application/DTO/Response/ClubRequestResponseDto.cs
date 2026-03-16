@@ -15,7 +15,7 @@ namespace Droniverse.Community.Application.DTO.Response
     Guid ClubID,
     string ClubNameVN,
     string ClubNameEN,
-    string RequesterName,
+    string? RequesterName,
     string? ApproverName,
     ClubAttemptRequestStatus Status,
     DateTime createAt,

@@ -1,7 +1,10 @@
 ﻿using DnsClient.Internal;
 using Droniverse.Shared.DTOs.Response;
+using Droniverse.Shared.Exceptions;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace Droniverse.Community.Application.HttpClients;
 
@@ -9,15 +12,16 @@ public class IdentityMicroserviceClient
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<IdentityMicroserviceClient> _logger;
-    //private readonly IDistributedCache _distributedCache; //Redis Cache
+    private readonly IDistributedCache _distributedCache; //Redis Cache
     public IdentityMicroserviceClient(
         HttpClient httpClient,
-        ILogger<IdentityMicroserviceClient> logger
+        ILogger<IdentityMicroserviceClient> logger,
+        IDistributedCache distributedCache
         )
     {
         _httpClient = httpClient;
         _logger = logger;
-        //_distributedCache = distributedCache;
+        _distributedCache = distributedCache;
     }
 
     public async Task<UserResponse> GetUserByUserID(Guid userId)
@@ -26,18 +30,29 @@ public class IdentityMicroserviceClient
         //Read from cache
         //key:value
         //userid:{object} ttl:30p
+        string cacheKeyToRead = $"user:{userId}";
+        string? cacheUser = await _distributedCache.GetStringAsync(cacheKeyToRead);
+        if (cacheUser != null)
+        {
+            _logger.LogInformation($"User with id {userId} found in cache.");
+            UserResponse? userFromCache = JsonSerializer.Deserialize<UserResponse>(cacheUser);
+            if (userFromCache == null)
+                throw new NotFoundException($"User with ID {userId} not found in cache.");
+            return userFromCache;
+        }
 
-        HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/identity/users/{userId}");
+        HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/api/users/{userId}");
         if (!httpResponseMsg.IsSuccessStatusCode)
         {
             if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
             {
-
+                _logger.LogError("Identity service unavailable.");
+                return null;
             }
 
             else if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
-                _logger.LogWarning($"User with ID {userId} not found in Identity Microservice.");
+                _logger.LogWarning($"User with ID [{userId}] not found in Identity Microservice.");
                 return null;
             }
             else if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.BadRequest)
@@ -59,7 +74,13 @@ public class IdentityMicroserviceClient
 
         //Write to cache
         //key:value
-
+        //string userKeyToWrite
+        string userKeyToWrite = $"user:{userId}";
+        string userCacheString = JsonSerializer.Serialize(user);
+        DistributedCacheEntryOptions options = new DistributedCacheEntryOptions()
+            .SetAbsoluteExpiration(TimeSpan.FromSeconds(300))
+            .SetSlidingExpiration(TimeSpan.FromSeconds(100));
+        await _distributedCache.SetStringAsync(userKeyToWrite, userCacheString, options);
         return user;
     }
 
@@ -76,7 +97,7 @@ public class IdentityMicroserviceClient
         try
         {
             var response = await _httpClient.PostAsJsonAsync(
-                "/identity/users/bulk",
+                "/api/users/bulk",
                 distinctIds
             );
 

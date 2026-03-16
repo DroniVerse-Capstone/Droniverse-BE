@@ -21,7 +21,6 @@
 
 	<ItemGroup>
 		<Folder Include="Controllers\" />
-		<Folder Include="wwwroot\swagger-ui\" />
 		<ProjectReference Include="..\..\Droniverse.Shared\Droniverse.Shared.csproj" />
 		<None Update="ocelot.json">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>

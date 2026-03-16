@@ -13,6 +13,7 @@ public record ClubResponseDto
     public string ClubCode { get; init; }
     public ClubStatus Status { get; init; }
     public bool IsPublic { get; init; }
+    public string? ImageUrl  { get; init; }
     public int LimitParticipation { get; init; }
     public int LimitClubManagers { get; init; }
     public int TotalMembers { get; set; }

@@ -27,7 +27,7 @@ public class ClubCreateMultipleExample
                 LimitClubManagers = 5,
                 CategoryIDs = new List<Guid>
                 {
-                    Guid.Parse("d6cd6805-a231-4661-ad66-0b3382763a81"),
+                    Guid.Parse("8efd1b50-c59c-4e96-918f-55a817a6bd4b"),
                 }
             });
 

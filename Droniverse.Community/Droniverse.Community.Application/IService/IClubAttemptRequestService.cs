@@ -1,6 +1,7 @@
 ﻿using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Domain.Entities;
+using Droniverse.Community.Domain.Enums;
 using Droniverse.Shared.DTOs.Response;
 using System;
 using System.Collections.Generic;
@@ -15,7 +16,7 @@ namespace Droniverse.Community.Application.IService
         Task CreateAttemptClubRequest(Guid clubID);
         Task<IEnumerable<ClubRequestResponseDto>> GetClubAttemptRequestsByID(Guid clubID);
         Task<ClubAttemptRequestUpdateStatusResponseDto> UpdateRequestStatus(Guid id, ClubAttemptRequestUpdateStatusDto request);
-        Task<IEnumerable<ClubRequestResponseDto>> GetClubAttemptRequestsByRequester();
+        Task<IEnumerable<ClubRequestResponseDto>> GetClubAttemptRequestsByRequester(ClubAttemptRequestStatus? status);
         
         /// <summary>
         /// Lấy tất cả ClubAttemptRequests với filter/search

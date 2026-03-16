@@ -2,6 +2,7 @@
 using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.IService;
+using Droniverse.Community.Domain.Enums;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Response;
@@ -28,6 +29,7 @@ namespace Droniverse.Community.API.Controllers
             _currentUserService = currentUserService;
         }
 
+
         /// <summary>
         /// Lấy danh sách yêu cầu tham gia câu lạc bộ của người dùng hiện tại
         /// </summary>
@@ -37,10 +39,10 @@ namespace Droniverse.Community.API.Controllers
         [HttpGet("my-requests")]
         [ProducesResponseType(typeof(SuccessResponse<IEnumerable<ClubRequestResponseDto>>), StatusCodes.Status200OK)]
         [Authorize(Roles = Roles.ClubMember)]
-        public async Task<ApiResponse> GetMyClubAttemptRequests()
+        public async Task<ApiResponse> GetMyClubAttemptRequests([FromQuery] ClubAttemptRequestStatus? status = null)
         {
             return SuccessResponse<IEnumerable<ClubRequestResponseDto>>.Create(
-                await _clubAttemptRequestService.GetClubAttemptRequestsByRequester(),
+                await _clubAttemptRequestService.GetClubAttemptRequestsByRequester(status),
                 "Lấy danh sách yêu cầu tham gia câu lạc bộ thành công");
         }
 

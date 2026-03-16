@@ -46,10 +46,10 @@ namespace Droniverse.Identity.API.Controllers
 
         [Authorize]
         [HttpPost("logout")]
-        public async Task<IActionResult> Logout(string accessToken, string refreshToken)
+        public async Task<IActionResult> Logout()
         {
 
-            await _authService.Logout(accessToken, refreshToken);
+            await _authService.Logout();
             _logger.LogInformation($"User logged out successfully.");
             return Ok(SuccessResponse<string>.Create(null, "Logout successfully."));
         }
