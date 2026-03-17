@@ -18,7 +18,7 @@ public static class DependencyInjection
 
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
-        services.AddSingleton<IClock, VietnamClockService>();
+        services.AddSingleton<IClock, ClockService>();
 
         return services;
     }
