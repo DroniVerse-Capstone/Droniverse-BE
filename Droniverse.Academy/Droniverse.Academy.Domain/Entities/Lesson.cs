@@ -4,7 +4,7 @@ namespace Droniverse.Academy.Domain.Entities;
 public class Lesson
 {
     public Guid LessonID { get; set; } //char(36)
-    public ICollection<UserAttempt> UserAttempts { get; set; }
+    public ICollection<UserLesson> UserLessons { get; set; }
     public Module Module { get; set; }
     public Guid ModuleID { get; set; } //char(36)
     public LessonType Type { get; set; } //varchar(20)

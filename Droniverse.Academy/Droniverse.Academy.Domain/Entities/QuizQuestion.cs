@@ -1,17 +1,18 @@
-﻿using Droniverse.Academy.Domain.Enums;
-
-namespace Droniverse.Academy.Domain.Entities;
+﻿namespace Droniverse.Academy.Domain.Entities;
 
 public class QuizQuestion
 {
     public Guid QuestionID { get; set; } //char(36)
 
-    public string ContentVN { get; set; } //nvarchar(255)
-    public string ContentEN { get; set; } //nvarchar(255)
-    public QuestionType Type { get; set; } //varchar(30)\
+    public string ContentVN { get; set; }
+    public string ContentEN { get; set; }
+    public string AnswerA { get; set; }
+    public string AnswerB { get; set; }
+    public string AnswerC { get; set; }
+    public string AnswerD { get; set; }
+    public string CorrectAnswer { get; set; }
     public float Score { get; set; } //float
     public Quiz Quiz { get; set; }
     public Guid QuizID { get; set; } //char(36)
-    public ICollection<QuizAnswer> QuizAnswers { get; set; }
-
-    }
+    public ICollection<QuizQuestionAttempt> QuizQuestionAttempts { get; set; }
+}

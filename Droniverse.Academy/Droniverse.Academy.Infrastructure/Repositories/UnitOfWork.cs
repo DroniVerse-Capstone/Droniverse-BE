@@ -21,12 +21,10 @@ internal class UnitOfWork : IUnitOfWork
     private ILessonRepository _lesson;
     private IModuleRepository _module;
     private IQuizRepository _quiz;
-    private IQuizAnswerRepository _quizAnswer;
     private IQuizQuestionRepository _quizQuestion;
     private IReportRepository _report;
     private IRequiredDroneRepository _requiredDrone;
     private ITheoryRepository _theory;
-    private IUserAttemptRepository _userAttempt;
     private IUserCertificateRepository _userCertificate;
     private IUserLabRepository _userLab;
     private IUserModuleRepository _userModule;
@@ -64,7 +62,6 @@ internal class UnitOfWork : IUnitOfWork
 
     public IQuizRepository Quizs => _quiz ??= new QuizRepository(_mySqlContext);
 
-    public IQuizAnswerRepository QuizAnswers => _quizAnswer ??= new QuizAnswerRepository(_mySqlContext);
     public IQuizQuestionRepository QuizQuestions => _quizQuestion ??= new QuizQuestionRepository(_mySqlContext);
 
     public IReportRepository Reports => _report ??= new ReportRepository(_mySqlContext);
@@ -72,8 +69,6 @@ internal class UnitOfWork : IUnitOfWork
     public IRequiredDroneRepository RequiredDrones => _requiredDrone ??= new RequiredDroneRepository(_mySqlContext);
 
     public ITheoryRepository Theories => _theory ??= new TheoryRepository(_mySqlContext);
-
-    public IUserAttemptRepository UserAttempts => _userAttempt ??= new UserAttemptRepository(_mySqlContext);
 
     public IUserCertificateRepository UserCertificates => _userCertificate ??= new UserCertificateRepository(_mySqlContext);
 

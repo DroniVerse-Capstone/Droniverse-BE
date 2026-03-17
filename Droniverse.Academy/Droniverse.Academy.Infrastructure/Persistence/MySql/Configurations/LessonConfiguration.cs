@@ -10,8 +10,10 @@ public class LessonConfiguration : IEntityTypeConfiguration<Lesson>
         builder.ToTable("Lesson");
         builder.HasKey(e => e.LessonID);
 
-        builder.HasMany(e => e.UserAttempts)
-            .WithOne(c => c.Lesson);
+        builder.HasMany(e => e.UserLessons)
+            .WithOne(c => c.Lesson)
+            .HasForeignKey(c => c.LessonID)
+            .OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(e => e.Module)
             .WithMany(c => c.Lessons)
             .HasForeignKey(e => e.ModuleID)
