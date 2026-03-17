@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using BCrypt.Net;
 using Droniverse.Identity.Application.DTO.Request;
 using Droniverse.Identity.Application.DTO.Response;
@@ -207,6 +207,17 @@ internal class AuthService : IAuthService
             throw new SecurityTokenException("Invalid token");
         }
         return principal;
+    }
+
+    public async Task<UserResponse?> GetCurrentUserInfo()
+    {
+        Account? account = await _unitOfWork.Accounts.GetByCondition(a => a.Email == _currentUserService.Email);
+        if (account is null)
+        {
+            throw new UnauthorizedAccessException("Chưa xác thực. Lấy thông tin người dùng thất bại.");
+        }
+        UserResponse userResponse = _mapper.Map<UserResponse>(account);
+        return userResponse;
     }
 }
 

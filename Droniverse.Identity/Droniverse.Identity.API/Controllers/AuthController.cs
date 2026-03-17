@@ -2,6 +2,7 @@
 using Droniverse.Identity.Application.DTO.Response;
 using Droniverse.Identity.Application.IService;
 using Droniverse.Shared.DTOs;
+using Droniverse.Shared.DTOs.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -52,6 +53,15 @@ namespace Droniverse.Identity.API.Controllers
             await _authService.Logout();
             _logger.LogInformation($"User logged out successfully.");
             return Ok(SuccessResponse<string>.Create(null, "Logout successfully."));
+        }
+
+        [Authorize]
+        [HttpGet("me")]
+        public async Task<IActionResult> GetCurrentUser()
+        {
+            UserResponse? response = await _authService.GetCurrentUserInfo();
+            _logger.LogInformation($"Get current user info successfully.");
+            return Ok(SuccessResponse<UserResponse>.Create(response, "Get current user info successfully."));
         }
 
         private void SetTokenCookies(string accessToken, string refreshToken)

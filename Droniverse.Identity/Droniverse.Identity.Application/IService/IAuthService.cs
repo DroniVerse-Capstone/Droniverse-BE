@@ -9,5 +9,6 @@ public interface IAuthService
     Task<AuthResponse> RefreshToken(string accessToken, string refreshToken);
     Task<AuthResponse> AuthenticatedUser(LoginEmailDto loginEmailDto);
     Task<AuthResponse> RegisterUser(RegisterDto registerDto);
+    Task<UserResponse?> GetCurrentUserInfo();
 }
 
