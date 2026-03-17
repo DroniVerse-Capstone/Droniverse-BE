@@ -26,7 +26,7 @@
           "Port": 8080
         }
       ],
-      "UpstreamPathTemplate": "/api/categories/{everything}",
+      "UpstreamPathTemplate": "/api/academy/categories/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer"
@@ -122,7 +122,7 @@
           "Port": 8080
         }
       ],
-      "UpstreamPathTemplate": "/api/certificates/{everything}",
+      "UpstreamPathTemplate": "/api/academy/certificates/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS" ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer"
@@ -138,7 +138,7 @@
           "Port": 8080
         }
       ],
-      "UpstreamPathTemplate": "/api/users/{everything}",
+      "UpstreamPathTemplate": "/api/academy/users/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS" ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer"
