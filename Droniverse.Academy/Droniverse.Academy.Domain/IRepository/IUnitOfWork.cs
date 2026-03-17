@@ -17,12 +17,10 @@ namespace Droniverse.Academy.Domain.IRepository
         ILessonRepository Lessons { get; }
         IModuleRepository Modules { get; }
         IQuizRepository Quizs { get; }
-        IQuizAnswerRepository QuizAnswers { get; }
         IQuizQuestionRepository QuizQuestions { get; }
         IReportRepository Reports { get; }
         IRequiredDroneRepository RequiredDrones { get; }
         ITheoryRepository Theories { get; }
-        IUserAttemptRepository UserAttempts { get; }
         IUserCertificateRepository UserCertificates { get; }
         IUserLabRepository UserLabs { get; }
         IUserModuleRepository UserModules { get; }

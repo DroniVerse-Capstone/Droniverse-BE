@@ -3,6 +3,7 @@ using System;
 using Droniverse.Academy.Infrastructure.Persistence.MySql;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Droniverse.Academy.Infrastructure.Migrations
 {
     [DbContext(typeof(MySqlDbContext))]
-    partial class MySqlDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260317064150_Add_Quiz_Lesson")]
+    partial class Add_Quiz_Lesson
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -876,7 +879,7 @@ namespace Droniverse.Academy.Infrastructure.Migrations
 
                     b.HasIndex("LessonID");
 
-                    b.ToTable("UserLesson", null, t =>
+                    b.ToTable("User_Lesson", null, t =>
                         {
                             t.HasCheckConstraint("CK_UserLesson_Progress", "`Progress` BETWEEN 0 AND 100");
                         });

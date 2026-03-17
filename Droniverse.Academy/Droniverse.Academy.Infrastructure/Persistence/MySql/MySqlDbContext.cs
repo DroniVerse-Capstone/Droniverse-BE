@@ -21,13 +21,14 @@ public class MySqlDbContext : DbContext
     public DbSet<Lesson> Lessons { get; set; }
     public DbSet<Module> Modules { get; set; }
     public DbSet<Quiz> Quizzes { get; set; }
-    public DbSet<QuizAnswer> QuizAnswers { get; set; }
+    public DbSet<QuizAttempt> QuizAttempts { get; set; }
     public DbSet<QuizQuestion> QuizQuestions { get; set; }
+    public DbSet<QuizQuestionAttempt> QuizQuestionAttempts { get; set; }
     public DbSet<Report> Reports { get; set; }
     public DbSet<RequiredDrone> RequiredDrones { get; set; }
     public DbSet<Theory> Theories { get; set; }
-    public DbSet<UserAttempt> UserAttempts { get; set; }
     public DbSet<UserLab> UserLabs { get; set; }
+    public DbSet<UserLesson> UserLessons { get; set; }
     public DbSet<UserModule> UserModules { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
