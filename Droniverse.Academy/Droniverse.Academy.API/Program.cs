@@ -2,6 +2,7 @@
 using Droniverse.Academy.Application;
 using Droniverse.Academy.Infrastructure;
 using Droniverse.Identity.API;
+using Droniverse.Shared;
 using Droniverse.Shared.Settings;
 using Hangfire;
 using Hangfire.Dashboard;
@@ -40,6 +41,7 @@ builder.Services.AddControllers()
 BsonSerializer.RegisterSerializer(new GuidSerializer(BsonType.String));
 
 // Application & Infrastructure
+builder.Services.AddShared(builder.Configuration);
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication(builder.Configuration);
 

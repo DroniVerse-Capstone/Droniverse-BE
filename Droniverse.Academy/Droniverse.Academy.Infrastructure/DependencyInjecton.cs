@@ -1,8 +1,6 @@
 ﻿using Droniverse.Academy.Domain.IRepository;
-using Droniverse.Academy.Infrastructure.Common;
 using Droniverse.Academy.Infrastructure.Persistence.MySql;
 using Droniverse.Academy.Infrastructure.Repositories;
-using Droniverse.Shared.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -31,11 +29,6 @@ namespace Droniverse.Academy.Infrastructure
             });
 
             services.AddScoped<IUnitOfWork, UnitOfWork>();
-
-            services.AddHttpContextAccessor();
-
-            services.AddScoped<ICurrentUser, CurrentUser>();
-            services.AddSingleton<IClock, SystemClock>();
             return services;
         }
     }
