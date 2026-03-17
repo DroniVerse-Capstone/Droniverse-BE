@@ -48,6 +48,7 @@ jobs:
   build-push-rollout:
     runs-on: ubuntu-latest
     needs: detect-changes
+    environment: DIGITAL OCEAN
     # Chỉ chạy khi push thẳng lên branch, HOẶC khi PR được merged (không phải chỉ closed)
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
 
