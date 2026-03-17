@@ -7,6 +7,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<Folder Include="Abstractions\" />
 		<Folder Include="Config\" />
 		<Folder Include="DTOs\Request\" />
 		<Folder Include="Middleware\" />
