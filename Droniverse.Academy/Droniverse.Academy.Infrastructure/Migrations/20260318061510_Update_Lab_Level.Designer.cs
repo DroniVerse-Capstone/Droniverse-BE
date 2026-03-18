@@ -3,6 +3,7 @@ using System;
 using Droniverse.Academy.Infrastructure.Persistence.MySql;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Droniverse.Academy.Infrastructure.Migrations
 {
     [DbContext(typeof(MySqlDbContext))]
-    partial class MySqlDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260318061510_Update_Lab_Level")]
+    partial class Update_Lab_Level
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -419,9 +422,6 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("varchar(255)");
 
-                    b.Property<sbyte>("Status")
-                        .HasColumnType("tinyint");
-
                     b.Property<string>("Type")
                         .IsRequired()
                         .HasColumnType("varchar(50)");
@@ -433,6 +433,9 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                     b.Property<Guid>("UpdateBy")
                         .HasColumnType("char(36)");
 
+                    b.Property<int>("Version")
+                        .HasColumnType("int");
+
                     b.HasKey("LabID");
 
                     b.HasIndex("LessonID")
@@ -441,8 +444,6 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                     b.ToTable("Lab", null, t =>
                         {
                             t.HasCheckConstraint("CK_Lab_Level", "`Level` IN (0, 1, 2)");
-
-                            t.HasCheckConstraint("CK_Lab_Status", "`Status` IN (0, 1, 2)");
 
                             t.HasCheckConstraint("CK_Lab_Type", "`Type` IN ('LEARNING', 'COMPETITION')");
                         });
