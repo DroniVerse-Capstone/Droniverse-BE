@@ -1,4 +1,4 @@
-using Droniverse.Academy.Application.DTO.Request;
+﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
@@ -28,11 +28,11 @@ public class CertificateController : ControllerBase
         try
         {
             var created = await _service.CreateCertificateAsync(courseId, versionId, request);
-            return CreatedAtAction(nameof(GetCertificate), new { courseId = courseId, versionId = versionId }, SuccessResponse<object>.Create(created, "T?o certificate th�nh c�ng."));
+            return CreatedAtAction(nameof(GetCertificate), new { courseId = courseId, versionId = versionId }, SuccessResponse<object>.Create(created, "Tạo chứng chỉ thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "CreateCertificate failed for {CourseId}/{VersionId}", courseId, versionId);
+            _logger.LogError(ex, "Tạo chứng chỉ thất bại.");
             throw;
         }
     }
@@ -45,11 +45,11 @@ public class CertificateController : ControllerBase
         try
         {
             var cert = await _service.GetCertificateAsync(courseId, versionId);
-            return Ok(SuccessResponse<object>.Create(cert, "L?y certificate th�nh c�ng."));
+            return Ok(SuccessResponse<object>.Create(cert, "Lấy chứng chỉ thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetCertificate failed for {CourseId}/{VersionId}", courseId, versionId);
+            _logger.LogError(ex, "Lấy chứng chỉ thất bại.");
             throw;
         }
     }
@@ -62,11 +62,11 @@ public class CertificateController : ControllerBase
         try
         {
             var updated = await _service.UpdateCertificateAsync(courseId, versionId, certificateId, request);
-            return Ok(SuccessResponse<object>.Create(updated, "C?p nh?t certificate th�nh c�ng."));
+            return Ok(SuccessResponse<object>.Create(updated, "Cập nhật chứng chỉ thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "UpdateCertificate failed for {CourseId}/{VersionId}/{CertificateId}", courseId, versionId, certificateId);
+            _logger.LogError(ex, "Cập nhật chứng chỉ thất bại.");
             throw;
         }
     }
@@ -79,11 +79,11 @@ public class CertificateController : ControllerBase
         try
         {
             await _service.DeleteCertificateAsync(courseId, versionId, certificateId);
-            return Ok(SuccessResponse<object>.Create(null!, "X�a certificate th�nh c�ng."));
+            return Ok(SuccessResponse<object>.Create(null!, "Xóa chứng chỉ thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "DeleteCertificate failed for {CourseId}/{VersionId}/{CertificateId}", courseId, versionId, certificateId);
+            _logger.LogError(ex, "Xóa chứng chỉ thất bại.");
             throw;
         }
     }
@@ -96,11 +96,11 @@ public class CertificateController : ControllerBase
         try
         {
             var cert = await _service.GetCertificateByIdAsync(certificateId);
-            return Ok(SuccessResponse<object>.Create(cert, "L?y chi ti?t certificate th�nh c�ng."));
+            return Ok(SuccessResponse<object>.Create(cert, "Lấy chi tiết chứng chỉ thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetCertificateById failed for {CertificateId}", certificateId);
+            _logger.LogError(ex, "Lấy chi tiết chứng chỉ thất bại.");
             throw;
         }
     }

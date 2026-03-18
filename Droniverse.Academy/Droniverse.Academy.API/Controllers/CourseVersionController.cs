@@ -1,4 +1,4 @@
-using Droniverse.Academy.Application.DTO.Request;
+﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
@@ -29,11 +29,11 @@ public class CourseVersionController : ControllerBase
         try
         {
             var created = await _service.CreateCourseVersionAsync(courseId, request);
-            return CreatedAtAction(nameof(GetCourseVersionById), new { courseId = courseId, versionId = created.CourseVersionID }, SuccessResponse<object>.Create(created, "T?o course version th�nh c�ng."));
+            return CreatedAtAction(nameof(GetCourseVersionById), new { courseId = courseId, versionId = created.CourseVersionID }, SuccessResponse<object>.Create(created, "Tạo phiên bản khóa học thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "CreateCourseVersion failed");
+            _logger.LogError(ex, "Tạo phiên bản khóa học thất bại.");
             throw;
         }
     }
@@ -50,11 +50,11 @@ public class CourseVersionController : ControllerBase
                 st = parsed;
 
             var result = await _service.GetCourseVersionsAsync(courseId, pageIndex, pageSize, st);
-            return Ok(SuccessResponse<object>.Create(result, "L?y danh s�ch course version th�nh c�ng."));
+            return Ok(SuccessResponse<object>.Create(result, "Lấy danh sách phiên bản khóa học thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetCourseVersions failed for {CourseId}", courseId);
+            _logger.LogError(ex, "Lấy danh sách phiên bản khóa học thất bại.");
             throw;
         }
     }
@@ -67,11 +67,11 @@ public class CourseVersionController : ControllerBase
         try
         {
             var result = await _service.GetCourseVersionByIdAsync(courseId, versionId);
-            return Ok(SuccessResponse<object>.Create(result, "L?y chi ti?t course version th�nh c�ng."));
+            return Ok(SuccessResponse<object>.Create(result, "Lấy chi tiết phiên bản khóa học thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetCourseVersionById failed for {CourseId}/{VersionId}", courseId, versionId);
+            _logger.LogError(ex, "Lấy chi tiết phiên bản khóa học thất bại.");
             throw;
         }
     }
@@ -84,11 +84,11 @@ public class CourseVersionController : ControllerBase
         try
         {
             var updated = await _service.UpdateCourseVersionAsync(courseId, versionId, request);
-            return Ok(SuccessResponse<object>.Create(updated, "C?p nh?t course version th�nh c�ng."));
+            return Ok(SuccessResponse<object>.Create(updated, "Cập nhật phiên bản khóa học thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "UpdateCourseVersion failed for {CourseId}/{VersionId}", courseId, versionId);
+            _logger.LogError(ex, "Cập nhật phiên bản khóa học thất bại.");
             throw;
         }
     }
@@ -101,11 +101,11 @@ public class CourseVersionController : ControllerBase
         try
         {
             await _service.DeleteCourseVersionAsync(courseId, versionId);
-            return Ok(SuccessResponse<object>.Create(null!, "X�a course version th�nh c�ng."));
+            return Ok(SuccessResponse<object>.Create(null!, "Xóa phiên bản khóa học thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "DeleteCourseVersion failed for {CourseId}/{VersionId}", courseId, versionId);
+            _logger.LogError(ex, "Xóa phiên bản khóa học thất bại.");
             throw;
         }
     }
@@ -118,11 +118,11 @@ public class CourseVersionController : ControllerBase
         try
         {
             await _service.ActivateCourseVersionAsync(courseId, versionId);
-            return Ok(SuccessResponse<object>.Create(null!, "K�ch ho?t course version th�nh c�ng."));
+            return Ok(SuccessResponse<object>.Create(null!, "Kích hoạt phiên bản khóa học thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "ActivateCourseVersion failed for {CourseId}/{VersionId}", courseId, versionId);
+            _logger.LogError(ex, "Kích hoạt phiên bản khóa học thất bại.");
             throw;
         }
     }
@@ -135,11 +135,11 @@ public class CourseVersionController : ControllerBase
         try
         {
             await _service.DeactivateCourseVersionAsync(courseId, versionId);
-            return Ok(SuccessResponse<object>.Create(null!, "V� hi?u h�a course version th�nh c�ng."));
+            return Ok(SuccessResponse<object>.Create(null!, "Vô hiệu hóa phiên bản khóa học thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "DeactivateCourseVersion failed for {CourseId}/{VersionId}", courseId, versionId);
+            _logger.LogError(ex, "Vô hiệu hóa phiên bản khóa học thất bại.");
             throw;
         }
     }

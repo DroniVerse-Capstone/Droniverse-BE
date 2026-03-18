@@ -1,4 +1,4 @@
-using Droniverse.Academy.Application.DTO.Request;
+﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.API.Validators;
@@ -30,11 +30,11 @@ public class CourseVersionRequiredDroneController : ControllerBase
         {
             RequiredDroneControllerValidator.ValidateAddRequiredDrone(courseId, versionId, request);
             var added = await _requiredDroneService.AddRequiredDroneAsync(courseId, versionId, request);
-            return StatusCode(201, SuccessResponse<DroneClientViewDTO>.Create(added, "G�n drone y�u c?u th�nh c�ng."));
+            return StatusCode(201, SuccessResponse<DroneClientViewDTO>.Create(added, "Gán drone yêu cầu thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "AddRequiredDrone failed for {CourseId}/{VersionId}", courseId, versionId);
+            _logger.LogError(ex, "Gán drone yêu cầu thất bại.");
             throw;
         }
     }
@@ -47,11 +47,11 @@ public class CourseVersionRequiredDroneController : ControllerBase
         {
             RequiredDroneControllerValidator.ValidateRemoveRequiredDrone(courseId, versionId, droneId);
             await _requiredDroneService.RemoveRequiredDroneAsync(courseId, versionId, droneId);
-            return Ok(SuccessResponse<object>.Create(null!, "G? drone y�u c?u th�nh c�ng."));
+            return Ok(SuccessResponse<object>.Create(null!, "Gỡ drone yêu cầu thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "RemoveRequiredDrone failed for {CourseId}/{VersionId}/{DroneId}", courseId, versionId, droneId);
+            _logger.LogError(ex, "Gỡ drone yêu cầu thất bại.");
             throw;
         }
     }
@@ -64,11 +64,11 @@ public class CourseVersionRequiredDroneController : ControllerBase
         {
             RequiredDroneControllerValidator.ValidateGetRequiredDrones(courseId, versionId);
             var drones = await _requiredDroneService.GetRequiredDronesAsync(courseId, versionId);
-            return Ok(SuccessResponse<IEnumerable<DroneClientViewDTO>>.Create(drones, "L?y danh s�ch drone y�u c?u th�nh c�ng."));
+            return Ok(SuccessResponse<IEnumerable<DroneClientViewDTO>>.Create(drones, "Lấy danh sách drone yêu cầu thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetRequiredDrones failed for {CourseId}/{VersionId}", courseId, versionId);
+            _logger.LogError(ex, "Lấy danh sách drone yêu cầu thất bại.");
             throw;
         }
     }

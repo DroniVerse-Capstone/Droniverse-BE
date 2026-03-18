@@ -34,14 +34,14 @@ public class TheoryService : ITheoryService
 
         var lesson = await _unitOfWork.Lessons.GetByIdAsync(request.LessonID);
         if (lesson == null)
-            throw new BaseException("Lesson not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy bài học.", "NOT_FOUND");
 
         if (lesson.Type != LessonType.THEORY)
-            throw new ValidationException("Lesson type must be THEORY to attach theory.");
+            throw new ValidationException("Loại bài học phải là THEORY để gắn bài lý thuyết.");
 
         var existingTheory = await _unitOfWork.Theories.GetByConditionAsync(t => t.LessonID == request.LessonID);
         if (existingTheory != null)
-            throw new ValidationException("This lesson already has a theory.");
+            throw new ValidationException("Bài học này đã có bài lý thuyết.");
 
         var theory = _mapper.Map<Theory>(request);
         theory.TheoryID = Guid.NewGuid();
@@ -70,7 +70,7 @@ public class TheoryService : ITheoryService
     {
         var theory = await _unitOfWork.Theories.GetByIdAsync(theoryId);
         if (theory == null)
-            throw new BaseException("Theory not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy bài lý thuyết.", "NOT_FOUND");
 
         return _mapper.Map<TheoryClientViewDTO>(theory);
     }
@@ -84,7 +84,7 @@ public class TheoryService : ITheoryService
 
         var theory = await _unitOfWork.Theories.GetByIdAsync(theoryId);
         if (theory == null)
-            throw new BaseException("Theory not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy bài lý thuyết.", "NOT_FOUND");
 
         _mapper.Map(request, theory);
         theory.UpdateAt = _clock.Now;
@@ -100,7 +100,7 @@ public class TheoryService : ITheoryService
     {
         var theory = await _unitOfWork.Theories.GetByIdAsync(theoryId);
         if (theory == null)
-            throw new BaseException("Theory not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy bài lý thuyết.", "NOT_FOUND");
 
         await _unitOfWork.Theories.DeleteAsync(theory);
         await _unitOfWork.SaveChangesAsync();
@@ -109,12 +109,12 @@ public class TheoryService : ITheoryService
     private static void ValidateTheoryData(int estimatedTime, string contentVN, string contentEN)
     {
         if (string.IsNullOrWhiteSpace(contentVN))
-            throw new ValidationException("ContentVN is required.");
+            throw new ValidationException("Nội dung tiếng Việt là bắt buộc.");
 
         if (string.IsNullOrWhiteSpace(contentEN))
-            throw new ValidationException("ContentEN is required.");
+            throw new ValidationException("Nội dung tiếng Anh là bắt buộc.");
 
         if (estimatedTime <= 0)
-            throw new ValidationException("EstimatedTime must be greater than 0.");
+            throw new ValidationException("Thời lượng dự kiến phải lớn hơn 0.");
     }
 }

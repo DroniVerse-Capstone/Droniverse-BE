@@ -32,7 +32,7 @@ public class QuizController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "CreateQuiz failed");
+            _logger.LogError(ex, "Tạo quiz thất bại.");
             throw;
         }
     }
@@ -48,7 +48,7 @@ public class QuizController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetQuizzes failed");
+            _logger.LogError(ex, "Lấy danh sách quiz thất bại.");
             throw;
         }
     }
@@ -64,7 +64,7 @@ public class QuizController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetQuizById failed for {QuizId}", quizId);
+            _logger.LogError(ex, "Lấy chi tiết quiz thất bại.");
             throw;
         }
     }
@@ -80,7 +80,7 @@ public class QuizController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "UpdateQuiz failed for {QuizId}", quizId);
+            _logger.LogError(ex, "Cập nhật quiz thất bại.");
             throw;
         }
     }
@@ -96,7 +96,7 @@ public class QuizController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "DeleteQuiz failed for {QuizId}", quizId);
+            _logger.LogError(ex, "Xóa quiz thất bại.");
             throw;
         }
     }

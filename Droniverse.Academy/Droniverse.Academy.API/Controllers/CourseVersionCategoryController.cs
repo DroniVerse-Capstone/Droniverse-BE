@@ -1,4 +1,4 @@
-using Droniverse.Academy.Application.DTO.Request;
+﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
@@ -27,11 +27,11 @@ public class CourseVersionCategoryController : ControllerBase
         try
         {
             await _service.AddCategoryAsync(courseId, versionId, request);
-            return Ok(SuccessResponse<object>.Create(null!, "G�n category cho course version th�nh c�ng."));
+            return Ok(SuccessResponse<object>.Create(null!, "Gán danh mục cho phiên bản khóa học thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "AddCategory failed for {CourseId}/{VersionId}", courseId, versionId);
+            _logger.LogError(ex, "Gán danh mục cho phiên bản khóa học thất bại.");
             throw;
         }
     }
@@ -43,11 +43,11 @@ public class CourseVersionCategoryController : ControllerBase
         try
         {
             await _service.RemoveCategoryAsync(courseId, versionId, categoryId);
-            return Ok(SuccessResponse<object>.Create(null!, "G? category kh?i course version th�nh c�ng."));
+            return Ok(SuccessResponse<object>.Create(null!, "Gỡ danh mục khỏi phiên bản khóa học thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "RemoveCategory failed for {CourseId}/{VersionId}/{CategoryId}", courseId, versionId, categoryId);
+            _logger.LogError(ex, "Gỡ danh mục khỏi phiên bản khóa học thất bại.");
             throw;
         }
     }
@@ -59,11 +59,11 @@ public class CourseVersionCategoryController : ControllerBase
         try
         {
             var result = await _service.GetCategoriesAsync(courseId, versionId, pageIndex, pageSize);
-            return Ok(SuccessResponse<object>.Create(result, "L?y danh s�ch category c?a course version th�nh c�ng."));
+            return Ok(SuccessResponse<object>.Create(result, "Lấy danh sách danh mục của phiên bản khóa học thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetCategories failed for {CourseId}/{VersionId}", courseId, versionId);
+            _logger.LogError(ex, "Lấy danh sách danh mục của phiên bản khóa học thất bại.");
             throw;
         }
     }

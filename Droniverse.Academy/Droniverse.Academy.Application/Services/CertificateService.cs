@@ -28,10 +28,10 @@ public class CertificateService : ICertificateService
     {
         var cv = await _unitOfWork.CourseVersions.GetByConditionAsync(v => v.CourseVersionID == versionId && v.CourseID == courseId, includeProperties: "Certificate");
         if (cv == null)
-            throw new BaseException("Course version not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy phiên bản khóa học.", "NOT_FOUND");
 
         if (cv.Certificate != null)
-            throw new ValidationException("Course version already has a certificate.");
+            throw new ValidationException("Phiên bản khóa học đã có chứng chỉ.");
 
         var cert = new Certificate
         {
@@ -59,10 +59,10 @@ public class CertificateService : ICertificateService
     {
         var cert = await _unitOfWork.Certificates.GetByIdAsync(certificateId);
         if (cert == null)
-            throw new BaseException("Certificate not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy chứng chỉ.", "NOT_FOUND");
 
         if (cert.CourseVersionID != versionId)
-            throw new ValidationException("Certificate does not belong to the given course version.");
+            throw new ValidationException("Chứng chỉ không thuộc phiên bản khóa học đã cung cấp.");
 
         await _unitOfWork.Certificates.DeleteAsync(cert);
         await _unitOfWork.SaveChangesAsync();
@@ -72,7 +72,7 @@ public class CertificateService : ICertificateService
     {
         var cert = await _unitOfWork.Certificates.GetByConditionAsync(c => c.CourseVersionID == versionId);
         if (cert == null)
-            throw new BaseException("Certificate not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy chứng chỉ.", "NOT_FOUND");
 
         return _mapper.Map<CertificateResponseDTO>(cert);
     }
@@ -81,7 +81,7 @@ public class CertificateService : ICertificateService
     {
         var cert = await _unitOfWork.Certificates.GetByIdAsync(certificateId);
         if (cert == null)
-            throw new BaseException("Certificate not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy chứng chỉ.", "NOT_FOUND");
 
         return _mapper.Map<CertificateResponseDTO>(cert);
     }
@@ -90,10 +90,10 @@ public class CertificateService : ICertificateService
     {
         var cert = await _unitOfWork.Certificates.GetByIdAsync(certificateId);
         if (cert == null)
-            throw new BaseException("Certificate not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy chứng chỉ.", "NOT_FOUND");
 
         if (cert.CourseVersionID != versionId)
-            throw new ValidationException("Certificate does not belong to the given course version.");
+            throw new ValidationException("Chứng chỉ không thuộc phiên bản khóa học đã cung cấp.");
 
         cert.CertificateName = request.CertificateName;
         cert.ImageUrl = request.ImageUrl;

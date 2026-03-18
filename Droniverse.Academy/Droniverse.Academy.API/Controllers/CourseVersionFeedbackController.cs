@@ -1,4 +1,4 @@
-using Droniverse.Academy.Application.DTO.Request;
+﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Shared.Constants;
@@ -31,11 +31,11 @@ public class CourseVersionFeedbackController : ControllerBase
             return StatusCode(201,
                 SuccessResponse<FeedbackClientViewDTO>.Create(
                     created,
-                    "G?i feedback th�nh c�ng."));
+                    "Gửi phản hồi thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "CreateFeedback failed for {CourseId}/{VersionId}", courseId, versionId);
+            _logger.LogError(ex, "Gửi phản hồi thất bại.");
             throw;
         }
     }
@@ -47,11 +47,11 @@ public class CourseVersionFeedbackController : ControllerBase
         try
         {
             var feedbacks = await _feedbackService.GetFeedbacksByCourseVersionAsync(courseId, versionId);
-            return Ok(SuccessResponse<IEnumerable<FeedbackClientViewDTO>>.Create(feedbacks, "L?y danh s�ch feedback th�nh c�ng."));
+            return Ok(SuccessResponse<IEnumerable<FeedbackClientViewDTO>>.Create(feedbacks, "Lấy danh sách phản hồi thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetFeedbacks failed for {CourseId}/{VersionId}", courseId, versionId);
+            _logger.LogError(ex, "Lấy danh sách phản hồi thất bại.");
             throw;
         }
     }
@@ -63,11 +63,11 @@ public class CourseVersionFeedbackController : ControllerBase
         try
         {
             var feedback = await _feedbackService.GetFeedbackDetailAsync(courseId, versionId, feedbackId);
-            return Ok(SuccessResponse<FeedbackClientViewDTO>.Create(feedback, "L?y chi ti?t feedback th�nh c�ng."));
+            return Ok(SuccessResponse<FeedbackClientViewDTO>.Create(feedback, "Lấy chi tiết phản hồi thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetFeedbackDetail failed for {CourseId}/{VersionId}/{FeedbackId}", courseId, versionId, feedbackId);
+            _logger.LogError(ex, "Lấy chi tiết phản hồi thất bại.");
             throw;
         }
     }
@@ -79,11 +79,11 @@ public class CourseVersionFeedbackController : ControllerBase
         try
         {
             var updated = await _feedbackService.UpdateFeedbackAsync(courseId, versionId, feedbackId, request);
-            return Ok(SuccessResponse<FeedbackClientViewDTO>.Create(updated, "C?p nh?t feedback th�nh c�ng."));
+            return Ok(SuccessResponse<FeedbackClientViewDTO>.Create(updated, "Cập nhật phản hồi thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "UpdateFeedback failed for {CourseId}/{VersionId}/{FeedbackId}", courseId, versionId, feedbackId);
+            _logger.LogError(ex, "Cập nhật phản hồi thất bại.");
             throw;
         }
     }
@@ -95,11 +95,11 @@ public class CourseVersionFeedbackController : ControllerBase
         try
         {
             await _feedbackService.DeleteFeedbackAsync(courseId, versionId, feedbackId);
-            return Ok(SuccessResponse<object>.Create(null!, "X�a feedback th�nh c�ng."));
+            return Ok(SuccessResponse<object>.Create(null!, "Xóa phản hồi thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "DeleteFeedback failed for {CourseId}/{VersionId}/{FeedbackId}", courseId, versionId, feedbackId);
+            _logger.LogError(ex, "Xóa phản hồi thất bại.");
             throw;
         }
     }

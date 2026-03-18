@@ -1,4 +1,4 @@
-using Droniverse.Academy.Application.DTO.Request;
+锘縰sing Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Shared.Constants;
@@ -29,11 +29,11 @@ public class ModuleController : ControllerBase
         {
             var created = await _service.CreateModuleAsync(courseId, versionId, request);
             return StatusCode(201,
-                SuccessResponse<ModuleClientViewDTO>.Create(created, "T?o module th鄋h c鬾g."));
+                SuccessResponse<ModuleClientViewDTO>.Create(created, "T岷 m么-膽un th脿nh c么ng."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "CreateModule failed for {CourseId}/{VersionId}", courseId, versionId);
+            _logger.LogError(ex, "T岷 m么-膽un th岷 b岷.");
             throw;
         }
     }
@@ -45,11 +45,11 @@ public class ModuleController : ControllerBase
         try
         {
             var result = await _service.GetModulesAsync(courseId, versionId);
-            return Ok(SuccessResponse<IEnumerable<ModuleClientViewDTO>>.Create(result, "L?y danh s醕h module th鄋h c鬾g."));
+            return Ok(SuccessResponse<IEnumerable<ModuleClientViewDTO>>.Create(result, "L岷 danh s谩ch m么-膽un th脿nh c么ng."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetModules failed for {CourseId}/{VersionId}", courseId, versionId);
+            _logger.LogError(ex, "L岷 danh s谩ch m么-膽un th岷 b岷.");
             throw;
         }
     }
@@ -61,11 +61,11 @@ public class ModuleController : ControllerBase
         try
         {
             var result = await _service.GetModuleByIdAsync(courseId, versionId, moduleId);
-            return Ok(SuccessResponse<ModuleClientViewDTO>.Create(result, "L?y chi ti?t module th鄋h c鬾g."));
+            return Ok(SuccessResponse<ModuleClientViewDTO>.Create(result, "L岷 chi ti岷縯 m么-膽un th脿nh c么ng."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetModuleById failed for {CourseId}/{VersionId}/{ModuleId}", courseId, versionId, moduleId);
+            _logger.LogError(ex, "L岷 chi ti岷縯 m么-膽un th岷 b岷.");
             throw;
         }
     }
@@ -77,11 +77,11 @@ public class ModuleController : ControllerBase
         try
         {
             var updated = await _service.UpdateModuleAsync(courseId, versionId, moduleId, request);
-            return Ok(SuccessResponse<ModuleClientViewDTO>.Create(updated, "C?p nh?t module th鄋h c鬾g."));
+            return Ok(SuccessResponse<ModuleClientViewDTO>.Create(updated, "C岷璸 nh岷璽 m么-膽un th脿nh c么ng."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "UpdateModule failed for {CourseId}/{VersionId}/{ModuleId}", courseId, versionId, moduleId);
+            _logger.LogError(ex, "C岷璸 nh岷璽 m么-膽un th岷 b岷.");
             throw;
         }
     }
@@ -93,11 +93,11 @@ public class ModuleController : ControllerBase
         try
         {
             await _service.DeleteModuleAsync(courseId, versionId, moduleId);
-            return Ok(SuccessResponse<object>.Create(null!, "X骯 module th鄋h c鬾g."));
+            return Ok(SuccessResponse<object>.Create(null!, "X贸a m么-膽un th脿nh c么ng."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "DeleteModule failed for {CourseId}/{VersionId}/{ModuleId}", courseId, versionId, moduleId);
+            _logger.LogError(ex, "X贸a m么-膽un th岷 b岷.");
             throw;
         }
     }
@@ -109,11 +109,11 @@ public class ModuleController : ControllerBase
         try
         {
             var result = await _service.ReorderModulesAsync(courseId, versionId, request);
-            return Ok(SuccessResponse<IEnumerable<ModuleClientViewDTO>>.Create(result, "S?p x?p l?i module th鄋h c鬾g."));
+            return Ok(SuccessResponse<IEnumerable<ModuleClientViewDTO>>.Create(result, "S岷痯 x岷縫 l岷 m么-膽un th脿nh c么ng."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "ReorderModules failed for {CourseId}/{VersionId}", courseId, versionId);
+            _logger.LogError(ex, "S岷痯 x岷縫 l岷 m么-膽un th岷 b岷.");
             throw;
         }
     }

@@ -1,4 +1,4 @@
-using Droniverse.Academy.Application.DTO.Request;
+﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Shared.Constants;
@@ -28,11 +28,11 @@ public class LessonController : ControllerBase
         try
         {
             var created = await _lessonService.CreateLessonAsync(moduleId, request);
-            return StatusCode(201, SuccessResponse<LessonClientViewDTO>.Create(created, "T?o lesson th�nh c�ng."));
+            return StatusCode(201, SuccessResponse<LessonClientViewDTO>.Create(created, "Tạo bài học thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "CreateLesson failed for {ModuleId}", moduleId);
+            _logger.LogError(ex, "Tạo bài học thất bại.");
             throw;
         }
     }
@@ -44,11 +44,11 @@ public class LessonController : ControllerBase
         try
         {
             var lessons = await _lessonService.GetLessonsByModuleAsync(moduleId);
-            return Ok(SuccessResponse<IEnumerable<LessonClientViewDTO>>.Create(lessons, "L?y danh s�ch lesson th�nh c�ng."));
+            return Ok(SuccessResponse<IEnumerable<LessonClientViewDTO>>.Create(lessons, "Lấy danh sách bài học thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetLessons failed for {ModuleId}", moduleId);
+            _logger.LogError(ex, "Lấy danh sách bài học thất bại.");
             throw;
         }
     }
@@ -60,11 +60,11 @@ public class LessonController : ControllerBase
         try
         {
             var lesson = await _lessonService.GetLessonDetailAsync(moduleId, lessonId);
-            return Ok(SuccessResponse<LessonClientViewDTO>.Create(lesson, "L?y chi ti?t lesson th�nh c�ng."));
+            return Ok(SuccessResponse<LessonClientViewDTO>.Create(lesson, "Lấy chi tiết bài học thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetLessonDetail failed for {ModuleId}/{LessonId}", moduleId, lessonId);
+            _logger.LogError(ex, "Lấy chi tiết bài học thất bại.");
             throw;
         }
     }
@@ -76,11 +76,11 @@ public class LessonController : ControllerBase
         try
         {
             var updated = await _lessonService.UpdateLessonAsync(moduleId, lessonId, request);
-            return Ok(SuccessResponse<LessonClientViewDTO>.Create(updated, "C?p nh?t lesson th�nh c�ng."));
+            return Ok(SuccessResponse<LessonClientViewDTO>.Create(updated, "Cập nhật bài học thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "UpdateLesson failed for {ModuleId}/{LessonId}", moduleId, lessonId);
+            _logger.LogError(ex, "Cập nhật bài học thất bại.");
             throw;
         }
     }
@@ -92,11 +92,11 @@ public class LessonController : ControllerBase
         try
         {
             await _lessonService.DeleteLessonAsync(moduleId, lessonId);
-            return Ok(SuccessResponse<object>.Create(null!, "X�a lesson th�nh c�ng."));
+            return Ok(SuccessResponse<object>.Create(null!, "Xóa bài học thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "DeleteLesson failed for {ModuleId}/{LessonId}", moduleId, lessonId);
+            _logger.LogError(ex, "Xóa bài học thất bại.");
             throw;
         }
     }

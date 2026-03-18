@@ -29,7 +29,7 @@ namespace Droniverse.Academy.API.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "CreateCourse failed");
+                _logger.LogError(ex, "Tạo khóa học thất bại.");
                 throw;
             }
         }
@@ -45,7 +45,7 @@ namespace Droniverse.Academy.API.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "GetCourseByIdActive failed for {CourseId}", courseId);
+                _logger.LogError(ex, "Lấy chi tiết khóa học đang hoạt động thất bại.");
                 throw;
             }
         }
@@ -61,7 +61,7 @@ namespace Droniverse.Academy.API.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "GetCourseByIdAll failed for {CourseId}", courseId);
+                _logger.LogError(ex, "Lấy chi tiết khóa học thất bại.");
                 throw;
             }
         }
@@ -77,7 +77,7 @@ namespace Droniverse.Academy.API.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "GetAllCoursesActive failed (pageIndex={PageIndex}, pageSize={PageSize})", pageIndex, pageSize);
+                _logger.LogError(ex, "Lấy danh sách khóa học đang hoạt động thất bại.");
                 throw;
             }
         }
@@ -93,7 +93,7 @@ namespace Droniverse.Academy.API.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "GetAllCoursesAll failed (pageIndex={PageIndex}, pageSize={PageSize})", pageIndex, pageSize);
+                _logger.LogError(ex, "Lấy danh sách khóa học thất bại.");
                 throw;
             }
         }
@@ -105,11 +105,11 @@ namespace Droniverse.Academy.API.Controllers
             try
             {
                 await _courseService.PublishCourseAsync(courseId);
-                return Ok(SuccessResponse<object>.Create(null!, "Publish course thành công."));
+                return Ok(SuccessResponse<object>.Create(null!, "Xuất bản khóa học thành công."));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "PublishCourse failed for {CourseId}", courseId);
+                _logger.LogError(ex, "Xuất bản khóa học thất bại.");
                 throw;
             }
         }
@@ -121,11 +121,11 @@ namespace Droniverse.Academy.API.Controllers
             try
             {
                 await _courseService.UnpublishCourseAsync(courseId);
-                return Ok(SuccessResponse<object>.Create(null!, "Unpublish course thành công."));
+                return Ok(SuccessResponse<object>.Create(null!, "Hủy xuất bản khóa học thành công."));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "UnpublishCourse failed for {CourseId}", courseId);
+                _logger.LogError(ex, "Hủy xuất bản khóa học thất bại.");
                 throw;
             }
         }
@@ -141,7 +141,7 @@ namespace Droniverse.Academy.API.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "DeleteCourse failed for {CourseId}", courseId);
+                _logger.LogError(ex, "Xóa khóa học thất bại.");
                 throw;
             }
         }

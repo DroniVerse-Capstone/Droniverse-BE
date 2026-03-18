@@ -35,7 +35,7 @@ public class DroneController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetDrones failed");
+            _logger.LogError(ex, "Lấy danh sách drone thất bại.");
             throw;
         }
     }
@@ -51,7 +51,7 @@ public class DroneController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetDroneById failed for {DroneId}", droneId);
+            _logger.LogError(ex, "Lấy chi tiết drone thất bại.");
             throw;
         }
     }
@@ -67,7 +67,7 @@ public class DroneController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "UpdateDrone failed for {DroneId}", droneId);
+            _logger.LogError(ex, "Cập nhật drone thất bại.");
             throw;
         }
     }
@@ -83,7 +83,7 @@ public class DroneController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "DeleteDrone failed for {DroneId}", droneId);
+            _logger.LogError(ex, "Xóa drone thất bại.");
             throw;
         }
     }
@@ -100,7 +100,7 @@ public class DroneController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetCourseVersionsByDrone failed for {DroneId}", droneId);
+            _logger.LogError(ex, "Lấy danh sách phiên bản khóa học theo drone thất bại.");
             throw;
         }
     }

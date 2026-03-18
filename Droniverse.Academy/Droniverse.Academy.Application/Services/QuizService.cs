@@ -34,14 +34,14 @@ public class QuizService : IQuizService
 
         var lesson = await _unitOfWork.Lessons.GetByIdAsync(request.LessonID);
         if (lesson == null)
-            throw new BaseException("Lesson not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy bài học.", "NOT_FOUND");
 
         if (lesson.Type != LessonType.QUIZ)
-            throw new ValidationException("Lesson type must be QUIZ to attach quiz.");
+            throw new ValidationException("Loại bài học phải là QUIZ để gắn bài kiểm tra.");
 
         var existingQuiz = await _unitOfWork.Quizs.GetByConditionAsync(q => q.LessonID == request.LessonID);
         if (existingQuiz != null)
-            throw new ValidationException("This lesson already has a quiz.");
+            throw new ValidationException("Bài học này đã có bài kiểm tra.");
 
         var quiz = _mapper.Map<Quiz>(request);
         quiz.QuizID = Guid.NewGuid();
@@ -70,7 +70,7 @@ public class QuizService : IQuizService
     {
         var quiz = await _unitOfWork.Quizs.GetByIdAsync(quizId);
         if (quiz == null)
-            throw new BaseException("Quiz not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy bài kiểm tra.", "NOT_FOUND");
 
         return _mapper.Map<QuizClientViewDTO>(quiz);
     }
@@ -84,7 +84,7 @@ public class QuizService : IQuizService
 
         var quiz = await _unitOfWork.Quizs.GetByIdAsync(quizId);
         if (quiz == null)
-            throw new BaseException("Quiz not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy bài kiểm tra.", "NOT_FOUND");
 
         _mapper.Map(request, quiz);
         quiz.UpdateAt = _clock.Now;
@@ -100,7 +100,7 @@ public class QuizService : IQuizService
     {
         var quiz = await _unitOfWork.Quizs.GetByIdAsync(quizId);
         if (quiz == null)
-            throw new BaseException("Quiz not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy bài kiểm tra.", "NOT_FOUND");
 
         await _unitOfWork.Quizs.DeleteAsync(quiz);
         await _unitOfWork.SaveChangesAsync();
@@ -109,15 +109,15 @@ public class QuizService : IQuizService
     private static void ValidateQuizData(int timeLimit, float totalScore, float passScore)
     {
         if (timeLimit <= 0)
-            throw new ValidationException("TimeLimit must be greater than 0.");
+            throw new ValidationException("Thời gian làm bài phải lớn hơn 0.");
 
         if (totalScore <= 0)
-            throw new ValidationException("TotalScore must be greater than 0.");
+            throw new ValidationException("Tổng điểm phải lớn hơn 0.");
 
         if (passScore < 0)
-            throw new ValidationException("PassScore must be greater than or equal to 0.");
+            throw new ValidationException("Điểm đạt phải lớn hơn hoặc bằng 0.");
 
         if (passScore > totalScore)
-            throw new ValidationException("PassScore cannot be greater than TotalScore.");
+            throw new ValidationException("Điểm đạt không được lớn hơn tổng điểm.");
     }
 }

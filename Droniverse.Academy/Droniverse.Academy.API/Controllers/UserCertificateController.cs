@@ -1,4 +1,4 @@
-using Droniverse.Academy.Application.IService;
+﻿using Droniverse.Academy.Application.IService;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
@@ -26,11 +26,11 @@ public class UserCertificateController : ControllerBase
         try
         {
             await _service.GrantCertificateToUserAsync(certificateId, userId);
-            return Ok(SuccessResponse<object>.Create(null!, "C?p certificate cho user th�nh c�ng."));
+            return Ok(SuccessResponse<object>.Create(null!, "Cấp chứng chỉ cho người dùng thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GrantCertificate failed for {CertificateId}/{UserId}", certificateId, userId);
+            _logger.LogError(ex, "Cấp chứng chỉ cho người dùng thất bại.");
             throw;
         }
     }
@@ -43,11 +43,11 @@ public class UserCertificateController : ControllerBase
         try
         {
             var result = await _service.GetUserCertificatesAsync(userId, pageIndex, pageSize);
-            return Ok(SuccessResponse<object>.Create(result, "L?y danh s�ch certificate c?a user th�nh c�ng."));
+            return Ok(SuccessResponse<object>.Create(result, "Lấy danh sách chứng chỉ của người dùng thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetUserCertificates failed for {UserId}", userId);
+            _logger.LogError(ex, "Lấy danh sách chứng chỉ của người dùng thất bại.");
             throw;
         }
     }
@@ -60,11 +60,11 @@ public class UserCertificateController : ControllerBase
         try
         {
             var result = await _service.GetUserCertificateAsync(userId, certificateId);
-            return Ok(SuccessResponse<object>.Create(result, "L?y chi ti?t certificate c?a user th�nh c�ng."));
+            return Ok(SuccessResponse<object>.Create(result, "Lấy chi tiết chứng chỉ của người dùng thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetUserCertificate failed for {UserId}/{CertificateId}", userId, certificateId);
+            _logger.LogError(ex, "Lấy chi tiết chứng chỉ của người dùng thất bại.");
             throw;
         }
     }
@@ -77,11 +77,11 @@ public class UserCertificateController : ControllerBase
         try
         {
             var result = await _service.GetUsersByCertificateAsync(certificateId, pageIndex, pageSize);
-            return Ok(SuccessResponse<object>.Create(result, "L?y danh s�ch user theo certificate th�nh c�ng."));
+            return Ok(SuccessResponse<object>.Create(result, "Lấy danh sách người dùng theo chứng chỉ thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetUsersByCertificate failed for {CertificateId}", certificateId);
+            _logger.LogError(ex, "Lấy danh sách người dùng theo chứng chỉ thất bại.");
             throw;
         }
     }
@@ -94,11 +94,11 @@ public class UserCertificateController : ControllerBase
         try
         {
             await _service.RevokeUserCertificateAsync(userId, certificateId);
-            return Ok(SuccessResponse<object>.Create(null!, "Thu h?i certificate c?a user th�nh c�ng."));
+            return Ok(SuccessResponse<object>.Create(null!, "Thu hồi chứng chỉ của người dùng thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "RevokeUserCertificate failed for {UserId}/{CertificateId}", userId, certificateId);
+            _logger.LogError(ex, "Thu hồi chứng chỉ của người dùng thất bại.");
             throw;
         }
     }

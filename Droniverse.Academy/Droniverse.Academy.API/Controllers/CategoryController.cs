@@ -1,4 +1,4 @@
-using Droniverse.Academy.Application.IService;
+﻿using Droniverse.Academy.Application.IService;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Droniverse.Shared.Constants;
@@ -27,11 +27,11 @@ public class CategoryController : ControllerBase
         try
         {
             var result = await _service.GetCourseVersionsByCategoryAsync(categoryId, pageIndex, pageSize, activeOnly);
-            return Ok(SuccessResponse<object>.Create(result, "L?y danh s�ch course version theo category th�nh c�ng."));
+            return Ok(SuccessResponse<object>.Create(result, "Lấy danh sách phiên bản khóa học theo danh mục thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetCourseVersionsByCategory failed for {CategoryId}", categoryId);
+            _logger.LogError(ex, "Lấy danh sách phiên bản khóa học theo danh mục thất bại.");
             throw;
         }
     }

@@ -47,7 +47,7 @@ public class CourseService : ICourseService
     {
         var course = await _unitOfWork.Courses.GetByIdWithAllVersionsAsync(courseId);
         if (course == null)
-            throw new BaseException($"Course {courseId} not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy khóa học.", "NOT_FOUND");
 
         course.Archive();
         await _unitOfWork.SaveChangesAsync();
@@ -96,7 +96,7 @@ public class CourseService : ICourseService
     {
         var course = await _unitOfWork.Courses.GetByIdWithActiveVersionAsync(courseId);
         if (course == null)
-            throw new BaseException($"Course {courseId} not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy khóa học.", "NOT_FOUND");
 
         return _mapper.Map<CourseResponseDTO>(course);
     }
@@ -105,7 +105,7 @@ public class CourseService : ICourseService
     {
         var course = await _unitOfWork.Courses.GetByIdWithAllVersionsAsync(courseId);
         if (course == null)
-            throw new BaseException($"Course {courseId} not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy khóa học.", "NOT_FOUND");
 
         return _mapper.Map<CourseDetailResponseDTO>(course);
     }
@@ -114,7 +114,7 @@ public class CourseService : ICourseService
     {
         var course = await _unitOfWork.Courses.GetByIdWithAllVersionsAsync(courseId);
         if (course == null)
-            throw new BaseException($"Course {courseId} not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy khóa học.", "NOT_FOUND");
 
         course.Publish();
 
@@ -125,7 +125,7 @@ public class CourseService : ICourseService
     {
         var course = await _unitOfWork.Courses.GetByIdWithAllVersionsAsync(courseId);
         if (course == null)
-            throw new BaseException($"Course {courseId} not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy khóa học.", "NOT_FOUND");
 
         course.Unpublish();
 

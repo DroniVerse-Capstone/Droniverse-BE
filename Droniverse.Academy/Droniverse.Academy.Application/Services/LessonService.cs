@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
@@ -85,7 +85,7 @@ public class LessonService : ILessonService
     {
         var module = await _unitOfWork.Modules.GetByIdAsync(moduleId);
         if (module == null)
-            throw new BaseException("Module not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy mô-đun.", "NOT_FOUND");
     }
 
     private async Task<Lesson> GetLessonAsync(Guid moduleId, Guid lessonId)
@@ -96,7 +96,7 @@ public class LessonService : ILessonService
             l => l.LessonID == lessonId && l.ModuleID == moduleId);
 
         if (lesson == null)
-            throw new BaseException("Lesson not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy bài học.", "NOT_FOUND");
 
         return lesson;
     }
@@ -104,24 +104,24 @@ public class LessonService : ILessonService
     private async Task ValidateReferenceAsync(LessonType type, Guid referenceId)
     {
         if (referenceId == Guid.Empty)
-            throw new ValidationException("ReferenceID is required.");
+            throw new ValidationException("ReferenceID là bắt buộc.");
 
         switch (type)
         {
             case LessonType.THEORY:
                 if (await _unitOfWork.Theories.GetByIdAsync(referenceId) == null)
-                    throw new ValidationException("Theory reference not found.");
+                    throw new ValidationException("Không tìm thấy tham chiếu bài lý thuyết.");
                 break;
             case LessonType.QUIZ:
                 if (await _unitOfWork.Quizs.GetByIdAsync(referenceId) == null)
-                    throw new ValidationException("Quiz reference not found.");
+                    throw new ValidationException("Không tìm thấy tham chiếu bài kiểm tra.");
                 break;
             case LessonType.LAB:
                 if (await _unitOfWork.Labs.GetByIdAsync(referenceId) == null)
-                    throw new ValidationException("Lab reference not found.");
+                    throw new ValidationException("Không tìm thấy tham chiếu bài lab.");
                 break;
             default:
-                throw new ValidationException("Invalid lesson type.");
+                throw new ValidationException("Loại bài học không hợp lệ.");
         }
     }
 }
