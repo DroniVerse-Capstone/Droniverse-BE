@@ -2,6 +2,7 @@
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.Application.Validators;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
@@ -30,7 +31,7 @@ public class QuizService : IQuizService
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
-        ValidateQuizData(request.TimeLimit, request.TotalScore, request.PassScore);
+        QuizValidator.ValidateQuizData(request.TimeLimit, request.TotalScore, request.PassScore);
 
         var lesson = await _unitOfWork.Lessons.GetByIdAsync(request.LessonID);
         if (lesson == null)
@@ -51,6 +52,10 @@ public class QuizService : IQuizService
         quiz.UpdateBy = _currentUser.UserId;
 
         await _unitOfWork.Quizs.AddAsync(quiz);
+
+        lesson.ReferenceID = quiz.QuizID;
+        await _unitOfWork.Lessons.UpdateAsync(lesson);
+
         await _unitOfWork.SaveChangesAsync();
 
         return _mapper.Map<QuizClientViewDTO>(quiz);
@@ -80,7 +85,7 @@ public class QuizService : IQuizService
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
-        ValidateQuizData(request.TimeLimit, request.TotalScore, request.PassScore);
+        QuizValidator.ValidateQuizData(request.TimeLimit, request.TotalScore, request.PassScore);
 
         var quiz = await _unitOfWork.Quizs.GetByIdAsync(quizId);
         if (quiz == null)
@@ -102,22 +107,14 @@ public class QuizService : IQuizService
         if (quiz == null)
             throw new BaseException("Không tìm thấy bài kiểm tra.", "NOT_FOUND");
 
+        var lesson = await _unitOfWork.Lessons.GetByIdAsync(quiz.LessonID);
+        if (lesson != null && lesson.ReferenceID == quiz.QuizID)
+        {
+            lesson.ReferenceID = Guid.Empty;
+            await _unitOfWork.Lessons.UpdateAsync(lesson);
+        }
+
         await _unitOfWork.Quizs.DeleteAsync(quiz);
         await _unitOfWork.SaveChangesAsync();
-    }
-
-    private static void ValidateQuizData(int timeLimit, float totalScore, float passScore)
-    {
-        if (timeLimit <= 0)
-            throw new ValidationException("Thời gian làm bài phải lớn hơn 0.");
-
-        if (totalScore <= 0)
-            throw new ValidationException("Tổng điểm phải lớn hơn 0.");
-
-        if (passScore < 0)
-            throw new ValidationException("Điểm đạt phải lớn hơn hoặc bằng 0.");
-
-        if (passScore > totalScore)
-            throw new ValidationException("Điểm đạt không được lớn hơn tổng điểm.");
     }
 }

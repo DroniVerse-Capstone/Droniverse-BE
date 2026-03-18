@@ -104,7 +104,7 @@ public class LessonService : ILessonService
     private async Task ValidateReferenceAsync(LessonType type, Guid referenceId)
     {
         if (referenceId == Guid.Empty)
-            throw new ValidationException("ReferenceID là bắt buộc.");
+            return;
 
         switch (type)
         {

@@ -2,6 +2,7 @@
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.Application.Validators;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
@@ -30,7 +31,7 @@ public class TheoryService : ITheoryService
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
-        ValidateTheoryData(request.EstimatedTime, request.ContentVN, request.ContentEN);
+        TheoryValidator.ValidateTheoryData(request.EstimatedTime, request.ContentVN, request.ContentEN);
 
         var lesson = await _unitOfWork.Lessons.GetByIdAsync(request.LessonID);
         if (lesson == null)
@@ -51,6 +52,10 @@ public class TheoryService : ITheoryService
         theory.UpdateBy = _currentUser.UserId;
 
         await _unitOfWork.Theories.AddAsync(theory);
+
+        lesson.ReferenceID = theory.TheoryID;
+        await _unitOfWork.Lessons.UpdateAsync(lesson);
+
         await _unitOfWork.SaveChangesAsync();
 
         return _mapper.Map<TheoryClientViewDTO>(theory);
@@ -80,7 +85,7 @@ public class TheoryService : ITheoryService
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
-        ValidateTheoryData(request.EstimatedTime, request.ContentVN, request.ContentEN);
+        TheoryValidator.ValidateTheoryData(request.EstimatedTime, request.ContentVN, request.ContentEN);
 
         var theory = await _unitOfWork.Theories.GetByIdAsync(theoryId);
         if (theory == null)
@@ -102,19 +107,14 @@ public class TheoryService : ITheoryService
         if (theory == null)
             throw new BaseException("Không tìm thấy bài lý thuyết.", "NOT_FOUND");
 
+        var lesson = await _unitOfWork.Lessons.GetByIdAsync(theory.LessonID);
+        if (lesson != null && lesson.ReferenceID == theory.TheoryID)
+        {
+            lesson.ReferenceID = Guid.Empty;
+            await _unitOfWork.Lessons.UpdateAsync(lesson);
+        }
+
         await _unitOfWork.Theories.DeleteAsync(theory);
         await _unitOfWork.SaveChangesAsync();
-    }
-
-    private static void ValidateTheoryData(int estimatedTime, string contentVN, string contentEN)
-    {
-        if (string.IsNullOrWhiteSpace(contentVN))
-            throw new ValidationException("Nội dung tiếng Việt là bắt buộc.");
-
-        if (string.IsNullOrWhiteSpace(contentEN))
-            throw new ValidationException("Nội dung tiếng Anh là bắt buộc.");
-
-        if (estimatedTime <= 0)
-            throw new ValidationException("Thời lượng dự kiến phải lớn hơn 0.");
     }
 }
