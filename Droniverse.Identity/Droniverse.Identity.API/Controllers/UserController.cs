@@ -77,7 +77,12 @@ namespace Droniverse.Identity.API.Controllers
         [HttpPost("bulk")]
         public async Task<IActionResult> GetUsersByIds([FromBody] IEnumerable<Guid> userIds)
         {
-            var users = await _userService.GetUsersByIds(userIds);
+            var vietnamTime = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(
+                DateTime.UtcNow,
+                "SE Asia Standard Time"
+            );
+
+            Console.WriteLine(vietnamTime.ToString("dddd:MM:yyyy:ss")); var users = await _userService.GetUsersByIds(userIds);
             return Ok(users);
         }
     }

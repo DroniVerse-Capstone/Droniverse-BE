@@ -7,6 +7,7 @@ using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Messages.User;
 using Droniverse.Shared.Services;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 
 namespace Droniverse.Identity.Application.Services;
 internal class UserService : IUserService
@@ -148,22 +149,8 @@ internal class UserService : IUserService
     public async Task<IEnumerable<UserResponse>> GetUsersByIds(IEnumerable<Guid> userIds)
     {
         if (userIds == null || !userIds.Any())
-        {
-            return Enumerable.Empty<UserResponse>();
-        }
+            return [];
 
-        var distinctIds = userIds
-            .Where(x => x != Guid.Empty)
-            .Distinct()
-            .ToList();
-
-        if (!distinctIds.Any())
-        {
-            return Enumerable.Empty<UserResponse>();
-        }
-
-        IEnumerable<Account> accounts = await _unitOfWork.Accounts.GetManyByCondition(a => distinctIds.Contains(a.UserID));
-        IEnumerable<UserResponse> userResponses = _mapper.Map<IEnumerable<UserResponse>>(accounts);
-        return userResponses;
+        return await _unitOfWork.Accounts.GetUsersByIdsAsync(userIds);
     }
 }

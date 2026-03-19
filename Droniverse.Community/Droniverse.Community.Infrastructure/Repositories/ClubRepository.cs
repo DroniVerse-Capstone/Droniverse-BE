@@ -14,6 +14,7 @@ internal class ClubRepository : MySqlRepository<Club>, IClubRepository
     public async Task<IEnumerable<Club>> GetAllWithCategories()
     {
         return await _context.Set<Club>()
+            .AsNoTracking()
             .Include(c => c.ClubCategories)
             .ThenInclude(cc => cc.Category)
             .OrderByDescending(c => c.CreatedAt)
@@ -31,6 +32,7 @@ internal class ClubRepository : MySqlRepository<Club>, IClubRepository
     public async Task<Club?> GetByClubCodeWithCategories(string clubCode)
     {
         return await _context.Set<Club>()
+            .AsNoTracking()
             .Include(c => c.ClubCategories)
             .ThenInclude(cc => cc.Category)
             .FirstOrDefaultAsync(c => c.ClubCode == clubCode);
@@ -39,6 +41,7 @@ internal class ClubRepository : MySqlRepository<Club>, IClubRepository
     public async Task<IEnumerable<Club>> GetClubsByParticipantUserId(Guid userId, ClubStatus? status = null)
     {
         var query = _context.Set<Participation>()
+            .AsNoTracking()
             .Where(p => p.UserID == userId &&
                         p.Status == ParticipationStatus.ACTIVE &&
                         (!status.HasValue || p.Club.Status == status))
@@ -55,6 +58,7 @@ internal class ClubRepository : MySqlRepository<Club>, IClubRepository
     public async Task<IEnumerable<Club>> GetClubsByClubManagerID(Guid clubManagerID, ClubStatus? status = null)
     {
         var query = _context.Set<Club>()
+            .AsNoTracking()
             .Where(c => c.CreatedBy == clubManagerID && (!status.HasValue || c.Status == status))
             .Include(c => c.ClubCategories)
                 .ThenInclude(cc => cc.Category)

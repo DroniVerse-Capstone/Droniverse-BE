@@ -13,6 +13,7 @@ public interface IClubAttemptRequestRepository : IRepository<ClubAttemptRequest>
     /// Get paginated and filtered ClubAttemptRequests with optimized query
     /// </summary>
     Task<(IEnumerable<ClubAttemptRequest> Items, int TotalCount)> GetFilteredRequestsAsync(
+     Guid clubID,
      ClubAttemptRequestStatus? status,
      DateTime? createdFrom,
      DateTime? createdTo,

@@ -1,4 +1,4 @@
-using Droniverse.Community.Domain.Enums;
+﻿using Droniverse.Community.Domain.Enums;
 
 namespace Droniverse.Community.Application.DTO.Response;
 
@@ -11,7 +11,7 @@ public class ClubCreationRequestResponseDto
     public bool IsPublic { get; set; }
     public int LimitParticipant { get; set; }
     public int LimitClubManager { get; set; }
-    public string ImageUrl { get; set; } = string.Empty;
+    public string? ImageUrl { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public DateTime? ApprovedAt { get; set; }

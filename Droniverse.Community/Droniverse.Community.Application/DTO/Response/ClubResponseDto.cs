@@ -6,18 +6,18 @@ namespace Droniverse.Community.Application.DTO.Response;
 public record ClubResponseDto
 {
     public Guid ClubID { get; init; }
-    public string NameVN { get; init; }
-    public string NameEN { get; init; }
-    public string DescriptionVN { get; init; }
-    public string DescriptionEN { get; init; }
-    public string ClubCode { get; init; }
+    public required string NameVN { get; init; }
+    public required string NameEN { get; init; }
+    public required string DescriptionVN { get; init; }
+    public required string DescriptionEN { get; init; }
+    public required string ClubCode { get; init; }
     public ClubStatus Status { get; init; }
     public bool IsPublic { get; init; }
-    public string? ImageUrl  { get; init; }
+    public string? ImageUrl { get; init; }
     public int LimitParticipation { get; init; }
     public int LimitClubManagers { get; init; }
     public int TotalMembers { get; set; }
     public int TotalCourses { get; set; }
-    public UserResponse Creator { get; init; }
-    public IEnumerable<CategoryResponseDto> Categories { get; init; }
+    public UserResponse? Creator { get; set; }
+    public IEnumerable<CategoryResponseDto>? Categories { get; init; }
 }

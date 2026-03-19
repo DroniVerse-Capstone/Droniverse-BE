@@ -77,12 +77,12 @@ namespace Droniverse.Community.API.Controllers
         /// ```
         /// </remarks>
         /// <returns>200 OK - Trả về danh sách requests với pagination</returns>
-        [HttpGet]
+        [HttpGet("{clubID}")]
         [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<ClubRequestResponseDto>>>), StatusCodes.Status200OK)]
         [Authorize(Roles = Roles.AdminOrManagerRoles)]
-        public async Task<ApiResponse> GetAllClubAttemptRequests([FromQuery] ClubAttemptRequestSearchRequest searchRequest)
+        public async Task<ApiResponse> GetAllClubAttemptRequests([FromRoute] Guid clubID,[FromQuery] ClubAttemptRequestSearchRequest searchRequest)
         {
-            var result = await _clubAttemptRequestService.GetAllClubAttemptRequests(searchRequest);
+            var result = await _clubAttemptRequestService.GetAllClubAttemptRequests(clubID, searchRequest);
             
             return SuccessResponse<PaginationResult<IEnumerable<ClubRequestResponseDto>>>.Create(
                 result,
