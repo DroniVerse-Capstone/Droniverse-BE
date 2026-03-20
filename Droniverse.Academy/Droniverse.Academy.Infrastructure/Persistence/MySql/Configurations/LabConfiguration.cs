@@ -32,7 +32,7 @@ public class LabConfiguration : IEntityTypeConfiguration<Lab>
         builder.Property(e => e.Type).HasColumnType("varchar(50)").HasConversion<string>();
         builder.ToTable(t => t.HasCheckConstraint("CK_Lab_Type", "`Type` IN ('LEARNING', 'COMPETITION')"));
         builder.ToTable(t => t.HasCheckConstraint("CK_Lab_Level", "`Level` IN (0, 1, 2)"));
-        builder.ToTable(t => t.HasCheckConstraint("CK_Lab_Status", "`Status` IN (0, 1, 2)"));
+        builder.ToTable(t => t.HasCheckConstraint("CK_Lab_Status", "`Status` IN (0, 1, 2, 3, 4)"));
 
 
     }
