@@ -1,4 +1,5 @@
 ﻿using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -30,6 +31,22 @@ namespace Droniverse.Academy.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Tạo khóa học thất bại.");
+                throw;
+            }
+        }
+
+        // POST academy/courses/by-ids
+        [HttpPost("by-ids")]
+        public async Task<IActionResult> GetCoursesByIds([FromBody] GetCoursesByIdsRequestDTO request)
+        {
+            try
+            {
+                var result = await _courseService.GetCoursesByIdsAsync(request.CourseIds);
+                return Ok(SuccessResponse<object>.Create(result, "Lấy danh sách course theo id thành công."));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lấy danh sách course theo id thất bại.");
                 throw;
             }
         }

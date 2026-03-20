@@ -104,4 +104,21 @@ public class CertificateController : ControllerBase
             throw;
         }
     }
+
+    // POST /academy/certificates/by-ids
+    [HttpPost("certificates/by-ids")]
+    [Authorize(Roles = Roles.AdminOrSystemManager)]
+    public async Task<IActionResult> GetCertificatesByIds([FromBody] GetCertificatesByIdsRequestDTO request)
+    {
+        try
+        {
+            var certs = await _service.GetCertificatesByIdsAsync(request.CertificateIds);
+            return Ok(SuccessResponse<object>.Create(certs, "Lấy danh sách chứng chỉ theo id thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lấy danh sách chứng chỉ theo id thất bại.");
+            throw;
+        }
+    }
 }
