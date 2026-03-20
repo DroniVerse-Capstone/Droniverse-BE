@@ -1,8 +1,9 @@
-using Droniverse.Academy.Application.IService;
+Ôªøusing Droniverse.Academy.Application.IService;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
+using Droniverse.Academy.Application.HttpClients;
 
 namespace Droniverse.Academy.API.Controllers;
 
@@ -12,6 +13,7 @@ public class CategoryController : ControllerBase
 {
     private readonly ILogger<CategoryController> _logger;
     private readonly ICourseVersionCategoryService _service;
+    
 
     public CategoryController(ILogger<CategoryController> logger, ICourseVersionCategoryService service)
     {
@@ -27,7 +29,7 @@ public class CategoryController : ControllerBase
         try
         {
             var result = await _service.GetCourseVersionsByCategoryAsync(categoryId, pageIndex, pageSize, activeOnly);
-            return Ok(SuccessResponse<object>.Create(result, "L?y danh s·ch course version theo category th‡nh cÙng."));
+            return Ok(SuccessResponse<object>.Create(result, "L?y danh s√°ch course version theo category th√†nh c√¥ng."));
         }
         catch (Exception ex)
         {
@@ -35,4 +37,5 @@ public class CategoryController : ControllerBase
             throw;
         }
     }
+
 }

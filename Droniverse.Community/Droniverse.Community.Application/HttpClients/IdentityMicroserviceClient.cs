@@ -83,7 +83,7 @@ public class IdentityMicroserviceClient
         await _distributedCache.SetStringAsync(userKeyToWrite, userCacheString, options);
         return user;
     }
-
+        
     public async Task<IEnumerable<UserResponse>> GetUsersBulk(IEnumerable<Guid> userIds)
     {
         if (userIds == null || !userIds.Any())
