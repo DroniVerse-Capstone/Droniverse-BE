@@ -7,7 +7,7 @@ internal class UnitOfWork : IUnitOfWork
 {
     private readonly IdentityDbContext _context;
     private IRepository<Role> _role;
-    private IRepository<Account> _account;
+    private IUserRepository _account;
     private IRepository<UserInfo> _userInfo;
     private IRepository<Permission> _permission;
 
@@ -18,7 +18,7 @@ internal class UnitOfWork : IUnitOfWork
 
     public IRepository<Role> Roles => _role ??= new RoleRepository(_context);
 
-    public IRepository<Account> Accounts => _account ??= new UserRepository(_context);
+    public IUserRepository Accounts => _account ??= new UserRepository(_context);
 
     public IRepository<UserInfo> UserInfos => _userInfo ??= new Repository<UserInfo>(_context);
 

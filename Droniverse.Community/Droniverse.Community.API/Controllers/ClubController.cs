@@ -52,7 +52,6 @@ namespace Droniverse.Community.API.Controllers
             IEnumerable<ClubResponseDto> clubs = await _clubService.GetAllClubs();
             return SuccessResponse<IEnumerable<ClubResponseDto>>
                 .Create(clubs, "Lấy danh sách câu lạc bộ thành công!");
-
         }
 
         /// <summary>

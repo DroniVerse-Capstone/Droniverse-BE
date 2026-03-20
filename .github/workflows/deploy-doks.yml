@@ -23,13 +23,18 @@ jobs:
       shared: ${{ steps.filter.outputs.shared }}
       infra: ${{ steps.filter.outputs.infra }}
     steps:
-      - name: Checkout
+      - name: Checkout (full history)
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Lấy toàn bộ commit history
 
       - name: Detect changed paths
         id: filter
         uses: dorny/paths-filter@v3
         with:
+          base: ${{ github.event.pull_request.base.ref || github.event.before || 'HEAD~1' }}
+          ref: ${{ github.event.pull_request.head.ref || github.ref }}
+          list-files: 'csv'  # In danh sách files thay đổi
           filters: |
             gateway:
               - 'Droniverse.Gateway/**'
@@ -44,6 +49,22 @@ jobs:
             infra:
               - 'docker-compose/**'
               - '.github/workflows/**'
+
+      - name: Debug - Show detected changes
+        run: |
+          echo "=== Changed Files ==="
+          echo "Gateway: ${{ steps.filter.outputs.gateway }}"
+          echo "Academy: ${{ steps.filter.outputs.academy }}"
+          echo "Community: ${{ steps.filter.outputs.community }}"
+          echo "Identity: ${{ steps.filter.outputs.identity }}"
+          echo "Shared: ${{ steps.filter.outputs.shared }}"
+          echo "Infra: ${{ steps.filter.outputs.infra }}"
+          echo ""
+          echo "=== Files Changed ==="
+          echo "${{ steps.filter.outputs.gateway_files }}"
+          echo "${{ steps.filter.outputs.academy_files }}"
+          echo "${{ steps.filter.outputs.community_files }}"
+          echo "${{ steps.filter.outputs.identity_files }}"
 
   build-push-rollout:
     runs-on: ubuntu-latest

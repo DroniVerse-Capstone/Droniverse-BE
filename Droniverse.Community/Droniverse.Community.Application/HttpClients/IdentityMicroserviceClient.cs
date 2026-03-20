@@ -24,7 +24,7 @@ public class IdentityMicroserviceClient
         _distributedCache = distributedCache;
     }
 
-    public async Task<UserResponse> GetUserByUserID(Guid userId)
+    public async Task<UserResponse?> GetUserByUserID(Guid userId)
     {
 
         //Read from cache
@@ -36,12 +36,12 @@ public class IdentityMicroserviceClient
         {
             _logger.LogInformation($"User with id {userId} found in cache.");
             UserResponse? userFromCache = JsonSerializer.Deserialize<UserResponse>(cacheUser);
-            if (userFromCache == null)
-                throw new NotFoundException($"User with ID {userId} not found in cache.");
-            return userFromCache;
+            return userFromCache ?? throw new NotFoundException($"User with ID {userId} not found in cache.");
         }
 
+        //HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/api/users/{userId}");
         HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/api/users/{userId}");
+
         if (!httpResponseMsg.IsSuccessStatusCode)
         {
             if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
@@ -87,7 +87,7 @@ public class IdentityMicroserviceClient
     public async Task<IEnumerable<UserResponse>> GetUsersBulk(IEnumerable<Guid> userIds)
     {
         if (userIds == null || !userIds.Any())
-            return Enumerable.Empty<UserResponse>();
+            return [];
 
         var distinctIds = userIds
             .Where(x => x != Guid.Empty)
@@ -96,6 +96,10 @@ public class IdentityMicroserviceClient
 
         try
         {
+            //var response = await _httpClient.PostAsJsonAsync(
+            //    "/api/users/bulk",
+            //    distinctIds
+            //);
             var response = await _httpClient.PostAsJsonAsync(
                 "/api/users/bulk",
                 distinctIds
@@ -126,10 +130,9 @@ public class IdentityMicroserviceClient
                     response.StatusCode);
             }
 
-            var users = await response.Content
-                                      .ReadFromJsonAsync<IEnumerable<UserResponse>>();
+            var users = await response.Content.ReadFromJsonAsync<IEnumerable<UserResponse>>();
 
-            return users ?? Enumerable.Empty<UserResponse>();
+            return users ?? [];
         }
         catch (Exception ex)
         {
