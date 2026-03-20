@@ -20,7 +20,18 @@ namespace Droniverse.Identity.API.Controllers
         {
             _userService = userService;
         }
-        
+
+        [HttpGet("test")]
+        public IActionResult Test()
+        {
+            var vietnamTime = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(
+                DateTime.UtcNow,
+                "SE Asia Standard Time"
+            );
+            Console.WriteLine(vietnamTime.ToString("dddd:MM:yyyy:ss"));
+            return Ok("Test successful");
+        }
+
         [HttpGet]
         public async Task<IActionResult> GetAllUsers()
         {
