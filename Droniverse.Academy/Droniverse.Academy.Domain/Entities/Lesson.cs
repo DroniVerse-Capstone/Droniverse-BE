@@ -7,6 +7,7 @@ public class Lesson
     public ICollection<UserLesson> UserLessons { get; set; }
     public Module Module { get; set; }
     public Guid ModuleID { get; set; } //char(36)
+    public int OrderIndex { get; set; }
     public LessonType Type { get; set; } //varchar(20)
     public Lab Lab { get; set; }
     public Theory Theory { get; set; }

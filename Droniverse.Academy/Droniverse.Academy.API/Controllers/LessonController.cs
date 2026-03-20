@@ -100,4 +100,20 @@ public class LessonController : ControllerBase
             throw;
         }
     }
+
+    [HttpPatch("reorder")]
+    [Authorize(Roles = Roles.AdminOrSystemManager)]
+    public async Task<IActionResult> ReorderLessons(Guid moduleId, [FromBody] ReorderLessonsRequestDTO request)
+    {
+        try
+        {
+            var result = await _lessonService.ReorderLessonsAsync(moduleId, request);
+            return Ok(SuccessResponse<IEnumerable<LessonClientViewDTO>>.Create(result, "Sắp xếp lại bài học thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Sắp xếp lại bài học thất bại.");
+            throw;
+        }
+    }
 }
