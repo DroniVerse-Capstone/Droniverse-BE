@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
+using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
@@ -17,12 +18,14 @@ public class CourseVersionCategoryService : ICourseVersionCategoryService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly ICurrentUserService _currentUser;
+    private readonly IdentityMicroserviceClient _client;
 
-    public CourseVersionCategoryService(IUnitOfWork unitOfWork, IMapper mapper, ICurrentUserService current)
+    public CourseVersionCategoryService(IUnitOfWork unitOfWork, IMapper mapper, ICurrentUserService current, IdentityMicroserviceClient client)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _currentUser = current;
+        _client = client;
     }
 
     public async Task AddCategoryAsync(Guid courseId, Guid versionId, AssignCategoryRequestDTO request)
@@ -74,6 +77,17 @@ public class CourseVersionCategoryService : ICourseVersionCategoryService
 
         var courseResult = await _unitOfWork.CourseVersions.GetAllAsync(courseFilter, null, pageIndex, pageSize, includeProperties: "Course");
         var mapped = courseResult.Data.Select(cv => _mapper.Map<CourseVersionResponseDTO>(cv)).ToList();
+
+        //try
+        //{
+        //    var user = await _client.GetUserByUserID(Guid.Parse("7b58f729-ec26-48c0-93c4-29884afaa6ee"));
+        //    Console.WriteLine(user.FirstName + user.LastName);
+        //}
+        //catch (Exception ex)
+        //{
+        //    Console.WriteLine(ex.Message);
+        //}
+
         return new PaginationResult<IEnumerable<CourseVersionResponseDTO>>(mapped, courseResult.TotalRecords, courseResult.PageIndex, courseResult.PageSize);
     }
 }

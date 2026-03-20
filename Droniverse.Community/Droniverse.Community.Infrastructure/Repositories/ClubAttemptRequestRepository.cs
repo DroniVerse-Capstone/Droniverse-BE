@@ -23,6 +23,7 @@ internal class ClubAttemptRequestRepository : MySqlRepository<ClubAttemptRequest
     }
 
     public async Task<(IEnumerable<ClubAttemptRequest> Items, int TotalCount)> GetFilteredRequestsAsync(
+        Guid clubID,
         ClubAttemptRequestStatus? status,
         DateTime? createdFrom,
         DateTime? createdTo,
@@ -35,6 +36,7 @@ internal class ClubAttemptRequestRepository : MySqlRepository<ClubAttemptRequest
     {
         // Build query with filters
         var query = _context.Set<ClubAttemptRequest>()
+            .Where(c => c.ClubID == clubID)
             .Include(r => r.Club)
             .AsNoTracking() // Performance: No tracking since we're reading only
             .AsQueryable();

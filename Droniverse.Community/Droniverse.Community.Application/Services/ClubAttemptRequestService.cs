@@ -2,6 +2,7 @@
 using Droniverse.Community.Application.DTO.Extensions;
 using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
+using Droniverse.Community.Application.Helpers;
 using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Entities;
@@ -57,7 +58,7 @@ namespace Droniverse.Community.Application.Services
             var clubRequests = await _unitOfWork.ClubAttemptRequests
                 .GetManyByCondition(
                     c => c.ClubID == clubID,
-                    query => query.Include(c => c.Club)
+                    query => query.AsNoTracking().Include(c => c.Club)
                 );
 
             if (clubRequests == null)
@@ -87,8 +88,11 @@ namespace Droniverse.Community.Application.Services
                     clubRequest.ClubID,
                     clubRequest.Club.NameVN,
                     clubRequest.Club.NameEN,
-                    requester?.LastName,
-                    approver?.LastName,
+                    clubRequest.Club.ImageUrl,
+                    AppHelper.GetFullName(requester),
+                    requester?.Email,
+                    AppHelper.GetFullName(approver),
+                    approver?.Email,
                     clubRequest.Status,
                     clubRequest.CreatedAt,
                     clubRequest.ProcessedAt
@@ -169,7 +173,7 @@ namespace Droniverse.Community.Application.Services
                 .GetManyByCondition(
                     c => c.RequesterID == requesterID &&
                          (!status.HasValue || c.Status == status),
-                    query => query.Include(c => c.Club).OrderByDescending(c => c.CreatedAt)
+                    query => query.AsNoTracking().Include(c => c.Club).OrderByDescending(c => c.CreatedAt)
                 );
 
             if (clubRequests == null || !clubRequests.Any())
@@ -201,39 +205,43 @@ namespace Droniverse.Community.Application.Services
             var result = clubRequests
                 .Where(c => c != null)
                 .Select(clubRequest =>
-            {
-                userDict.TryGetValue(clubRequest.RequesterID, out var requester);
+                {
+                    userDict.TryGetValue(clubRequest.RequesterID, out var requester);
 
-                var approver = clubRequest.ApproverID.HasValue &&
-                               userDict.TryGetValue(clubRequest.ApproverID.Value, out var a)
-                               ? a
-                               : null;
+                    var approver = clubRequest.ApproverID.HasValue &&
+                                   userDict.TryGetValue(clubRequest.ApproverID.Value, out var a)
+                                   ? a
+                                   : null;
 
-                return new ClubRequestResponseDto(
-                    clubRequest.ClubRequestID,
-                    clubRequest.RequesterID,
-                    clubRequest.ApproverID,
-                    clubRequest.ClubID,
-                    clubRequest.Club.NameVN,
-                    clubRequest.Club.NameEN,
-                    requester?.LastName,
-                    approver?.LastName,
-                    clubRequest.Status,
-                    clubRequest.CreatedAt,
-                    clubRequest.ProcessedAt
-                );
-            });
+                    return new ClubRequestResponseDto(
+                        clubRequest.ClubRequestID,
+                        clubRequest.RequesterID,
+                        clubRequest.ApproverID,
+                        clubRequest.ClubID,
+                        clubRequest.Club.NameVN,
+                        clubRequest.Club.NameEN,
+                        clubRequest.Club.ImageUrl,
+                        AppHelper.GetFullName(requester),
+                        requester?.Email,
+                        AppHelper.GetFullName(approver),
+                        approver?.Email,
+                        clubRequest.Status,
+                        clubRequest.CreatedAt,
+                        clubRequest.ProcessedAt
+                    );
+                });
 
             return result;
         }
 
-        public async Task<PaginationResult<IEnumerable<ClubRequestResponseDto>>> GetAllClubAttemptRequests(
+        public async Task<PaginationResult<IEnumerable<ClubRequestResponseDto>>> GetAllClubAttemptRequests(Guid clubID,
     ClubAttemptRequestSearchRequest searchRequest)
         {
             var skip = (searchRequest.CurrentPage - 1) * searchRequest.PageSize;
             var take = searchRequest.PageSize;
 
             var (requests, totalCount) = await _unitOfWork.ClubAttemptRequests.GetFilteredRequestsAsync(
+                clubID,
                 searchRequest.Status,
                 searchRequest.CreatedFrom,
                 searchRequest.CreatedTo,
@@ -254,7 +262,7 @@ namespace Droniverse.Community.Application.Services
                 .Distinct()
                 .ToList();
 
-            IEnumerable<UserResponse> users = Enumerable.Empty<UserResponse>();
+            IEnumerable<UserResponse> users = [];
 
             if (userIds.Any())
             {
@@ -285,8 +293,11 @@ namespace Droniverse.Community.Application.Services
                     request.ClubID,
                     request.Club.NameVN,
                     request.Club.NameEN,
-                    requester?.LastName,
-                    approver?.LastName,
+                    request.Club.ImageUrl,
+                    AppHelper.GetFullName(requester),
+                    requester?.Email,
+                    AppHelper.GetFullName(approver),
+                    approver?.Email,
                     request.Status,
                     request.CreatedAt,
                     request.ProcessedAt
@@ -295,5 +306,6 @@ namespace Droniverse.Community.Application.Services
 
             return responseDtos.ToPaginationResult(searchRequest);
         }
+
     }
 }

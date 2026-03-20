@@ -17,6 +17,8 @@ using Swashbuckle.AspNetCore.SwaggerUI;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Transactions;
+using Microsoft.EntityFrameworkCore;
+using Droniverse.Academy.Infrastructure.Persistence.MySql;
 
 // Load .env
 Env.Load("../../.env");
@@ -187,6 +189,24 @@ builder.Services.AddHangfireServer();
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var logger = scope.ServiceProvider
+        .GetRequiredService<ILoggerFactory>()
+        .CreateLogger("DbMigration");
+
+    try
+    {
+        var db = scope.ServiceProvider.GetRequiredService<MySqlDbContext>();
+        db.Database.Migrate();
+        logger.LogInformation("Academy DB migrated successfully.");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Academy DB migration failed.");
+        throw;
+    }
+}
 
 // ======================
 // MIDDLEWARE

@@ -12,6 +12,7 @@ using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using StackExchange.Redis;
 
 namespace Droniverse.Community.Application.Services;
 internal class ClubService : IClubService
@@ -128,7 +129,14 @@ internal class ClubService : IClubService
     public async Task<IEnumerable<ClubResponseDto>> GetAllClubs()
     {
         IEnumerable<Club> clubList = await _unitOfWork.Clubs.GetAllWithCategories();
-        return await MapClubsWithStats(clubList);
+        // get creator
+        var userIds = clubList.Select(c => c.CreatedBy).Distinct().ToList();
+
+        var users = await GetUsersByIds(userIds);
+
+        var userDict = users.ToDictionary(u => u.UserId);
+
+        return await MapClubsWithStats(clubList, userDict);
     }
 
     public async Task<ClubResponseDto> GetClubById(Guid id)
@@ -138,13 +146,17 @@ internal class ClubService : IClubService
         {
             throw new KeyNotFoundException($"Club with ID {id} not found.");
         }
-
-        var memberCounts = await _unitOfWork.Clubs.GetMemberCountsByClubIds(new[] { id });
-        var courseCounts = await _unitOfWork.Clubs.GetCourseCountsByClubIds(new[] { id });
+        var memberCounts = await _unitOfWork.Clubs.GetMemberCountsByClubIds([id]);
+        var courseCounts = await _unitOfWork.Clubs.GetCourseCountsByClubIds([id]);
+       
+        
+        var creator = await _identityMicroserviceClient.GetUserByUserID(club.CreatedBy);
 
         ClubResponseDto response = _mapper.Map<ClubResponseDto>(club);
         response.TotalMembers = memberCounts.GetValueOrDefault(id, 0);
         response.TotalCourses = courseCounts.GetValueOrDefault(id, 0);
+        response.Creator = creator;
+
         return response;
     }
 
@@ -237,7 +249,7 @@ internal class ClubService : IClubService
 
     public async Task<PaginationResult<IEnumerable<UserResponse>>> GetClubParcitipations(Guid clubID, ParticipationSearchRequest searchRequest)
     {
-        Club? club = await _unitOfWork.Clubs.GetByCondition(c => c.ClubID == clubID);
+        Club? club = await _unitOfWork.Clubs.GetByCondition(c => c.ClubID == clubID, query => query.AsNoTracking());
         if (club == null)
         {
             throw new KeyNotFoundException($"Club with ID {clubID} not found.");
@@ -271,9 +283,17 @@ internal class ClubService : IClubService
             .ToList();
 
         if (!ids.Any())
-            return Enumerable.Empty<UserResponse>();
+            return [];
 
-        return await _identityMicroserviceClient.GetUsersBulk(ids);
+        try
+        {
+            return await _identityMicroserviceClient.GetUsersBulk(ids);
+        }
+        catch
+        {
+            Console.WriteLine("Không lấy được thông tin users khi gọi API");
+            return [];
+        }
     }
 
     private static IEnumerable<UserResponse> ApplyParticipationUserFilters(
@@ -324,15 +344,19 @@ internal class ClubService : IClubService
         else
             // CLUB_MANAGER/ADMIN/SYSTEM_MANAGER: Lấy clubs đã tạo
             clubs = await _unitOfWork.Clubs.GetClubsByClubManagerID(currentUserId, status);
+
+        var userIds = clubs.Select(c => c.CreatedBy).ToList();
+        var users = await GetUsersByIds(userIds);
+        var userDict = users.ToDictionary(u => u.UserId);
         
-        return await MapClubsWithStats(clubs);
+        return await MapClubsWithStats(clubs, userDict);
     }
 
-    private async Task<IEnumerable<ClubResponseDto>> MapClubsWithStats(IEnumerable<Club> clubs)
+    private async Task<IEnumerable<ClubResponseDto>> MapClubsWithStats(IEnumerable<Club> clubs, Dictionary<Guid, UserResponse> userDict)
     {
-        var clubList = clubs?.ToList() ?? new List<Club>();
+        var clubList = clubs?.ToList() ?? [];
         if (!clubList.Any())
-            return Enumerable.Empty<ClubResponseDto>();
+            return [];
 
         var clubIds = clubList.Select(c => c.ClubID).Distinct().ToList();
         var memberCounts = await _unitOfWork.Clubs.GetMemberCountsByClubIds(clubIds);
@@ -341,10 +365,12 @@ internal class ClubService : IClubService
         return clubList.Select(club =>
         {
             var response = _mapper.Map<ClubResponseDto>(club);
+            userDict.TryGetValue(club.CreatedBy, out var creator);
+            response.Creator = creator;
             response.TotalMembers = memberCounts.GetValueOrDefault(club.ClubID, 0);
             response.TotalCourses = courseCounts.GetValueOrDefault(club.ClubID, 0);
             return response;
-        }).ToList();
+        });
     }
 
     // ===== Status Management Methods =====

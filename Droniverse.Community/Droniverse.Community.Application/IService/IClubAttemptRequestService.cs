@@ -21,6 +21,6 @@ namespace Droniverse.Community.Application.IService
         /// <summary>
         /// Lấy tất cả ClubAttemptRequests với filter/search
         /// </summary>
-        Task<PaginationResult<IEnumerable<ClubRequestResponseDto>>> GetAllClubAttemptRequests(ClubAttemptRequestSearchRequest searchRequest);
+        Task<PaginationResult<IEnumerable<ClubRequestResponseDto>>> GetAllClubAttemptRequests(Guid clubID, ClubAttemptRequestSearchRequest searchRequest);
     }
 }

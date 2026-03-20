@@ -18,13 +18,14 @@ using System.Text;
 using System.Threading.Tasks;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Community.Application.DTO.Extensions;
+using Droniverse.Community.Application.Helpers;
 
 namespace Droniverse.Community.Application.Services
 {
     public class ClubCreationRequestService : IClubCreationRequestService
     {
         private readonly IUnitOfWork _unitOfWork;
-        private readonly IMapper _mapper;
+        //private readonly IMapper _mapper;
         private readonly IdentityMicroserviceClient _identityMicroserviceClient;
         private readonly ICurrentUserService _currentUserService;
 
@@ -35,7 +36,7 @@ namespace Droniverse.Community.Application.Services
             ICurrentUserService currentUserService)
         {
             _unitOfWork = unitOfWork;
-            _mapper = mapper;
+            //_mapper = mapper;
             _identityMicroserviceClient = identityMicroserviceClient;
             _currentUserService = currentUserService;
         }
@@ -48,17 +49,12 @@ namespace Droniverse.Community.Application.Services
             if (isUserExisted)
                 throw new InvalidOperationException("Người dùng hiện đang có một yêu cầu khác chưa xử lí xong. Không thể tạo mới được");
 
-            if (dto.CategoryIDs != null && dto.CategoryIDs.Any())
+            if (dto.CategoryIDs != null && dto.CategoryIDs.Count != 0)
             {
                 foreach (var categoryId in dto.CategoryIDs)
                 {
                     var category = await _unitOfWork.Categories
-                        .GetByCondition(c => c.CategoryID == categoryId);
-
-                    if (category == null)
-                    {
-                        throw new KeyNotFoundException($"Category with ID [{categoryId}] not found.");
-                    }
+                        .GetByCondition(c => c.CategoryID == categoryId) ?? throw new KeyNotFoundException($"Category with ID [{categoryId}] not found.");
                 }
             }
 
@@ -75,7 +71,7 @@ namespace Droniverse.Community.Application.Services
 
             await _unitOfWork.ClubCreationRequests.Add(request);
 
-            if (dto.CategoryIDs != null && dto.CategoryIDs.Any())
+            if (dto.CategoryIDs != null && dto.CategoryIDs.Count != 0)
             {
                 foreach (var categoryId in dto.CategoryIDs)
                 {
@@ -103,7 +99,7 @@ namespace Droniverse.Community.Application.Services
         {
             var requests = await _unitOfWork.ClubCreationRequests.GetManyByCondition(
                                         x => !searchRequest.status.HasValue || x.Status == searchRequest.status.Value,
-                                        q => q.Include(x => x.Categories).ThenInclude(c => c.Category).OrderByDescending(c => c.CreatedAt)
+                                        q => q.AsNoTracking().Include(x => x.Categories).ThenInclude(c => c.Category).OrderByDescending(c => c.CreatedAt)
                                     );
 
             if (requests == null || !requests.Any())
@@ -116,7 +112,7 @@ namespace Droniverse.Community.Application.Services
                 .ToList();
 
             IEnumerable<UserResponse> users = Enumerable.Empty<UserResponse>();
-            if (userIds.Any())
+            if (userIds.Count != 0)
             {
                 try
                 {
@@ -152,9 +148,9 @@ namespace Droniverse.Community.Application.Services
                     ClubID = x.ClubID,
                     RequesterID = x.RequesterID,
                     ApproverID = x.ApproverID,
-                    RequesterName = requester?.LastName,
+                    RequesterName = AppHelper.GetFullName(requester),
                     RequesterEmail = requester?.Email,
-                    ApproverName = approver?.LastName,
+                    ApproverName = AppHelper.GetFullName(approver),
                     ApproverEmail = approver?.Email,
                     Status = x.Status,
                     Categories = x.Categories.Select(c => new CategoryResponseDto(
@@ -180,7 +176,7 @@ namespace Droniverse.Community.Application.Services
                                     );
 
             if (requests == null || !requests.Any())
-                return Enumerable.Empty<ClubCreationRequestResponseDto>();
+                return [];
 
             var userIds = requests
                 .Select(x => x.RequesterID)
@@ -188,7 +184,7 @@ namespace Droniverse.Community.Application.Services
                 .Distinct()
                 .ToList();
 
-            IEnumerable<UserResponse> users = Enumerable.Empty<UserResponse>();
+            IEnumerable<UserResponse> users = [];
             if (userIds.Any())
             {
                 try
@@ -225,9 +221,9 @@ namespace Droniverse.Community.Application.Services
                     ClubID = x.ClubID,
                     RequesterID = x.RequesterID,
                     ApproverID = x.ApproverID,
-                    RequesterName = requester?.LastName,
+                    RequesterName = AppHelper.GetFullName(requester),
                     RequesterEmail = requester?.Email,
-                    ApproverName = approver?.LastName,
+                    ApproverName = AppHelper.GetFullName(approver),
                     ApproverEmail = approver?.Email,
                     Status = x.Status,
                     Categories = x.Categories.Select(c => new CategoryResponseDto(
@@ -286,9 +282,9 @@ namespace Droniverse.Community.Application.Services
                 ClubID = request.ClubID,
                 RequesterID = request.RequesterID,
                 ApproverID = request.ApproverID,
-                RequesterName = requester?.LastName,
+                RequesterName = AppHelper.GetFullName(requester),
                 RequesterEmail = requester?.Email,
-                ApproverName = approver?.LastName,
+                ApproverName = AppHelper.GetFullName(approver),
                 ApproverEmail = approver?.Email,
                 Status = request.Status,
                 Categories = request.Categories.Select(c => new CategoryResponseDto(
@@ -410,7 +406,7 @@ namespace Droniverse.Community.Application.Services
                 throw new KeyNotFoundException($"Club creation request with ID {id} not found.");
 
             // Validate categories exist
-            if (dto.CategoryIDs != null && dto.CategoryIDs.Any())
+            if (dto.CategoryIDs != null && dto.CategoryIDs.Count != 0)
             {
                 foreach (var categoryId in dto.CategoryIDs)
                 {
@@ -465,7 +461,7 @@ namespace Droniverse.Community.Application.Services
             var updatedRequest = await _unitOfWork.ClubCreationRequests.GetByCondition(
                 r => r.ClubCreationRequestID == id,
                 query => query.Include(i => i.Categories).ThenInclude(c => c.Category)
-            );
+            ) ?? throw new KeyNotFoundException($"Club creation request with ID {id} not found.");
 
             // Return response
             return new ClubCreationRequestUpdateInfoResponseDto
@@ -497,9 +493,7 @@ namespace Droniverse.Community.Application.Services
         {
             const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
             var random = new Random();
-            return new string(Enumerable.Range(0, 6)
-                .Select(_ => chars[random.Next(chars.Length)])
-                .ToArray());
+            return new string([.. Enumerable.Range(0, 6).Select(_ => chars[random.Next(chars.Length)])]);
         }
     }
 }

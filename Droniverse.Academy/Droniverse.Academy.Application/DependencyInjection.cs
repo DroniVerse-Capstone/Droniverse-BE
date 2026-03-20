@@ -1,5 +1,8 @@
 ﻿using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Application.IService.Mongo;
+﻿using Droniverse.Academy.Application.Delegate;
+using Droniverse.Academy.Application.HttpClients;
+using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Application.Mapper;
 using Droniverse.Academy.Application.Services;
 using Droniverse.Academy.Application.Services.Mongo;
@@ -30,6 +33,29 @@ public static class DependencyInjection
         services.AddScoped<IUserCertificateService, UserCertificateService>();
         services.AddScoped<IFeedbackService, FeedbackService>();
         services.AddScoped<ILabContentService, LabContentService>();
+
+        services.AddTransient<AuthorizationDelegatingHandler>();
+
+        //đăng ký httpclient
+        services.AddHttpClient<IdentityMicroserviceClient>(client =>
+        {
+            client.BaseAddress = new Uri($"http://{configuration["IdentityMicroserviceName"]}:{configuration["IdentityMicroservicePort"]}");
+        }).AddHttpMessageHandler<AuthorizationDelegatingHandler>(); ;
+        services.AddHttpClient<CommunityMicroserviceClient>(client =>
+        {
+            client.BaseAddress = new Uri($"http://{configuration["CommunityMicroserviceName"]}:{configuration["CommunityMicroservicePort"]}");
+        }).AddHttpMessageHandler<AuthorizationDelegatingHandler>(); ;
+
+        // Đăng ký Redis
+        services.AddStackExchangeRedisCache(options =>
+        {
+            var host = configuration["Redis:Host"];
+            var port = configuration["Redis:Port"];
+            var password = configuration["Redis:Password"];
+            var user = configuration["Redis:User"];
+            options.Configuration = $"{host}:{port},password={password},user={user}";
+        });
+
         return services;
     }
 

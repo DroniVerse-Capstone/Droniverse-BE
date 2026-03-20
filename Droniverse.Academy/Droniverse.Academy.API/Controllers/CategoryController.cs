@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
+using Droniverse.Academy.Application.HttpClients;
 
 namespace Droniverse.Academy.API.Controllers;
 
@@ -12,6 +13,7 @@ public class CategoryController : ControllerBase
 {
     private readonly ILogger<CategoryController> _logger;
     private readonly ICourseVersionCategoryService _service;
+    
 
     public CategoryController(ILogger<CategoryController> logger, ICourseVersionCategoryService service)
     {
@@ -35,4 +37,5 @@ public class CategoryController : ControllerBase
             throw;
         }
     }
+
 }
