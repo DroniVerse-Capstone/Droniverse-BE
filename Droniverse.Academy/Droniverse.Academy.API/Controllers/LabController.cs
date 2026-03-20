@@ -22,13 +22,13 @@ public class LabController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = Roles.AdminOrSystemManager)]
+    [Authorize(Roles = Roles.AllRoles)]
     public async Task<IActionResult> CreateLab([FromBody] CreateLabRequestDTO request)
     {
         try
         {
             var created = await _labService.CreateLabAsync(request);
-            return StatusCode(201, SuccessResponse<LabClientViewDTO>.Create(created, "Tạo lab thành công."));
+            return StatusCode(201, SuccessResponse<LabDetailResponseDTO>.Create(created, "Tạo lab thành công."));
         }
         catch (Exception ex)
         {
@@ -38,13 +38,13 @@ public class LabController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = Roles.AdminOrSystemManager)]
-    public async Task<IActionResult> GetLabs()
+    [Authorize(Roles = Roles.AllRoles)]
+    public async Task<IActionResult> GetLabs([FromQuery] GetLabsQueryDTO query)
     {
         try
         {
-            var labs = await _labService.GetLabsAsync();
-            return Ok(SuccessResponse<IEnumerable<LabClientViewDTO>>.Create(labs, "Lấy danh sách lab thành công."));
+            var labs = await _labService.GetLabsAsync(query);
+            return Ok(SuccessResponse<object>.Create(labs, "Lấy danh sách lab thành công."));
         }
         catch (Exception ex)
         {
@@ -60,7 +60,7 @@ public class LabController : ControllerBase
         try
         {
             var lab = await _labService.GetLabByIdAsync(labId);
-            return Ok(SuccessResponse<LabClientViewDTO>.Create(lab, "Lấy chi tiết lab thành công."));
+            return Ok(SuccessResponse<LabDetailResponseDTO>.Create(lab, "Lấy chi tiết lab thành công."));
         }
         catch (Exception ex)
         {
@@ -76,11 +76,27 @@ public class LabController : ControllerBase
         try
         {
             var updated = await _labService.UpdateLabAsync(labId, request);
-            return Ok(SuccessResponse<LabClientViewDTO>.Create(updated, "Cập nhật lab thành công."));
+            return Ok(SuccessResponse<LabDetailResponseDTO>.Create(updated, "Cập nhật lab thành công."));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Cập nhật lab thất bại.");
+            throw;
+        }
+    }
+
+    [HttpPut("{labId:guid}/content")]
+    [Authorize(Roles = Roles.AllRoles)]
+    public async Task<IActionResult> UpdateLabContent(Guid labId, [FromBody] UpdateLabContentRequestDTO request)
+    {
+        try
+        {
+            var updated = await _labService.UpdateLabContentAsync(labId, request);
+            return Ok(SuccessResponse<LabContentResponseDTO>.Create(updated, "Cập nhật lab content thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Cập nhật lab content thất bại.");
             throw;
         }
     }

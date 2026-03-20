@@ -1,6 +1,8 @@
 ﻿using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.Application.IService.Mongo;
 using Droniverse.Academy.Application.Mapper;
 using Droniverse.Academy.Application.Services;
+using Droniverse.Academy.Application.Services.Mongo;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -27,6 +29,7 @@ public static class DependencyInjection
         services.AddScoped<ICertificateService, CertificateService>();
         services.AddScoped<IUserCertificateService, UserCertificateService>();
         services.AddScoped<IFeedbackService, FeedbackService>();
+        services.AddScoped<ILabContentService, LabContentService>();
         return services;
     }
 
