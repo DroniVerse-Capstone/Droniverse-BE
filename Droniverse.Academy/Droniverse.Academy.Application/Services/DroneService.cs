@@ -3,6 +3,7 @@ using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
+using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
 using Droniverse.Shared.Exceptions;
 
@@ -19,9 +20,10 @@ public class DroneService : IDroneService
         _mapper = mapper;
     }
 
-    public async Task<IEnumerable<DroneClientViewDTO>> GetDronesAsync()
+    public async Task<IEnumerable<DroneClientViewDTO>> GetDronesAsync(DroneStatus? status = null)
     {
         var drones = await _unitOfWork.Drones.GetAllAsync(
+            filter: status.HasValue ? d => d.Status == status.Value : null,
             orderBy: q => q.OrderBy(x => x.DroneNameEN),
             pageIndex: 1,
             pageSize: int.MaxValue,

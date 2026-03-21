@@ -56,16 +56,30 @@ public class UserCertificateService : IUserCertificateService
         return _mapper.Map<UserCertificateResponseDTO>(uc);
     }
 
-    public async Task<PaginationResult<IEnumerable<UserCertificateResponseDTO>>> GetUserCertificatesAsync(Guid userId, int pageIndex = 1, int pageSize = 50)
+    public async Task<PaginationResult<IEnumerable<UserCertificateResponseDTO>>> GetUserCertificatesAsync(Guid userId, int pageIndex = 1, int pageSize = 50, UserCertificateStatus? status = null)
     {
-        var result = await _unitOfWork.UserCertificates.GetAllAsync(x => x.UserID == userId, null, pageIndex, pageSize, includeProperties: "Certificate");
+        var result = await _unitOfWork.UserCertificates.GetAllAsync(
+            status.HasValue
+                ? x => x.UserID == userId && x.Status == status.Value
+                : x => x.UserID == userId,
+            null,
+            pageIndex,
+            pageSize,
+            includeProperties: "Certificate");
         var mapped = result.Data.Select(x => _mapper.Map<UserCertificateResponseDTO>(x)).ToList();
         return new PaginationResult<IEnumerable<UserCertificateResponseDTO>>(mapped, result.TotalRecords, result.PageIndex, result.PageSize);
     }
 
-    public async Task<PaginationResult<IEnumerable<UserCertificateResponseDTO>>> GetUsersByCertificateAsync(Guid certificateId, int pageIndex = 1, int pageSize = 50)
+    public async Task<PaginationResult<IEnumerable<UserCertificateResponseDTO>>> GetUsersByCertificateAsync(Guid certificateId, int pageIndex = 1, int pageSize = 50, UserCertificateStatus? status = null)
     {
-        var result = await _unitOfWork.UserCertificates.GetAllAsync(x => x.CertificateID == certificateId, null, pageIndex, pageSize, includeProperties: "Certificate");
+        var result = await _unitOfWork.UserCertificates.GetAllAsync(
+            status.HasValue
+                ? x => x.CertificateID == certificateId && x.Status == status.Value
+                : x => x.CertificateID == certificateId,
+            null,
+            pageIndex,
+            pageSize,
+            includeProperties: "Certificate");
         var mapped = result.Data.Select(x => _mapper.Map<UserCertificateResponseDTO>(x)).ToList();
         return new PaginationResult<IEnumerable<UserCertificateResponseDTO>>(mapped, result.TotalRecords, result.PageIndex, result.PageSize);
     }

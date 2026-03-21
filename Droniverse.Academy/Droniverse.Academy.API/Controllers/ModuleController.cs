@@ -21,6 +21,9 @@ public class ModuleController : ControllerBase
         _service = service;
     }
 
+    /// <summary>
+    /// Tạo mô-đun mới.
+    /// </summary>
     [HttpPost]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> CreateModule(Guid courseId, Guid versionId, [FromBody] CreateModuleRequestDTO request)
@@ -38,6 +41,9 @@ public class ModuleController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy danh sách mô-đun.
+    /// </summary>
     [HttpGet]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> GetModules(Guid courseId, Guid versionId)
@@ -54,6 +60,9 @@ public class ModuleController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy chi tiết mô-đun.
+    /// </summary>
     [HttpGet("{moduleId:guid}")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> GetModuleById(Guid courseId, Guid versionId, Guid moduleId)
@@ -70,6 +79,9 @@ public class ModuleController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Cập nhật mô-đun.
+    /// </summary>
     [HttpPut("{moduleId:guid}")]
     [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> UpdateModule(Guid courseId, Guid versionId, Guid moduleId, [FromBody] UpdateModuleRequestDTO request)
@@ -86,6 +98,9 @@ public class ModuleController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Xóa mô-đun.
+    /// </summary>
     [HttpDelete("{moduleId:guid}")]
     [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> DeleteModule(Guid courseId, Guid versionId, Guid moduleId)
@@ -102,6 +117,9 @@ public class ModuleController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Sắp xếp lại thứ tự mô-đun.
+    /// </summary>
     [HttpPatch("reorder")]
     [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> ReorderModules(Guid courseId, Guid versionId, [FromBody] ReorderModulesRequestDTO request)

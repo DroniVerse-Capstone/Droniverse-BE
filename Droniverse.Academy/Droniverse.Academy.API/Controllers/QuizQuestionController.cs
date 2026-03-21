@@ -21,6 +21,9 @@ public class QuizQuestionController : ControllerBase
         _quizQuestionService = quizQuestionService;
     }
 
+    /// <summary>
+    /// Tạo câu hỏi cho bài quiz.
+    /// </summary>
     [HttpPost]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> CreateQuizQuestion(Guid quizId, [FromBody] CreateQuizQuestionRequestDTO request)
@@ -37,6 +40,9 @@ public class QuizQuestionController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy danh sách câu hỏi của quiz.
+    /// </summary>
     [HttpGet]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> GetQuizQuestionsByQuizId(Guid quizId)
@@ -53,6 +59,9 @@ public class QuizQuestionController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy chi tiết câu hỏi quiz.
+    /// </summary>
     [HttpGet("{questionId:guid}")]
     [Authorize(Roles = $"{Roles.AdminOrSystemManager},{Roles.ClubMember}")]
     public async Task<IActionResult> GetQuizQuestionById(Guid quizId, Guid questionId)
@@ -69,6 +78,9 @@ public class QuizQuestionController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Cập nhật câu hỏi quiz.
+    /// </summary>
     [HttpPut("{questionId:guid}")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> UpdateQuizQuestion(Guid quizId, Guid questionId, [FromBody] UpdateQuizQuestionRequestDTO request)
@@ -85,6 +97,9 @@ public class QuizQuestionController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Xóa câu hỏi quiz.
+    /// </summary>
     [HttpDelete("{questionId:guid}")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> DeleteQuizQuestion(Guid quizId, Guid questionId)

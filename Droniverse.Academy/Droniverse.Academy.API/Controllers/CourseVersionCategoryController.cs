@@ -20,6 +20,9 @@ public class CourseVersionCategoryController : ControllerBase
         _service = service;
     }
 
+    /// <summary>
+    /// Gán danh mục cho phiên bản khóa học.
+    /// </summary>
     [HttpPost]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> AddCategory(Guid courseId, Guid versionId, [FromBody] AssignCategoryRequestDTO request)
@@ -36,6 +39,9 @@ public class CourseVersionCategoryController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Gỡ danh mục khỏi phiên bản khóa học.
+    /// </summary>
     [HttpDelete("{categoryId:guid}")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> RemoveCategory(Guid courseId, Guid versionId, Guid categoryId)
@@ -52,6 +58,9 @@ public class CourseVersionCategoryController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy danh sách danh mục của phiên bản khóa học.
+    /// </summary>
     [HttpGet]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> GetCategories(Guid courseId, Guid versionId, [FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 50)

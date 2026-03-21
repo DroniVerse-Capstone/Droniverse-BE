@@ -43,7 +43,6 @@ namespace Droniverse.Academy.API.Controllers
         /// <summary>
         /// Lấy danh sách khóa học theo danh sách ID.
         /// </summary>
-        /// <param name="request">Danh sách ID khóa học cần truy vấn.</param>
         // POST academy/courses/by-ids
         [HttpPost("by-ids")]
         public async Task<IActionResult> GetCoursesByIds([FromBody] GetCoursesByIdsRequestDTO request)
@@ -63,7 +62,6 @@ namespace Droniverse.Academy.API.Controllers
         /// <summary>
         /// Lấy chi tiết khóa học (luôn trả về theo current version).
         /// </summary>
-        /// <param name="courseId">Mã khóa học cần lấy chi tiết.</param>
         // GET academy/courses/{courseId}
         [HttpGet("{courseId:guid}")]
         public async Task<IActionResult> GetCourseById(Guid courseId)
@@ -83,10 +81,6 @@ namespace Droniverse.Academy.API.Controllers
         /// <summary>
         /// Lấy danh sách khóa học (theo current version) và lọc theo trạng thái khóa học.
         /// </summary>
-        /// <param name="pageIndex">Trang hiện tại, bắt đầu từ 1.</param>
-        /// <param name="pageSize">Số bản ghi trên mỗi trang.</param>
-        /// <param name="search">Từ khóa tìm kiếm theo tiêu đề current version (VN/EN).</param>
-        /// <param name="status">Bộ lọc trạng thái khóa học (dropdown enum trong Swagger). Chọn <c>All</c> để lấy toàn bộ.</param>
         // GET academy/courses?pageIndex=1&pageSize=10&search=...&status=All|Draft|Publish|Unpublish|Archived
         [HttpGet]
         public async Task<IActionResult> GetAllCourses([FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 10, [FromQuery] string? search = null, [FromQuery] CourseStatusFilter status = CourseStatusFilter.All)
@@ -106,7 +100,6 @@ namespace Droniverse.Academy.API.Controllers
         /// <summary>
         /// Xuất bản khóa học.
         /// </summary>
-        /// <param name="courseId">Mã khóa học cần xuất bản.</param>
         // POST academy/courses/{courseId}/publish
         [HttpPost("{courseId}/publish")]
         public async Task<IActionResult> PublishCourse(Guid courseId)
@@ -126,7 +119,6 @@ namespace Droniverse.Academy.API.Controllers
         /// <summary>
         /// Hủy xuất bản khóa học.
         /// </summary>
-        /// <param name="courseId">Mã khóa học cần hủy xuất bản.</param>
         // POST academy/courses/{courseId}/unpublish
         [HttpPost("{courseId}/unpublish")]
         public async Task<IActionResult> UnpublishCourse(Guid courseId)
@@ -146,7 +138,6 @@ namespace Droniverse.Academy.API.Controllers
         /// <summary>
         /// Xóa (archive) khóa học.
         /// </summary>
-        /// <param name="courseId">Mã khóa học cần xóa mềm (archive).</param>
         // DELETE academy/courses/{courseId}
         [HttpDelete("{courseId}")]
         public async Task<IActionResult> DeleteCourse(Guid courseId)

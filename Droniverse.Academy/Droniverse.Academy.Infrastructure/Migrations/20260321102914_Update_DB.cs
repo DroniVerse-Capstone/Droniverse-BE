@@ -10,6 +10,10 @@ namespace Droniverse.Academy.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropIndex(
+                name: "IX_Lesson_ModuleID",
+                table: "Lesson");
+
             migrationBuilder.AddColumn<int>(
                 name: "OrderIndex",
                 table: "Lesson",
@@ -43,6 +47,11 @@ namespace Droniverse.Academy.Infrastructure.Migrations
             migrationBuilder.DropColumn(
                 name: "OrderIndex",
                 table: "Lesson");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Lesson_ModuleID",
+                table: "Lesson",
+                column: "ModuleID");
         }
     }
 }

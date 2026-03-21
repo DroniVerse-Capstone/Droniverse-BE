@@ -1,4 +1,6 @@
 ﻿using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.API.Enums;
+using Droniverse.Academy.Domain.Enums;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
@@ -19,6 +21,9 @@ public class UserCertificateController : ControllerBase
         _service = service;
     }
 
+    /// <summary>
+    /// Cấp chứng chỉ cho người dùng.
+    /// </summary>
     // POST /academy/certificates/{certificateId}/users/{userId}
     [HttpPost("certificates/{certificateId:guid}/users/{userId:guid}")]
     public async Task<IActionResult> GrantCertificate(Guid certificateId, Guid userId)
@@ -35,14 +40,21 @@ public class UserCertificateController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy danh sách chứng chỉ của một người dùng và lọc theo trạng thái.
+    /// </summary>
     // GET /academy/users/{userId}/certificates
     [HttpGet("users/{userId:guid}/certificates")]
     [Authorize(Roles = Roles.AdminOrManagerRoles)]
-    public async Task<IActionResult> GetUserCertificates(Guid userId, [FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 50)
+    public async Task<IActionResult> GetUserCertificates(
+        Guid userId,
+        [FromQuery] int pageIndex = 1,
+        [FromQuery] int pageSize = 50,
+        [FromQuery] UserCertificateStatusFilter status = UserCertificateStatusFilter.All)
     {
         try
         {
-            var result = await _service.GetUserCertificatesAsync(userId, pageIndex, pageSize);
+            var result = await _service.GetUserCertificatesAsync(userId, pageIndex, pageSize, MapUserCertificateStatus(status));
             return Ok(SuccessResponse<object>.Create(result, "Lấy danh sách chứng chỉ của người dùng thành công."));
         }
         catch (Exception ex)
@@ -52,6 +64,9 @@ public class UserCertificateController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy chi tiết chứng chỉ của người dùng.
+    /// </summary>
     // GET /academy/users/{userId}/certificates/{certificateId}
     [HttpGet("users/{userId:guid}/certificates/{certificateId:guid}")]
     [Authorize(Roles = Roles.AdminOrManagerRoles)]
@@ -69,14 +84,21 @@ public class UserCertificateController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy danh sách người dùng theo chứng chỉ và lọc theo trạng thái.
+    /// </summary>
     // GET /academy/certificates/{certificateId}/users
     [HttpGet("certificates/{certificateId:guid}/users")]
     [Authorize(Roles = Roles.Admin)]
-    public async Task<IActionResult> GetUsersByCertificate(Guid certificateId, [FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 50)
+    public async Task<IActionResult> GetUsersByCertificate(
+        Guid certificateId,
+        [FromQuery] int pageIndex = 1,
+        [FromQuery] int pageSize = 50,
+        [FromQuery] UserCertificateStatusFilter status = UserCertificateStatusFilter.All)
     {
         try
         {
-            var result = await _service.GetUsersByCertificateAsync(certificateId, pageIndex, pageSize);
+            var result = await _service.GetUsersByCertificateAsync(certificateId, pageIndex, pageSize, MapUserCertificateStatus(status));
             return Ok(SuccessResponse<object>.Create(result, "Lấy danh sách người dùng theo chứng chỉ thành công."));
         }
         catch (Exception ex)
@@ -86,6 +108,9 @@ public class UserCertificateController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Thu hồi chứng chỉ của người dùng.
+    /// </summary>
     // PATCH /academy/users/{userId}/certificates/{certificateId}/revoke
     [HttpPatch("users/{userId:guid}/certificates/{certificateId:guid}/revoke")]
     [Authorize(Roles = Roles.Admin)]
@@ -101,5 +126,16 @@ public class UserCertificateController : ControllerBase
             _logger.LogError(ex, "Thu hồi chứng chỉ của người dùng thất bại.");
             throw;
         }
+    }
+
+    private static UserCertificateStatus? MapUserCertificateStatus(UserCertificateStatusFilter status)
+    {
+        return status switch
+        {
+            UserCertificateStatusFilter.All => null,
+            UserCertificateStatusFilter.Achieved => UserCertificateStatus.ACHIEVED,
+            UserCertificateStatusFilter.Revoked => UserCertificateStatus.REVOKED,
+            _ => null
+        };
     }
 }

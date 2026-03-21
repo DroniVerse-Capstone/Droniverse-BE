@@ -21,6 +21,9 @@ public class TheoryController : ControllerBase
         _theoryService = theoryService;
     }
 
+    /// <summary>
+    /// Tạo mới bài lý thuyết.
+    /// </summary>
     [HttpPost]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> CreateTheory([FromBody] CreateTheoryRequestDTO request)
@@ -37,6 +40,9 @@ public class TheoryController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy danh sách bài lý thuyết.
+    /// </summary>
     [HttpGet]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> GetTheories()
@@ -53,6 +59,9 @@ public class TheoryController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy chi tiết bài lý thuyết.
+    /// </summary>
     [HttpGet("{theoryId:guid}")]
     [Authorize(Roles = $"{Roles.AdminOrSystemManager},{Roles.ClubMember}")]
     public async Task<IActionResult> GetTheoryById(Guid theoryId)
@@ -69,6 +78,9 @@ public class TheoryController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Cập nhật bài lý thuyết.
+    /// </summary>
     [HttpPut("{theoryId:guid}")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> UpdateTheory(Guid theoryId, [FromBody] UpdateTheoryRequestDTO request)
@@ -85,6 +97,9 @@ public class TheoryController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Xóa bài lý thuyết.
+    /// </summary>
     [HttpDelete("{theoryId:guid}")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> DeleteTheory(Guid theoryId)

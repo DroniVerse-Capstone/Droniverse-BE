@@ -22,6 +22,9 @@ public class CourseVersionRequiredDroneController : ControllerBase
         _requiredDroneService = requiredDroneService;
     }
 
+    /// <summary>
+    /// Gán drone yêu cầu cho phiên bản khóa học.
+    /// </summary>
     [HttpPost]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> AddRequiredDrone(Guid courseId, Guid versionId, [FromBody] AddRequiredDroneRequestDTO request)
@@ -39,6 +42,9 @@ public class CourseVersionRequiredDroneController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Gỡ drone yêu cầu khỏi phiên bản khóa học.
+    /// </summary>
     [HttpDelete("{droneId:guid}")]
     [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> RemoveRequiredDrone(Guid courseId, Guid versionId, Guid droneId)
@@ -56,6 +62,9 @@ public class CourseVersionRequiredDroneController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy danh sách drone yêu cầu của phiên bản khóa học.
+    /// </summary>
     [HttpGet]
     [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> GetRequiredDrones(Guid courseId, Guid versionId)

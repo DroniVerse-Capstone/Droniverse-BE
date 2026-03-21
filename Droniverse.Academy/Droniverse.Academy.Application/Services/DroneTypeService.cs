@@ -3,6 +3,7 @@ using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
+using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
 using Droniverse.Shared.Exceptions;
 
@@ -109,12 +110,14 @@ public class DroneTypeService : IDroneTypeService
         return _mapper.Map<DroneClientViewDTO>(created ?? drone);
     }
 
-    public async Task<IEnumerable<DroneClientViewDTO>> GetDronesByTypeAsync(Guid droneTypeId)
+    public async Task<IEnumerable<DroneClientViewDTO>> GetDronesByTypeAsync(Guid droneTypeId, DroneStatus? status = null)
     {
         await EnsureDroneTypeExistsAsync(droneTypeId);
 
         var drones = await _unitOfWork.Drones.GetAllAsync(
-            filter: d => d.DroneTypeID == droneTypeId,
+            filter: status.HasValue
+                ? d => d.DroneTypeID == droneTypeId && d.Status == status.Value
+                : d => d.DroneTypeID == droneTypeId,
             orderBy: q => q.OrderBy(x => x.DroneNameEN),
             pageIndex: 1,
             pageSize: int.MaxValue,

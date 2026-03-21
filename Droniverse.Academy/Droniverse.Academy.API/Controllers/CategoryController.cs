@@ -21,6 +21,9 @@ public class CategoryController : ControllerBase
         _service = service;
     }
 
+    /// <summary>
+    /// Lấy danh sách phiên bản khóa học theo danh mục.
+    /// </summary>
     // GET /academy/categories/{categoryId}/course-versions
     [HttpGet("{categoryId:guid}/course-versions")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]

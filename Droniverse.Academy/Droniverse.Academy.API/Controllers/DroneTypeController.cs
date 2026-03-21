@@ -1,6 +1,8 @@
 ﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.API.Enums;
+using Droniverse.Academy.Domain.Enums;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
@@ -21,6 +23,9 @@ public class DroneTypeController : ControllerBase
         _droneTypeService = droneTypeService;
     }
 
+    /// <summary>
+    /// Tạo loại drone mới.
+    /// </summary>
     [HttpPost]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> CreateDroneType([FromBody] CreateDroneTypeRequestDTO request)
@@ -37,6 +42,9 @@ public class DroneTypeController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy danh sách loại drone.
+    /// </summary>
     [HttpGet]
     [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> GetDroneTypes()
@@ -53,6 +61,9 @@ public class DroneTypeController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy chi tiết loại drone.
+    /// </summary>
     [HttpGet("{droneTypeId:guid}")]
     [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> GetDroneTypeById(Guid droneTypeId)
@@ -69,6 +80,9 @@ public class DroneTypeController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Cập nhật loại drone.
+    /// </summary>
     [HttpPut("{droneTypeId:guid}")]
     [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> UpdateDroneType(Guid droneTypeId, [FromBody] UpdateDroneTypeRequestDTO request)
@@ -85,6 +99,9 @@ public class DroneTypeController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Xóa loại drone.
+    /// </summary>
     [HttpDelete("{droneTypeId:guid}")]
     [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> DeleteDroneType(Guid droneTypeId)
@@ -101,6 +118,9 @@ public class DroneTypeController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Tạo drone mới thuộc một loại drone.
+    /// </summary>
     [HttpPost("{droneTypeId:guid}/drones")]
     [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> CreateDrone(Guid droneTypeId, [FromBody] CreateDroneRequestDTO request)
@@ -117,13 +137,16 @@ public class DroneTypeController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy danh sách drone theo loại và lọc theo trạng thái.
+    /// </summary>
     [HttpGet("{droneTypeId:guid}/drones")]
     [Authorize(Roles = Roles.Admin)]
-    public async Task<IActionResult> GetDronesByType(Guid droneTypeId)
+    public async Task<IActionResult> GetDronesByType(Guid droneTypeId, [FromQuery] DroneStatusFilter status = DroneStatusFilter.All)
     {
         try
         {
-            var drones = await _droneTypeService.GetDronesByTypeAsync(droneTypeId);
+            var drones = await _droneTypeService.GetDronesByTypeAsync(droneTypeId, MapDroneStatus(status));
             return Ok(SuccessResponse<IEnumerable<DroneClientViewDTO>>.Create(drones, "Lấy danh sách drone theo loại thành công."));
         }
         catch (Exception ex)
@@ -131,5 +154,17 @@ public class DroneTypeController : ControllerBase
             _logger.LogError(ex, "Lấy danh sách drone theo loại thất bại.");
             throw;
         }
+    }
+
+    private static DroneStatus? MapDroneStatus(DroneStatusFilter status)
+    {
+        return status switch
+        {
+            DroneStatusFilter.All => null,
+            DroneStatusFilter.Draft => DroneStatus.DRAFT,
+            DroneStatusFilter.Available => DroneStatus.AVAILABLE,
+            DroneStatusFilter.Maintenance => DroneStatus.MAINTENANCE,
+            _ => null
+        };
     }
 }

@@ -21,6 +21,9 @@ public class LabController : ControllerBase
         _labService = labService;
     }
 
+    /// <summary>
+    /// Tạo mới bài lab.
+    /// </summary>
     [HttpPost]
     [Authorize(Roles = Roles.AllRoles)]
     public async Task<IActionResult> CreateLab([FromBody] CreateLabRequestDTO request)
@@ -37,6 +40,9 @@ public class LabController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy danh sách bài lab.
+    /// </summary>
     [HttpGet]
     [Authorize(Roles = Roles.AllRoles)]
     public async Task<IActionResult> GetLabs([FromQuery] GetLabsQueryDTO query)
@@ -53,6 +59,9 @@ public class LabController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy chi tiết bài lab.
+    /// </summary>
     [HttpGet("{labId:guid}")]
     [Authorize(Roles = $"{Roles.AdminOrSystemManager},{Roles.ClubMember}")]
     public async Task<IActionResult> GetLabById(Guid labId)
@@ -69,6 +78,9 @@ public class LabController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Cập nhật bài lab.
+    /// </summary>
     [HttpPut("{labId:guid}")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> UpdateLab(Guid labId, [FromBody] UpdateLabRequestDTO request)
@@ -85,6 +97,9 @@ public class LabController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Cập nhật nội dung lab.
+    /// </summary>
     [HttpPut("{labId:guid}/content")]
     [Authorize(Roles = Roles.AllRoles)]
     public async Task<IActionResult> UpdateLabContent(Guid labId, [FromBody] UpdateLabContentRequestDTO request)
@@ -101,6 +116,9 @@ public class LabController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Xóa bài lab.
+    /// </summary>
     [HttpDelete("{labId:guid}")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> DeleteLab(Guid labId)

@@ -21,6 +21,9 @@ public class CourseVersionFeedbackController : ControllerBase
         _feedbackService = feedbackService;
     }
 
+    /// <summary>
+    /// Tạo phản hồi cho phiên bản khóa học.
+    /// </summary>
     [HttpPost]
     [Authorize(Roles = Roles.ClubMember)]
     public async Task<IActionResult> CreateFeedback(Guid courseId, Guid versionId, [FromBody] FeedbackCreateDTO request)
@@ -40,6 +43,9 @@ public class CourseVersionFeedbackController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy danh sách phản hồi của phiên bản khóa học.
+    /// </summary>
     [HttpGet]
     [Authorize(Roles = $"{Roles.SystemManager},{Roles.ClubManager}")]
     public async Task<IActionResult> GetFeedbacks(Guid courseId, Guid versionId)
@@ -56,6 +62,9 @@ public class CourseVersionFeedbackController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy chi tiết phản hồi.
+    /// </summary>
     [HttpGet("{feedbackId:guid}")]
     [Authorize(Roles = $"{Roles.SystemManager},{Roles.ClubManager}")]
     public async Task<IActionResult> GetFeedbackDetail(Guid courseId, Guid versionId, Guid feedbackId)
@@ -72,6 +81,9 @@ public class CourseVersionFeedbackController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Cập nhật phản hồi.
+    /// </summary>
     [HttpPut("{feedbackId:guid}")]
     [Authorize(Roles = Roles.ClubMember)]
     public async Task<IActionResult> UpdateFeedback(Guid courseId, Guid versionId, Guid feedbackId, [FromBody] FeedbackUpdateDTO request)
@@ -88,6 +100,9 @@ public class CourseVersionFeedbackController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Xóa phản hồi.
+    /// </summary>
     [HttpDelete("{feedbackId:guid}")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> DeleteFeedback(Guid courseId, Guid versionId, Guid feedbackId)

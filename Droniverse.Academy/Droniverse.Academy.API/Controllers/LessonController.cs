@@ -21,6 +21,9 @@ public class LessonController : ControllerBase
         _lessonService = lessonService;
     }
 
+    /// <summary>
+    /// Tạo bài học mới trong mô-đun.
+    /// </summary>
     [HttpPost]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> CreateLesson(Guid moduleId, [FromBody] CreateLessonRequestDTO request)
@@ -37,6 +40,9 @@ public class LessonController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy danh sách bài học của mô-đun.
+    /// </summary>
     [HttpGet]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> GetLessons(Guid moduleId)
@@ -53,6 +59,9 @@ public class LessonController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy chi tiết bài học.
+    /// </summary>
     [HttpGet("{lessonId:guid}")]
     [Authorize(Roles = Roles.AllRoles)]
     public async Task<IActionResult> GetLessonDetail(Guid moduleId, Guid lessonId)
@@ -69,6 +78,9 @@ public class LessonController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Cập nhật bài học.
+    /// </summary>
     [HttpPut("{lessonId:guid}")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> UpdateLesson(Guid moduleId, Guid lessonId, [FromBody] UpdateLessonRequestDTO request)
@@ -85,6 +97,9 @@ public class LessonController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Xóa bài học.
+    /// </summary>
     [HttpDelete("{lessonId:guid}")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> DeleteLesson(Guid moduleId, Guid lessonId)
@@ -101,6 +116,9 @@ public class LessonController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Sắp xếp lại thứ tự bài học.
+    /// </summary>
     [HttpPatch("reorder")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> ReorderLessons(Guid moduleId, [FromBody] ReorderLessonsRequestDTO request)

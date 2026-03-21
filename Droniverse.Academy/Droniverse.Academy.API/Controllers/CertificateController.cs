@@ -20,6 +20,9 @@ public class CertificateController : ControllerBase
         _service = service;
     }
 
+    /// <summary>
+    /// Tạo chứng chỉ cho phiên bản khóa học.
+    /// </summary>
     // POST /academy/courses/{courseId}/versions/{versionId}/certificates
     [HttpPost("courses/{courseId:guid}/versions/{versionId:guid}/certificates")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
@@ -37,6 +40,9 @@ public class CertificateController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy chứng chỉ của phiên bản khóa học.
+    /// </summary>
     // GET /academy/courses/{courseId}/versions/{versionId}/certificates
     [HttpGet("courses/{courseId:guid}/versions/{versionId:guid}/certificates")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
@@ -54,6 +60,9 @@ public class CertificateController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Cập nhật chứng chỉ.
+    /// </summary>
     // PUT /academy/courses/{courseId}/versions/{versionId}/certificates/{certificateId}
     [HttpPut("courses/{courseId:guid}/versions/{versionId:guid}/certificates/{certificateId:guid}")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
@@ -71,6 +80,9 @@ public class CertificateController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Xóa chứng chỉ.
+    /// </summary>
     // DELETE /academy/courses/{courseId}/versions/{versionId}/certificates/{certificateId}
     [HttpDelete("courses/{courseId:guid}/versions/{versionId:guid}/certificates/{certificateId:guid}")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
@@ -88,6 +100,9 @@ public class CertificateController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy chi tiết chứng chỉ theo ID.
+    /// </summary>
     // GET /academy/certificates/{certificateId}
     [HttpGet("certificates/{certificateId:guid}")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
@@ -105,6 +120,9 @@ public class CertificateController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy danh sách chứng chỉ theo danh sách ID.
+    /// </summary>
     // POST /academy/certificates/by-ids
     [HttpPost("certificates/by-ids")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
