@@ -1,8 +1,9 @@
-using AutoMapper;
+﻿using AutoMapper;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
+using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
 using Droniverse.Shared.Exceptions;
 
@@ -49,7 +50,7 @@ public class DroneTypeService : IDroneTypeService
     {
         var droneType = await _unitOfWork.DroneTypes.GetByIdAsync(droneTypeId);
         if (droneType == null)
-            throw new BaseException("Drone type not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy loại drone.", "NOT_FOUND");
 
         return _mapper.Map<DroneTypeClientViewDTO>(droneType);
     }
@@ -63,7 +64,7 @@ public class DroneTypeService : IDroneTypeService
 
         var droneType = await _unitOfWork.DroneTypes.GetByIdAsync(droneTypeId);
         if (droneType == null)
-            throw new BaseException("Drone type not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy loại drone.", "NOT_FOUND");
 
         _mapper.Map(request, droneType);
 
@@ -77,11 +78,11 @@ public class DroneTypeService : IDroneTypeService
     {
         var droneType = await _unitOfWork.DroneTypes.GetByIdAsync(droneTypeId);
         if (droneType == null)
-            throw new BaseException("Drone type not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy loại drone.", "NOT_FOUND");
 
         var inUse = await _unitOfWork.Drones.GetByConditionAsync(d => d.DroneTypeID == droneTypeId);
         if (inUse != null)
-            throw new ValidationException("Cannot delete drone type because there are drones using it.");
+            throw new ValidationException("Không thể xóa loại drone vì đang có drone sử dụng.");
 
         await _unitOfWork.DroneTypes.DeleteAsync(droneType);
         await _unitOfWork.SaveChangesAsync();
@@ -109,12 +110,14 @@ public class DroneTypeService : IDroneTypeService
         return _mapper.Map<DroneClientViewDTO>(created ?? drone);
     }
 
-    public async Task<IEnumerable<DroneClientViewDTO>> GetDronesByTypeAsync(Guid droneTypeId)
+    public async Task<IEnumerable<DroneClientViewDTO>> GetDronesByTypeAsync(Guid droneTypeId, DroneStatus? status = null)
     {
         await EnsureDroneTypeExistsAsync(droneTypeId);
 
         var drones = await _unitOfWork.Drones.GetAllAsync(
-            filter: d => d.DroneTypeID == droneTypeId,
+            filter: status.HasValue
+                ? d => d.DroneTypeID == droneTypeId && d.Status == status.Value
+                : d => d.DroneTypeID == droneTypeId,
             orderBy: q => q.OrderBy(x => x.DroneNameEN),
             pageIndex: 1,
             pageSize: int.MaxValue,
@@ -127,30 +130,30 @@ public class DroneTypeService : IDroneTypeService
     {
         var droneType = await _unitOfWork.DroneTypes.GetByIdAsync(droneTypeId);
         if (droneType == null)
-            throw new BaseException("Drone type not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy loại drone.", "NOT_FOUND");
     }
 
     private static void ValidateDroneTypeData(string typeNameVN, string typeNameEN)
     {
         if (string.IsNullOrWhiteSpace(typeNameVN))
-            throw new ValidationException("TypeNameVN is required.");
+            throw new ValidationException("Tên loại drone tiếng Việt là bắt buộc.");
 
         if (string.IsNullOrWhiteSpace(typeNameEN))
-            throw new ValidationException("TypeNameEN is required.");
+            throw new ValidationException("Tên loại drone tiếng Anh là bắt buộc.");
     }
 
     private static void ValidateDroneData(string droneNameVN, string droneNameEN, float height, float weight)
     {
         if (string.IsNullOrWhiteSpace(droneNameVN))
-            throw new ValidationException("DroneNameVN is required.");
+            throw new ValidationException("Tên drone tiếng Việt là bắt buộc.");
 
         if (string.IsNullOrWhiteSpace(droneNameEN))
-            throw new ValidationException("DroneNameEN is required.");
+            throw new ValidationException("Tên drone tiếng Anh là bắt buộc.");
 
         if (height <= 0)
-            throw new ValidationException("Height must be greater than 0.");
+            throw new ValidationException("Chiều cao phải lớn hơn 0.");
 
         if (weight <= 0)
-            throw new ValidationException("Weight must be greater than 0.");
+            throw new ValidationException("Khối lượng phải lớn hơn 0.");
     }
 }

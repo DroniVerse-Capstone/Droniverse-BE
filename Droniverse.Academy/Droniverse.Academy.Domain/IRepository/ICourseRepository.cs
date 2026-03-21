@@ -6,10 +6,10 @@ namespace Droniverse.Academy.Domain.IRepository;
 public interface ICourseRepository : IRepository<Course>
 {
         /// <summary>
-        /// Get course by id including only ACTIVE version.
-        /// Use for public/student view.
+        /// Get course by id including current version only.
+        /// Use for course APIs.
         /// </summary>
-        Task<Course?> GetByIdWithActiveVersionAsync(
+        Task<Course?> GetByIdWithCurrentVersionAsync(
             Guid id,
             CancellationToken cancellationToken = default);
 
@@ -22,11 +22,11 @@ public interface ICourseRepository : IRepository<Course>
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Get paginated courses including only ACTIVE version.
-        /// Use for marketplace/public listing.
+        /// Get paginated courses including current version only.
+        /// Use for course APIs.
         /// </summary>
         Task<PaginationResult<IEnumerable<Course>>>
-            GetAllWithActiveVersionAsync(
+            GetAllWithCurrentVersionAsync(
                 Expression<Func<Course, bool>>? filter = null,
                 Func<IQueryable<Course>, IOrderedQueryable<Course>>? orderBy = null,
                 int pageIndex = 1,
@@ -45,6 +45,7 @@ public interface ICourseRepository : IRepository<Course>
                 int pageIndex = 1,
                 int pageSize = 10,
                 CancellationToken cancellationToken = default);
-    
+
+
 }
 

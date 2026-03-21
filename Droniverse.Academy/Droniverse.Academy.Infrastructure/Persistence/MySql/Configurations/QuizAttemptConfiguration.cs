@@ -28,6 +28,5 @@ public class QuizAttemptConfiguration : IEntityTypeConfiguration<QuizAttempt>
         builder.Property(e => e.SubmitTime).HasColumnType("datetime");
         builder.Property(e => e.Score).HasColumnType("float");
         builder.Property(e => e.IsPassed).HasColumnType("tinyint(1)").HasDefaultValue(false);
-        builder.Property(e => e.Status).HasColumnType("tinyint").HasDefaultValue((byte)0);
     }
 }

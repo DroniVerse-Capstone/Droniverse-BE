@@ -10,13 +10,7 @@ public class TheoryConfiguration : IEntityTypeConfiguration<Theory>
         builder.ToTable("Theory");
         builder.HasKey(e => e.TheoryID);
 
-        builder.HasOne(e => e.Lesson)
-            .WithOne(l => l.Theory)
-            .HasForeignKey<Theory>(e => e.LessonID)
-            .OnDelete(DeleteBehavior.Restrict);
-
         builder.Property(e => e.TheoryID).HasColumnType("char(36)");
-        builder.Property(e => e.LessonID).HasColumnType("char(36)");
         builder.Property(e => e.ContentVN).HasColumnType("varchar(255)");
         builder.Property(e => e.ContentEN).HasColumnType("varchar(255)");
         builder.Property(e => e.CreateBy).HasColumnType("char(36)");

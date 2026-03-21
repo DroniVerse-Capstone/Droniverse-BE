@@ -3,8 +3,6 @@
 public class Theory
 {
     public Guid TheoryID { get; set; } //char(36)
-    public Lesson Lesson { get; set; }
-    public Guid LessonID { get; set; } //char(36)
     public string ContentVN { get; set; } //text
     public string ContentEN { get; set; } //text
     public Guid CreateBy { get; set; } //char(36) // reference to User

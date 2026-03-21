@@ -1,5 +1,6 @@
-using Droniverse.Academy.Application.DTO.Request;
+﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
+using Droniverse.Academy.Domain.Enums;
 
 namespace Droniverse.Academy.Application.IService;
 
@@ -12,5 +13,5 @@ public interface IDroneTypeService
     Task DeleteDroneTypeAsync(Guid droneTypeId);
 
     Task<DroneClientViewDTO> CreateDroneAsync(Guid droneTypeId, CreateDroneRequestDTO request);
-    Task<IEnumerable<DroneClientViewDTO>> GetDronesByTypeAsync(Guid droneTypeId);
+    Task<IEnumerable<DroneClientViewDTO>> GetDronesByTypeAsync(Guid droneTypeId, DroneStatus? status = null);
 }
