@@ -14,6 +14,7 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using Swashbuckle.AspNetCore.SwaggerUI;
+using System.Reflection;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Transactions;
@@ -51,6 +52,13 @@ builder.Services.AddApplication(builder.Configuration);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+    {
+        c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
+    }
+
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "JWT Authorization header sử dụng Bearer scheme " +

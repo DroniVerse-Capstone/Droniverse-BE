@@ -21,6 +21,9 @@ public class CategoryController : ControllerBase
         _service = service;
     }
 
+    /// <summary>
+    /// Lấy danh sách phiên bản khóa học theo danh mục.
+    /// </summary>
     // GET /academy/categories/{categoryId}/course-versions
     [HttpGet("{categoryId:guid}/course-versions")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
@@ -29,11 +32,11 @@ public class CategoryController : ControllerBase
         try
         {
             var result = await _service.GetCourseVersionsByCategoryAsync(categoryId, pageIndex, pageSize, activeOnly);
-            return Ok(SuccessResponse<object>.Create(result, "L?y danh sách course version theo category thành công."));
+            return Ok(SuccessResponse<object>.Create(result, "Lấy danh sách phiên bản khóa học theo danh mục thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetCourseVersionsByCategory failed for {CategoryId}", categoryId);
+            _logger.LogError(ex, "Lấy danh sách phiên bản khóa học theo danh mục thất bại.");
             throw;
         }
     }

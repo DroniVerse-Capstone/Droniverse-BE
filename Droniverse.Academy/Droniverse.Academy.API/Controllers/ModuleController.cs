@@ -1,4 +1,4 @@
-using Droniverse.Academy.Application.DTO.Request;
+﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Shared.Constants;
@@ -21,6 +21,9 @@ public class ModuleController : ControllerBase
         _service = service;
     }
 
+    /// <summary>
+    /// Tạo mô-đun mới.
+    /// </summary>
     [HttpPost]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> CreateModule(Guid courseId, Guid versionId, [FromBody] CreateModuleRequestDTO request)
@@ -29,15 +32,18 @@ public class ModuleController : ControllerBase
         {
             var created = await _service.CreateModuleAsync(courseId, versionId, request);
             return StatusCode(201,
-                SuccessResponse<ModuleClientViewDTO>.Create(created, "T?o module th�nh c�ng."));
+                SuccessResponse<ModuleClientViewDTO>.Create(created, "Tạo mô-đun thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "CreateModule failed for {CourseId}/{VersionId}", courseId, versionId);
+            _logger.LogError(ex, "Tạo mô-đun thất bại.");
             throw;
         }
     }
 
+    /// <summary>
+    /// Lấy danh sách mô-đun.
+    /// </summary>
     [HttpGet]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> GetModules(Guid courseId, Guid versionId)
@@ -45,15 +51,18 @@ public class ModuleController : ControllerBase
         try
         {
             var result = await _service.GetModulesAsync(courseId, versionId);
-            return Ok(SuccessResponse<IEnumerable<ModuleClientViewDTO>>.Create(result, "L?y danh s�ch module th�nh c�ng."));
+            return Ok(SuccessResponse<IEnumerable<ModuleClientViewDTO>>.Create(result, "Lấy danh sách mô-đun thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetModules failed for {CourseId}/{VersionId}", courseId, versionId);
+            _logger.LogError(ex, "Lấy danh sách mô-đun thất bại.");
             throw;
         }
     }
 
+    /// <summary>
+    /// Lấy chi tiết mô-đun.
+    /// </summary>
     [HttpGet("{moduleId:guid}")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> GetModuleById(Guid courseId, Guid versionId, Guid moduleId)
@@ -61,15 +70,18 @@ public class ModuleController : ControllerBase
         try
         {
             var result = await _service.GetModuleByIdAsync(courseId, versionId, moduleId);
-            return Ok(SuccessResponse<ModuleClientViewDTO>.Create(result, "L?y chi ti?t module th�nh c�ng."));
+            return Ok(SuccessResponse<ModuleClientViewDTO>.Create(result, "Lấy chi tiết mô-đun thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetModuleById failed for {CourseId}/{VersionId}/{ModuleId}", courseId, versionId, moduleId);
+            _logger.LogError(ex, "Lấy chi tiết mô-đun thất bại.");
             throw;
         }
     }
 
+    /// <summary>
+    /// Cập nhật mô-đun.
+    /// </summary>
     [HttpPut("{moduleId:guid}")]
     [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> UpdateModule(Guid courseId, Guid versionId, Guid moduleId, [FromBody] UpdateModuleRequestDTO request)
@@ -77,15 +89,18 @@ public class ModuleController : ControllerBase
         try
         {
             var updated = await _service.UpdateModuleAsync(courseId, versionId, moduleId, request);
-            return Ok(SuccessResponse<ModuleClientViewDTO>.Create(updated, "C?p nh?t module th�nh c�ng."));
+            return Ok(SuccessResponse<ModuleClientViewDTO>.Create(updated, "Cập nhật mô-đun thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "UpdateModule failed for {CourseId}/{VersionId}/{ModuleId}", courseId, versionId, moduleId);
+            _logger.LogError(ex, "Cập nhật mô-đun thất bại.");
             throw;
         }
     }
 
+    /// <summary>
+    /// Xóa mô-đun.
+    /// </summary>
     [HttpDelete("{moduleId:guid}")]
     [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> DeleteModule(Guid courseId, Guid versionId, Guid moduleId)
@@ -93,15 +108,18 @@ public class ModuleController : ControllerBase
         try
         {
             await _service.DeleteModuleAsync(courseId, versionId, moduleId);
-            return Ok(SuccessResponse<object>.Create(null!, "X�a module th�nh c�ng."));
+            return Ok(SuccessResponse<object>.Create(null!, "Xóa mô-đun thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "DeleteModule failed for {CourseId}/{VersionId}/{ModuleId}", courseId, versionId, moduleId);
+            _logger.LogError(ex, "Xóa mô-đun thất bại.");
             throw;
         }
     }
 
+    /// <summary>
+    /// Sắp xếp lại thứ tự mô-đun.
+    /// </summary>
     [HttpPatch("reorder")]
     [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> ReorderModules(Guid courseId, Guid versionId, [FromBody] ReorderModulesRequestDTO request)
@@ -109,11 +127,11 @@ public class ModuleController : ControllerBase
         try
         {
             var result = await _service.ReorderModulesAsync(courseId, versionId, request);
-            return Ok(SuccessResponse<IEnumerable<ModuleClientViewDTO>>.Create(result, "S?p x?p l?i module th�nh c�ng."));
+            return Ok(SuccessResponse<IEnumerable<ModuleClientViewDTO>>.Create(result, "Sắp xếp lại mô-đun thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "ReorderModules failed for {CourseId}/{VersionId}", courseId, versionId);
+            _logger.LogError(ex, "Sắp xếp lại mô-đun thất bại.");
             throw;
         }
     }

@@ -1,8 +1,9 @@
-using AutoMapper;
+﻿using AutoMapper;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
+using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
 using Droniverse.Shared.Exceptions;
 
@@ -19,9 +20,10 @@ public class DroneService : IDroneService
         _mapper = mapper;
     }
 
-    public async Task<IEnumerable<DroneClientViewDTO>> GetDronesAsync()
+    public async Task<IEnumerable<DroneClientViewDTO>> GetDronesAsync(DroneStatus? status = null)
     {
         var drones = await _unitOfWork.Drones.GetAllAsync(
+            filter: status.HasValue ? d => d.Status == status.Value : null,
             orderBy: q => q.OrderBy(x => x.DroneNameEN),
             pageIndex: 1,
             pageSize: int.MaxValue,
@@ -37,7 +39,7 @@ public class DroneService : IDroneService
             includeProperties: "DroneType");
 
         if (drone == null)
-            throw new BaseException("Drone not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy drone.", "NOT_FOUND");
 
         return _mapper.Map<DroneClientViewDTO>(drone);
     }
@@ -54,11 +56,11 @@ public class DroneService : IDroneService
             includeProperties: "DroneType");
 
         if (drone == null)
-            throw new BaseException("Drone not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy drone.", "NOT_FOUND");
 
         var droneType = await _unitOfWork.DroneTypes.GetByIdAsync(request.DroneTypeID);
         if (droneType == null)
-            throw new BaseException("Drone type not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy loại drone.", "NOT_FOUND");
 
         _mapper.Map(request, drone);
 
@@ -76,11 +78,11 @@ public class DroneService : IDroneService
     {
         var drone = await _unitOfWork.Drones.GetByIdAsync(droneId);
         if (drone == null)
-            throw new BaseException("Drone not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy drone.", "NOT_FOUND");
 
         var inUse = await _unitOfWork.RequiredDrones.GetByConditionAsync(rd => rd.DroneID == droneId);
         if (inUse != null)
-            throw new ValidationException("Cannot delete drone because it is being used by course versions.");
+            throw new ValidationException("Không thể xóa drone vì đang được sử dụng bởi các phiên bản khóa học.");
 
         await _unitOfWork.Drones.DeleteAsync(drone);
         await _unitOfWork.SaveChangesAsync();
@@ -89,15 +91,15 @@ public class DroneService : IDroneService
     private static void ValidateDroneData(string droneNameVN, string droneNameEN, float height, float weight)
     {
         if (string.IsNullOrWhiteSpace(droneNameVN))
-            throw new ValidationException("DroneNameVN is required.");
+            throw new ValidationException("Tên drone tiếng Việt là bắt buộc.");
 
         if (string.IsNullOrWhiteSpace(droneNameEN))
-            throw new ValidationException("DroneNameEN is required.");
+            throw new ValidationException("Tên drone tiếng Anh là bắt buộc.");
 
         if (height <= 0)
-            throw new ValidationException("Height must be greater than 0.");
+            throw new ValidationException("Chiều cao phải lớn hơn 0.");
 
         if (weight <= 0)
-            throw new ValidationException("Weight must be greater than 0.");
+            throw new ValidationException("Khối lượng phải lớn hơn 0.");
     }
 }

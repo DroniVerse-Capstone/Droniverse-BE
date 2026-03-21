@@ -1,8 +1,11 @@
+﻿using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.Application.IService.Mongo;
 ﻿using Droniverse.Academy.Application.Delegate;
 using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Application.Mapper;
 using Droniverse.Academy.Application.Services;
+using Droniverse.Academy.Application.Services.Mongo;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -19,7 +22,9 @@ public static class DependencyInjection
         services.AddScoped<ICourseVersionCategoryService, CourseVersionCategoryService>();
         services.AddScoped<IModuleService, ModuleService>();
         services.AddScoped<ILessonService, LessonService>();
+        services.AddScoped<ILabService, LabService>();
         services.AddScoped<IQuizService, QuizService>();
+        services.AddScoped<IQuizQuestionService, QuizQuestionService>();
         services.AddScoped<ITheoryService, TheoryService>();
         services.AddScoped<IDroneTypeService, DroneTypeService>();
         services.AddScoped<IDroneService, DroneService>();
@@ -27,6 +32,7 @@ public static class DependencyInjection
         services.AddScoped<ICertificateService, CertificateService>();
         services.AddScoped<IUserCertificateService, UserCertificateService>();
         services.AddScoped<IFeedbackService, FeedbackService>();
+        services.AddScoped<ILabContentService, LabContentService>();
 
         services.AddTransient<AuthorizationDelegatingHandler>();
 

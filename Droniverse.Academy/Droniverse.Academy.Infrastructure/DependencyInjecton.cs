@@ -1,6 +1,8 @@
 ﻿using Droniverse.Academy.Domain.IRepository;
+using Droniverse.Academy.Domain.IRepository.Mongo;
 using Droniverse.Academy.Infrastructure.Persistence.MySql;
 using Droniverse.Academy.Infrastructure.Repositories;
+using Droniverse.Academy.Infrastructure.Repositories.Mongo;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -29,6 +31,7 @@ namespace Droniverse.Academy.Infrastructure
             });
 
             services.AddScoped<IUnitOfWork, UnitOfWork>();
+            services.AddScoped<ILabContentRepository, LabContentRepository>();
             return services;
         }
     }

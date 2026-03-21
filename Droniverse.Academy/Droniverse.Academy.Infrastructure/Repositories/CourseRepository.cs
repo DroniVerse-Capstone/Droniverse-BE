@@ -1,5 +1,4 @@
 ﻿using Droniverse.Academy.Domain.Entities;
-using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
 using Droniverse.Academy.Infrastructure.Persistence.MySql;
 using Droniverse.Shared.DTOs.Response;
@@ -15,15 +14,13 @@ internal class CourseRepository : MySqlRepository<Course>, ICourseRepository
         
     }
 
-    public async Task<Course?> GetByIdWithActiveVersionAsync(
-    Guid id,
-    CancellationToken cancellationToken = default)
+    public async Task<Course?> GetByIdWithCurrentVersionAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
     {
         return await _dbSet
             .Where(c => c.CourseID == id)
             .Include(c => c.CurrentVersion)
-            .Include(c => c.CourseVersions
-                .Where(v => v.Status == CourseVersionStatus.ACTIVE))
             .FirstOrDefaultAsync(cancellationToken);
     }
 
@@ -39,7 +36,7 @@ internal class CourseRepository : MySqlRepository<Course>, ICourseRepository
     }
 
     public async Task<PaginationResult<IEnumerable<Course>>>
-    GetAllWithActiveVersionAsync(
+    GetAllWithCurrentVersionAsync(
         Expression<Func<Course, bool>>? filter = null,
         Func<IQueryable<Course>, IOrderedQueryable<Course>>? orderBy = null,
         int pageIndex = 1,
@@ -47,9 +44,7 @@ internal class CourseRepository : MySqlRepository<Course>, ICourseRepository
         CancellationToken cancellationToken = default)
     {
         IQueryable<Course> query = _dbSet
-            .Include(c => c.CurrentVersion)
-            .Include(c => c.CourseVersions
-                .Where(v => v.Status == CourseVersionStatus.ACTIVE));
+            .Include(c => c.CurrentVersion);
 
         if (filter != null)
             query = query.Where(filter);

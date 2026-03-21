@@ -21,6 +21,9 @@ public class QuizController : ControllerBase
         _quizService = quizService;
     }
 
+    /// <summary>
+    /// Tạo mới bài kiểm tra.
+    /// </summary>
     [HttpPost]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> CreateQuiz([FromBody] CreateQuizRequestDTO request)
@@ -32,11 +35,14 @@ public class QuizController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "CreateQuiz failed");
+            _logger.LogError(ex, "Tạo quiz thất bại.");
             throw;
         }
     }
 
+    /// <summary>
+    /// Lấy danh sách bài kiểm tra.
+    /// </summary>
     [HttpGet]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> GetQuizzes()
@@ -48,11 +54,14 @@ public class QuizController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetQuizzes failed");
+            _logger.LogError(ex, "Lấy danh sách quiz thất bại.");
             throw;
         }
     }
 
+    /// <summary>
+    /// Lấy chi tiết bài kiểm tra.
+    /// </summary>
     [HttpGet("{quizId:guid}")]
     [Authorize(Roles = $"{Roles.AdminOrSystemManager},{Roles.ClubMember}")]
     public async Task<IActionResult> GetQuizById(Guid quizId)
@@ -64,11 +73,14 @@ public class QuizController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetQuizById failed for {QuizId}", quizId);
+            _logger.LogError(ex, "Lấy chi tiết quiz thất bại.");
             throw;
         }
     }
 
+    /// <summary>
+    /// Cập nhật bài kiểm tra.
+    /// </summary>
     [HttpPut("{quizId:guid}")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> UpdateQuiz(Guid quizId, [FromBody] UpdateQuizRequestDTO request)
@@ -80,11 +92,14 @@ public class QuizController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "UpdateQuiz failed for {QuizId}", quizId);
+            _logger.LogError(ex, "Cập nhật quiz thất bại.");
             throw;
         }
     }
 
+    /// <summary>
+    /// Xóa bài kiểm tra.
+    /// </summary>
     [HttpDelete("{quizId:guid}")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> DeleteQuiz(Guid quizId)
@@ -96,7 +111,7 @@ public class QuizController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "DeleteQuiz failed for {QuizId}", quizId);
+            _logger.LogError(ex, "Xóa quiz thất bại.");
             throw;
         }
     }
