@@ -12,20 +12,16 @@ public class LessonMappingProfile : Profile
         CreateMap<CreateLessonRequestDTO, Lesson>()
             .ForMember(dest => dest.LessonID, opt => opt.Ignore())
             .ForMember(dest => dest.ModuleID, opt => opt.Ignore())
+            .ForMember(dest => dest.OrderIndex, opt => opt.Ignore())
             .ForMember(dest => dest.Module, opt => opt.Ignore())
-            .ForMember(dest => dest.UserLessons, opt => opt.Ignore())
-            .ForMember(dest => dest.Lab, opt => opt.Ignore())
-            .ForMember(dest => dest.Theory, opt => opt.Ignore())
-            .ForMember(dest => dest.Quiz, opt => opt.Ignore());
+            .ForMember(dest => dest.UserLessons, opt => opt.Ignore());
 
         CreateMap<UpdateLessonRequestDTO, Lesson>()
             .ForMember(dest => dest.LessonID, opt => opt.Ignore())
             .ForMember(dest => dest.ModuleID, opt => opt.Ignore())
+            .ForMember(dest => dest.OrderIndex, opt => opt.Ignore())
             .ForMember(dest => dest.Module, opt => opt.Ignore())
-            .ForMember(dest => dest.UserLessons, opt => opt.Ignore())
-            .ForMember(dest => dest.Lab, opt => opt.Ignore())
-            .ForMember(dest => dest.Theory, opt => opt.Ignore())
-            .ForMember(dest => dest.Quiz, opt => opt.Ignore());
+            .ForMember(dest => dest.UserLessons, opt => opt.Ignore());
 
         CreateMap<Lesson, LessonClientViewDTO>();
     }

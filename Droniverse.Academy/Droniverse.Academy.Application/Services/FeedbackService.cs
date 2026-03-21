@@ -76,7 +76,7 @@ public class FeedbackService : IFeedbackService
             includeProperties: "CourseVersion,CourseVersion.CourseVersionCategories,CourseVersion.RequiredDrones");
 
         if (feedback == null)
-            throw new BaseException("Feedback not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy phản hồi.", "NOT_FOUND");
 
         return _mapper.Map<FeedbackClientViewDTO>(feedback);
     }
@@ -94,10 +94,10 @@ public class FeedbackService : IFeedbackService
             includeProperties: "CourseVersion,CourseVersion.CourseVersionCategories,CourseVersion.RequiredDrones");
 
         if (feedback == null)
-            throw new BaseException("Feedback not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy phản hồi.", "NOT_FOUND");
 
         if (feedback.UserID != _currentUser.UserId)
-            throw new ForbiddenException("You can only update your own feedback.");
+            throw new ForbiddenException("Bạn chỉ có thể cập nhật phản hồi của chính mình.");
 
         _mapper.Map(request, feedback);
 
@@ -115,7 +115,7 @@ public class FeedbackService : IFeedbackService
             f => f.FeedbackID == feedbackId && f.CourseVersionID == versionId);
 
         if (feedback == null)
-            throw new BaseException("Feedback not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy phản hồi.", "NOT_FOUND");
 
         await _unitOfWork.Feedbacks.DeleteAsync(feedback);
         await _unitOfWork.SaveChangesAsync();
@@ -127,7 +127,7 @@ public class FeedbackService : IFeedbackService
             cv => cv.CourseVersionID == versionId && cv.CourseID == courseId);
 
         if (courseVersion == null)
-            throw new BaseException("Course version not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy phiên bản khóa học.", "NOT_FOUND");
 
         return courseVersion;
     }
@@ -135,6 +135,6 @@ public class FeedbackService : IFeedbackService
     private static void ValidateRating(int rating)
     {
         if (rating < 1 || rating > 5)
-            throw new ValidationException("Rating must be from 1 to 5.");
+            throw new ValidationException("Điểm đánh giá phải từ 1 đến 5.");
     }
 }

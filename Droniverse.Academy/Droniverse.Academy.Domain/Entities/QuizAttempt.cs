@@ -10,6 +10,5 @@ public class QuizAttempt
     public DateTime? SubmitTime { get; set; }
     public float? Score { get; set; }
     public bool IsPassed { get; set; }
-    public byte Status { get; set; }
     public ICollection<QuizQuestionAttempt> QuizQuestionAttempts { get; set; }
 }

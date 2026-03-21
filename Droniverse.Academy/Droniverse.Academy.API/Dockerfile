@@ -30,4 +30,10 @@ RUN dotnet publish "./Droniverse.Academy.API.csproj" -c $BUILD_CONFIGURATION -o 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+
+ENV IdentityMicroserviceName=identity-microservice
+ENV IdentityMicroservicePort=8080
+ENV CommunityMicroserviceName=community-microservice
+ENV CommunityMicroservicePort=8080
+
 ENTRYPOINT ["dotnet", "Droniverse.Academy.API.dll"]

@@ -15,6 +15,4 @@ public class Quiz
     public Guid UpdateBy { get; set; } // reference to UserID
     public ICollection<QuizQuestion> QuizQuestions { get; set; }
     public ICollection<QuizAttempt> QuizAttempts { get; set; }
-    public Lesson Lesson { get; set; }
-    public Guid LessonID { get; set; }
 }

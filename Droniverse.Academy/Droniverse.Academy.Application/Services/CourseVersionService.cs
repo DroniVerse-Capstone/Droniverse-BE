@@ -31,7 +31,7 @@ public class CourseVersionService : ICourseVersionService
     {
         var course = await _unitOfWork.Courses.GetByIdWithAllVersionsAsync(courseId);
         if (course == null)
-            throw new BaseException($"Course {courseId} not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy khóa học.", "NOT_FOUND");
 
         // determine next version number
         var nextVersion = 1;
@@ -66,17 +66,17 @@ public class CourseVersionService : ICourseVersionService
     {
         var course = await _unitOfWork.Courses.GetByIdWithAllVersionsAsync(courseId);
         if (course == null)
-            throw new BaseException($"Course {courseId} not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy khóa học.", "NOT_FOUND");
 
         var cv = await _unitOfWork.CourseVersions.GetByConditionAsync(v => v.CourseVersionID == versionId && v.CourseID == courseId);
         if (cv == null)
-            throw new BaseException($"Course version not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy phiên bản khóa học.", "NOT_FOUND");
 
         if (course.CurrentVersionID == versionId)
-            throw new ValidationException("Cannot delete current version. Deprecate current version first.");
+            throw new ValidationException("Không thể xóa phiên bản hiện tại. Vui lòng vô hiệu hóa phiên bản hiện tại trước.");
 
         if (cv.Status == CourseVersionStatus.ACTIVE)
-            throw new ValidationException("Cannot delete active version.");
+            throw new ValidationException("Không thể xóa phiên bản đang hoạt động.");
 
         await _unitOfWork.CourseVersions.DeleteAsync(cv);
         await _unitOfWork.SaveChangesAsync();
@@ -86,7 +86,7 @@ public class CourseVersionService : ICourseVersionService
     {
         var cv = await _unitOfWork.CourseVersions.GetByConditionAsync(v => v.CourseVersionID == versionId && v.CourseID == courseId, includeProperties: "CourseVersionCategories,RequiredDrones");
         if (cv == null)
-            throw new BaseException($"Course version not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy phiên bản khóa học.", "NOT_FOUND");
 
         return _mapper.Map<CourseVersionResponseDTO>(cv);
     }
@@ -109,11 +109,11 @@ public class CourseVersionService : ICourseVersionService
     {
         var course = await _unitOfWork.Courses.GetByIdWithAllVersionsAsync(courseId);
         if (course == null)
-            throw new BaseException($"Course {courseId} not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy khóa học.", "NOT_FOUND");
 
         var cv = course.CourseVersions.FirstOrDefault(v => v.CourseVersionID == versionId);
         if (cv == null)
-            throw new BaseException($"Course version not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy phiên bản khóa học.", "NOT_FOUND");
 
         // deprecate other active versions
         var active = course.CourseVersions
@@ -137,14 +137,14 @@ public class CourseVersionService : ICourseVersionService
     {
         var course = await _unitOfWork.Courses.GetByIdWithAllVersionsAsync(courseId);
         if (course == null)
-            throw new BaseException($"Course {courseId} not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy khóa học.", "NOT_FOUND");
 
         var cv = course.CourseVersions.FirstOrDefault(v => v.CourseVersionID == versionId);
         if (cv == null)
-            throw new BaseException($"Course version not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy phiên bản khóa học.", "NOT_FOUND");
 
         if (cv.Status != CourseVersionStatus.ACTIVE)
-            throw new ValidationException("Only active version can be deactivated");
+            throw new ValidationException("Chỉ phiên bản đang hoạt động mới có thể bị vô hiệu hóa.");
 
         cv.Deprecate(_currentUser.UserId, _clock.Now);
 
@@ -162,7 +162,7 @@ public class CourseVersionService : ICourseVersionService
     {
         var cv = await _unitOfWork.CourseVersions.GetByConditionAsync(v => v.CourseVersionID == versionId && v.CourseID == courseId);
         if (cv == null)
-            throw new BaseException($"Course version not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy phiên bản khóa học.", "NOT_FOUND");
 
         cv.UpdateContent(request.TitleVN, request.TitleEN, request.DescriptionVN, request.DescriptionEN, request.ContextVN, request.ContextEN, request.ImageUrl, request.Level, request.EstimatedDuration, _currentUser.UserId, _clock.Now);
 

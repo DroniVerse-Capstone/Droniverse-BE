@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
@@ -25,7 +25,7 @@ public class RequiredDroneService : IRequiredDroneService
             throw new ArgumentNullException(nameof(request));
 
         if (request.DroneID == Guid.Empty)
-            throw new ValidationException("DroneID is required.");
+            throw new ValidationException("DroneID là bắt buộc.");
 
         await EnsureCourseVersionExistsAsync(courseId, versionId);
 
@@ -34,13 +34,13 @@ public class RequiredDroneService : IRequiredDroneService
             includeProperties: "DroneType");
 
         if (drone == null)
-            throw new BaseException("Drone not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy drone.", "NOT_FOUND");
 
         var exists = await _unitOfWork.RequiredDrones.GetByConditionAsync(
             rd => rd.CourseVersionID == versionId && rd.DroneID == request.DroneID);
 
         if (exists != null)
-            throw new ValidationException("Drone is already required for this course version.");
+            throw new ValidationException("Drone này đã được yêu cầu cho phiên bản khóa học này.");
 
         var requiredDrone = new RequiredDrone
         {
@@ -62,7 +62,7 @@ public class RequiredDroneService : IRequiredDroneService
             rd => rd.CourseVersionID == versionId && rd.DroneID == droneId);
 
         if (requiredDrone == null)
-            throw new BaseException("Required drone not found for this course version.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy drone yêu cầu cho phiên bản khóa học này.", "NOT_FOUND");
 
         await _unitOfWork.RequiredDrones.DeleteAsync(requiredDrone);
         await _unitOfWork.SaveChangesAsync();
@@ -87,7 +87,7 @@ public class RequiredDroneService : IRequiredDroneService
     {
         var drone = await _unitOfWork.Drones.GetByIdAsync(droneId);
         if (drone == null)
-            throw new BaseException("Drone not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy drone.", "NOT_FOUND");
 
         var requiredDrones = await _unitOfWork.RequiredDrones.GetAllAsync(
             filter: rd => rd.DroneID == droneId,
@@ -111,6 +111,6 @@ public class RequiredDroneService : IRequiredDroneService
             cv => cv.CourseVersionID == versionId && cv.CourseID == courseId);
 
         if (courseVersion == null)
-            throw new BaseException("Course version not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy phiên bản khóa học.", "NOT_FOUND");
     }
 }

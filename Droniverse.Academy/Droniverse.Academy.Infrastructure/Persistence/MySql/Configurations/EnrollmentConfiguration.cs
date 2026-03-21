@@ -51,7 +51,7 @@ public class EnrollmentConfiguration : IEntityTypeConfiguration<Enrollment>
         builder.ToTable(t =>
             t.HasCheckConstraint(
                 "CK_Enrollment_Status",
-                "`Status` IN (0,1,2)"
+                "`Status` IN (0,1,2,3)"
             ));
     }
 }

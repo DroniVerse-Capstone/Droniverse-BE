@@ -16,12 +16,7 @@ public class QuizConfiguration : IEntityTypeConfiguration<Quiz>
             .WithOne(c => c.Quiz)
             .HasForeignKey(c => c.QuizID)
             .OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne(e => e.Lesson)
-            .WithOne(c => c.Quiz)
-            .HasForeignKey<Quiz>(e => e.LessonID)
-            .OnDelete(DeleteBehavior.Restrict);
         builder.Property(e => e.QuizID).HasColumnType("char(36)");
-        builder.Property(e => e.LessonID).HasColumnType("char(36)");
         builder.Property(e => e.TitleVN).HasColumnType("varchar(255)");
         builder.Property(e => e.TitleEN).HasColumnType("varchar(255)");
         builder.Property(e => e.DescriptionVN).HasColumnType("text");
