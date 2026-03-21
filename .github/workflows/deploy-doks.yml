@@ -8,6 +8,9 @@ on:
     types: [closed]
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 permissions:
   pull-requests: read
   contents: read
@@ -28,17 +31,15 @@ jobs:
       infra: ${{ steps.filter.outputs.infra }}
     steps:
       - name: Checkout (full history)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
-          fetch-depth: 0  # Lấy toàn bộ commit history
+          fetch-depth: 0
 
       - name: Detect changed paths
         id: filter
         uses: dorny/paths-filter@v3
         with:
-          base: ${{ github.event.pull_request.base.ref || github.event.before || 'HEAD~1' }}
-          ref: ${{ github.event.pull_request.head.ref || github.ref }}
-          list-files: 'csv'  # In danh sách files thay đổi
+          list-files: "csv"
           filters: |
             gateway:
               - 'Droniverse.Gateway/**'
@@ -54,175 +55,14 @@ jobs:
               - 'docker-compose/**'
               - '.github/workflows/**'
 
-      - name: Debug - Show detected changes
-        run: |
-          echo "=== Changed Files ==="
-          echo "Gateway: ${{ steps.filter.outputs.gateway }}"
-          echo "Academy: ${{ steps.filter.outputs.academy }}"
-          echo "Community: ${{ steps.filter.outputs.community }}"
-          echo "Identity: ${{ steps.filter.outputs.identity }}"
-          echo "Shared: ${{ steps.filter.outputs.shared }}"
-          echo "Infra: ${{ steps.filter.outputs.infra }}"
-          echo ""
-          echo "=== Files Changed ==="
-          echo "${{ steps.filter.outputs.gateway_files }}"
-          echo "${{ steps.filter.outputs.academy_files }}"
-          echo "${{ steps.filter.outputs.community_files }}"
-          echo "${{ steps.filter.outputs.identity_files }}"
-
   build-push-rollout:
     runs-on: ubuntu-latest
     needs: detect-changes
     environment: DIGITAL OCEAN
-    # Chỉ deploy khi: push thẳng lên OR workflow_dispatch OR PR được merge vào main/production
     if: |
-      github.event_name == 'push' || 
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'pull_request' && 
-       github.event.pull_request.merged == true && 
-       (github.event.pull_request.base.ref == 'main' || github.event.pull_request.base.ref == 'production'))
-
-    env:
-      REGISTRY: registry.digitalocean.com
-      REGISTRY_NAME: ${{ secrets.DOCR_REGISTRY_NAME }}
-      DOKS_CLUSTER_NAME: ${{ secrets.DOKS_CLUSTER_NAME }}
-      K8S_NAMESPACE: droniverse
-
-      GATEWAY_DEPLOYMENT: droniverse-gateway
-      ACADEMY_DEPLOYMENT: academy-microservice
-      COMMUNITY_DEPLOYMENT: community-microservice
-      IDENTITY_DEPLOYMENT: identity-microservice
-
-      GATEWAY_CONTAINER: gateway
-      ACADEMY_CONTAINER: academy
-      COMMUNITY_CONTAINER: community
-      IDENTITY_CONTAINER: identity
-
+      (github.event_name == 'push' &&
+       (github.ref_name == 'main' || github.ref_name == 'production')) ||
+      github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Install doctl
-        uses: digitalocean/action-doctl@v2
-        with:
-          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
-
-      - name: Authenticate doctl
-        run: doctl auth init -t "${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}"
-
-      - name: Login to DigitalOcean Container Registry
-        run: doctl registry login --expiry-seconds 1200
-
-      - name: Set image tag
-        shell: bash
-        run: |
-          echo "TAG=$(date +%Y%m%d%H%M%S)-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
-
-      - name: Calculate deploy flags
-        shell: bash
-        run: |
-          GW="${{ needs.detect-changes.outputs.gateway }}"
-          ACA="${{ needs.detect-changes.outputs.academy }}"
-          COM="${{ needs.detect-changes.outputs.community }}"
-          IDN="${{ needs.detect-changes.outputs.identity }}"
-          SHARED="${{ needs.detect-changes.outputs.shared }}"
-          INFRA="${{ needs.detect-changes.outputs.infra }}"
-
-          if [[ "$SHARED" == "true" || "$INFRA" == "true" ]]; then
-            GW=true
-            ACA=true
-            COM=true
-            IDN=true
-          fi
-
-          echo "DEPLOY_GATEWAY=$GW" >> "$GITHUB_ENV"
-          echo "DEPLOY_ACADEMY=$ACA" >> "$GITHUB_ENV"
-          echo "DEPLOY_COMMUNITY=$COM" >> "$GITHUB_ENV"
-          echo "DEPLOY_IDENTITY=$IDN" >> "$GITHUB_ENV"
-
-          echo "Plan: gateway=$GW academy=$ACA community=$COM identity=$IDN"
-
-      - name: Build and push Gateway
-        if: env.DEPLOY_GATEWAY == 'true'
-        run: |
-          GW="$REGISTRY/$REGISTRY_NAME/gateway:$TAG"
-          docker build --no-cache --pull -t "$GW" -f Droniverse.Gateway/Droniverse.Gateway/Dockerfile .
-          docker push "$GW"
-          echo "GW=$GW" >> "$GITHUB_ENV"
-
-      - name: Build and push Academy
-        if: env.DEPLOY_ACADEMY == 'true'
-        run: |
-          ACA="$REGISTRY/$REGISTRY_NAME/academy:$TAG"
-          docker build --no-cache --pull -t "$ACA" -f Droniverse.Academy/Droniverse.Academy.API/Dockerfile .
-          docker push "$ACA"
-          echo "ACA=$ACA" >> "$GITHUB_ENV"
-
-      - name: Build and push Community
-        if: env.DEPLOY_COMMUNITY == 'true'
-        run: |
-          COM="$REGISTRY/$REGISTRY_NAME/community:$TAG"
-          docker build --no-cache --pull -t "$COM" -f Droniverse.Community/Droniverse.Community.API/Dockerfile .
-          docker push "$COM"
-          echo "COM=$COM" >> "$GITHUB_ENV"
-
-      - name: Build and push Identity
-        if: env.DEPLOY_IDENTITY == 'true'
-        run: |
-          IDN="$REGISTRY/$REGISTRY_NAME/identity:$TAG"
-          docker build --no-cache --pull -t "$IDN" -f Droniverse.Identity/Droniverse.Identity.API/Dockerfile .
-          docker push "$IDN"
-          echo "IDN=$IDN" >> "$GITHUB_ENV"
-
-      - name: Set up kubectl
-        if: env.DEPLOY_GATEWAY == 'true' || env.DEPLOY_ACADEMY == 'true' || env.DEPLOY_COMMUNITY == 'true' || env.DEPLOY_IDENTITY == 'true'
-        uses: azure/setup-kubectl@v4
-
-      - name: Fetch kubeconfig for DOKS cluster
-        if: env.DEPLOY_GATEWAY == 'true' || env.DEPLOY_ACADEMY == 'true' || env.DEPLOY_COMMUNITY == 'true' || env.DEPLOY_IDENTITY == 'true'
-        run: doctl kubernetes cluster kubeconfig save "$DOKS_CLUSTER_NAME"
-
-      - name: Rollout Gateway
-        if: env.DEPLOY_GATEWAY == 'true'
-        run: kubectl -n "$K8S_NAMESPACE" set image deployment/$GATEWAY_DEPLOYMENT $GATEWAY_CONTAINER=$GW
-
-      - name: Rollout Academy
-        if: env.DEPLOY_ACADEMY == 'true'
-        run: kubectl -n "$K8S_NAMESPACE" set image deployment/$ACADEMY_DEPLOYMENT $ACADEMY_CONTAINER=$ACA
-
-      - name: Rollout Community
-        if: env.DEPLOY_COMMUNITY == 'true'
-        run: kubectl -n "$K8S_NAMESPACE" set image deployment/$COMMUNITY_DEPLOYMENT $COMMUNITY_CONTAINER=$COM
-
-      - name: Rollout Identity
-        if: env.DEPLOY_IDENTITY == 'true'
-        run: kubectl -n "$K8S_NAMESPACE" set image deployment/$IDENTITY_DEPLOYMENT $IDENTITY_CONTAINER=$IDN
-
-      - name: Wait for gateway rollout
-        if: env.DEPLOY_GATEWAY == 'true'
-        run: kubectl -n "$K8S_NAMESPACE" rollout status deployment/$GATEWAY_DEPLOYMENT
-
-      - name: Wait for academy rollout
-        if: env.DEPLOY_ACADEMY == 'true'
-        run: kubectl -n "$K8S_NAMESPACE" rollout status deployment/$ACADEMY_DEPLOYMENT
-
-      - name: Wait for community rollout
-        if: env.DEPLOY_COMMUNITY == 'true'
-        run: kubectl -n "$K8S_NAMESPACE" rollout status deployment/$COMMUNITY_DEPLOYMENT
-
-      - name: Wait for identity rollout
-        if: env.DEPLOY_IDENTITY == 'true'
-        run: kubectl -n "$K8S_NAMESPACE" rollout status deployment/$IDENTITY_DEPLOYMENT
-
-      - name: Verify gateway routes exist in ocelot.json
-        if: env.DEPLOY_GATEWAY == 'true'
-        run: |
-          kubectl -n "$K8S_NAMESPACE" exec deploy/$GATEWAY_DEPLOYMENT -- \
-            grep -E "theories|quizzes|drones|drone-types|academy/users|academy/certificates" /app/ocelot.json
-
-      - name: No deployment required
-        if: env.DEPLOY_GATEWAY != 'true' && env.DEPLOY_ACADEMY != 'true' && env.DEPLOY_COMMUNITY != 'true' && env.DEPLOY_IDENTITY != 'true'
-        run: echo "No service path changed. Skipping build and deploy."
+        uses: actions/checkout@v5
