@@ -25,10 +25,10 @@ namespace Droniverse.Academy.API.Controllers
         /// Tạo mới một khóa học.
         /// </summary>
         // POST academy/courses
-        //
         [HttpPost]
         public async Task<IActionResult> CreateCourse()
         {
+            // Vì yêu cầu chỉ cần tạo mới khóa học với trạng thái mặc định là DRAFT và không cần input gì thêm, nên API này sẽ không nhận body nào cả.
             try
             {
                 var created = await _courseService.CreateCourseAsync();
