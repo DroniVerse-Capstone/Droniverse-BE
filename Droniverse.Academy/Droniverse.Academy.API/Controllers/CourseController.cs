@@ -25,6 +25,7 @@ namespace Droniverse.Academy.API.Controllers
         /// Tạo mới một khóa học.
         /// </summary>
         // POST academy/courses
+        //
         [HttpPost]
         public async Task<IActionResult> CreateCourse()
         {
