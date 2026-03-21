@@ -1,6 +1,8 @@
 ﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.API.Enums;
+using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.API.Validators;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
@@ -24,22 +26,28 @@ public class DroneController : ControllerBase
         _requiredDroneService = requiredDroneService;
     }
 
+    /// <summary>
+    /// Lấy danh sách drone và lọc theo trạng thái.
+    /// </summary>
     [HttpGet]
     [Authorize(Roles = Roles.Admin)]
-    public async Task<IActionResult> GetDrones()
+    public async Task<IActionResult> GetDrones([FromQuery] DroneStatusFilter status = DroneStatusFilter.All)
     {
         try
         {
-            var drones = await _droneService.GetDronesAsync();
+            var drones = await _droneService.GetDronesAsync(MapDroneStatus(status));
             return Ok(SuccessResponse<IEnumerable<DroneClientViewDTO>>.Create(drones, "Lấy danh sách drone thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetDrones failed");
+            _logger.LogError(ex, "Lấy danh sách drone thất bại.");
             throw;
         }
     }
 
+    /// <summary>
+    /// Lấy chi tiết một drone.
+    /// </summary>
     [HttpGet("{droneId:guid}")]
     [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> GetDroneById(Guid droneId)
@@ -51,11 +59,14 @@ public class DroneController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetDroneById failed for {DroneId}", droneId);
+            _logger.LogError(ex, "Lấy chi tiết drone thất bại.");
             throw;
         }
     }
 
+    /// <summary>
+    /// Cập nhật thông tin drone.
+    /// </summary>
     [HttpPut("{droneId:guid}")]
     [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> UpdateDrone(Guid droneId, [FromBody] UpdateDroneRequestDTO request)
@@ -67,11 +78,14 @@ public class DroneController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "UpdateDrone failed for {DroneId}", droneId);
+            _logger.LogError(ex, "Cập nhật drone thất bại.");
             throw;
         }
     }
 
+    /// <summary>
+    /// Xóa một drone.
+    /// </summary>
     [HttpDelete("{droneId:guid}")]
     [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> DeleteDrone(Guid droneId)
@@ -83,11 +97,14 @@ public class DroneController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "DeleteDrone failed for {DroneId}", droneId);
+            _logger.LogError(ex, "Xóa drone thất bại.");
             throw;
         }
     }
 
+    /// <summary>
+    /// Lấy danh sách phiên bản khóa học theo drone.
+    /// </summary>
     [HttpGet("{droneId:guid}/course-versions")]
     [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> GetCourseVersionsByDrone(Guid droneId)
@@ -100,8 +117,20 @@ public class DroneController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetCourseVersionsByDrone failed for {DroneId}", droneId);
+            _logger.LogError(ex, "Lấy danh sách phiên bản khóa học theo drone thất bại.");
             throw;
         }
+    }
+
+    private static DroneStatus? MapDroneStatus(DroneStatusFilter status)
+    {
+        return status switch
+        {
+            DroneStatusFilter.All => null,
+            DroneStatusFilter.Draft => DroneStatus.DRAFT,
+            DroneStatusFilter.Available => DroneStatus.AVAILABLE,
+            DroneStatusFilter.Maintenance => DroneStatus.MAINTENANCE,
+            _ => null
+        };
     }
 }

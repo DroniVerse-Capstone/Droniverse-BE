@@ -85,16 +85,16 @@ public class ModuleService : IModuleService
         await EnsureCourseVersionExistsAsync(courseId, versionId);
 
         if (request.Modules.Count == 0)
-            throw new ValidationException("Modules reorder payload is required.");
+            throw new ValidationException("Dữ liệu sắp xếp lại mô-đun là bắt buộc.");
 
         if (request.Modules.Select(x => x.ModuleID).Distinct().Count() != request.Modules.Count)
-            throw new ValidationException("Duplicate moduleId in reorder payload.");
+            throw new ValidationException("Dữ liệu sắp xếp lại chứa moduleId bị trùng.");
 
         if (request.Modules.Select(x => x.ModuleNumber).Distinct().Count() != request.Modules.Count)
-            throw new ValidationException("moduleNumber must be unique in reorder payload.");
+            throw new ValidationException("moduleNumber phải là duy nhất trong dữ liệu sắp xếp lại.");
 
         if (request.Modules.Any(x => x.ModuleNumber <= 0))
-            throw new ValidationException("moduleNumber must be greater than 0.");
+            throw new ValidationException("moduleNumber phải lớn hơn 0.");
 
         var modulesResult = await _unitOfWork.Modules.GetAllAsync(
             filter: m => m.CourseVersionID == versionId,
@@ -104,12 +104,12 @@ public class ModuleService : IModuleService
 
         var modules = modulesResult.Data.ToList();
         if (modules.Count != request.Modules.Count)
-            throw new ValidationException("Reorder payload must contain all modules of the course version.");
+            throw new ValidationException("Dữ liệu sắp xếp lại phải chứa đầy đủ tất cả mô-đun của phiên bản khóa học.");
 
         var moduleIds = modules.Select(m => m.ModuleID).OrderBy(x => x).ToList();
         var requestIds = request.Modules.Select(m => m.ModuleID).OrderBy(x => x).ToList();
         if (!moduleIds.SequenceEqual(requestIds))
-            throw new ValidationException("Reorder payload contains invalid moduleId.");
+            throw new ValidationException("Dữ liệu sắp xếp lại chứa moduleId không hợp lệ.");
 
         var reorderMap = request.Modules.ToDictionary(x => x.ModuleID, x => x.ModuleNumber);
         var now = _clock.Now;
@@ -133,7 +133,7 @@ public class ModuleService : IModuleService
             v => v.CourseVersionID == versionId && v.CourseID == courseId);
 
         if (courseVersion == null)
-            throw new BaseException("Course version not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy phiên bản khóa học.", "NOT_FOUND");
     }
 
     private async Task<Module> GetModuleEntityAsync(Guid courseId, Guid versionId, Guid moduleId)
@@ -144,7 +144,7 @@ public class ModuleService : IModuleService
             m => m.ModuleID == moduleId && m.CourseVersionID == versionId);
 
         if (module == null)
-            throw new BaseException("Module not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy mô-đun.", "NOT_FOUND");
 
         return module;
     }
@@ -152,7 +152,7 @@ public class ModuleService : IModuleService
     private async Task ValidateModuleNumberAsync(Guid versionId, int moduleNumber, Guid? excludeModuleId = null)
     {
         if (moduleNumber <= 0)
-            throw new ValidationException("moduleNumber must be greater than 0.");
+            throw new ValidationException("moduleNumber phải lớn hơn 0.");
 
         var duplicated = await _unitOfWork.Modules.GetByConditionAsync(
             m => m.CourseVersionID == versionId
@@ -160,6 +160,6 @@ public class ModuleService : IModuleService
                  && (!excludeModuleId.HasValue || m.ModuleID != excludeModuleId.Value));
 
         if (duplicated != null)
-            throw new ValidationException("moduleNumber must be unique in the course version.");
+            throw new ValidationException("moduleNumber phải là duy nhất trong phiên bản khóa học.");
     }
 }

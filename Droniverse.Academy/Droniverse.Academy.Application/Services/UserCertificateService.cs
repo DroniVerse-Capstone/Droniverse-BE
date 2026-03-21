@@ -27,12 +27,12 @@ public class UserCertificateService : IUserCertificateService
     {
         var cert = await _unitOfWork.Certificates.GetByIdAsync(certificateId);
         if (cert == null)
-            throw new BaseException("Certificate not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy chứng chỉ.", "NOT_FOUND");
 
         // prevent duplicate
         var existing = await _unitOfWork.UserCertificates.GetByConditionAsync(uc => uc.CertificateID == certificateId && uc.UserID == userId);
         if (existing != null)
-            throw new ValidationException("User already granted this certificate.");
+            throw new ValidationException("Người dùng đã được cấp chứng chỉ này.");
 
         var uc = new UserCertificate
         {
@@ -51,21 +51,35 @@ public class UserCertificateService : IUserCertificateService
     {
         var uc = await _unitOfWork.UserCertificates.GetByConditionAsync(x => x.UserID == userId && x.CertificateID == certificateId, includeProperties: "Certificate");
         if (uc == null)
-            throw new BaseException("User certificate not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy chứng chỉ của người dùng.", "NOT_FOUND");
 
         return _mapper.Map<UserCertificateResponseDTO>(uc);
     }
 
-    public async Task<PaginationResult<IEnumerable<UserCertificateResponseDTO>>> GetUserCertificatesAsync(Guid userId, int pageIndex = 1, int pageSize = 50)
+    public async Task<PaginationResult<IEnumerable<UserCertificateResponseDTO>>> GetUserCertificatesAsync(Guid userId, int pageIndex = 1, int pageSize = 50, UserCertificateStatus? status = null)
     {
-        var result = await _unitOfWork.UserCertificates.GetAllAsync(x => x.UserID == userId, null, pageIndex, pageSize, includeProperties: "Certificate");
+        var result = await _unitOfWork.UserCertificates.GetAllAsync(
+            status.HasValue
+                ? x => x.UserID == userId && x.Status == status.Value
+                : x => x.UserID == userId,
+            null,
+            pageIndex,
+            pageSize,
+            includeProperties: "Certificate");
         var mapped = result.Data.Select(x => _mapper.Map<UserCertificateResponseDTO>(x)).ToList();
         return new PaginationResult<IEnumerable<UserCertificateResponseDTO>>(mapped, result.TotalRecords, result.PageIndex, result.PageSize);
     }
 
-    public async Task<PaginationResult<IEnumerable<UserCertificateResponseDTO>>> GetUsersByCertificateAsync(Guid certificateId, int pageIndex = 1, int pageSize = 50)
+    public async Task<PaginationResult<IEnumerable<UserCertificateResponseDTO>>> GetUsersByCertificateAsync(Guid certificateId, int pageIndex = 1, int pageSize = 50, UserCertificateStatus? status = null)
     {
-        var result = await _unitOfWork.UserCertificates.GetAllAsync(x => x.CertificateID == certificateId, null, pageIndex, pageSize, includeProperties: "Certificate");
+        var result = await _unitOfWork.UserCertificates.GetAllAsync(
+            status.HasValue
+                ? x => x.CertificateID == certificateId && x.Status == status.Value
+                : x => x.CertificateID == certificateId,
+            null,
+            pageIndex,
+            pageSize,
+            includeProperties: "Certificate");
         var mapped = result.Data.Select(x => _mapper.Map<UserCertificateResponseDTO>(x)).ToList();
         return new PaginationResult<IEnumerable<UserCertificateResponseDTO>>(mapped, result.TotalRecords, result.PageIndex, result.PageSize);
     }
@@ -74,7 +88,7 @@ public class UserCertificateService : IUserCertificateService
     {
         var uc = await _unitOfWork.UserCertificates.GetByConditionAsync(x => x.UserID == userId && x.CertificateID == certificateId);
         if (uc == null)
-            throw new BaseException("User certificate not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy chứng chỉ của người dùng.", "NOT_FOUND");
 
         uc.Status = UserCertificateStatus.REVOKED;
         await _unitOfWork.UserCertificates.UpdateAsync(uc);

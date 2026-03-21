@@ -1,5 +1,7 @@
-using Droniverse.Academy.Application.DTO.Request;
+﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.API.Enums;
+using Droniverse.Academy.Domain.Enums;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
@@ -21,6 +23,11 @@ public class CourseVersionController : ControllerBase
         _service = service;
     }
 
+    /// <summary>
+    /// Tạo phiên bản mới cho khóa học.
+    /// </summary>
+    /// <param name="courseId">Mã khóa học.</param>
+    /// <param name="request">Thông tin phiên bản cần tạo.</param>
     // POST /academy/courses/{courseId}/versions
     [HttpPost]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
@@ -29,36 +36,58 @@ public class CourseVersionController : ControllerBase
         try
         {
             var created = await _service.CreateCourseVersionAsync(courseId, request);
-            return CreatedAtAction(nameof(GetCourseVersionById), new { courseId = courseId, versionId = created.CourseVersionID }, SuccessResponse<object>.Create(created, "T?o course version th�nh c�ng."));
+            return CreatedAtAction(nameof(GetCourseVersionById), new { courseId = courseId, versionId = created.CourseVersionID }, SuccessResponse<object>.Create(created, "Tạo phiên bản khóa học thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "CreateCourseVersion failed");
+            _logger.LogError(ex, "Tạo phiên bản khóa học thất bại.");
             throw;
         }
     }
 
+    /// <summary>
+    /// Lấy danh sách phiên bản của khóa học.
+    /// </summary>
+    /// <param name="courseId">Mã khóa học.</param>
+    /// <param name="pageIndex">Trang hiện tại, bắt đầu từ 1.</param>
+    /// <param name="pageSize">Số bản ghi trên mỗi trang.</param>
+    /// <param name="status">Bộ lọc trạng thái phiên bản (dropdown enum trong Swagger). Chọn <c>All</c> để lấy toàn bộ.</param>
     // GET /academy/courses/{courseId}/versions
     [HttpGet]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
-    public async Task<IActionResult> GetCourseVersions(Guid courseId, [FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 10, [FromQuery] string? status = null)
+    public async Task<IActionResult> GetCourseVersions(
+        Guid courseId,
+        [FromQuery] int pageIndex = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] CourseVersionStatusFilter status = CourseVersionStatusFilter.All)
     {
         try
         {
-            Droniverse.Academy.Domain.Enums.CourseVersionStatus? st = null;
-            if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<Droniverse.Academy.Domain.Enums.CourseVersionStatus>(status, true, out var parsed))
-                st = parsed;
+            CourseVersionStatus? st = status switch
+            {
+                CourseVersionStatusFilter.All => null,
+                CourseVersionStatusFilter.Draft => CourseVersionStatus.DRAFT,
+                CourseVersionStatusFilter.Active => CourseVersionStatus.ACTIVE,
+                CourseVersionStatusFilter.Deprecated => CourseVersionStatus.DEPRECATED,
+                CourseVersionStatusFilter.Inactive => CourseVersionStatus.INACTIVE,
+                _ => null
+            };
 
             var result = await _service.GetCourseVersionsAsync(courseId, pageIndex, pageSize, st);
-            return Ok(SuccessResponse<object>.Create(result, "L?y danh s�ch course version th�nh c�ng."));
+            return Ok(SuccessResponse<object>.Create(result, "Lấy danh sách phiên bản khóa học thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetCourseVersions failed for {CourseId}", courseId);
+            _logger.LogError(ex, "Lấy danh sách phiên bản khóa học thất bại.");
             throw;
         }
     }
 
+    /// <summary>
+    /// Lấy chi tiết một phiên bản khóa học.
+    /// </summary>
+    /// <param name="courseId">Mã khóa học.</param>
+    /// <param name="versionId">Mã phiên bản khóa học.</param>
     // GET /academy/courses/{courseId}/versions/{versionId}
     [HttpGet("{versionId:guid}")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
@@ -67,15 +96,21 @@ public class CourseVersionController : ControllerBase
         try
         {
             var result = await _service.GetCourseVersionByIdAsync(courseId, versionId);
-            return Ok(SuccessResponse<object>.Create(result, "L?y chi ti?t course version th�nh c�ng."));
+            return Ok(SuccessResponse<object>.Create(result, "Lấy chi tiết phiên bản khóa học thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetCourseVersionById failed for {CourseId}/{VersionId}", courseId, versionId);
+            _logger.LogError(ex, "Lấy chi tiết phiên bản khóa học thất bại.");
             throw;
         }
     }
 
+    /// <summary>
+    /// Cập nhật nội dung phiên bản khóa học.
+    /// </summary>
+    /// <param name="courseId">Mã khóa học.</param>
+    /// <param name="versionId">Mã phiên bản khóa học.</param>
+    /// <param name="request">Dữ liệu cập nhật.</param>
     // PUT /academy/courses/{courseId}/versions/{versionId}
     [HttpPut("{versionId:guid}")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
@@ -84,15 +119,20 @@ public class CourseVersionController : ControllerBase
         try
         {
             var updated = await _service.UpdateCourseVersionAsync(courseId, versionId, request);
-            return Ok(SuccessResponse<object>.Create(updated, "C?p nh?t course version th�nh c�ng."));
+            return Ok(SuccessResponse<object>.Create(updated, "Cập nhật phiên bản khóa học thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "UpdateCourseVersion failed for {CourseId}/{VersionId}", courseId, versionId);
+            _logger.LogError(ex, "Cập nhật phiên bản khóa học thất bại.");
             throw;
         }
     }
 
+    /// <summary>
+    /// Xóa một phiên bản khóa học.
+    /// </summary>
+    /// <param name="courseId">Mã khóa học.</param>
+    /// <param name="versionId">Mã phiên bản khóa học.</param>
     // DELETE /academy/courses/{courseId}/versions/{versionId}
     [HttpDelete("{versionId:guid}")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
@@ -101,15 +141,20 @@ public class CourseVersionController : ControllerBase
         try
         {
             await _service.DeleteCourseVersionAsync(courseId, versionId);
-            return Ok(SuccessResponse<object>.Create(null!, "X�a course version th�nh c�ng."));
+            return Ok(SuccessResponse<object>.Create(null!, "Xóa phiên bản khóa học thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "DeleteCourseVersion failed for {CourseId}/{VersionId}", courseId, versionId);
+            _logger.LogError(ex, "Xóa phiên bản khóa học thất bại.");
             throw;
         }
     }
 
+    /// <summary>
+    /// Kích hoạt phiên bản khóa học.
+    /// </summary>
+    /// <param name="courseId">Mã khóa học.</param>
+    /// <param name="versionId">Mã phiên bản khóa học.</param>
     // POST activate
     [HttpPost("{versionId:guid}/activate")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
@@ -118,15 +163,20 @@ public class CourseVersionController : ControllerBase
         try
         {
             await _service.ActivateCourseVersionAsync(courseId, versionId);
-            return Ok(SuccessResponse<object>.Create(null!, "K�ch ho?t course version th�nh c�ng."));
+            return Ok(SuccessResponse<object>.Create(null!, "Kích hoạt phiên bản khóa học thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "ActivateCourseVersion failed for {CourseId}/{VersionId}", courseId, versionId);
+            _logger.LogError(ex, "Kích hoạt phiên bản khóa học thất bại.");
             throw;
         }
     }
 
+    /// <summary>
+    /// Vô hiệu hóa phiên bản khóa học.
+    /// </summary>
+    /// <param name="courseId">Mã khóa học.</param>
+    /// <param name="versionId">Mã phiên bản khóa học.</param>
     // POST deactivate
     [HttpPost("{versionId:guid}/deactivate")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
@@ -135,11 +185,11 @@ public class CourseVersionController : ControllerBase
         try
         {
             await _service.DeactivateCourseVersionAsync(courseId, versionId);
-            return Ok(SuccessResponse<object>.Create(null!, "V� hi?u h�a course version th�nh c�ng."));
+            return Ok(SuccessResponse<object>.Create(null!, "Vô hiệu hóa phiên bản khóa học thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "DeactivateCourseVersion failed for {CourseId}/{VersionId}", courseId, versionId);
+            _logger.LogError(ex, "Vô hiệu hóa phiên bản khóa học thất bại.");
             throw;
         }
     }
