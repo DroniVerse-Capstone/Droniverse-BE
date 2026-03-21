@@ -45,13 +45,11 @@ public class LabService : ILabService
         if (lesson.Type != LessonType.LAB)
             throw new ValidationException("Loại bài học phải là LAB để gắn bài lab.");
 
-        var existingLab = await _unitOfWork.Labs.GetByConditionAsync(l => l.LessonID == request.LessonID);
-        if (existingLab != null)
+        if (lesson.ReferenceID != Guid.Empty)
             throw new ValidationException("Bài học này đã có bài lab.");
 
         var lab = _mapper.Map<Lab>(request);
         lab.LabID = Guid.NewGuid();
-        lab.LessonID = request.LessonID;
         lab.CreateAt = _clock.Now;
         lab.UpdateAt = _clock.Now;
         lab.CreateBy = _currentUser.UserId;
@@ -155,12 +153,12 @@ public class LabService : ILabService
         if (lab == null)
             throw new BaseException("Không tìm thấy lab.", "NOT_FOUND");
 
-        var lesson = await _unitOfWork.Lessons.GetByIdAsync(lab.LessonID);
-        if (lesson == null)
-            throw new BaseException("Không tìm thấy bài học của lab.", "NOT_FOUND");
-
-        lesson.ReferenceID = Guid.Empty;
-        await _unitOfWork.Lessons.UpdateAsync(lesson);
+        var lesson = await _unitOfWork.Lessons.GetByConditionAsync(l => l.Type == LessonType.LAB && l.ReferenceID == lab.LabID);
+        if (lesson != null)
+        {
+            lesson.ReferenceID = Guid.Empty;
+            await _unitOfWork.Lessons.UpdateAsync(lesson);
+        }
 
         await _unitOfWork.Labs.DeleteAsync(lab);
         await _unitOfWork.SaveChangesAsync();

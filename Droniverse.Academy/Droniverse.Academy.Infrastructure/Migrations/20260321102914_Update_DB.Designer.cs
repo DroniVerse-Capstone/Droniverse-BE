@@ -3,6 +3,7 @@ using System;
 using Droniverse.Academy.Infrastructure.Persistence.MySql;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Droniverse.Academy.Infrastructure.Migrations
 {
     [DbContext(typeof(MySqlDbContext))]
-    partial class MySqlDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260321102914_Update_DB")]
+    partial class Update_DB
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -405,6 +408,9 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<Guid>("LessonID")
+                        .HasColumnType("char(36)");
+
                     b.Property<sbyte>("Level")
                         .HasColumnType("tinyint");
 
@@ -431,6 +437,9 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                         .HasColumnType("char(36)");
 
                     b.HasKey("LabID");
+
+                    b.HasIndex("LessonID")
+                        .IsUnique();
 
                     b.ToTable("Lab", null, t =>
                         {
@@ -533,6 +542,9 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<Guid>("LessonID")
+                        .HasColumnType("char(36)");
+
                     b.Property<float>("PassScore")
                         .HasColumnType("float");
 
@@ -558,6 +570,9 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                         .HasColumnType("char(36)");
 
                     b.HasKey("QuizID");
+
+                    b.HasIndex("LessonID")
+                        .IsUnique();
 
                     b.ToTable("Quiz", (string)null);
                 });
@@ -751,6 +766,9 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                     b.Property<int>("EstimatedTime")
                         .HasColumnType("int");
 
+                    b.Property<Guid>("LessonID")
+                        .HasColumnType("char(36)");
+
                     b.Property<DateTime>("UpdateAt")
                         .ValueGeneratedOnUpdate()
                         .HasColumnType("datetime");
@@ -759,6 +777,9 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                         .HasColumnType("char(36)");
 
                     b.HasKey("TheoryID");
+
+                    b.HasIndex("LessonID")
+                        .IsUnique();
 
                     b.ToTable("Theory", (string)null);
                 });
@@ -1000,6 +1021,17 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                     b.Navigation("CourseVersion");
                 });
 
+            modelBuilder.Entity("Droniverse.Academy.Domain.Entities.Lab", b =>
+                {
+                    b.HasOne("Droniverse.Academy.Domain.Entities.Lesson", "Lesson")
+                        .WithOne("Lab")
+                        .HasForeignKey("Droniverse.Academy.Domain.Entities.Lab", "LessonID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Lesson");
+                });
+
             modelBuilder.Entity("Droniverse.Academy.Domain.Entities.Lesson", b =>
                 {
                     b.HasOne("Droniverse.Academy.Domain.Entities.Module", "Module")
@@ -1020,6 +1052,17 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("CourseVersion");
+                });
+
+            modelBuilder.Entity("Droniverse.Academy.Domain.Entities.Quiz", b =>
+                {
+                    b.HasOne("Droniverse.Academy.Domain.Entities.Lesson", "Lesson")
+                        .WithOne("Quiz")
+                        .HasForeignKey("Droniverse.Academy.Domain.Entities.Quiz", "LessonID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Lesson");
                 });
 
             modelBuilder.Entity("Droniverse.Academy.Domain.Entities.QuizAttempt", b =>
@@ -1091,6 +1134,17 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                     b.Navigation("CourseVersion");
 
                     b.Navigation("Drone");
+                });
+
+            modelBuilder.Entity("Droniverse.Academy.Domain.Entities.Theory", b =>
+                {
+                    b.HasOne("Droniverse.Academy.Domain.Entities.Lesson", "Lesson")
+                        .WithOne("Theory")
+                        .HasForeignKey("Droniverse.Academy.Domain.Entities.Theory", "LessonID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Lesson");
                 });
 
             modelBuilder.Entity("Droniverse.Academy.Domain.Entities.UserCertificate", b =>
@@ -1188,6 +1242,15 @@ namespace Droniverse.Academy.Infrastructure.Migrations
 
             modelBuilder.Entity("Droniverse.Academy.Domain.Entities.Lesson", b =>
                 {
+                    b.Navigation("Lab")
+                        .IsRequired();
+
+                    b.Navigation("Quiz")
+                        .IsRequired();
+
+                    b.Navigation("Theory")
+                        .IsRequired();
+
                     b.Navigation("UserLessons");
                 });
 

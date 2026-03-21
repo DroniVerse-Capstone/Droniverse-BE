@@ -10,33 +10,20 @@ public interface ICourseService
 
 
     /// <summary>
-    /// Get course detail by id (Active version only)
+    /// Get course detail by id with current version.
     /// </summary>
-    Task<CourseResponseDTO> GetCourseByIdActiveAsync(Guid courseId);
-
-    /// <summary>
-    /// Get course detail by id (All versions)
-    /// </summary>
-    Task<CourseDetailResponseDTO> GetCourseByIdAllAsync(Guid courseId);
+    Task<CourseResponseDTO> GetCourseByIdAsync(Guid courseId);
 
 
     /// <summary>
-    /// Get paginated course list (Active version only)
+    /// Get paginated course list with current version and optional course status filter.
     /// </summary>
     Task<PaginationResult<IEnumerable<CourseResponseDTO>>>
-        GetAllCoursesActiveAsync(
+        GetAllCoursesAsync(
             int pageIndex,
             int pageSize,
-            string? search = null);
-
-    /// <summary>
-    /// Get paginated course list (All versions)
-    /// </summary>
-    Task<PaginationResult<IEnumerable<CourseDetailResponseDTO>>> 
-        GetAllCoursesAllAsync(
-            int pageIndex,
-            int pageSize,
-            string? search = null);
+            string? search = null,
+            CourseStatus? status = null);
 
 
     /// <summary>

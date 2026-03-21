@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Domain.Entities;
@@ -11,7 +11,6 @@ public class QuizMappingProfile : Profile
     {
         CreateMap<CreateQuizRequestDTO, Quiz>()
             .ForMember(dest => dest.QuizID, opt => opt.Ignore())
-            .ForMember(dest => dest.Lesson, opt => opt.Ignore())
             .ForMember(dest => dest.QuizQuestions, opt => opt.Ignore())
             .ForMember(dest => dest.CreateAt, opt => opt.Ignore())
             .ForMember(dest => dest.UpdateAt, opt => opt.Ignore())
@@ -20,8 +19,6 @@ public class QuizMappingProfile : Profile
 
         CreateMap<UpdateQuizRequestDTO, Quiz>()
             .ForMember(dest => dest.QuizID, opt => opt.Ignore())
-            .ForMember(dest => dest.LessonID, opt => opt.Ignore())
-            .ForMember(dest => dest.Lesson, opt => opt.Ignore())
             .ForMember(dest => dest.QuizQuestions, opt => opt.Ignore())
             .ForMember(dest => dest.CreateAt, opt => opt.Ignore())
             .ForMember(dest => dest.UpdateAt, opt => opt.Ignore())

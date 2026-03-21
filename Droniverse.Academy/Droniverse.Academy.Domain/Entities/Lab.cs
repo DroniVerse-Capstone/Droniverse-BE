@@ -4,8 +4,6 @@ namespace Droniverse.Academy.Domain.Entities;
 public class Lab
 {
     public Guid LabID { get; set; } //char(36)
-    public Lesson Lesson { get; set; }
-    public Guid LessonID { get; set; } //char(36)
     public ICollection<UserLab> UserLabs { get; set; }
     public ICollection<Report> Reports { get; set; }
     public LabType Type { get; set; } //varchar(50)

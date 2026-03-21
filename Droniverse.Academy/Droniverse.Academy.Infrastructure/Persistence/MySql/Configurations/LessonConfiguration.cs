@@ -19,19 +19,6 @@ public class LessonConfiguration : IEntityTypeConfiguration<Lesson>
             .HasForeignKey(e => e.ModuleID)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne(l => l.Lab)
-            .WithOne(c => c.Lesson)
-            .HasForeignKey<Lab>(e => e.LessonID)
-            .OnDelete(DeleteBehavior.Cascade);
-        builder.HasOne(l => l.Quiz)
-            .WithOne(c => c.Lesson)
-            .HasForeignKey<Quiz>(e => e.LessonID)
-            .OnDelete(DeleteBehavior.Cascade);
-        builder.HasOne(l => l.Theory)
-            .WithOne(c => c.Lesson)
-            .HasForeignKey<Theory>(e => e.LessonID)
-            .OnDelete(DeleteBehavior.Cascade);
-
         builder.Property(e => e.LessonID).HasColumnType("char(36)");
         builder.Property(e => e.ModuleID).HasColumnType("char(36)");
         builder.Property(e => e.OrderIndex).HasColumnType("int").IsRequired();

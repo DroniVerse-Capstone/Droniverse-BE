@@ -40,8 +40,7 @@ public class QuizService : IQuizService
         if (lesson.Type != LessonType.QUIZ)
             throw new ValidationException("Loại bài học phải là QUIZ để gắn bài kiểm tra.");
 
-        var existingQuiz = await _unitOfWork.Quizs.GetByConditionAsync(q => q.LessonID == request.LessonID);
-        if (existingQuiz != null)
+        if (lesson.ReferenceID != Guid.Empty)
             throw new ValidationException("Bài học này đã có bài kiểm tra.");
 
         var quiz = _mapper.Map<Quiz>(request);
@@ -107,7 +106,7 @@ public class QuizService : IQuizService
         if (quiz == null)
             throw new BaseException("Không tìm thấy bài kiểm tra.", "NOT_FOUND");
 
-        var lesson = await _unitOfWork.Lessons.GetByIdAsync(quiz.LessonID);
+        var lesson = await _unitOfWork.Lessons.GetByConditionAsync(l => l.Type == LessonType.QUIZ && l.ReferenceID == quiz.QuizID);
         if (lesson != null && lesson.ReferenceID == quiz.QuizID)
         {
             lesson.ReferenceID = Guid.Empty;

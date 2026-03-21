@@ -10,10 +10,6 @@ public class LabConfiguration : IEntityTypeConfiguration<Lab>
         builder.ToTable("Lab");
         builder.HasKey(e => e.LabID);
 
-        builder.HasOne(e => e.Lesson)
-            .WithOne(c => c.Lab)
-            .HasForeignKey<Lab>(e => e.LessonID)
-            .OnDelete(DeleteBehavior.Restrict);
         builder.HasMany(e => e.UserLabs)
             .WithOne(c => c.Lab);
         builder.HasMany(e => e.Reports)

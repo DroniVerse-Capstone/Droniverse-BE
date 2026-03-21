@@ -40,8 +40,7 @@ public class TheoryService : ITheoryService
         if (lesson.Type != LessonType.THEORY)
             throw new ValidationException("Loại bài học phải là THEORY để gắn bài lý thuyết.");
 
-        var existingTheory = await _unitOfWork.Theories.GetByConditionAsync(t => t.LessonID == request.LessonID);
-        if (existingTheory != null)
+        if (lesson.ReferenceID != Guid.Empty)
             throw new ValidationException("Bài học này đã có bài lý thuyết.");
 
         var theory = _mapper.Map<Theory>(request);
@@ -107,7 +106,7 @@ public class TheoryService : ITheoryService
         if (theory == null)
             throw new BaseException("Không tìm thấy bài lý thuyết.", "NOT_FOUND");
 
-        var lesson = await _unitOfWork.Lessons.GetByIdAsync(theory.LessonID);
+        var lesson = await _unitOfWork.Lessons.GetByConditionAsync(l => l.Type == LessonType.THEORY && l.ReferenceID == theory.TheoryID);
         if (lesson != null && lesson.ReferenceID == theory.TheoryID)
         {
             lesson.ReferenceID = Guid.Empty;

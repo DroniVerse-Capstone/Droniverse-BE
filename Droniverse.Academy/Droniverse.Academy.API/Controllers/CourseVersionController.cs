@@ -1,5 +1,7 @@
 ﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.API.Enums;
+using Droniverse.Academy.Domain.Enums;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
@@ -21,6 +23,11 @@ public class CourseVersionController : ControllerBase
         _service = service;
     }
 
+    /// <summary>
+    /// Tạo phiên bản mới cho khóa học.
+    /// </summary>
+    /// <param name="courseId">Mã khóa học.</param>
+    /// <param name="request">Thông tin phiên bản cần tạo.</param>
     // POST /academy/courses/{courseId}/versions
     [HttpPost]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
@@ -38,16 +45,33 @@ public class CourseVersionController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy danh sách phiên bản của khóa học.
+    /// </summary>
+    /// <param name="courseId">Mã khóa học.</param>
+    /// <param name="pageIndex">Trang hiện tại, bắt đầu từ 1.</param>
+    /// <param name="pageSize">Số bản ghi trên mỗi trang.</param>
+    /// <param name="status">Bộ lọc trạng thái phiên bản (dropdown enum trong Swagger). Chọn <c>All</c> để lấy toàn bộ.</param>
     // GET /academy/courses/{courseId}/versions
     [HttpGet]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
-    public async Task<IActionResult> GetCourseVersions(Guid courseId, [FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 10, [FromQuery] string? status = null)
+    public async Task<IActionResult> GetCourseVersions(
+        Guid courseId,
+        [FromQuery] int pageIndex = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] CourseVersionStatusFilter status = CourseVersionStatusFilter.All)
     {
         try
         {
-            Droniverse.Academy.Domain.Enums.CourseVersionStatus? st = null;
-            if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<Droniverse.Academy.Domain.Enums.CourseVersionStatus>(status, true, out var parsed))
-                st = parsed;
+            CourseVersionStatus? st = status switch
+            {
+                CourseVersionStatusFilter.All => null,
+                CourseVersionStatusFilter.Draft => CourseVersionStatus.DRAFT,
+                CourseVersionStatusFilter.Active => CourseVersionStatus.ACTIVE,
+                CourseVersionStatusFilter.Deprecated => CourseVersionStatus.DEPRECATED,
+                CourseVersionStatusFilter.Inactive => CourseVersionStatus.INACTIVE,
+                _ => null
+            };
 
             var result = await _service.GetCourseVersionsAsync(courseId, pageIndex, pageSize, st);
             return Ok(SuccessResponse<object>.Create(result, "Lấy danh sách phiên bản khóa học thành công."));
@@ -59,6 +83,11 @@ public class CourseVersionController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy chi tiết một phiên bản khóa học.
+    /// </summary>
+    /// <param name="courseId">Mã khóa học.</param>
+    /// <param name="versionId">Mã phiên bản khóa học.</param>
     // GET /academy/courses/{courseId}/versions/{versionId}
     [HttpGet("{versionId:guid}")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
@@ -76,6 +105,12 @@ public class CourseVersionController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Cập nhật nội dung phiên bản khóa học.
+    /// </summary>
+    /// <param name="courseId">Mã khóa học.</param>
+    /// <param name="versionId">Mã phiên bản khóa học.</param>
+    /// <param name="request">Dữ liệu cập nhật.</param>
     // PUT /academy/courses/{courseId}/versions/{versionId}
     [HttpPut("{versionId:guid}")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
@@ -93,6 +128,11 @@ public class CourseVersionController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Xóa một phiên bản khóa học.
+    /// </summary>
+    /// <param name="courseId">Mã khóa học.</param>
+    /// <param name="versionId">Mã phiên bản khóa học.</param>
     // DELETE /academy/courses/{courseId}/versions/{versionId}
     [HttpDelete("{versionId:guid}")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
@@ -110,6 +150,11 @@ public class CourseVersionController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Kích hoạt phiên bản khóa học.
+    /// </summary>
+    /// <param name="courseId">Mã khóa học.</param>
+    /// <param name="versionId">Mã phiên bản khóa học.</param>
     // POST activate
     [HttpPost("{versionId:guid}/activate")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
@@ -127,6 +172,11 @@ public class CourseVersionController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Vô hiệu hóa phiên bản khóa học.
+    /// </summary>
+    /// <param name="courseId">Mã khóa học.</param>
+    /// <param name="versionId">Mã phiên bản khóa học.</param>
     // POST deactivate
     [HttpPost("{versionId:guid}/deactivate")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]

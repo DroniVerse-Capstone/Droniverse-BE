@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Domain.Entities;
@@ -11,7 +11,6 @@ public class TheoryMappingProfile : Profile
     {
         CreateMap<CreateTheoryRequestDTO, Theory>()
             .ForMember(dest => dest.TheoryID, opt => opt.Ignore())
-            .ForMember(dest => dest.Lesson, opt => opt.Ignore())
             .ForMember(dest => dest.CreateAt, opt => opt.Ignore())
             .ForMember(dest => dest.UpdateAt, opt => opt.Ignore())
             .ForMember(dest => dest.CreateBy, opt => opt.Ignore())
@@ -19,8 +18,6 @@ public class TheoryMappingProfile : Profile
 
         CreateMap<UpdateTheoryRequestDTO, Theory>()
             .ForMember(dest => dest.TheoryID, opt => opt.Ignore())
-            .ForMember(dest => dest.LessonID, opt => opt.Ignore())
-            .ForMember(dest => dest.Lesson, opt => opt.Ignore())
             .ForMember(dest => dest.CreateAt, opt => opt.Ignore())
             .ForMember(dest => dest.UpdateAt, opt => opt.Ignore())
             .ForMember(dest => dest.CreateBy, opt => opt.Ignore())

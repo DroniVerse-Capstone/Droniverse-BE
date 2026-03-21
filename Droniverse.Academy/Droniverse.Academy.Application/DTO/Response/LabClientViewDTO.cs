@@ -5,7 +5,6 @@ namespace Droniverse.Academy.Application.DTO.Response;
 public class LabClientViewDTO
 {
     public Guid LabID { get; set; }
-    public Guid LessonID { get; set; }
     public LabType Type { get; set; }
     public LabLevel Level { get; set; }
     public LabStatus Status { get; set; }

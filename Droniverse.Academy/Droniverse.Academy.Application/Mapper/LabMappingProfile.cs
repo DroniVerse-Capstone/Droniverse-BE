@@ -11,8 +11,6 @@ public class LabMappingProfile : Profile
     {
         CreateMap<CreateLabRequestDTO, Lab>()
             .ForMember(dest => dest.LabID, opt => opt.Ignore())
-            .ForMember(dest => dest.LessonID, opt => opt.Ignore())
-            .ForMember(dest => dest.Lesson, opt => opt.Ignore())
             .ForMember(dest => dest.UserLabs, opt => opt.Ignore())
             .ForMember(dest => dest.Reports, opt => opt.Ignore())
             .ForMember(dest => dest.CreateBy, opt => opt.Ignore())
@@ -22,8 +20,6 @@ public class LabMappingProfile : Profile
 
         CreateMap<UpdateLabRequestDTO, Lab>()
             .ForMember(dest => dest.LabID, opt => opt.Ignore())
-            .ForMember(dest => dest.LessonID, opt => opt.Ignore())
-            .ForMember(dest => dest.Lesson, opt => opt.Ignore())
             .ForMember(dest => dest.UserLabs, opt => opt.Ignore())
             .ForMember(dest => dest.Reports, opt => opt.Ignore())
             .ForMember(dest => dest.CreateBy, opt => opt.Ignore())
