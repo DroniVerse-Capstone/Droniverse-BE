@@ -8,6 +8,10 @@ on:
     types: [closed]
   workflow_dispatch:
 
+permissions:
+  pull-requests: read
+  contents: read
+
 concurrency:
   group: deploy-main
   cancel-in-progress: true
