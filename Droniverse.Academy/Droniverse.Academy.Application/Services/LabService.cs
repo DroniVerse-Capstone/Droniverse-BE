@@ -38,15 +38,12 @@ public class LabService : ILabService
 
         LabValidator.ValidateLabData(request.NameVN, request.NameEN, request.DescriptionVN, request.DescriptionEN);
 
-        var lesson = await _unitOfWork.Lessons.GetByIdAsync(request.LessonID);
-        if (lesson == null)
-            throw new BaseException("Không tìm thấy bài học.", "NOT_FOUND");
+        var module = await _unitOfWork.Modules.GetByIdAsync(request.ModuleID);
+        if (module == null)
+            throw new BaseException("Không tìm thấy mô-đun.", "NOT_FOUND");
 
-        if (lesson.Type != LessonType.LAB)
-            throw new ValidationException("Loại bài học phải là LAB để gắn bài lab.");
-
-        if (lesson.ReferenceID != Guid.Empty)
-            throw new ValidationException("Bài học này đã có bài lab.");
+        var orderIndex = request.OrderIndex ?? await GetNextOrderIndexAsync(request.ModuleID);
+        await ValidateOrderIndexAsync(request.ModuleID, orderIndex);
 
         var lab = _mapper.Map<Lab>(request);
         lab.LabID = Guid.NewGuid();
@@ -57,8 +54,16 @@ public class LabService : ILabService
 
         await _unitOfWork.Labs.AddAsync(lab);
 
-        lesson.ReferenceID = lab.LabID;
-        await _unitOfWork.Lessons.UpdateAsync(lesson);
+        var lesson = new Lesson
+        {
+            LessonID = Guid.NewGuid(),
+            ModuleID = request.ModuleID,
+            OrderIndex = orderIndex,
+            Type = LessonType.LAB,
+            ReferenceID = lab.LabID
+        };
+
+        await _unitOfWork.Lessons.AddAsync(lesson);
 
         await _unitOfWork.SaveChangesAsync();
 
@@ -164,5 +169,29 @@ public class LabService : ILabService
         await _unitOfWork.SaveChangesAsync();
 
         await _labContentService.DeleteByLabIdAsync(labId);
+    }
+
+    private async Task<int> GetNextOrderIndexAsync(Guid moduleId)
+    {
+        var lessons = await _unitOfWork.Lessons.GetAllAsync(
+            filter: l => l.ModuleID == moduleId,
+            orderBy: q => q.OrderByDescending(l => l.OrderIndex),
+            pageIndex: 1,
+            pageSize: 1);
+
+        var latest = lessons.Data.FirstOrDefault();
+        return (latest?.OrderIndex ?? 0) + 1;
+    }
+
+    private async Task ValidateOrderIndexAsync(Guid moduleId, int orderIndex)
+    {
+        if (orderIndex <= 0)
+            throw new ValidationException("OrderIndex phải lớn hơn 0.");
+
+        var duplicated = await _unitOfWork.Lessons.GetByConditionAsync(
+            l => l.ModuleID == moduleId && l.OrderIndex == orderIndex);
+
+        if (duplicated != null)
+            throw new ValidationException("OrderIndex phải là duy nhất trong mô-đun.");
     }
 }

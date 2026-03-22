@@ -33,15 +33,12 @@ public class TheoryService : ITheoryService
 
         TheoryValidator.ValidateTheoryData(request.EstimatedTime, request.ContentVN, request.ContentEN);
 
-        var lesson = await _unitOfWork.Lessons.GetByIdAsync(request.LessonID);
-        if (lesson == null)
-            throw new BaseException("Không tìm thấy bài học.", "NOT_FOUND");
+        var module = await _unitOfWork.Modules.GetByIdAsync(request.ModuleID);
+        if (module == null)
+            throw new BaseException("Không tìm thấy mô-đun.", "NOT_FOUND");
 
-        if (lesson.Type != LessonType.THEORY)
-            throw new ValidationException("Loại bài học phải là THEORY để gắn bài lý thuyết.");
-
-        if (lesson.ReferenceID != Guid.Empty)
-            throw new ValidationException("Bài học này đã có bài lý thuyết.");
+        var orderIndex = request.OrderIndex ?? await GetNextOrderIndexAsync(request.ModuleID);
+        await ValidateOrderIndexAsync(request.ModuleID, orderIndex);
 
         var theory = _mapper.Map<Theory>(request);
         theory.TheoryID = Guid.NewGuid();
@@ -52,8 +49,16 @@ public class TheoryService : ITheoryService
 
         await _unitOfWork.Theories.AddAsync(theory);
 
-        lesson.ReferenceID = theory.TheoryID;
-        await _unitOfWork.Lessons.UpdateAsync(lesson);
+        var lesson = new Lesson
+        {
+            LessonID = Guid.NewGuid(),
+            ModuleID = request.ModuleID,
+            OrderIndex = orderIndex,
+            Type = LessonType.THEORY,
+            ReferenceID = theory.TheoryID
+        };
+
+        await _unitOfWork.Lessons.AddAsync(lesson);
 
         await _unitOfWork.SaveChangesAsync();
 
@@ -115,5 +120,29 @@ public class TheoryService : ITheoryService
 
         await _unitOfWork.Theories.DeleteAsync(theory);
         await _unitOfWork.SaveChangesAsync();
+    }
+
+    private async Task<int> GetNextOrderIndexAsync(Guid moduleId)
+    {
+        var lessons = await _unitOfWork.Lessons.GetAllAsync(
+            filter: l => l.ModuleID == moduleId,
+            orderBy: q => q.OrderByDescending(l => l.OrderIndex),
+            pageIndex: 1,
+            pageSize: 1);
+
+        var latest = lessons.Data.FirstOrDefault();
+        return (latest?.OrderIndex ?? 0) + 1;
+    }
+
+    private async Task ValidateOrderIndexAsync(Guid moduleId, int orderIndex)
+    {
+        if (orderIndex <= 0)
+            throw new ValidationException("OrderIndex phải lớn hơn 0.");
+
+        var duplicated = await _unitOfWork.Lessons.GetByConditionAsync(
+            l => l.ModuleID == moduleId && l.OrderIndex == orderIndex);
+
+        if (duplicated != null)
+            throw new ValidationException("OrderIndex phải là duy nhất trong mô-đun.");
     }
 }

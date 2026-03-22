@@ -22,25 +22,6 @@ public class LessonController : ControllerBase
     }
 
     /// <summary>
-    /// Tạo bài học mới trong mô-đun.
-    /// </summary>
-    [HttpPost]
-    [Authorize(Roles = Roles.AdminOrSystemManager)]
-    public async Task<IActionResult> CreateLesson(Guid moduleId, [FromBody] CreateLessonRequestDTO request)
-    {
-        try
-        {
-            var created = await _lessonService.CreateLessonAsync(moduleId, request);
-            return StatusCode(201, SuccessResponse<LessonClientViewDTO>.Create(created, "Tạo bài học thành công."));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Tạo bài học thất bại.");
-            throw;
-        }
-    }
-
-    /// <summary>
     /// Lấy danh sách bài học của mô-đun.
     /// </summary>
     [HttpGet]
