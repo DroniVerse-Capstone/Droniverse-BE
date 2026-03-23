@@ -22,7 +22,7 @@ public class LabController : ControllerBase
     }
 
     /// <summary>
-    /// Tạo mới bài lab.
+    /// Tạo mới bài lab vào kho lab (không tạo lesson tự động).
     /// </summary>
     [HttpPost]
     [Authorize(Roles = Roles.AllRoles)]
@@ -36,6 +36,25 @@ public class LabController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Tạo lab thất bại.");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Tạo lesson từ lab có sẵn trong kho và gán lab vào lesson đó.
+    /// </summary>
+    [HttpPost("{labId:guid}/lessons")]
+    [Authorize(Roles = Roles.AdminOrSystemManager)]
+    public async Task<IActionResult> CreateLessonFromLab(Guid labId, [FromBody] CreateLabLessonRequestDTO request)
+    {
+        try
+        {
+            var created = await _labService.CreateLessonFromLabAsync(labId, request);
+            return StatusCode(201, SuccessResponse<LessonClientViewDTO>.Create(created, "Tạo lesson từ lab thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Tạo lesson từ lab thất bại.");
             throw;
         }
     }

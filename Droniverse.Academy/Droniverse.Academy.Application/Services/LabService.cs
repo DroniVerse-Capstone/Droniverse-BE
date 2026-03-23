@@ -38,13 +38,6 @@ public class LabService : ILabService
 
         LabValidator.ValidateLabData(request.NameVN, request.NameEN, request.DescriptionVN, request.DescriptionEN);
 
-        var module = await _unitOfWork.Modules.GetByIdAsync(request.ModuleID);
-        if (module == null)
-            throw new BaseException("Không tìm thấy mô-đun.", "NOT_FOUND");
-
-        var orderIndex = request.OrderIndex ?? await GetNextOrderIndexAsync(request.ModuleID);
-        await ValidateOrderIndexAsync(request.ModuleID, orderIndex);
-
         var lab = _mapper.Map<Lab>(request);
         lab.LabID = Guid.NewGuid();
         lab.CreateAt = _clock.Now;
@@ -53,17 +46,6 @@ public class LabService : ILabService
         lab.UpdateBy = _currentUser.UserId;
 
         await _unitOfWork.Labs.AddAsync(lab);
-
-        var lesson = new Lesson
-        {
-            LessonID = Guid.NewGuid(),
-            ModuleID = request.ModuleID,
-            OrderIndex = orderIndex,
-            Type = LessonType.LAB,
-            ReferenceID = lab.LabID
-        };
-
-        await _unitOfWork.Lessons.AddAsync(lesson);
 
         await _unitOfWork.SaveChangesAsync();
 
@@ -74,6 +56,39 @@ public class LabService : ILabService
             Lab = _mapper.Map<LabClientViewDTO>(lab),
             LabContent = labContent
         };
+    }
+
+    public async Task<LessonClientViewDTO> CreateLessonFromLabAsync(Guid labId, CreateLabLessonRequestDTO request)
+    {
+        if (request == null)
+            throw new ArgumentNullException(nameof(request));
+
+        var lab = await _unitOfWork.Labs.GetByIdAsync(labId);
+        if (lab == null)
+            throw new BaseException("Không tìm thấy lab.", "NOT_FOUND");
+
+        var module = await _unitOfWork.Modules.GetByIdAsync(request.ModuleID);
+        if (module == null)
+            throw new BaseException("Không tìm thấy mô-đun.", "NOT_FOUND");
+
+        var orderIndex = request.OrderIndex ?? await GetNextOrderIndexAsync(request.ModuleID);
+        await ValidateOrderIndexAsync(request.ModuleID, orderIndex);
+
+        var createLessonRequest = new CreateLessonRequestDTO
+        {
+            Type = LessonType.LAB,
+            ReferenceID = labId
+        };
+
+        var lesson = _mapper.Map<Lesson>(createLessonRequest);
+        lesson.LessonID = Guid.NewGuid();
+        lesson.ModuleID = request.ModuleID;
+        lesson.OrderIndex = orderIndex;
+
+        await _unitOfWork.Lessons.AddAsync(lesson);
+        await _unitOfWork.SaveChangesAsync();
+
+        return _mapper.Map<LessonClientViewDTO>(lesson);
     }
 
     public async Task<PaginationResult<IEnumerable<LabClientViewDTO>>> GetLabsAsync(GetLabsQueryDTO query)
@@ -158,8 +173,12 @@ public class LabService : ILabService
         if (lab == null)
             throw new BaseException("Không tìm thấy lab.", "NOT_FOUND");
 
-        var lesson = await _unitOfWork.Lessons.GetByConditionAsync(l => l.Type == LessonType.LAB && l.ReferenceID == lab.LabID);
-        if (lesson != null)
+        var lessons = await _unitOfWork.Lessons.GetAllAsync(
+            filter: l => l.Type == LessonType.LAB && l.ReferenceID == lab.LabID,
+            pageIndex: 1,
+            pageSize: int.MaxValue);
+
+        foreach (var lesson in lessons.Data)
         {
             lesson.ReferenceID = Guid.Empty;
             await _unitOfWork.Lessons.UpdateAsync(lesson);

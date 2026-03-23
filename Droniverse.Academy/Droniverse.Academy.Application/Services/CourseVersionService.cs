@@ -40,21 +40,10 @@ public class CourseVersionService : ICourseVersionService
             nextVersion = course.CourseVersions.Max(v => v.Version) + 1;
         }
 
-        var cv = new CourseVersion
-        {
-            CourseVersionID = Guid.NewGuid(),
-            CourseID = course.CourseID,
-            TitleVN = request.TitleVN,
-            TitleEN = request.TitleEN,
-            DescriptionVN = request.DescriptionVN,
-            DescriptionEN = request.DescriptionEN,
-            ContextVN = request.ContextVN,
-            ContextEN = request.ContextEN,
-            ImageUrl = request.ImageUrl,
-            Level = request.Level,
-            EstimatedDuration = request.EstimatedDuration,
-            Version = nextVersion
-        };
+        var cv = _mapper.Map<CourseVersion>(request);
+        cv.CourseVersionID = Guid.NewGuid();
+        cv.CourseID = course.CourseID;
+        cv.Version = nextVersion;
 
         await _unitOfWork.CourseVersions.AddAsync(cv);
         await _unitOfWork.SaveChangesAsync();
