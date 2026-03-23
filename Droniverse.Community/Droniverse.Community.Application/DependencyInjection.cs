@@ -30,7 +30,8 @@ public static class DependencyInjection
         services.AddScoped<IUserRoundService, UserRoundService>();
 
         // Đăng ký Background Jobs
-        services.AddTransient<CompetitionStatusJob>();
+        services.AddScoped<CompetitionStatusJob>();
+        services.AddScoped<TestJob>();
 
         //Đăng ký DelegatingHandler
         services.AddTransient<AuthorizationDelegatingHandler>();

@@ -1,4 +1,4 @@
-using Droniverse.Community.Application.DTO.Extensions;
+﻿using Droniverse.Community.Application.DTO.Extensions;
 using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Domain.Enums;
@@ -18,5 +18,6 @@ namespace Droniverse.Community.Application.IService
         Task<IEnumerable<UserCompetitionResponseDto>> GetCompetitionParticipants(Guid competitionId);
         Task<IEnumerable<LeaderboardEntryDto>> GetCompetitionLeaderboard(Guid competitionId);
         Task<CompetitionResponse> FinishCompetition(Guid competitionId);
+        Task UpdateCompetitionStatusesAsync();
     }
 }

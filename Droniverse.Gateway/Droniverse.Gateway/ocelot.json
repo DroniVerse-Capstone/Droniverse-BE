@@ -1,8 +1,7 @@
 {
   "Routes": [
-    //----------------------------------ACADEMY-SERVICE--------------------------------------------
     {
-      "DownstreamPathTemplate": "/academy/courses/{everything}",
+      "DownstreamPathTemplate": "/academy/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
@@ -10,7 +9,7 @@
           "Port": 8080
         }
       ],
-      "UpstreamPathTemplate": "/api/courses/{everything}",
+      "UpstreamPathTemplate": "/api/academy/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer"
@@ -18,137 +17,7 @@
       "SwaggerKey": "academy"
     },
     {
-      "DownstreamPathTemplate": "/academy/categories/{everything}",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "academy-microservice",
-          "Port": 8080
-        }
-      ],
-      "UpstreamPathTemplate": "/api/academy/categories/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
-      "AuthenticationOptions": {
-        "AuthenticationProviderKey": "Bearer"
-      },
-      "SwaggerKey": "academy"
-    },
-    {
-      "DownstreamPathTemplate": "/academy/drone-types/{everything}",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "academy-microservice",
-          "Port": 8080
-        }
-      ],
-      "UpstreamPathTemplate": "/api/drone-types/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
-      "AuthenticationOptions": {
-        "AuthenticationProviderKey": "Bearer"
-      },
-      "SwaggerKey": "academy"
-    },
-    {
-      "DownstreamPathTemplate": "/academy/drones/{everything}",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "academy-microservice",
-          "Port": 8080
-        }
-      ],
-      "UpstreamPathTemplate": "/api/drones/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
-      "AuthenticationOptions": {
-        "AuthenticationProviderKey": "Bearer"
-      },
-      "SwaggerKey": "academy"
-    },
-    {
-      "DownstreamPathTemplate": "/academy/modules/{everything}",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "academy-microservice",
-          "Port": 8080
-        }
-      ],
-      "UpstreamPathTemplate": "/api/modules/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
-      "AuthenticationOptions": {
-        "AuthenticationProviderKey": "Bearer"
-      },
-      "SwaggerKey": "academy"
-    },
-    {
-      "DownstreamPathTemplate": "/academy/quizzes/{everything}",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "academy-microservice",
-          "Port": 8080
-        }
-      ],
-      "UpstreamPathTemplate": "/api/quizzes/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
-      "AuthenticationOptions": {
-        "AuthenticationProviderKey": "Bearer"
-      },
-      "SwaggerKey": "academy"
-    },
-    {
-      "DownstreamPathTemplate": "/academy/theories/{everything}",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "academy-microservice",
-          "Port": 8080
-        }
-      ],
-      "UpstreamPathTemplate": "/api/theories/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
-      "AuthenticationOptions": {
-        "AuthenticationProviderKey": "Bearer"
-      },
-      "SwaggerKey": "academy"
-    },
-    {
-      "DownstreamPathTemplate": "/academy/certificates/{everything}",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "academy-microservice",
-          "Port": 8080
-        }
-      ],
-      "UpstreamPathTemplate": "/api/academy/certificates/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS" ],
-      "AuthenticationOptions": {
-        "AuthenticationProviderKey": "Bearer"
-      },
-      "SwaggerKey": "academy"
-    },
-    {
-      "DownstreamPathTemplate": "/academy/users/{everything}",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "academy-microservice",
-          "Port": 8080
-        }
-      ],
-      "UpstreamPathTemplate": "/api/academy/users/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS" ],
-      "AuthenticationOptions": {
-        "AuthenticationProviderKey": "Bearer"
-      },
-      "SwaggerKey": "academy"
-    },
-    //--------------------------------------------------------------------------------------------------
-    //----------------------------------COMMUNITY-SERVICE-----------------------------------------------
-    {
-      "DownstreamPathTemplate": "/community/clubs/{everything}",
+      "DownstreamPathTemplate": "/community/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
@@ -156,119 +25,12 @@
           "Port": 8080
         }
       ],
-      "UpstreamPathTemplate": "/api/clubs/{everything}",
+      "UpstreamPathTemplate": "/api/community/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
       "SwaggerKey": "community"
     },
     {
-      "DownstreamPathTemplate": "/community/categories/{everything}",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "community-microservice",
-          "Port": 8080
-        }
-      ],
-      "UpstreamPathTemplate": "/api/categories/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
-      "SwaggerKey": "community"
-    },
-    {
-      "DownstreamPathTemplate": "/community/club-attempt-request/{everything}",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "community-microservice",
-          "Port": 8080
-        }
-      ],
-      "UpstreamPathTemplate": "/api/club-attempt-request/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
-      "SwaggerKey": "community"
-    },
-    {
-      "DownstreamPathTemplate": "/community/club-creation-request/{everything}",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "community-microservice",
-          "Port": 8080
-        }
-      ],
-      "UpstreamPathTemplate": "/api/club-creation-request/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
-      "SwaggerKey": "community"
-    },
-    {
-      "DownstreamPathTemplate": "/community/competitions/{everything}",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "community-microservice",
-          "Port": 8080
-        }
-      ],
-      "UpstreamPathTemplate": "/api/competitions/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
-      "SwaggerKey": "community"
-    },
-    {
-      "DownstreamPathTemplate": "/community/competition-prizes/{everything}",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "community-microservice",
-          "Port": 8080
-        }
-      ],
-      "UpstreamPathTemplate": "/api/competition-prizes/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
-      "SwaggerKey": "community"
-    },
-    {
-      "DownstreamPathTemplate": "/community/rounds/{everything}",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "community-microservice",
-          "Port": 8080
-        }
-      ],
-      "UpstreamPathTemplate": "/api/rounds/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
-      "SwaggerKey": "community"
-    },
-    {
-      "DownstreamPathTemplate": "/community/user-rounds/{everything}",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "community-microservice",
-          "Port": 8080
-        }
-      ],
-      "UpstreamPathTemplate": "/api/user-rounds/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
-      "SwaggerKey": "community"
-    },
-    {
-      "DownstreamPathTemplate": "/community/orders/{everything}",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "community-microservice",
-          "Port": 8080
-        }
-      ],
-      "UpstreamPathTemplate": "/api/orders/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
-      "SwaggerKey": "community"
-    },
-
-    //--------------------------------------------------------------------------------------------------
-    //----------------------------------IDENTITY-SERVICE-----------------------------------------------
-    {
-      "DownstreamPathTemplate": "/identity/auth/{everything}",
+      "DownstreamPathTemplate": "/identity/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
@@ -276,54 +38,11 @@
           "Port": 8080
         }
       ],
-      "UpstreamPathTemplate": "/api/auth/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
-      "SwaggerKey": "identity"
-    },
-    {
-      "DownstreamPathTemplate": "/identity/users/{everything}",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "identity-microservice",
-          "Port": 8080
-        }
-      ],
-      "UpstreamPathTemplate": "/api/users/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
-      "AuthenticationOptions": {
-        "AuthenticationProviderKey": "Bearer"
-      },
-      "SwaggerKey": "identity"
-    },
-    {
-      "DownstreamPathTemplate": "/identity/roles/{everything}",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "identity-microservice",
-          "Port": 8080
-        }
-      ],
-      "UpstreamPathTemplate": "/api/roles/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
-      "SwaggerKey": "identity"
-    },
-    {
-      "DownstreamPathTemplate": "/identity/permissions/{everything}",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "identity-microservice",
-          "Port": 8080
-        }
-      ],
-      "UpstreamPathTemplate": "/api/permissions/{everything}",
+      "UpstreamPathTemplate": "/api/identity/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
       "SwaggerKey": "identity"
     }
   ],
-  //--------------------------------------------------------------------------------------------------
   "SwaggerEndPoints": [
     {
       "Key": "academy",
