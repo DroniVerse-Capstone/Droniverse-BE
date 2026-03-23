@@ -5,6 +5,8 @@ using Droniverse.Community.Application.IService.Mongo;
 using Droniverse.Community.Domain.Entities.Mongo;
 using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository.Mongo;
+using Droniverse.Shared.Exceptions;
+using Droniverse.Shared.Services;
 using MongoDB.Driver;
 
 namespace Droniverse.Community.Application.Services.Mongo;
@@ -14,32 +16,62 @@ internal class OrderService : IOrderService
     private readonly IOrderRepository _orderRepository;
     private readonly IInvoiceRepository _invoiceRepository;
     private readonly IMapper _mapper;
-    public OrderService(IOrderRepository orderRepository, IMapper mapper, IInvoiceRepository invoiceRepository)
+    private readonly IPaymentService _paymentService;
+    private readonly ICurrentUserService _currentUserService;
+    public OrderService(
+        IOrderRepository orderRepository, 
+        IMapper mapper, 
+        IInvoiceRepository invoiceRepository,
+        IPaymentService paymentService,
+        ICurrentUserService currentUserService)
     {
         _orderRepository = orderRepository;
         _mapper = mapper;
         _invoiceRepository = invoiceRepository;
+        _paymentService = paymentService;
+        _currentUserService = currentUserService;
     }
 
     public async Task<OrderResponseDto?> AddOrder(OrderCreateDto orderAddRequest)
     {
         if (orderAddRequest == null)
-            return null;
-        Order order = new Order();
-        order._id = Guid.NewGuid();
-        order.UserID = Guid.NewGuid();
-        order.InvoiceID = Guid.NewGuid();
-        order.Payment = new Payment
+            throw new ArgumentNullException(nameof(orderAddRequest));
+
+        if(orderAddRequest.Items is null || orderAddRequest.Items.Count == 0)
+            throw new ArgumentNullException("Đơn hàng phải chứa ít nhất 1 item.", nameof(orderAddRequest.Items));
+
+        if(!Guid.TryParse(_currentUserService.UserID, out var currentUserId))
+            throw new UnauthorizedAccessException("Nguời dùng chưa được xác thực");
+
+        if(orderAddRequest.TotalAmount <= 0)
+            throw new ArgumentException("Tổng tiền phải lớn hơn 0.", nameof(orderAddRequest.TotalAmount));
+
+        // Chặn user giả mạo userId từ req
+        if(orderAddRequest.UserID != Guid.Empty && orderAddRequest.UserID != currentUserId)
+            throw new UnauthorizedAccessException("UserId trong request không hợp lệ.");
+
+        // Tạo order items
+        List<OrderItem> orderItems = orderAddRequest.Items.Select(item => new OrderItem
         {
-            TransactionID = "test",
-            PaymentMethod = PaymentMethod.VNPAY,
-            PaymentStatus = PaymentStatus.SUCCESS,
-            TransactionDate = DateTime.UtcNow
+            ProductID = item.ProductID,
+            ProductName = item.ProductName,
+            Type = item.Type,
+            UnitOfPrice = item.UnitOfPrice,
+            Quantity = item.Quantity,
+            Total = item.Total
+        }).ToList();
+
+        Order order = new Order()
+        {
+            _id = Guid.NewGuid(),
+            UserID = currentUserId,
+            InvoiceID = Guid.NewGuid(),
+            TotalAmount = orderAddRequest.TotalAmount,
+            Status = OrderStatus.PENDING,
+            CreateAt = DateTime.UtcNow.AddHours(7),
+            Items = orderItems
         };
-        order.TotalAmount = orderAddRequest.TotalAmount;
-        order.Status = OrderStatus.PENDING;
-        order.CreateAt = DateTime.UtcNow;
-        order.Items = new List<OrderItem>();
+
         foreach (var item in orderAddRequest.Items)
         {
             order.Items.Add(new OrderItem
@@ -52,7 +84,25 @@ internal class OrderService : IOrderService
                 Total = item.Total
             });
         }
-        Order? createdOrder = await _orderRepository.AddOrder(order);
+        //Tạo order
+        Order? createdOrder = await _orderRepository.AddOrder(order) ?? throw new Exception("Create order failed");
+
+        try
+        {
+            PaymentCreateDto paymentReq = new PaymentCreateDto(
+            TotalAmount: order.TotalAmount,
+            PaymentMethod: orderAddRequest.PaymentMethod
+        );
+
+            await _paymentService.CreatePaymentLink(createdOrder._id, paymentReq);
+        }
+        catch
+        {
+            // Đánh dấu order failed nếu tạo payment thất bại
+            createdOrder.Status = OrderStatus.FAILED;
+            await _orderRepository.UpdateOrder(createdOrder);
+            throw;
+        }
 
         //Add Invoice
         Invoice invoice= new Invoice();
@@ -67,7 +117,6 @@ internal class OrderService : IOrderService
             Name = "Tuyền đẹp trai",
             TaxCode = "xxx-yyy-zzz"
         };
-        invoice.OrderID = createdOrder!._id;
         Invoice? responseInvoice = await _invoiceRepository.AddInvoice(invoice);
         return _mapper.Map<OrderResponseDto?>(createdOrder);
     }
@@ -77,9 +126,10 @@ internal class OrderService : IOrderService
         throw new NotImplementedException();
     }
 
-    public Task<OrderResponseDto?> GetOrderByCondition(FilterDefinition<Order> filter)
+    public async Task<OrderResponseDto?> GetOrderByCondition(FilterDefinition<Order> filter)
     {
-        throw new NotImplementedException();
+        var order = await _orderRepository.GetOrderByCondition(filter);
+        return _mapper.Map<Order, OrderResponseDto?>(order);   
     }
 
     public async Task<List<OrderResponseDto?>> GetOrders()
@@ -99,9 +149,10 @@ internal class OrderService : IOrderService
 
     }
 
-    public Task<List<OrderResponseDto?>> GetOrdersByCondition(FilterDefinition<Order> filter)
+    public async Task<List<OrderResponseDto?>> GetOrdersByCondition(FilterDefinition<Order> filter)
     {
-        throw new NotImplementedException();
+        IEnumerable<Order?> orders = await _orderRepository.GetOrdersByCondition(filter);
+        return _mapper.Map<IEnumerable<Order?>, IEnumerable<OrderResponseDto?>>(orders).ToList();
     }
 
     public Task<OrderResponseDto?> UpdateOrder(OrderUpdateDto orderUpdateRequest)

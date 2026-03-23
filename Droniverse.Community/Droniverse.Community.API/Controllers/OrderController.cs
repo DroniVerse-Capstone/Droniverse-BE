@@ -41,7 +41,7 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
-        /// Tạo mới một đơn hàng
+        /// Tạo mới một đơn hàng. #1. Luồng thanh toán
         /// </summary>
         /// <param name="orderCreateDto">Thông tin đơn hàng cần tạo</param>
         /// <returns>

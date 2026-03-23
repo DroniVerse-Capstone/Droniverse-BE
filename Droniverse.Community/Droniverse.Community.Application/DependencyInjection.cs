@@ -28,7 +28,8 @@ public static class DependencyInjection
         services.AddScoped<IRoundService, RoundService>();
         services.AddScoped<ICompetitionPrizeService, CompetitionPrizeService>();
         services.AddScoped<IUserRoundService, UserRoundService>();
-        //services.AddScoped<IPaymentService, PaymentService>();
+        services.AddScoped<IOrderService, OrderService>();
+        services.AddScoped<IPaymentService, PaymentService>();
 
         // Đăng ký Background Jobs
         //services.AddTransient<CompetitionStatusJob>();
