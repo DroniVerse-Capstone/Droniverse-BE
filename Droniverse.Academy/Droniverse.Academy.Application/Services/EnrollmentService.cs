@@ -1,0 +1,133 @@
+﻿using AutoMapper;
+using Droniverse.Academy.Application.DTO.Request;
+using Droniverse.Academy.Application.DTO.Response;
+using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.Domain.Entities;
+using Droniverse.Academy.Domain.Enums;
+using Droniverse.Academy.Domain.IRepository;
+using Droniverse.Shared.DTOs.Response;
+using Droniverse.Shared.Exceptions;
+using Droniverse.Shared.Services;
+
+namespace Droniverse.Academy.Application.Services;
+
+public class EnrollmentService : IEnrollmentService
+{
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IMapper _mapper;
+    private readonly ICurrentUserService _currentUser;
+    private readonly IClock _clock;
+
+    public EnrollmentService(IUnitOfWork unitOfWork, IMapper mapper, ICurrentUserService currentUser, IClock clock)
+    {
+        _unitOfWork = unitOfWork;
+        _mapper = mapper;
+        _currentUser = currentUser;
+        _clock = clock;
+    }
+
+    public async Task<EnrollmentResponseDTO> CreateEnrollmentAsync(CreateEnrollmentRequestDTO request)
+    {
+        if (request == null)
+            throw new ArgumentNullException(nameof(request));
+
+        if (await _unitOfWork.CourseVersions.GetByIdAsync(request.CourseVersionID) == null)
+            throw new BaseException("Không tìm thấy phiên bản khóa học.", "NOT_FOUND");
+
+        var userId = _currentUser.UserId;
+
+        var existing = await _unitOfWork.Enrollments.GetByConditionAsync(
+            x => x.UserID == userId && x.CourseVersionID == request.CourseVersionID);
+
+        if (existing != null)
+            throw new ValidationException("Người dùng đã đăng ký phiên bản khóa học này.");
+
+        var enrollment = _mapper.Map<Enrollment>(request);
+        enrollment.EnrollmentID = Guid.NewGuid();
+        enrollment.UserID = userId;
+        enrollment.EnrollDate = _clock.Now;
+        enrollment.LastAccessDate = _clock.Now;
+        enrollment.ExpireDate = request.ExpireDate ?? _clock.Now.AddMonths(6);
+        enrollment.Progress = 0;
+        enrollment.Status = EnrollStatus.ACTIVE;
+
+        await _unitOfWork.Enrollments.AddAsync(enrollment);
+        await _unitOfWork.SaveChangesAsync();
+
+        return _mapper.Map<EnrollmentResponseDTO>(enrollment);
+    }
+
+    public async Task<PaginationResult<IEnumerable<EnrollmentResponseDTO>>> GetMyEnrollmentsAsync(int pageIndex = 1, int pageSize = 10, EnrollStatus? status = null)
+    {
+        var userId = _currentUser.UserId;
+
+        var result = await _unitOfWork.Enrollments.GetAllAsync(
+            status.HasValue
+                ? x => x.UserID == userId && x.Status == status.Value
+                : x => x.UserID == userId,
+            pageIndex: pageIndex,
+            pageSize: pageSize,
+            orderBy: q => q.OrderByDescending(x => x.EnrollDate));
+
+        var mapped = result.Data.Select(x => _mapper.Map<EnrollmentResponseDTO>(x)).ToList();
+        return new PaginationResult<IEnumerable<EnrollmentResponseDTO>>(mapped, result.TotalRecords, result.PageIndex, result.PageSize);
+    }
+
+    public async Task<EnrollmentResponseDTO> GetMyEnrollmentByIdAsync(Guid enrollmentId)
+    {
+        var userId = _currentUser.UserId;
+
+        var enrollment = await _unitOfWork.Enrollments.GetByConditionAsync(
+            x => x.EnrollmentID == enrollmentId && x.UserID == userId);
+
+        if (enrollment == null)
+            throw new BaseException("Không tìm thấy enrollment.", "NOT_FOUND");
+
+        return _mapper.Map<EnrollmentResponseDTO>(enrollment);
+    }
+
+    public async Task<EnrollmentResponseDTO> UpdateMyEnrollmentAsync(Guid enrollmentId, UpdateEnrollmentRequestDTO request)
+    {
+        if (request == null)
+            throw new ArgumentNullException(nameof(request));
+
+        if (request.Progress is < 0 or > 100)
+            throw new ValidationException("Progress phải nằm trong khoảng từ 0 đến 100.");
+
+        var userId = _currentUser.UserId;
+
+        var enrollment = await _unitOfWork.Enrollments.GetByConditionAsync(
+            x => x.EnrollmentID == enrollmentId && x.UserID == userId);
+
+        if (enrollment == null)
+            throw new BaseException("Không tìm thấy enrollment.", "NOT_FOUND");
+
+        enrollment.Progress = request.Progress;
+        enrollment.LastAccessDate = request.LastAccessDate ?? _clock.Now;
+
+        if (request.ExpireDate.HasValue)
+            enrollment.ExpireDate = request.ExpireDate.Value;
+
+        if (request.Status.HasValue)
+            enrollment.Status = request.Status.Value;
+
+        await _unitOfWork.Enrollments.UpdateAsync(enrollment);
+        await _unitOfWork.SaveChangesAsync();
+
+        return _mapper.Map<EnrollmentResponseDTO>(enrollment);
+    }
+
+    public async Task DeleteMyEnrollmentAsync(Guid enrollmentId)
+    {
+        var userId = _currentUser.UserId;
+
+        var enrollment = await _unitOfWork.Enrollments.GetByConditionAsync(
+            x => x.EnrollmentID == enrollmentId && x.UserID == userId);
+
+        if (enrollment == null)
+            throw new BaseException("Không tìm thấy enrollment.", "NOT_FOUND");
+
+        await _unitOfWork.Enrollments.DeleteAsync(enrollment);
+        await _unitOfWork.SaveChangesAsync();
+    }
+}

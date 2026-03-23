@@ -27,6 +27,7 @@ internal class UnitOfWork : IUnitOfWork
     private ITheoryRepository _theory;
     private IUserCertificateRepository _userCertificate;
     private IUserLabRepository _userLab;
+    private IUserLessonRepository _userLesson;
     private IUserModuleRepository _userModule;
 
     public UnitOfWork(MySqlDbContext mySqlContext)
@@ -73,6 +74,8 @@ internal class UnitOfWork : IUnitOfWork
     public IUserCertificateRepository UserCertificates => _userCertificate ??= new UserCertificateRepository(_mySqlContext);
 
     public IUserLabRepository UserLabs => _userLab ??= new UserLabRepository(_mySqlContext);
+
+    public IUserLessonRepository UserLessons => _userLesson ??= new UserLessonRepository(_mySqlContext);
 
     public IUserModuleRepository UserModules => _userModule ??= new UserModuleRepository(_mySqlContext);
 

@@ -23,6 +23,7 @@ namespace Droniverse.Academy.Domain.IRepository
         ITheoryRepository Theories { get; }
         IUserCertificateRepository UserCertificates { get; }
         IUserLabRepository UserLabs { get; }
+        IUserLessonRepository UserLessons { get; }
         IUserModuleRepository UserModules { get; }
 
         Task<int> SaveChangesAsync();
