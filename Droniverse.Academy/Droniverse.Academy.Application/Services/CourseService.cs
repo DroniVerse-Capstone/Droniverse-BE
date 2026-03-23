@@ -47,74 +47,59 @@ public class CourseService : ICourseService
     {
         var course = await _unitOfWork.Courses.GetByIdWithAllVersionsAsync(courseId);
         if (course == null)
-            throw new BaseException($"Course {courseId} not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy khóa học.", "NOT_FOUND");
 
         course.Archive();
         await _unitOfWork.SaveChangesAsync();
     }
 
-    public async Task<PaginationResult<IEnumerable<CourseResponseDTO>>> GetAllCoursesActiveAsync(int pageIndex, int pageSize, string? search = null)
+    public async Task<PaginationResult<IEnumerable<CourseResponseDTO>>> GetAllCoursesAsync(int pageIndex, int pageSize, string? search = null, CourseStatus? status = null)
     {
         Expression<Func<Course, bool>>? filter = null;
-        if (!string.IsNullOrWhiteSpace(search))
+
+        if (status.HasValue && !string.IsNullOrWhiteSpace(search))
         {
             var s = search.Trim();
-            filter = c => c.CourseVersions.Any(v =>
-                v.Status == CourseVersionStatus.ACTIVE &&
-                (
-                    (v.TitleEN != null && v.TitleEN.Contains(s)) ||
-                    (v.TitleVN != null && v.TitleVN.Contains(s))
-                ));
+            var st = status.Value;
+            filter = c => c.Status == st
+                && c.CurrentVersion != null
+                && ((c.CurrentVersion.TitleEN != null && c.CurrentVersion.TitleEN.Contains(s))
+                    || (c.CurrentVersion.TitleVN != null && c.CurrentVersion.TitleVN.Contains(s)));
+        }
+        else if (status.HasValue)
+        {
+            var st = status.Value;
+            filter = c => c.Status == st;
+        }
+        else if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Trim();
+            filter = c => c.CurrentVersion != null
+                && ((c.CurrentVersion.TitleEN != null && c.CurrentVersion.TitleEN.Contains(s))
+                    || (c.CurrentVersion.TitleVN != null && c.CurrentVersion.TitleVN.Contains(s)));
         }
 
         var result = await _unitOfWork.Courses
-            .GetAllWithActiveVersionAsync(filter, null, pageIndex, pageSize);
+            .GetAllWithCurrentVersionAsync(filter, null, pageIndex, pageSize);
 
         var mapped = result.Data.Select(c => _mapper.Map<CourseResponseDTO>(c)).ToList();
         return new PaginationResult<IEnumerable<CourseResponseDTO>>(mapped, result.TotalRecords, result.PageIndex, result.PageSize);
     }
 
-    public async Task<PaginationResult<IEnumerable<CourseDetailResponseDTO>>> GetAllCoursesAllAsync(int pageIndex, int pageSize, string? search = null)
+    public async Task<CourseResponseDTO> GetCourseByIdAsync(Guid courseId)
     {
-        Expression<Func<Course, bool>>? filter = null;
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var s = search.Trim();
-            filter = c => c.CourseVersions.Any(v =>
-                (v.TitleEN != null && v.TitleEN.Contains(s)) ||
-                (v.TitleVN != null && v.TitleVN.Contains(s)));
-        }
-
-        var result = await _unitOfWork.Courses
-            .GetAllWithAllVersionsAsync(filter, null, pageIndex, pageSize);
-
-        var mapped = result.Data.Select(c => _mapper.Map<CourseDetailResponseDTO>(c)).ToList();
-        return new PaginationResult<IEnumerable<CourseDetailResponseDTO>>(mapped, result.TotalRecords, result.PageIndex, result.PageSize);
-    }
-
-    public async Task<CourseResponseDTO> GetCourseByIdActiveAsync(Guid courseId)
-    {
-        var course = await _unitOfWork.Courses.GetByIdWithActiveVersionAsync(courseId);
+        var course = await _unitOfWork.Courses.GetByIdWithCurrentVersionAsync(courseId);
         if (course == null)
-            throw new BaseException($"Course {courseId} not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy khóa học.", "NOT_FOUND");
 
         return _mapper.Map<CourseResponseDTO>(course);
-    }
-
-    public async Task<CourseDetailResponseDTO> GetCourseByIdAllAsync(Guid courseId)
-    {
-        var course = await _unitOfWork.Courses.GetByIdWithAllVersionsAsync(courseId);
-        if (course == null)
-            throw new BaseException($"Course {courseId} not found.", "NOT_FOUND");
-
-        return _mapper.Map<CourseDetailResponseDTO>(course);
     }
 
     public async Task PublishCourseAsync(Guid courseId)
     {
         var course = await _unitOfWork.Courses.GetByIdWithAllVersionsAsync(courseId);
         if (course == null)
-            throw new BaseException($"Course {courseId} not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy khóa học.", "NOT_FOUND");
 
         course.Publish();
 
@@ -125,7 +110,7 @@ public class CourseService : ICourseService
     {
         var course = await _unitOfWork.Courses.GetByIdWithAllVersionsAsync(courseId);
         if (course == null)
-            throw new BaseException($"Course {courseId} not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy khóa học.", "NOT_FOUND");
 
         course.Unpublish();
 
@@ -138,7 +123,7 @@ public class CourseService : ICourseService
         if (ids.Count == 0)
             return [];
 
-        var result = await _unitOfWork.Courses.GetAllWithAllVersionsAsync(
+        var result = await _unitOfWork.Courses.GetAllWithCurrentVersionAsync(
             filter: c => ids.Contains(c.CourseID),
             pageIndex: 1,
             pageSize: ids.Count);

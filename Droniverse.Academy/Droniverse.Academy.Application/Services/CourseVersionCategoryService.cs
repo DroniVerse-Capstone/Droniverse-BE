@@ -32,11 +32,11 @@ public class CourseVersionCategoryService : ICourseVersionCategoryService
     {
         var cv = await _unitOfWork.CourseVersions.GetByConditionAsync(v => v.CourseVersionID == versionId && v.CourseID == courseId);
         if (cv == null)
-            throw new BaseException("Course version not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy phiên bản khóa học.", "NOT_FOUND");
 
         // prevent duplicate
         if (cv.CourseVersionCategories.Any(c => c.CategoryID == request.CategoryID))
-            throw new ValidationException("Category already assigned to course version.");
+            throw new ValidationException("Danh mục đã được gán cho phiên bản khóa học.");
 
         var cvc = new CourseVersionCategory
         {
@@ -52,7 +52,7 @@ public class CourseVersionCategoryService : ICourseVersionCategoryService
     {
         var cvc = await _unitOfWork.CourseVersionCategories.GetByConditionAsync(x => x.CourseVersionID == versionId && x.CategoryID == categoryId);
         if (cvc == null)
-            throw new BaseException("Category assignment not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy thông tin gán danh mục.", "NOT_FOUND");
 
         await _unitOfWork.CourseVersionCategories.DeleteAsync(cvc);
         await _unitOfWork.SaveChangesAsync();

@@ -2,6 +2,7 @@
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.Application.Validators;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
@@ -30,18 +31,14 @@ public class TheoryService : ITheoryService
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
-        ValidateTheoryData(request.EstimatedTime, request.ContentVN, request.ContentEN);
+        TheoryValidator.ValidateTheoryData(request.EstimatedTime, request.ContentVN, request.ContentEN);
 
-        var lesson = await _unitOfWork.Lessons.GetByIdAsync(request.LessonID);
-        if (lesson == null)
-            throw new BaseException("Lesson not found.", "NOT_FOUND");
+        var module = await _unitOfWork.Modules.GetByIdAsync(request.ModuleID);
+        if (module == null)
+            throw new BaseException("Không tìm thấy mô-đun.", "NOT_FOUND");
 
-        if (lesson.Type != LessonType.THEORY)
-            throw new ValidationException("Lesson type must be THEORY to attach theory.");
-
-        var existingTheory = await _unitOfWork.Theories.GetByConditionAsync(t => t.LessonID == request.LessonID);
-        if (existingTheory != null)
-            throw new ValidationException("This lesson already has a theory.");
+        var orderIndex = request.OrderIndex ?? await GetNextOrderIndexAsync(request.ModuleID);
+        await ValidateOrderIndexAsync(request.ModuleID, orderIndex);
 
         var theory = _mapper.Map<Theory>(request);
         theory.TheoryID = Guid.NewGuid();
@@ -51,6 +48,18 @@ public class TheoryService : ITheoryService
         theory.UpdateBy = _currentUser.UserId;
 
         await _unitOfWork.Theories.AddAsync(theory);
+
+        var lesson = new Lesson
+        {
+            LessonID = Guid.NewGuid(),
+            ModuleID = request.ModuleID,
+            OrderIndex = orderIndex,
+            Type = LessonType.THEORY,
+            ReferenceID = theory.TheoryID
+        };
+
+        await _unitOfWork.Lessons.AddAsync(lesson);
+
         await _unitOfWork.SaveChangesAsync();
 
         return _mapper.Map<TheoryClientViewDTO>(theory);
@@ -70,7 +79,7 @@ public class TheoryService : ITheoryService
     {
         var theory = await _unitOfWork.Theories.GetByIdAsync(theoryId);
         if (theory == null)
-            throw new BaseException("Theory not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy bài lý thuyết.", "NOT_FOUND");
 
         return _mapper.Map<TheoryClientViewDTO>(theory);
     }
@@ -80,11 +89,11 @@ public class TheoryService : ITheoryService
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
-        ValidateTheoryData(request.EstimatedTime, request.ContentVN, request.ContentEN);
+        TheoryValidator.ValidateTheoryData(request.EstimatedTime, request.ContentVN, request.ContentEN);
 
         var theory = await _unitOfWork.Theories.GetByIdAsync(theoryId);
         if (theory == null)
-            throw new BaseException("Theory not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy bài lý thuyết.", "NOT_FOUND");
 
         _mapper.Map(request, theory);
         theory.UpdateAt = _clock.Now;
@@ -100,21 +109,40 @@ public class TheoryService : ITheoryService
     {
         var theory = await _unitOfWork.Theories.GetByIdAsync(theoryId);
         if (theory == null)
-            throw new BaseException("Theory not found.", "NOT_FOUND");
+            throw new BaseException("Không tìm thấy bài lý thuyết.", "NOT_FOUND");
+
+        var lesson = await _unitOfWork.Lessons.GetByConditionAsync(l => l.Type == LessonType.THEORY && l.ReferenceID == theory.TheoryID);
+        if (lesson != null && lesson.ReferenceID == theory.TheoryID)
+        {
+            lesson.ReferenceID = Guid.Empty;
+            await _unitOfWork.Lessons.UpdateAsync(lesson);
+        }
 
         await _unitOfWork.Theories.DeleteAsync(theory);
         await _unitOfWork.SaveChangesAsync();
     }
 
-    private static void ValidateTheoryData(int estimatedTime, string contentVN, string contentEN)
+    private async Task<int> GetNextOrderIndexAsync(Guid moduleId)
     {
-        if (string.IsNullOrWhiteSpace(contentVN))
-            throw new ValidationException("ContentVN is required.");
+        var lessons = await _unitOfWork.Lessons.GetAllAsync(
+            filter: l => l.ModuleID == moduleId,
+            orderBy: q => q.OrderByDescending(l => l.OrderIndex),
+            pageIndex: 1,
+            pageSize: 1);
 
-        if (string.IsNullOrWhiteSpace(contentEN))
-            throw new ValidationException("ContentEN is required.");
+        var latest = lessons.Data.FirstOrDefault();
+        return (latest?.OrderIndex ?? 0) + 1;
+    }
 
-        if (estimatedTime <= 0)
-            throw new ValidationException("EstimatedTime must be greater than 0.");
+    private async Task ValidateOrderIndexAsync(Guid moduleId, int orderIndex)
+    {
+        if (orderIndex <= 0)
+            throw new ValidationException("OrderIndex phải lớn hơn 0.");
+
+        var duplicated = await _unitOfWork.Lessons.GetByConditionAsync(
+            l => l.ModuleID == moduleId && l.OrderIndex == orderIndex);
+
+        if (duplicated != null)
+            throw new ValidationException("OrderIndex phải là duy nhất trong mô-đun.");
     }
 }

@@ -1,4 +1,4 @@
-using Droniverse.Academy.Application.DTO.Request;
+﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Shared.Constants;
@@ -21,22 +21,9 @@ public class LessonController : ControllerBase
         _lessonService = lessonService;
     }
 
-    [HttpPost]
-    [Authorize(Roles = Roles.AdminOrSystemManager)]
-    public async Task<IActionResult> CreateLesson(Guid moduleId, [FromBody] CreateLessonRequestDTO request)
-    {
-        try
-        {
-            var created = await _lessonService.CreateLessonAsync(moduleId, request);
-            return StatusCode(201, SuccessResponse<LessonClientViewDTO>.Create(created, "T?o lesson th�nh c�ng."));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "CreateLesson failed for {ModuleId}", moduleId);
-            throw;
-        }
-    }
-
+    /// <summary>
+    /// Lấy danh sách bài học của mô-đun.
+    /// </summary>
     [HttpGet]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> GetLessons(Guid moduleId)
@@ -44,15 +31,18 @@ public class LessonController : ControllerBase
         try
         {
             var lessons = await _lessonService.GetLessonsByModuleAsync(moduleId);
-            return Ok(SuccessResponse<IEnumerable<LessonClientViewDTO>>.Create(lessons, "L?y danh s�ch lesson th�nh c�ng."));
+            return Ok(SuccessResponse<IEnumerable<LessonClientViewDTO>>.Create(lessons, "Lấy danh sách bài học thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetLessons failed for {ModuleId}", moduleId);
+            _logger.LogError(ex, "Lấy danh sách bài học thất bại.");
             throw;
         }
     }
 
+    /// <summary>
+    /// Lấy chi tiết bài học.
+    /// </summary>
     [HttpGet("{lessonId:guid}")]
     [Authorize(Roles = Roles.AllRoles)]
     public async Task<IActionResult> GetLessonDetail(Guid moduleId, Guid lessonId)
@@ -60,15 +50,18 @@ public class LessonController : ControllerBase
         try
         {
             var lesson = await _lessonService.GetLessonDetailAsync(moduleId, lessonId);
-            return Ok(SuccessResponse<LessonClientViewDTO>.Create(lesson, "L?y chi ti?t lesson th�nh c�ng."));
+            return Ok(SuccessResponse<LessonClientViewDTO>.Create(lesson, "Lấy chi tiết bài học thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetLessonDetail failed for {ModuleId}/{LessonId}", moduleId, lessonId);
+            _logger.LogError(ex, "Lấy chi tiết bài học thất bại.");
             throw;
         }
     }
 
+    /// <summary>
+    /// Cập nhật bài học.
+    /// </summary>
     [HttpPut("{lessonId:guid}")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> UpdateLesson(Guid moduleId, Guid lessonId, [FromBody] UpdateLessonRequestDTO request)
@@ -76,15 +69,18 @@ public class LessonController : ControllerBase
         try
         {
             var updated = await _lessonService.UpdateLessonAsync(moduleId, lessonId, request);
-            return Ok(SuccessResponse<LessonClientViewDTO>.Create(updated, "C?p nh?t lesson th�nh c�ng."));
+            return Ok(SuccessResponse<LessonClientViewDTO>.Create(updated, "Cập nhật bài học thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "UpdateLesson failed for {ModuleId}/{LessonId}", moduleId, lessonId);
+            _logger.LogError(ex, "Cập nhật bài học thất bại.");
             throw;
         }
     }
 
+    /// <summary>
+    /// Xóa bài học.
+    /// </summary>
     [HttpDelete("{lessonId:guid}")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> DeleteLesson(Guid moduleId, Guid lessonId)
@@ -92,11 +88,30 @@ public class LessonController : ControllerBase
         try
         {
             await _lessonService.DeleteLessonAsync(moduleId, lessonId);
-            return Ok(SuccessResponse<object>.Create(null!, "X�a lesson th�nh c�ng."));
+            return Ok(SuccessResponse<object>.Create(null!, "Xóa bài học thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "DeleteLesson failed for {ModuleId}/{LessonId}", moduleId, lessonId);
+            _logger.LogError(ex, "Xóa bài học thất bại.");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Sắp xếp lại thứ tự bài học.
+    /// </summary>
+    [HttpPatch("reorder")]
+    [Authorize(Roles = Roles.AdminOrSystemManager)]
+    public async Task<IActionResult> ReorderLessons(Guid moduleId, [FromBody] ReorderLessonsRequestDTO request)
+    {
+        try
+        {
+            var result = await _lessonService.ReorderLessonsAsync(moduleId, request);
+            return Ok(SuccessResponse<IEnumerable<LessonClientViewDTO>>.Create(result, "Sắp xếp lại bài học thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Sắp xếp lại bài học thất bại.");
             throw;
         }
     }

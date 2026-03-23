@@ -1,4 +1,4 @@
-using Droniverse.Academy.Application.DTO.Request;
+﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Shared.Constants;
@@ -21,6 +21,9 @@ public class TheoryController : ControllerBase
         _theoryService = theoryService;
     }
 
+    /// <summary>
+    /// Tạo mới bài lý thuyết.
+    /// </summary>
     [HttpPost]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> CreateTheory([FromBody] CreateTheoryRequestDTO request)
@@ -28,15 +31,18 @@ public class TheoryController : ControllerBase
         try
         {
             var created = await _theoryService.CreateTheoryAsync(request);
-            return StatusCode(201, SuccessResponse<TheoryClientViewDTO>.Create(created, "T?o theory th�nh c�ng."));
+            return StatusCode(201, SuccessResponse<TheoryClientViewDTO>.Create(created, "Tạo bài lý thuyết thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "CreateTheory failed");
+            _logger.LogError(ex, "Tạo bài lý thuyết thất bại.");
             throw;
         }
     }
 
+    /// <summary>
+    /// Lấy danh sách bài lý thuyết.
+    /// </summary>
     [HttpGet]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> GetTheories()
@@ -44,15 +50,18 @@ public class TheoryController : ControllerBase
         try
         {
             var theories = await _theoryService.GetTheoriesAsync();
-            return Ok(SuccessResponse<IEnumerable<TheoryClientViewDTO>>.Create(theories, "L?y danh s�ch theory th�nh c�ng."));
+            return Ok(SuccessResponse<IEnumerable<TheoryClientViewDTO>>.Create(theories, "Lấy danh sách bài lý thuyết thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetTheories failed");
+            _logger.LogError(ex, "Lấy danh sách bài lý thuyết thất bại.");
             throw;
         }
     }
 
+    /// <summary>
+    /// Lấy chi tiết bài lý thuyết.
+    /// </summary>
     [HttpGet("{theoryId:guid}")]
     [Authorize(Roles = $"{Roles.AdminOrSystemManager},{Roles.ClubMember}")]
     public async Task<IActionResult> GetTheoryById(Guid theoryId)
@@ -60,15 +69,18 @@ public class TheoryController : ControllerBase
         try
         {
             var theory = await _theoryService.GetTheoryByIdAsync(theoryId);
-            return Ok(SuccessResponse<TheoryClientViewDTO>.Create(theory, "L?y chi ti?t theory th�nh c�ng."));
+            return Ok(SuccessResponse<TheoryClientViewDTO>.Create(theory, "Lấy chi tiết bài lý thuyết thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetTheoryById failed for {TheoryId}", theoryId);
+            _logger.LogError(ex, "Lấy chi tiết bài lý thuyết thất bại.");
             throw;
         }
     }
 
+    /// <summary>
+    /// Cập nhật bài lý thuyết.
+    /// </summary>
     [HttpPut("{theoryId:guid}")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> UpdateTheory(Guid theoryId, [FromBody] UpdateTheoryRequestDTO request)
@@ -76,15 +88,18 @@ public class TheoryController : ControllerBase
         try
         {
             var updated = await _theoryService.UpdateTheoryAsync(theoryId, request);
-            return Ok(SuccessResponse<TheoryClientViewDTO>.Create(updated, "C?p nh?t theory th�nh c�ng."));
+            return Ok(SuccessResponse<TheoryClientViewDTO>.Create(updated, "Cập nhật bài lý thuyết thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "UpdateTheory failed for {TheoryId}", theoryId);
+            _logger.LogError(ex, "Cập nhật bài lý thuyết thất bại.");
             throw;
         }
     }
 
+    /// <summary>
+    /// Xóa bài lý thuyết.
+    /// </summary>
     [HttpDelete("{theoryId:guid}")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> DeleteTheory(Guid theoryId)
@@ -92,11 +107,11 @@ public class TheoryController : ControllerBase
         try
         {
             await _theoryService.DeleteTheoryAsync(theoryId);
-            return Ok(SuccessResponse<object>.Create(null!, "X�a theory th�nh c�ng."));
+            return Ok(SuccessResponse<object>.Create(null!, "Xóa bài lý thuyết thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "DeleteTheory failed for {TheoryId}", theoryId);
+            _logger.LogError(ex, "Xóa bài lý thuyết thất bại.");
             throw;
         }
     }
