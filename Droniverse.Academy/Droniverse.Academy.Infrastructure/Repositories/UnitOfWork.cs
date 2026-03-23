@@ -21,6 +21,8 @@ internal class UnitOfWork : IUnitOfWork
     private ILessonRepository _lesson;
     private IModuleRepository _module;
     private IQuizRepository _quiz;
+    private IQuizAttemptRepository _quizAttempt;
+    private IQuizQuestionAttemptRepository _quizQuestionAttempt;
     private IQuizQuestionRepository _quizQuestion;
     private IReportRepository _report;
     private IRequiredDroneRepository _requiredDrone;
@@ -62,6 +64,10 @@ internal class UnitOfWork : IUnitOfWork
     public IModuleRepository Modules => _module ??= new ModuleRepository(_mySqlContext);
 
     public IQuizRepository Quizs => _quiz ??= new QuizRepository(_mySqlContext);
+
+    public IQuizAttemptRepository QuizAttempts => _quizAttempt ??= new QuizAttemptRepository(_mySqlContext);
+
+    public IQuizQuestionAttemptRepository QuizQuestionAttempts => _quizQuestionAttempt ??= new QuizQuestionAttemptRepository(_mySqlContext);
 
     public IQuizQuestionRepository QuizQuestions => _quizQuestion ??= new QuizQuestionRepository(_mySqlContext);
 

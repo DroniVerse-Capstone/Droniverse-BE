@@ -17,6 +17,8 @@ namespace Droniverse.Academy.Domain.IRepository
         ILessonRepository Lessons { get; }
         IModuleRepository Modules { get; }
         IQuizRepository Quizs { get; }
+        IQuizAttemptRepository QuizAttempts { get; }
+        IQuizQuestionAttemptRepository QuizQuestionAttempts { get; }
         IQuizQuestionRepository QuizQuestions { get; }
         IReportRepository Reports { get; }
         IRequiredDroneRepository RequiredDrones { get; }
