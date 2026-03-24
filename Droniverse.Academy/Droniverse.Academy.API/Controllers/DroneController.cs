@@ -1,6 +1,7 @@
 ﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.API.Examples;
 using Droniverse.Academy.API.Enums;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.API.Validators;
@@ -8,6 +9,7 @@ using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Filters;
 
 namespace Droniverse.Academy.API.Controllers;
 
@@ -67,8 +69,12 @@ public class DroneController : ControllerBase
     /// <summary>
     /// Cập nhật thông tin drone.
     /// </summary>
+    /// <param name="droneId">Mã drone.</param>
+    /// <param name="request">Thông tin drone cần cập nhật.</param>
     [HttpPut("{droneId:guid}")]
     [Authorize(Roles = Roles.Admin)]
+    [SwaggerRequestExample(typeof(UpdateDroneRequestDTO), typeof(UpdateDroneRequestExample))]
+    [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> UpdateDrone(Guid droneId, [FromBody] UpdateDroneRequestDTO request)
     {
         try

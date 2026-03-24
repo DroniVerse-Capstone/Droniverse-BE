@@ -1,11 +1,13 @@
 ﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.API.Examples;
 using Droniverse.Academy.API.Validators;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Filters;
 
 namespace Droniverse.Academy.API.Controllers;
 
@@ -25,8 +27,13 @@ public class CourseVersionRequiredDroneController : ControllerBase
     /// <summary>
     /// Gán drone yêu cầu cho phiên bản khóa học.
     /// </summary>
+    /// <param name="courseId">Mã khóa học.</param>
+    /// <param name="versionId">Mã phiên bản khóa học.</param>
+    /// <param name="request">Thông tin drone cần gán cho phiên bản khóa học.</param>
     [HttpPost]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
+    [SwaggerRequestExample(typeof(AddRequiredDroneRequestDTO), typeof(AddRequiredDroneRequestExample))]
+    [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> AddRequiredDrone(Guid courseId, Guid versionId, [FromBody] AddRequiredDroneRequestDTO request)
     {
         try

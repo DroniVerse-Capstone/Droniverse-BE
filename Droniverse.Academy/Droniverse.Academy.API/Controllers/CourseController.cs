@@ -1,10 +1,13 @@
 ﻿using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Application.DTO.Request;
+using Droniverse.Academy.API.Examples;
 using Droniverse.Academy.API.Enums;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Swashbuckle.AspNetCore.Filters;
+using Droniverse.Academy.Application.DTO.Response;
 
 namespace Droniverse.Academy.API.Controllers
 {
@@ -24,8 +27,10 @@ namespace Droniverse.Academy.API.Controllers
         /// <summary>
         /// Tạo mới một khóa học.
         /// </summary>
+        /// <returns>Thông tin khóa học vừa được tạo.</returns>
         // POST academy/courses
         [HttpPost]
+        [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
         public async Task<IActionResult> CreateCourse()
         {
             // Vì yêu cầu chỉ cần tạo mới khóa học với trạng thái mặc định là DRAFT và không cần input gì thêm, nên API này sẽ không nhận body nào cả.
@@ -44,8 +49,12 @@ namespace Droniverse.Academy.API.Controllers
         /// <summary>
         /// Lấy danh sách khóa học theo danh sách ID.
         /// </summary>
+        /// <param name="request">Danh sách <c>CourseId</c> cần truy vấn.</param>
+        /// <returns>Danh sách khóa học tương ứng với các ID được gửi lên.</returns>
         // POST academy/courses/by-ids
         [HttpPost("by-ids")]
+        [SwaggerRequestExample(typeof(GetCoursesByIdsRequestDTO), typeof(GetCoursesByIdsExample))]
+        [ProducesResponseType(typeof(SuccessResponse<IEnumerable<CourseResponseDTO>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetCoursesByIds([FromBody] GetCoursesByIdsRequestDTO request)
         {
             try
@@ -101,8 +110,10 @@ namespace Droniverse.Academy.API.Controllers
         /// <summary>
         /// Xuất bản khóa học.
         /// </summary>
+        /// <param name="courseId">Mã khóa học cần xuất bản.</param>
         // POST academy/courses/{courseId}/publish
         [HttpPost("{courseId}/publish")]
+        [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
         public async Task<IActionResult> PublishCourse(Guid courseId)
         {
             try
@@ -120,8 +131,10 @@ namespace Droniverse.Academy.API.Controllers
         /// <summary>
         /// Hủy xuất bản khóa học.
         /// </summary>
+        /// <param name="courseId">Mã khóa học cần hủy xuất bản.</param>
         // POST academy/courses/{courseId}/unpublish
         [HttpPost("{courseId}/unpublish")]
+        [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
         public async Task<IActionResult> UnpublishCourse(Guid courseId)
         {
             try

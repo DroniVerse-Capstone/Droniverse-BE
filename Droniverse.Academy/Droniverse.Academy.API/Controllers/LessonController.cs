@@ -1,10 +1,12 @@
 ﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.API.Examples;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Filters;
 
 namespace Droniverse.Academy.API.Controllers;
 
@@ -62,8 +64,13 @@ public class LessonController : ControllerBase
     /// <summary>
     /// Cập nhật bài học.
     /// </summary>
+    /// <param name="moduleId">Mã mô-đun.</param>
+    /// <param name="lessonId">Mã bài học.</param>
+    /// <param name="request">Thông tin bài học cần cập nhật.</param>
     [HttpPut("{lessonId:guid}")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
+    [SwaggerRequestExample(typeof(UpdateLessonRequestDTO), typeof(UpdateLessonRequestExample))]
+    [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> UpdateLesson(Guid moduleId, Guid lessonId, [FromBody] UpdateLessonRequestDTO request)
     {
         try

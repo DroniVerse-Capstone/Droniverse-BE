@@ -80,7 +80,11 @@ public class CourseService : ICourseService
         }
 
         var result = await _unitOfWork.Courses
-            .GetAllWithCurrentVersionAsync(filter, null, pageIndex, pageSize);
+            .GetAllWithCurrentVersionAsync(
+                filter,
+                query => query.OrderByDescending(c => c.CreateAt),
+                pageIndex,
+                pageSize);
 
         var mapped = result.Data.Select(c => _mapper.Map<CourseResponseDTO>(c)).ToList();
         return new PaginationResult<IEnumerable<CourseResponseDTO>>(mapped, result.TotalRecords, result.PageIndex, result.PageSize);

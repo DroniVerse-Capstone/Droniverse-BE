@@ -1,10 +1,12 @@
 ﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.API.Examples;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Filters;
 
 namespace Droniverse.Academy.API.Controllers;
 
@@ -24,8 +26,11 @@ public class QuizController : ControllerBase
     /// <summary>
     /// Tạo mới bài kiểm tra.
     /// </summary>
+    /// <param name="request">Thông tin bài kiểm tra cần tạo.</param>
     [HttpPost]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
+    [SwaggerRequestExample(typeof(CreateQuizRequestDTO), typeof(CreateQuizRequestExample))]
+    [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> CreateQuiz([FromBody] CreateQuizRequestDTO request)
     {
         try
@@ -81,8 +86,12 @@ public class QuizController : ControllerBase
     /// <summary>
     /// Cập nhật bài kiểm tra.
     /// </summary>
+    /// <param name="quizId">Mã bài kiểm tra.</param>
+    /// <param name="request">Thông tin bài kiểm tra cần cập nhật.</param>
     [HttpPut("{quizId:guid}")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
+    [SwaggerRequestExample(typeof(UpdateQuizRequestDTO), typeof(UpdateQuizRequestExample))]
+    [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> UpdateQuiz(Guid quizId, [FromBody] UpdateQuizRequestDTO request)
     {
         try
