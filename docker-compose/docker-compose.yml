@@ -34,6 +34,10 @@ services:
       - ASPNETCORE_HTTP_PORTS=8080
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
+      - IdentityMicroserviceName=droniverse-gateway
+      - IdentityMicroservicePort=8080
+      - CommunityMicroserviceName=droniverse-gateway
+      - CommunityMicroservicePort=8080
     ports:
       - "7000:8080"
     develop:

@@ -1,4 +1,5 @@
 ﻿using Droniverse.Community.Domain.Enums;
+using Droniverse.Shared.Services;
 
 namespace Droniverse.Community.Domain.Entities;
 
@@ -55,8 +56,8 @@ public class Competition
         DateTime endDate,
         Guid createdBy,
         int? maxParticipants = null,
-        string descriptionVN = null,
-        string descriptionEN = null)
+        string? descriptionVN = null,
+        string? descriptionEN = null)
     {
         ValidateRegistrationTime(registrationStart, registrationEnd);
         ValidateCompetitionTime(startDate, endDate);
@@ -84,13 +85,14 @@ public class Competition
         Status = CompetitionStatus.DRAFT;
 
         CreatedBy = createdBy;
-        CreatedAt = DateTime.UtcNow;
+        var now = new ClockService().Now;
+        CreatedAt = now;
 
-        CompetitionCertificates = new List<CompetitionCertificate>();
-        UserCompetitions = new List<UserCompetition>();
-        Rounds = new List<Round>();
-        CompetitionPrizes = new List<CompetitionPrize>();
-        UserPrizes = new List<UserPrize>();
+        CompetitionCertificates = [];
+        UserCompetitions = [];
+        Rounds = [];
+        CompetitionPrizes = [];
+        UserPrizes = [];
     }
 
     public void OpenRegistration(Guid updatedBy)
@@ -344,11 +346,64 @@ public class Competition
         if (Status != CompetitionStatus.DRAFT)
             throw new InvalidOperationException("Chỉ có thể xóa certificate khi cuộc thi đang ở trạng thái DRAFT.");
 
-        var certificate = CompetitionCertificates.FirstOrDefault(cc => cc.CertificateID == certificateId);
-        if (certificate == null)
-            throw new KeyNotFoundException("Không tìm thấy certificate trong cuộc thi này.");
-
+        var certificate = CompetitionCertificates.FirstOrDefault(cc => cc.CertificateID == certificateId) ?? throw new KeyNotFoundException("Không tìm thấy certificate trong cuộc thi này.");
         CompetitionCertificates.Remove(certificate);
+    }
+
+    // ======== CÁC HÀM VALIDATE CHO BACKGROUND JOB ========
+    public bool CanAutoOpenRegistration(DateTime now)
+    {
+        return Status == CompetitionStatus.DRAFT && now >= RegistrationStartDate;
+    }
+
+    public bool CanAutoCloseRegistration(DateTime now)
+    {
+        return Status == CompetitionStatus.OPEN && now >= RegistrationEndDate && now < StartDate;
+    }
+
+    public bool CanAutoStartCompetition(DateTime now)
+    {
+        return (Status == CompetitionStatus.OPEN || Status == CompetitionStatus.CLOSED) && now >= StartDate;
+    }
+
+    public bool CanAutoFinishCompetition(DateTime now)
+    {
+        return Status == CompetitionStatus.ONGOING && now >= EndDate;
+    }
+
+    // Các hàm thực thi (dùng cho hệ thống hoặc cron job gọi)
+    public void SystemOpenRegistration()
+    {
+        EnsureStatus(CompetitionStatus.DRAFT);
+        Status = CompetitionStatus.OPEN;
+        UpdatedAt = new ClockService().Now;
+    }
+    
+    public void SystemCloseRegistration()
+    {
+        EnsureStatus(CompetitionStatus.OPEN);
+        Status = CompetitionStatus.CLOSED;
+        UpdatedAt = new ClockService().Now;
+    }
+
+    public void SystemStartCompetition()
+    {
+        if (Status != CompetitionStatus.OPEN && Status != CompetitionStatus.CLOSED)
+            throw new InvalidOperationException("Chỉ có thể bắt đầu khi cuộc thi đang OPEN hoặc CLOSED.");
+
+        // Kiểm tra có ít nhất 1 round Pending
+        if (!Rounds.Any(r => r.Status == RoundStatus.Pending))
+            throw new InvalidOperationException("Không thể bắt đầu cuộc thi khi không có round nào ở trạng thái Pending.");
+
+        Status = CompetitionStatus.ONGOING;
+        UpdatedAt = new ClockService().Now;
+    }
+
+    public void SystemFinishCompetition()
+    {
+        EnsureStatus(CompetitionStatus.ONGOING);
+        Status = CompetitionStatus.FINISHED;
+        UpdatedAt = new ClockService().Now;
     }
 
     private void EnsureStatus(CompetitionStatus requiredStatus)
@@ -360,7 +415,8 @@ public class Competition
     private void SetUpdated(Guid updatedBy)
     {
         UpdatedBy = updatedBy;
-        UpdatedAt = DateTime.UtcNow;
+        var now = new ClockService().Now;
+        UpdatedAt = now;
     }
 
     private static void ValidateRegistrationTime(DateTime start, DateTime end)

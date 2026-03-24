@@ -2,6 +2,9 @@
 using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
 using Droniverse.Community.Application.IService.Mongo;
+using Droniverse.Community.Application.Job;
+using Droniverse.Community.Application.Jobs;
+
 //using Droniverse.Community.Application.Jobs;
 using Droniverse.Community.Application.Mapper;
 using Droniverse.Community.Application.Services;
@@ -31,7 +34,9 @@ public static class DependencyInjection
         //services.AddScoped<IPaymentService, PaymentService>();
 
         // Đăng ký Background Jobs
-        //services.AddTransient<CompetitionStatusJob>();
+        services.AddScoped<CompetitionStatusJob>();
+        services.AddScoped<TestJob>();
+        services.AddScoped<TestJob2>();
 
         //Đăng ký DelegatingHandler
         services.AddTransient<AuthorizationDelegatingHandler>();

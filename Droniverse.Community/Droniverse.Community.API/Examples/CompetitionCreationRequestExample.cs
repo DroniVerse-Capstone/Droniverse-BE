@@ -1,4 +1,5 @@
 ﻿using Droniverse.Community.Application.DTO.Request;
+using Droniverse.Shared.Services;
 using Swashbuckle.AspNetCore.Filters;
 
 namespace Droniverse.Community.API.Examples
@@ -124,6 +125,40 @@ namespace Droniverse.Community.API.Examples
                     EndDate = DateTime.Parse("2024-06-25T23:59:59Z"),
                     ResultPublishedAt = DateTime.Parse("2024-06-26T00:00:00Z"),
                     ClubID = Guid.Parse("d1822ac3-00ac-46db-9b74-3b4df9621765")
+                }
+            );
+
+            var now = new ClockService().Now;
+
+            yield return SwaggerExample.Create(
+                "Ví dụ cuộc thi với thời gian động dựa trên thời điểm hiện tại",
+                "Competition With Current Time",
+                @"**Quy tắc thời gian (tính từ thời điểm hiện tại):**
+
+- `RegistrationStartDate` : 3 phút sau hiện tại
+- `RegistrationEndDate` : 5 phút sau hiện tại
+- `StartDate` : 7 phút sau hiện tại
+- `EndDate` : 9 phút sau hiện tại
+- `ResultPublishedAt` : 15 phút sau hiện tại
+
+> Lưu ý:
+> - Khoảng cách giữa các mốc thời gian rất ngắn, chỉ phù hợp cho test.
+> - Nếu thời gian test đã qua. Load lại Swagger Page để lấy lại mốc thời gian mới.
+> - Thời gian được tính dựa trên `ClockService().Now` theo múi giờ Việt Nam.",
+                new CompetitionCreationRequest
+                {
+                    NameVN = "Cuộc thi với thời gian chuẩn hiện tại",
+                    NameEN = "Drone Competition With Correct Time",
+                    DescriptionVN = "Dành cho sinh viên mới làm quen với drone",
+                    DescriptionEN = "For students new to drone programming",
+                    RuleContent = "Quy định: 1. Dành cho người mới. 2. Có hướng dẫn chi tiết. 3. Mentor hỗ trợ.",
+                    MaxParticipants = 150,
+                    RegistrationStartDate = now.AddMinutes(3),
+                    RegistrationEndDate = now.AddMinutes(5),
+                    StartDate = now.AddMinutes(7),
+                    EndDate = now.AddMinutes(9),
+                    ResultPublishedAt = now.AddMinutes(15),
+                    ClubID = Guid.Parse("7afe343c-77f0-4add-9660-d2417459445c")
                 }
             );
 

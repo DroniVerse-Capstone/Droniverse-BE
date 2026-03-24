@@ -329,6 +329,63 @@ namespace Droniverse.Community.Application.Services
             return await MapToCompetitionResponse(competition);
         }
 
+        public async Task UpdateCompetitionStatusesAsync()
+        {
+            var now = new ClockService().Now;
+
+            // Lấy các cuộc thi đang chưa hoàn thành hoặc chưa bị hủy
+            var activeCompetitions = await _unitOfWork.Competitions.GetManyByCondition(
+                c => c.Status != CompetitionStatus.FINISHED && c.Status != CompetitionStatus.CANCELLED,
+                q => q.Include(c => c.Rounds)
+            );
+
+            bool isModified = false;
+
+            foreach (var competition in activeCompetitions)
+            {
+                bool changed = false;
+
+                if (competition.CanAutoOpenRegistration(now))
+                {
+                    competition.SystemOpenRegistration();
+                    changed = true;
+                }
+                else if (competition.CanAutoCloseRegistration(now))
+                {
+                    competition.SystemCloseRegistration();
+                    changed = true;
+                }
+                else if (competition.CanAutoStartCompetition(now))
+                {
+                    try 
+                    {
+                        competition.SystemStartCompetition();
+                        changed = true;
+                    } 
+                    catch (Exception)
+                    {
+                        // Log lỗi round invalid ở đây nếu cần thiết
+                    }
+                }
+                else if (competition.CanAutoFinishCompetition(now))
+                {
+                    competition.SystemFinishCompetition();
+                    changed = true;
+                }
+
+                if (changed)
+                {
+                    await _unitOfWork.Competitions.Update(competition);
+                    isModified = true;
+                }
+            }
+
+            if (isModified)
+            {
+                await _unitOfWork.SaveChangeAsync();
+            }
+        }
+
         private async Task<CompetitionResponse> MapToCompetitionResponse(Competition competition)
         {
             var competitionIds = new[] { competition.CompetitionID };

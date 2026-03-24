@@ -1,11 +1,16 @@
 ﻿using DotNetEnv;
+using Droniverse.Community.API.BackgroundJobs;
 using Droniverse.Community.Application;
+using Droniverse.Community.Application.Jobs;
 using Droniverse.Community.Infrastructure;
 using Droniverse.Identity.API;
 using Droniverse.Shared;
+using Droniverse.Shared.Settings;
 using Hangfire;
-using Hangfire.Dashboard;
 using Hangfire.MySql;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
@@ -13,13 +18,9 @@ using MongoDB.Bson.Serialization.Serializers;
 using Swashbuckle.AspNetCore.Filters;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using System.Reflection;
+using System.Text;
 using System.Text.Json.Serialization;
 using System.Transactions;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.Extensions.Options;
-using Droniverse.Shared.Settings;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
 
 Env.Load("../../.env");
 
@@ -216,14 +217,22 @@ app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 
 //app.UseHttpsRedirection();
 
+//Console.WriteLine(typeof(CompetitionStatusJob).FullName);
+//Console.WriteLine(typeof(CompetitionStatusJob).Assembly.FullName);
+//Console.WriteLine(AppDomain.CurrentDomain
+//    .GetAssemblies()
+//    .Any(a => a.GetName().Name == "Droniverse.Community.Application"));
+
 app.UseCors();
 
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseHangfireDashboard("/hangfire", new DashboardOptions
 {
-    Authorization = new IDashboardAuthorizationFilter[] { }
+    Authorization = []
 });
+
+RecurringJobScheduler.ScheduleJobs();
 
 app.MapControllers();
 
