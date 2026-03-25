@@ -23,7 +23,7 @@ namespace Droniverse.Community.Application.Services
 
         public async Task<CompetitionResponse> CreateCompetition(CompetitionCreationRequest request)
         {
-            var currentUserId = Guid.Parse(_currentUserService.UserID 
+            var currentUserId = Guid.Parse(_currentUserService.UserID
                 ?? throw new UnauthorizedAccessException("User is not authenticated."));
 
             var club = await _unitOfWork.Clubs.GetByCondition(c => c.ClubID == request.ClubID);
@@ -53,7 +53,7 @@ namespace Droniverse.Community.Application.Services
 
         public async Task<CompetitionResponse> UpdateCompetition(Guid id, CompetitionUpdateDto request)
         {
-            var currentUserId = Guid.Parse(_currentUserService.UserID 
+            var currentUserId = Guid.Parse(_currentUserService.UserID
                 ?? throw new UnauthorizedAccessException("User is not authenticated."));
 
             var competition = await _unitOfWork.Competitions.GetByCondition(
@@ -89,7 +89,7 @@ namespace Droniverse.Community.Application.Services
             if (oldStartDate != request.StartDate || oldEndDate != request.EndDate)
             {
                 var invalidRoundIds = competition.ValidateAndMarkInvalidRounds();
-                
+
                 if (invalidRoundIds.Any())
                 {
                     // Update các rounds bị invalid
@@ -145,8 +145,8 @@ namespace Droniverse.Community.Application.Services
         {
             var competitions = await _unitOfWork.Competitions.GetManyByCondition(
                 c => (!searchRequest.Status.HasValue || c.Status == searchRequest.Status) &&
-                     (string.IsNullOrEmpty(searchRequest.CompetitionName) || 
-                      c.NameVN.Contains(searchRequest.CompetitionName) || 
+                     (string.IsNullOrEmpty(searchRequest.CompetitionName) ||
+                      c.NameVN.Contains(searchRequest.CompetitionName) ||
                       c.NameEN.Contains(searchRequest.CompetitionName)),
                 q => q.Include(c => c.Rounds)
                       .Include(c => c.UserCompetitions)
@@ -171,7 +171,7 @@ namespace Droniverse.Community.Application.Services
 
         public async Task<UserCompetitionResponseDto> RegisterForCompetition(Guid competitionId)
         {
-            var currentUserId = Guid.Parse(_currentUserService.UserID 
+            var currentUserId = Guid.Parse(_currentUserService.UserID
                 ?? throw new UnauthorizedAccessException("Người dùng chưa được xác thực."));
 
             var competition = await _unitOfWork.Competitions.GetByCondition(
@@ -202,7 +202,7 @@ namespace Droniverse.Community.Application.Services
                 if (currentCount >= competition.MaxParticipants.Value)
                     throw new InvalidOperationException("Cuộc thi đã đủ số lượng người tham gia.");
             }
-            
+
             // Thiếu kiểm tra xem người dùng đã có certificate thõa mãn chưa bằng cách gọi tới Acadamy Service. Nếu không thõa mãn thì báo lỗi
 
             var userCompetition = new UserCompetition(currentUserId, competitionId);
@@ -226,7 +226,7 @@ namespace Droniverse.Community.Application.Services
 
         public async Task<UserCompetitionResponseDto> WithdrawFromCompetition(Guid competitionId)
         {
-            var currentUserId = Guid.Parse(_currentUserService.UserID 
+            var currentUserId = Guid.Parse(_currentUserService.UserID
                 ?? throw new UnauthorizedAccessException("User is not authenticated."));
 
             var userCompetition = await _unitOfWork.UserCompetitions.GetByCondition(
@@ -308,7 +308,7 @@ namespace Droniverse.Community.Application.Services
 
         public async Task<CompetitionResponse> FinishCompetition(Guid competitionId)
         {
-            var currentUserId = Guid.Parse(_currentUserService.UserID 
+            var currentUserId = Guid.Parse(_currentUserService.UserID
                 ?? throw new UnauthorizedAccessException("User is not authenticated."));
 
             var competition = await _unitOfWork.Competitions.GetByCondition(
@@ -357,14 +357,15 @@ namespace Droniverse.Community.Application.Services
                 }
                 else if (competition.CanAutoStartCompetition(now))
                 {
-                    try 
+                    try
                     {
                         competition.SystemStartCompetition();
                         changed = true;
-                    } 
-                    catch (Exception)
+                    }
+                    catch (Exception ex)
                     {
-                        // Log lỗi round invalid ở đây nếu cần thiết
+                        Console.WriteLine(ex.Message);
+                        // gửi mail thông báo
                     }
                 }
                 else if (competition.CanAutoFinishCompetition(now))
@@ -372,6 +373,12 @@ namespace Droniverse.Community.Application.Services
                     competition.SystemFinishCompetition();
                     changed = true;
                 }
+                //else if ()
+                //{
+                //    // thời gian này không còn hợp lệ nữa
+                //    competition.SystemInvalidCompetition();
+                //    changed = true;
+                //}
 
                 if (changed)
                 {

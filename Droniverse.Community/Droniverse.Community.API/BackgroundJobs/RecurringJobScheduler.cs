@@ -23,16 +23,16 @@ namespace Droniverse.Community.API.BackgroundJobs
                 job => job.ExecuteAsync(),
                 Cron.Minutely
             );
-            RecurringJob.AddOrUpdate<TestJob>(
-                TestJob,
-                job => job.ExecuteAsync(),
-                Cron.Minutely
-            );  
-            RecurringJob.AddOrUpdate<TestJob2>(
-                TestJob2,
-                job => job.ExecuteAsync(),
-                Cron.Minutely
-            );  
+            //RecurringJob.AddOrUpdate<TestJob>(
+            //    TestJob,
+            //    job => job.ExecuteAsync(),
+            //    Cron.Minutely
+            //);  
+            //RecurringJob.AddOrUpdate<TestJob2>(
+            //    TestJob2,
+            //    job => job.ExecuteAsync(),
+            //    Cron.Minutely
+            //);  
             // TODO: Thêm các job khác ở đây
             // RecurringJob.AddOrUpdate<AnotherJob>(
             //    "another-job",
