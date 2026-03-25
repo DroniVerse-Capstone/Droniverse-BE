@@ -373,12 +373,12 @@ namespace Droniverse.Community.Application.Services
                     competition.SystemFinishCompetition();
                     changed = true;
                 }
-                else if ()
-                {
-                    // thời gian này không còn hợp lệ nữa
-                    competition.SystemInvalidCompetition();
-                    changed = true;
-                }
+                //else if ()
+                //{
+                //    // thời gian này không còn hợp lệ nữa
+                //    competition.SystemInvalidCompetition();
+                //    changed = true;
+                //}
 
                 if (changed)
                 {
