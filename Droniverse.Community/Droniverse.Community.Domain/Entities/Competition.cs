@@ -1,5 +1,6 @@
 ﻿using Droniverse.Community.Domain.Enums;
 using Droniverse.Shared.Services;
+using System.Security.Policy;
 
 namespace Droniverse.Community.Domain.Entities;
 
@@ -19,6 +20,7 @@ public class Competition
     public string RuleContent { get; private set; }
 
     public int? MaxParticipants { get; private set; }
+    public DateTime VisibleAt { get; private set; }
 
     public DateTime RegistrationStartDate { get; private set; }
     public DateTime RegistrationEndDate { get; private set; }
@@ -107,13 +109,13 @@ public class Competition
     {
         EnsureStatus(CompetitionStatus.OPEN);
 
-        Status = CompetitionStatus.CLOSED;
+        Status = CompetitionStatus.REGISTRATIONCLOSED;
         SetUpdated(updatedBy);
     }
 
     public void StartCompetition(Guid updatedBy)
     {
-        EnsureStatus(CompetitionStatus.CLOSED);
+        EnsureStatus(CompetitionStatus.REGISTRATIONCLOSED);
 
         // Kiểm tra có ít nhất 1 round Pending
         if (!Rounds.Any(r => r.Status == RoundStatus.Pending))
@@ -266,8 +268,9 @@ public class Competition
         if (!UserPrizes.Any())
             throw new InvalidOperationException("Chưa có dữ liệu trao thưởng.");
 
-        ResultPublishedAt = DateTime.UtcNow;
+        ResultPublishedAt = new ClockService().Now;
 
+        Status = CompetitionStatus.RESULT_PUBLISHED;
         SetUpdated(updatedBy);
     }
 
@@ -285,8 +288,8 @@ public class Competition
         string? descriptionEN = null)
     {
         // Chỉ cho phép update khi status là DRAFT hoặc OPEN
-        if (Status != CompetitionStatus.DRAFT && Status != CompetitionStatus.OPEN)
-            throw new InvalidOperationException($"Không thể cập nhật cuộc thi khi đang ở trạng thái {Status}. Chỉ có thể cập nhật khi cuộc thi đang ở trạng thái DRAFT hoặc OPEN.");
+        if (Status != CompetitionStatus.DRAFT && Status != CompetitionStatus.PUBLISHED)
+            throw new InvalidOperationException($"Không thể cập nhật cuộc thi khi đang ở trạng thái {Status}. Chỉ có thể cập nhật khi cuộc thi đang ở trạng thái [DRAFT] hoặc [PUBLISHED].");
 
         ValidateRegistrationTime(registrationStart, registrationEnd);
         ValidateCompetitionTime(startDate, endDate);
@@ -363,7 +366,7 @@ public class Competition
 
     public bool CanAutoStartCompetition(DateTime now)
     {
-        return (Status == CompetitionStatus.OPEN || Status == CompetitionStatus.CLOSED) && now >= StartDate;
+        return (Status == CompetitionStatus.OPEN || Status == CompetitionStatus.REGISTRATIONCLOSED) && now >= StartDate;
     }
 
     public bool CanAutoFinishCompetition(DateTime now)
@@ -371,10 +374,21 @@ public class Competition
         return Status == CompetitionStatus.ONGOING && now >= EndDate;
     }
 
+    public bool CanAutoInvalidCompetition(DateTime now)
+    {
+        return Status == CompetitionStatus.OPEN && now >= StartDate;
+    }
+
+   public bool CanAutoPublish(DateTime now)
+{
+    return Status == CompetitionStatus.DRAFT
+        && now >= VisibleAt;
+}
+
     // Các hàm thực thi (dùng cho hệ thống hoặc cron job gọi)
     public void SystemOpenRegistration()
     {
-        EnsureStatus(CompetitionStatus.DRAFT);
+        EnsureStatus(CompetitionStatus.PUBLISHED);
         Status = CompetitionStatus.OPEN;
         UpdatedAt = new ClockService().Now;
     }
@@ -382,18 +396,18 @@ public class Competition
     public void SystemCloseRegistration()
     {
         EnsureStatus(CompetitionStatus.OPEN);
-        Status = CompetitionStatus.CLOSED;
-        UpdatedAt = new ClockService().Now;
+        Status = CompetitionStatus.REGISTRATIONCLOSED;
+        UpdatedAt = new ClockService().Now; 
     }
 
     public void SystemStartCompetition()
     {
-        if (Status != CompetitionStatus.OPEN && Status != CompetitionStatus.CLOSED)
-            throw new InvalidOperationException("Chỉ có thể bắt đầu khi cuộc thi đang OPEN hoặc CLOSED.");
+        if (Status != CompetitionStatus.OPEN && Status != CompetitionStatus.REGISTRATIONCLOSED)
+            throw new InvalidOperationException("Chỉ có thể bắt đầu khi cuộc thi đang [OPEN] hoặc [REGISTRATIONCLOSED].");
 
         // Kiểm tra có ít nhất 1 round Pending
         if (!Rounds.Any(r => r.Status == RoundStatus.Pending))
-            throw new InvalidOperationException("Không thể bắt đầu cuộc thi khi không có round nào ở trạng thái Pending.");
+            throw new InvalidOperationException("Không thể bắt đầu cuộc thi khi không có vòng đấu nào ở trạng thái [Pending].");
 
         Status = CompetitionStatus.ONGOING;
         UpdatedAt = new ClockService().Now;
@@ -406,10 +420,27 @@ public class Competition
         UpdatedAt = new ClockService().Now;
     }
 
+    public void SystemInvalidCompetition()
+    {
+        if (Status == CompetitionStatus.FINISHED
+            || Status == CompetitionStatus.RESULT_PUBLISHED)
+            throw new InvalidOperationException("Không thể invalid khi đã kết thúc.");
+
+        Status = CompetitionStatus.INVALID;
+        UpdatedAt = new ClockService().Now;
+    }
+
+    public void SystemPublish()
+    {
+        EnsureStatus(CompetitionStatus.DRAFT);
+        Status = CompetitionStatus.PUBLISHED;
+        UpdatedAt = new ClockService().Now;
+    }
+
     private void EnsureStatus(CompetitionStatus requiredStatus)
     {
         if (Status != requiredStatus)
-            throw new InvalidOperationException($"Trạng thái cuộc thi phải là {requiredStatus}.");
+            throw new InvalidOperationException($"Trạng thái cuộc thi phải là [{requiredStatus}].");
     }
 
     private void SetUpdated(Guid updatedBy)
@@ -429,5 +460,22 @@ public class Competition
     {
         if (start >= end)
             throw new ArgumentException("Thời gian bắt đầu cuộc thi phải trước thời gian kết thúc.");
+    }
+
+    private static void ValidateTimeline(
+    DateTime visibleAt,
+    DateTime regStart,
+    DateTime regEnd,
+    DateTime start,
+    DateTime end)
+    {
+        if (visibleAt > regStart)
+            throw new ArgumentException("VisibleAt phải trước RegistrationStart");
+
+        if (regEnd > start)
+            throw new ArgumentException("RegistrationEnd phải trước StartDate");
+
+        if (start >= end)
+            throw new ArgumentException("StartDate phải trước EndDate");
     }
 }
