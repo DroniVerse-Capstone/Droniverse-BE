@@ -1,4 +1,4 @@
-using Droniverse.Academy.Domain.Enums;
+﻿using Droniverse.Academy.Domain.Enums;
 
 namespace Droniverse.Academy.Application.DTO.Request;
 
@@ -18,4 +18,6 @@ public class UpdateCourseVersionRequestDTO
     public CourseLevel Level { get; set; }
 
     public int? EstimatedDuration { get; set; }
+
+    public string? ChangeLog { get; set; }
 }

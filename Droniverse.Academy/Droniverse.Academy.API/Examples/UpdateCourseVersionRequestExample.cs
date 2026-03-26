@@ -20,7 +20,8 @@ public class UpdateCourseVersionRequestExample : IMultipleExamplesProvider<Updat
                 ContextEN = "Focus on in-flight incident handling skills.",
                 ImageUrl = "https://doanhnhanplus.vn/wp-content/uploads/2020/02/dnp-nhung-hinh-anh-kinh-ngac-bat-duoc-tu-drone-1-1140x712.jpg",
                 Level = CourseLevel.MEDIUM,
-                EstimatedDuration = 180
+                EstimatedDuration = 180,
+                ChangeLog = "Bổ sung tình huống bay thực tế và tăng thời lượng thực hành."
             }
         );
     }
