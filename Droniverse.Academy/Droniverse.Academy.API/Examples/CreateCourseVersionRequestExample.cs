@@ -20,7 +20,8 @@ public class CreateCourseVersionRequestExample : IMultipleExamplesProvider<Creat
                 ContextEN = "Learn takeoff, landing and safe navigation.",
                 ImageUrl = "https://photo2.tinhte.vn/data/attachment-files/2023/07/6507648_dji-air-3-ra-mat-tinhte-47.jpg",
                 Level = CourseLevel.EASY,
-                EstimatedDuration = 120
+                EstimatedDuration = 120,
+                ChangeLog = "Khởi tạo phiên bản đầu tiên với nội dung nền tảng cho người mới."
             }
         );
     }

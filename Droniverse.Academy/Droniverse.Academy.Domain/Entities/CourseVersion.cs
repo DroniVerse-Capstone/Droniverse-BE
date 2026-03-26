@@ -30,6 +30,8 @@ public class CourseVersion
 
     public int? EstimatedDuration { get; set; }
 
+    public string? ChangeLog { get; set; }
+
     public Guid? UpdateBy { get; private set; }
     public DateTime? UpdateAt { get; private set; }
 
@@ -112,6 +114,7 @@ public class CourseVersion
         string? imageUrl,
         CourseLevel level,
         int? estimatedDuration,
+        string? changeLog,
         Guid userId,
         DateTime now)
     {
@@ -129,6 +132,7 @@ public class CourseVersion
         ImageUrl = imageUrl;
         Level = level;
         EstimatedDuration = estimatedDuration;
+        ChangeLog = changeLog;
 
         SetAudit(userId, now);
     }

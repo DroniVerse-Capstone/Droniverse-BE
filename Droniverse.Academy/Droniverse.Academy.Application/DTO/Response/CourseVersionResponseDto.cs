@@ -14,6 +14,7 @@ public class CourseVersionResponseDTO
     public string? ImageUrl { get; set; }
     public CourseLevel Level { get; set; }
     public int? EstimatedDuration { get; set; }
+    public string? ChangeLog { get; set; }
     public Guid? UpdateBy { get; set; }
     public DateTime? UpdateAt { get; set; }
     public string? ContextVN { get; set; }

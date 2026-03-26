@@ -77,6 +77,9 @@ public class CourseVersionConfiguration
         builder.Property(cv => cv.EstimatedDuration)
             .HasColumnType("int");
 
+        builder.Property(cv => cv.ChangeLog)
+            .HasColumnType("text");
+
         builder.Property(cv => cv.UpdateAt)
             .HasColumnType("datetime")
             .IsRequired(false); // vì nullable
