@@ -38,5 +38,11 @@ namespace Droniverse.Community.Application.Helpers
         {
             return TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, VietnamTimeZone);
         }
+
+
+        public static DateTime TrimToMinute(this DateTime dt)
+        {
+            return new DateTime(dt.Year, dt.Month, dt.Day, dt.Hour, dt.Minute, 0);
+        }
     }
 }

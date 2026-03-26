@@ -14,7 +14,10 @@ using Swashbuckle.AspNetCore.Filters;
 namespace Droniverse.Community.API.Controllers
 {
     /// <summary>
-    /// API quản lý cuộc thi (Competition)
+    /// API quản lý cuộc thi (Competition).
+    /// Vòng đời trạng thái hiện tại:
+    /// DRAFT(0) → PUBLISHED(1) → REGISTRATION_OPEN(2) → REGISTRATION_CLOSED(3) → ONGOING(4) → FINISHED(5) → RESULT_PUBLISHED(6).
+    /// Trạng thái kết thúc đặc biệt: CANCELLED(7), INVALID(8).
     /// </summary>
     [ApiController]
     [Route("community/competitions")]
@@ -33,10 +36,10 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
-        /// Tạo cuộc thi mới
+        /// Tạo cuộc thi mới (khởi tạo ở trạng thái DRAFT).
         /// </summary>
         /// <param name="request">Thông tin cuộc thi</param>
-        /// <returns>200 OK - Tạo cuộc thi thành công</returns>
+        /// <returns>201 Created - Tạo cuộc thi thành công</returns>
         [HttpPost]
         [ProducesResponseType(typeof(SuccessResponse<CompetitionResponse>), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -52,25 +55,25 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
-        /// Cập nhật thông tin cuộc thi
+        /// Cập nhật thông tin cuộc thi.
         /// </summary>
         /// <param name="id">ID của cuộc thi</param>
         /// <param name="request">Thông tin cập nhật</param>
         /// <remarks>
-        /// **Quy tắc cập nhật:**
-        /// 
-        /// 1. **Chỉ cho phép cập nhật khi Status = DRAFT hoặc OPEN**
-        ///    - Không thể cập nhật khi cuộc thi đang ở trạng thái CLOSED, ONGOING, FINISHED, hoặc CANCELLED
-        /// 
-        /// 2. **Khi thay đổi StartDate hoặc EndDate:**
-        ///    - Hệ thống sẽ tự động validate lại tất cả các Round có status = PENDING
-        ///    - Nếu Round có thời gian nằm ngoài khoảng [Competition.StartDate, Competition.EndDate]:
-        ///      → Round sẽ bị đánh dấu status = SCHEDULE_INVALID
-        ///    - Các Round bị SCHEDULE_INVALID phải được chỉnh sửa trước khi competition có thể bắt đầu
-        /// 
-        /// 3. **Validation thời gian:**
-        ///    - RegistrationStartDate &lt; RegistrationEndDate
-        ///    - StartDate &lt; EndDate
+        /// **Quy tắc cập nhật theo domain:**
+        /// **Nên dùng các competition đã tạo với thời gian cố định.
+        /// 1. **DRAFT**:
+        ///    - Cho phép cập nhật đầy đủ thông tin timeline: `VisibleAt`, `RegistrationStartDate`, `RegistrationEndDate`, `StartDate`, `EndDate`
+        ///    - Validate: `RegistrationStartDate &lt; RegistrationEndDate`, `StartDate &lt; EndDate`
+        ///    - Validate timeline: `VisibleAt ≤ RegistrationStartDate`, `RegistrationEndDate ≤ StartDate`
+        ///
+        /// 2. **PUBLISHED**:
+        ///    - Chỉ cập nhật thông tin nội dung: `NameVN`, `NameEN`, `DescriptionVN`, `DescriptionEN`
+        ///    - Có thể cập nhật `MaxParticipants` nhưng không được nhỏ hơn số đã đăng ký
+        ///    - `RuleContent` chỉ được đổi khi chưa có người đăng ký
+        ///
+        /// 3. **Các trạng thái khác** (`REGISTRATION_OPEN`, `REGISTRATION_CLOSED`, `ONGOING`, `FINISHED`, `RESULT_PUBLISHED`, `CANCELLED`, `INVALID`):
+        ///    - Không được cập nhật bằng luồng này.
         /// </remarks>
         /// <returns>200 OK - Cập nhật thành công</returns>
         [HttpPut("{id}")]
@@ -89,14 +92,14 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
-        /// Xóa cuộc thi
+        /// Xóa cuộc thi.
         /// </summary>
         /// <param name="id">ID của cuộc thi</param>
         /// <remarks>
         /// **Quy tắc xóa:**
-        /// 
-        /// - Chỉ cho phép xóa cuộc thi ở trạng thái **DRAFT**
-        /// - Không thể xóa cuộc thi đã có người đăng ký hoặc đã bắt đầu
+        ///
+        /// - Chỉ cho phép xóa cuộc thi ở trạng thái `DRAFT`
+        /// - Không thể xóa cuộc thi đã đi vào các giai đoạn vận hành/đã có dữ liệu phát sinh
         /// </remarks>
         /// <returns>200 OK - Xóa thành công</returns>
         [HttpDelete("{id}")]
@@ -117,7 +120,7 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
-        /// Lấy thông tin chi tiết cuộc thi theo ID
+        /// Lấy thông tin chi tiết cuộc thi theo ID.
         /// </summary>
         /// <param name="id">ID của cuộc thi</param>
         /// <returns>200 OK - Trả về thông tin cuộc thi</returns>
@@ -134,9 +137,9 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
-        /// Lấy danh sách cuộc thi với điều kiện lọc
+        /// Lấy danh sách cuộc thi theo điều kiện lọc.
         /// </summary>
-        /// <param name="searchRequest">Điều kiện tìm kiếm (status, clubId, searchTerm)</param>
+        /// <param name="searchRequest">Điều kiện tìm kiếm (competition name, timeline, status)</param>
         /// <returns>200 OK - Trả về danh sách cuộc thi</returns>
         [HttpGet]
         [ProducesResponseType(typeof(SuccessResponse<IEnumerable<CompetitionResponse>>), StatusCodes.Status200OK)]
@@ -151,10 +154,22 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
-        /// Lấy danh sách cuộc thi của một club
+        /// Lấy danh sách cuộc thi của một club.
         /// </summary>
         /// <param name="clubId">ID của club</param>
-        /// <param name="status">Trạng thái cuộc thi (0-DRAFT, 1-OPEN, 2-CLOSED, 3-ONGOING, 4-FINISHED, 5-CANCELLED). Để null để lấy tất cả.</param>
+        /// <param name="status">
+        /// Trạng thái cuộc thi. Để null để lấy tất cả.
+        /// Giá trị hợp lệ:
+        /// 0-DRAFT,
+        /// 1-PUBLISHED,
+        /// 2-REGISTRATION_OPEN,
+        /// 3-REGISTRATION_CLOSED,
+        /// 4-ONGOING,
+        /// 5-FINISHED,
+        /// 6-RESULT_PUBLISHED,
+        /// 7-CANCELLED,
+        /// 8-INVALID.
+        /// </param>
         /// <returns>200 OK - Trả về danh sách cuộc thi</returns>
         [HttpGet("club/{clubId}")]
         [ProducesResponseType(typeof(SuccessResponse<IEnumerable<CompetitionResponse>>), StatusCodes.Status200OK)]
@@ -169,9 +184,12 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
-        /// Đăng ký tham gia cuộc thi
+        /// Đăng ký tham gia cuộc thi.
         /// </summary>
         /// <param name="competitionId">ID của cuộc thi</param>
+        /// <remarks>
+        /// Chỉ hợp lệ khi cuộc thi ở trạng thái `REGISTRATION_OPEN` và thời điểm hiện tại nằm trong khoảng đăng ký.
+        /// </remarks>
         /// <returns>200 OK - Đăng ký thành công</returns>
         [HttpPost("{competitionId}/register")]
         [ProducesResponseType(typeof(SuccessResponse<UserCompetitionResponseDto>), StatusCodes.Status200OK)]
@@ -187,7 +205,7 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
-        /// Rút khỏi cuộc thi
+        /// Rút khỏi cuộc thi.
         /// </summary>
         /// <param name="competitionId">ID của cuộc thi</param>
         /// <returns>200 OK - Rút khỏi cuộc thi thành công</returns>
@@ -205,7 +223,7 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
-        /// Lấy danh sách thí sinh tham gia cuộc thi
+        /// Lấy danh sách thí sinh tham gia cuộc thi.
         /// </summary>
         /// <param name="competitionId">ID của cuộc thi</param>
         /// <returns>200 OK - Trả về danh sách thí sinh</returns>
@@ -222,7 +240,7 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
-        /// Lấy bảng xếp hạng cuộc thi
+        /// Lấy bảng xếp hạng cuộc thi.
         /// </summary>
         /// <param name="competitionId">ID của cuộc thi</param>
         /// <returns>200 OK - Trả về bảng xếp hạng</returns>
@@ -239,9 +257,12 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
-        /// Kết thúc cuộc thi
+        /// Kết thúc cuộc thi.
         /// </summary>
         /// <param name="competitionId">ID của cuộc thi</param>
+        /// <remarks>
+        /// Chỉ hợp lệ khi cuộc thi đang ở trạng thái `ONGOING`.
+        /// </remarks>
         /// <returns>200 OK - Kết thúc cuộc thi thành công</returns>
         [HttpPut("{competitionId}/finish")]
         [ProducesResponseType(typeof(SuccessResponse<CompetitionResponse>), StatusCodes.Status200OK)]
@@ -257,27 +278,17 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
-        /// Thêm certificate vào cuộc thi
+        /// Thêm certificate vào cuộc thi.
         /// </summary>
         /// <param name="competitionId">ID của cuộc thi</param>
         /// <param name="request">Danh sách certificate IDs cần thêm</param>
         /// <remarks>
         /// **Quy tắc:**
-        /// 
-        /// 1. **Chỉ cho phép thêm certificate khi Competition ở trạng thái DRAFT**
-        /// 2. **Certificates không được trùng** - mỗi certificate chỉ được thêm 1 lần vào competition
-        /// 3. **Tất cả certificates phải tồn tại trong Academy system** - hệ thống sẽ validate với Academy Microservice
-        /// 4. **Có thể thêm nhiều certificates cùng lúc** - gửi danh sách CertificateIDs
-        /// 5. **Nếu certificate đã tồn tại sẽ bị skip** - chỉ add những certificate chưa có
-        /// 
-        /// **Use Case:**
-        /// - Admin thiết lập các loại certificate sẽ trao cho thí sinh (Top 1, Top 3, Participation, etc.)
-        /// - Certificate phải được thiết lập trước khi mở đăng ký (OPEN)
-        /// - Có thể add một lúc nhiều certificates để tiết kiệm thời gian
-        /// 
-        /// **Performance:**
-        /// - Sử dụng Bulk API để validate nhiều certificates cùng lúc
-        /// - Parallel validation với Academy service
+        ///
+        /// 1. Chỉ cho phép thêm khi Competition ở trạng thái `DRAFT`
+        /// 2. Certificate không được trùng trong cùng một competition (trùng sẽ không được chấp nhận)
+        /// 3. Certificate phải hợp lệ/tồn tại theo dữ liệu tích hợp từ Academy system
+        /// 4. Có thể thêm nhiều certificate trong một request
         /// </remarks>
         /// <returns>200 OK - Thêm certificates thành công</returns>
         [HttpPost("{competitionId}/certificates")]
@@ -298,15 +309,9 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
-        /// Lấy danh sách certificates của cuộc thi
+        /// Lấy danh sách certificates của cuộc thi.
         /// </summary>
         /// <param name="competitionId">ID của cuộc thi</param>
-        /// <remarks>
-        /// **Trả về:**
-        /// - Danh sách tất cả certificates đã được thiết lập cho competition
-        /// - Bao gồm thông tin chi tiết từ Academy system (name, description, template URL)
-        /// - Sử dụng bulk API để tối ưu performance khi có nhiều certificates
-        /// </remarks>
         /// <returns>200 OK - Trả về danh sách certificates</returns>
         [HttpGet("{competitionId}/certificates")]
         [ProducesResponseType(typeof(SuccessResponse<IEnumerable<CompetitionCertificateResponseDto>>), StatusCodes.Status200OK)]
@@ -321,35 +326,33 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
-        /// Xóa certificate khỏi cuộc thi
+        /// Xóa nhiều certificate khỏi cuộc thi.
         /// </summary>
         /// <param name="competitionId">ID của cuộc thi</param>
-        /// <param name="certificateId">ID của certificate cần xóa</param>
+        /// <param name="request">Danh sách certificate IDs cần xóa</param>
         /// <remarks>
         /// **Quy tắc:**
-        /// 
-        /// 1. **Chỉ cho phép xóa certificate khi Competition ở trạng thái DRAFT**
-        /// 2. **Certificate phải tồn tại trong competition** - nếu không sẽ trả về lỗi 404
-        /// 
-        /// **Use Case:**
-        /// - Admin muốn thay đổi cấu hình certificate trước khi mở đăng ký
-        /// - Loại bỏ certificate không phù hợp
+        ///
+        /// 1. Chỉ cho phép xóa certificate khi Competition ở trạng thái `DRAFT`
+        /// 2. Chỉ xóa các certificate đang tồn tại trong competition
         /// </remarks>
-        /// <returns>200 OK - Xóa certificate thành công</returns>
-        [HttpDelete("{competitionId}/certificates/{certificateId}")]
+        /// <returns>200 OK - Xóa certificates thành công</returns>
+        [HttpDelete("{competitionId}/certificates")]
         [ProducesResponseType(typeof(SuccessResponse<string>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [Authorize(Roles = Roles.AdminOrManagerRoles)]
-        public async Task<ApiResponse> RemoveCertificateFromCompetition(Guid competitionId, Guid certificateId)
+        public async Task<ApiResponse> RemoveCertificatesFromCompetition(
+            Guid competitionId,
+            [FromBody] CompetitionCertificateRemoveDto request)
         {
-            var result = await _competitionCertificateService.RemoveCertificateFromCompetition(competitionId, certificateId);
+            var result = await _competitionCertificateService.RemoveCertificatesFromCompetition(competitionId, request);
             if (!result)
-                return ErrorResponse.Create("Xóa certificate thất bại!", "ERR_DELETE_FAILED");
+                return ErrorResponse.Create("Xóa certificates thất bại!", "ERR_DELETE_FAILED");
 
             return SuccessResponse<string>.Create(
                 null,
-                "Xóa certificate khỏi cuộc thi thành công!"
+                "Xóa certificates khỏi cuộc thi thành công!"
             );
         }
     }

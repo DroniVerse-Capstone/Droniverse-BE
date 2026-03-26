@@ -1,44 +1,43 @@
-﻿using Droniverse.Community.Application.Job;
-using Droniverse.Community.Application.Jobs;
+﻿using Droniverse.Community.Application.Jobs;
 using Hangfire;
 
 namespace Droniverse.Community.API.BackgroundJobs
 {
-    public class RecurringJobScheduler
+    public static class RecurringJobScheduler
     {
-        private const string CompetitionStatusJobId = "update-competition-status";
-        private const string TestJob = "test-job";
-        private const string TestJob2 = "test-job2";
+        private const string CompetitionStatusJobId = "competition-lifecycle-job";
+        private const string RoundStatusJobId = "round-lifecycle-job";
 
-   
         public static void ScheduleJobs()
         {
-            // Remove old persisted metadata first to avoid type resolution errors
-            // when the job type was changed/moved between builds.
-            RecurringJob.RemoveIfExists(CompetitionStatusJobId);
+            ScheduleCompetitionJob();
+            ScheduleRoundJob();
+        }
 
-            // Competition status job
+        private static void ScheduleCompetitionJob()
+        {
             RecurringJob.AddOrUpdate<CompetitionStatusJob>(
                 CompetitionStatusJobId,
                 job => job.ExecuteAsync(),
-                Cron.Minutely
+                Cron.Minutely,
+                new RecurringJobOptions
+                {
+                    TimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")
+                }
             );
-            //RecurringJob.AddOrUpdate<TestJob>(
-            //    TestJob,
-            //    job => job.ExecuteAsync(),
-            //    Cron.Minutely
-            //);  
-            //RecurringJob.AddOrUpdate<TestJob2>(
-            //    TestJob2,
-            //    job => job.ExecuteAsync(),
-            //    Cron.Minutely
-            //);  
-            // TODO: Thêm các job khác ở đây
-            // RecurringJob.AddOrUpdate<AnotherJob>(
-            //    "another-job",
-            //    job => job.ExecuteAsync(),
-            //    Cron.Hourly
-            // );
+        }
+
+        private static void ScheduleRoundJob()
+        {
+            RecurringJob.AddOrUpdate<RoundStatusJob>(
+                RoundStatusJobId,
+                job => job.ExecuteAsync(),
+                Cron.Minutely,
+                new RecurringJobOptions
+                {
+                    TimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")
+                }
+            );
         }
     }
 }

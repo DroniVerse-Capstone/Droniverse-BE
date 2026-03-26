@@ -1,6 +1,7 @@
 ﻿using Droniverse.Community.Application.DTO.Extensions;
 using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
+using Droniverse.Community.Application.Helpers;
 using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.Enums;
@@ -14,11 +15,13 @@ namespace Droniverse.Community.Application.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly ICurrentUserService _currentUserService;
+        private readonly IClock _clock;
 
-        public CompetitionService(IUnitOfWork unitOfWork, ICurrentUserService currentUserService)
+        public CompetitionService(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, IClock clock)
         {
             _unitOfWork = unitOfWork;
             _currentUserService = currentUserService;
+            _clock = clock;
         }
 
         public async Task<CompetitionResponse> CreateCompetition(CompetitionCreationRequest request)
@@ -35,15 +38,17 @@ namespace Droniverse.Community.Application.Services
                 request.NameVN,
                 request.NameEN,
                 request.RuleContent,
-                request.RegistrationStartDate,
-                request.RegistrationEndDate,
-                request.StartDate,
-                request.EndDate,
+                request.VisibleAt.TrimToMinute(),
+                request.RegistrationStartDate.TrimToMinute(),
+                request.RegistrationEndDate.TrimToMinute(),
+                request.StartDate.TrimToMinute(),
+                request.EndDate.TrimToMinute(),
                 currentUserId,
+                _clock.Now,
                 request.MaxParticipants,
                 request.DescriptionVN,
                 request.DescriptionEN
-            );
+                );
 
             await _unitOfWork.Competitions.Add(competition);
             await _unitOfWork.SaveChangeAsync();
@@ -66,45 +71,53 @@ namespace Droniverse.Community.Application.Services
             if (competition == null)
                 throw new KeyNotFoundException($"Không tìm thấy cuộc thi với ID {id}.");
 
-            // Lưu thời gian cũ để so sánh
+            // ===== 1. Lưu state cũ =====
             var oldStartDate = competition.StartDate;
             var oldEndDate = competition.EndDate;
 
-            // Update thông tin competition
-            competition.UpdateInformation(
-                request.NameVN,
-                request.NameEN,
-                request.RuleContent,
-                request.RegistrationStartDate,
-                request.RegistrationEndDate,
-                request.StartDate,
-                request.EndDate,
-                currentUserId,
-                request.MaxParticipants,
-                request.DescriptionVN,
-                request.DescriptionEN
-            );
-
-            // Nếu thời gian competition thay đổi, validate lại các rounds
-            if (oldStartDate != request.StartDate || oldEndDate != request.EndDate)
+            switch (competition.Status)
             {
-                var invalidRoundIds = competition.ValidateAndMarkInvalidRounds();
+                case CompetitionStatus.DRAFT:
+                    competition.UpdateDraftInformation(
+                        request.NameVN,
+                        request.NameEN,
+                        request.RuleContent,
+                        request.VisibleAt, 
+                        request.RegistrationStartDate,
+                        request.RegistrationEndDate,
+                        request.StartDate,
+                        request.EndDate,
+                        currentUserId,
+                        _clock.Now,
+                        request.MaxParticipants,
+                        request.DescriptionVN,
+                        request.DescriptionEN
+                    );
+                    break;
 
-                if (invalidRoundIds.Any())
-                {
-                    // Update các rounds bị invalid
-                    foreach (var roundId in invalidRoundIds)
-                    {
-                        var round = competition.Rounds.FirstOrDefault(r => r.RoundID == roundId);
-                        if (round != null)
-                        {
-                            await _unitOfWork.Rounds.Update(round);
-                        }
-                    }
-                }
+                case CompetitionStatus.PUBLISHED:
+                    competition.UpdatePublishedInformation(
+                        request.NameVN,
+                        request.NameEN,
+                        request.DescriptionVN,
+                        request.DescriptionEN,
+                        request.MaxParticipants,
+                        request.RuleContent,
+                        currentUserId,
+                        _clock.Now
+                    );
+                    break;
+
+                default:
+                    throw new InvalidOperationException(
+                        $"Không thể cập nhật cuộc thi ở trạng thái [{competition.Status}].");
             }
 
-            await _unitOfWork.Competitions.Update(competition);
+            bool timelineChanged = oldStartDate != competition.StartDate || oldEndDate != competition.EndDate;
+
+            if (timelineChanged)
+                competition.ValidateAndMarkInvalidRounds();
+
             await _unitOfWork.SaveChangeAsync();
 
             return await MapToCompetitionResponse(competition);
@@ -114,11 +127,10 @@ namespace Droniverse.Community.Application.Services
         {
             var competition = await _unitOfWork.Competitions.GetByCondition(c => c.CompetitionID == id);
             if (competition == null)
-                throw new KeyNotFoundException($"Không tìm thấy cuộc thi với ID {id}.");
+                throw new KeyNotFoundException($"Không tìm thấy cuộc thi với ID [{id}].");
 
-            // Chỉ cho phép xóa competition ở trạng thái DRAFT
             if (competition.Status != CompetitionStatus.DRAFT)
-                throw new InvalidOperationException($"Không thể xóa cuộc thi khi đang ở trạng thái {competition.Status}. Chỉ có thể xóa cuộc thi ở trạng thái DRAFT.");
+                throw new InvalidOperationException($"Không thể xóa cuộc thi khi đang ở trạng thái [{competition.Status}]");
 
             await _unitOfWork.Competitions.Delete(competition);
             await _unitOfWork.SaveChangeAsync();
@@ -180,32 +192,20 @@ namespace Droniverse.Community.Application.Services
             );
 
             if (competition == null)
-                throw new KeyNotFoundException($"Competition with ID {competitionId} not found.");
+                throw new KeyNotFoundException($"Không tìm thấy cuộc thi với ID [{competitionId}].");
 
-            if (competition.Status != CompetitionStatus.OPEN)
-                throw new InvalidOperationException("Cuộc thi không trong thời gian đăng ký.");
+            // check user certificate
+            //var isValid = await _academyService.CheckUserCertificate();
 
-            var now = DateTime.UtcNow;
-            if (now < competition.RegistrationStartDate || now > competition.RegistrationEndDate)
-                throw new InvalidOperationException("Ngoài thời gian đăng ký cuộc thi.");
+            //if (!isValid)
+            //    throw new InvalidOperationException("Bạn chưa đủ điều kiện tham gia.");
 
-            var existingRegistration = await _unitOfWork.UserCompetitions.GetByCondition(
-                uc => uc.UserID == currentUserId && uc.CompetitionID == competitionId
+            var now = new ClockService().Now;
+
+            var userCompetition = competition.RegisterParticipant(
+                currentUserId,
+                now
             );
-
-            if (existingRegistration != null)
-                throw new InvalidOperationException("Bạn đã đăng ký cuộc thi này rồi.");
-
-            if (competition.MaxParticipants.HasValue)
-            {
-                var currentCount = competition.UserCompetitions.Count;
-                if (currentCount >= competition.MaxParticipants.Value)
-                    throw new InvalidOperationException("Cuộc thi đã đủ số lượng người tham gia.");
-            }
-
-            // Thiếu kiểm tra xem người dùng đã có certificate thõa mãn chưa bằng cách gọi tới Acadamy Service. Nếu không thõa mãn thì báo lỗi
-
-            var userCompetition = new UserCompetition(currentUserId, competitionId);
 
             await _unitOfWork.UserCompetitions.Add(userCompetition);
             await _unitOfWork.SaveChangeAsync();
@@ -321,7 +321,7 @@ namespace Droniverse.Community.Application.Services
             if (competition == null)
                 throw new KeyNotFoundException($"Competition with ID {competitionId} not found.");
 
-            competition.FinishCompetition(currentUserId);
+            competition.FinishCompetition(currentUserId, _clock.Now);
 
             await _unitOfWork.Competitions.Update(competition);
             await _unitOfWork.SaveChangeAsync();
@@ -329,69 +329,78 @@ namespace Droniverse.Community.Application.Services
             return await MapToCompetitionResponse(competition);
         }
 
-        public async Task UpdateCompetitionStatusesAsync()
-        {
-            var now = new ClockService().Now;
+        //public async Task UpdateCompetitionStatusesAsync()
+        //{
+        //    var now = _clock.Now;
 
-            // Lấy các cuộc thi đang chưa hoàn thành hoặc chưa bị hủy
-            var activeCompetitions = await _unitOfWork.Competitions.GetManyByCondition(
-                c => c.Status != CompetitionStatus.FINISHED && c.Status != CompetitionStatus.CANCELLED,
-                q => q.Include(c => c.Rounds)
-            );
+        //    var competitions = await _unitOfWork.Competitions.GetManyByCondition(
+        //        c => c.Status != CompetitionStatus.FINISHED &&
+        //             c.Status != CompetitionStatus.CANCELLED &&
+        //             c.Status != CompetitionStatus.RESULT_PUBLISHED,
+        //        q => q.Include(c => c.Rounds)
+        //    );
 
-            bool isModified = false;
+        //    bool isModified = false;
 
-            foreach (var competition in activeCompetitions)
-            {
-                bool changed = false;
+        //    foreach (var competition in competitions)
+        //    {
+        //        bool changed = false;
 
-                if (competition.CanAutoOpenRegistration(now))
-                {
-                    competition.SystemOpenRegistration();
-                    changed = true;
-                }
-                else if (competition.CanAutoCloseRegistration(now))
-                {
-                    competition.SystemCloseRegistration();
-                    changed = true;
-                }
-                else if (competition.CanAutoStartCompetition(now))
-                {
-                    try
-                    {
-                        competition.SystemStartCompetition();
-                        changed = true;
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine(ex.Message);
-                        // gửi mail thông báo
-                    }
-                }
-                else if (competition.CanAutoFinishCompetition(now))
-                {
-                    competition.SystemFinishCompetition();
-                    changed = true;
-                }
-                //else if ()
-                //{
-                //    // thời gian này không còn hợp lệ nữa
-                //    competition.SystemInvalidCompetition();
-                //    changed = true;
-                //}
+        //        if (competition.CanAutoPublish(now))
+        //        {
+        //            competition.SystemPublish();
+        //            changed = true;
+        //        }
 
-                if (changed)
-                {
-                    await _unitOfWork.Competitions.Update(competition);
-                    isModified = true;
-                }
-            }
+        //        if (competition.CanAutoOpenRegistration(now))
+        //        {
+        //            competition.SystemOpenRegistration();
+        //            changed = true;
+        //        }
 
-            if (isModified)
-            {
-                await _unitOfWork.SaveChangeAsync();
-            }
-        }
+        //        if (competition.CanAutoCloseRegistration(now))
+        //        {
+        //            competition.SystemCloseRegistration();
+        //            changed = true;
+        //        }
+
+        //        if (competition.CanAutoInvalidCompetition(now))
+        //        {
+        //            competition.SystemInvalidCompetition();
+        //            changed = true;
+        //        }
+
+        //        if (competition.CanAutoStartCompetition(now))
+        //        {
+        //            try
+        //            {
+        //                competition.SystemStartCompetition();
+        //                changed = true;
+        //            }
+        //            catch (Exception ex)
+        //            {
+        //                // log + mark invalid nếu cần
+        //                // _logger.LogError(ex, ...);
+        //            }
+        //        }
+
+        //        if (competition.CanAutoFinishCompetition(now))
+        //        {
+        //            competition.SystemFinishCompetition();
+        //            changed = true;
+        //        }
+
+        //        if (changed)
+        //        {
+        //            isModified = true;
+        //        }
+        //    }
+
+        //    if (isModified)
+        //    {
+        //        await _unitOfWork.SaveChangeAsync();
+        //    }
+        //}
 
         private async Task<CompetitionResponse> MapToCompetitionResponse(Competition competition)
         {
@@ -429,8 +438,8 @@ namespace Droniverse.Community.Application.Services
         private async Task<IEnumerable<CompetitionResponse>> MapToCompetitionResponses(IEnumerable<Competition> competitions)
         {
             var competitionList = competitions.ToList();
-            if (!competitionList.Any())
-                return Enumerable.Empty<CompetitionResponse>();
+            if (competitionList.Count == 0)
+                return [];
 
             var competitionIds = competitionList.Select(c => c.CompetitionID).ToList();
             var roundCounts = await _unitOfWork.Rounds.GetRoundCountsByCompetitionIds(competitionIds);

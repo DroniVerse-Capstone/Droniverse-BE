@@ -14,4 +14,8 @@
     <ProjectReference Include="..\..\Droniverse.Shared\Droniverse.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="AppHelpers\" />
+  </ItemGroup>
+
 </Project>

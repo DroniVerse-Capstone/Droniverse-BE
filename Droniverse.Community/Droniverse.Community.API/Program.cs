@@ -30,6 +30,8 @@ builder.Configuration.AddEnvironmentVariables();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication(builder.Configuration);
 builder.Services.AddShared(builder.Configuration);
+builder.Services.AddScoped<CompetitionStatusJob>();
+builder.Services.AddScoped<RoundStatusJob>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
