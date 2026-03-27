@@ -12,11 +12,16 @@ internal class RoundRepository : MySqlRepository<Round>, IRoundRepository
 
     public async Task<Dictionary<Guid, int>> GetRoundCountsByCompetitionIds(IEnumerable<Guid> competitionIds)
     {
-        var ids = competitionIds.Distinct().ToList();
+        var ids = competitionIds
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
         if (!ids.Any())
             return new Dictionary<Guid, int>();
 
         return await _context.Set<Round>()
+            .AsNoTracking()
             .Where(cc => ids.Contains(cc.CompetitionID))
             .GroupBy(cc => cc.CompetitionID)
             .Select(g => new { RoundID = g.Key, Count = g.Count() })

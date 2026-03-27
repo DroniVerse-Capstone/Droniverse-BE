@@ -1,5 +1,6 @@
 ﻿using DotNetEnv;
 using Droniverse.Community.API.BackgroundJobs;
+using Droniverse.Community.API.Jobs;
 using Droniverse.Community.Application;
 using Droniverse.Community.Application.Jobs;
 using Droniverse.Community.Infrastructure;
@@ -32,6 +33,7 @@ builder.Services.AddApplication(builder.Configuration);
 builder.Services.AddShared(builder.Configuration);
 builder.Services.AddScoped<CompetitionStatusJob>();
 builder.Services.AddScoped<RoundStatusJob>();
+builder.Services.AddScoped<HotCompetitionsJob>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>

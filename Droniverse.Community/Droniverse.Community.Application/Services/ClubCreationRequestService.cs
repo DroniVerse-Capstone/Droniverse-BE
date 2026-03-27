@@ -18,7 +18,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Community.Application.DTO.Extensions;
-using Droniverse.Community.Application.Helpers;
+using Droniverse.Shared.Helpers;
 
 namespace Droniverse.Community.Application.Services
 {

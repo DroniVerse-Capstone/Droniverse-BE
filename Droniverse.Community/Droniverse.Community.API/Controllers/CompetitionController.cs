@@ -7,6 +7,7 @@ using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Enums;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
+using Droniverse.Shared.DTOs.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Filters;
@@ -139,15 +140,18 @@ namespace Droniverse.Community.API.Controllers
         /// <summary>
         /// Lấy danh sách cuộc thi theo điều kiện lọc.
         /// </summary>
+        /// <remarks>
+        /// API Chỉ dùng cho role `ADMIN` và `SYSTEM_MANAGER`
+        /// </remarks>
         /// <param name="searchRequest">Điều kiện tìm kiếm (competition name, timeline, status)</param>
-        /// <returns>200 OK - Trả về danh sách cuộc thi</returns>
+        /// <returns>200 OK - Trả về danh sách cuộc thi có phân trang</returns>
         [HttpGet]
-        [ProducesResponseType(typeof(SuccessResponse<IEnumerable<CompetitionResponse>>), StatusCodes.Status200OK)]
-        [Authorize(Roles = Roles.SystemRoles)]
+        [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<CompetitionResponse>>>), StatusCodes.Status200OK)]
+        [Authorize(Roles = Roles.AdminOrSystemManager)]
         public async Task<ApiResponse> GetAllCompetitionWithCondition([FromQuery] CompetitionSearchRequest searchRequest)
         {
             var competitions = await _competitionService.GetAllCompetitionsWithCondition(searchRequest);
-            return SuccessResponse<IEnumerable<CompetitionResponse>>.Create(
+            return SuccessResponse<PaginationResult<IEnumerable<CompetitionResponse>>>.Create(
                 competitions,
                 "Lấy danh sách cuộc thi thành công!"
             );
@@ -180,6 +184,30 @@ namespace Droniverse.Community.API.Controllers
             return SuccessResponse<IEnumerable<CompetitionResponse>>.Create(
                 competitions,
                 "Lấy danh sách cuộc thi của club thành công!"
+            );
+        }
+
+        /// <summary>
+        /// Lấy danh sách cuộc thi HOT của một club.
+        /// </summary>
+        /// <param name="clubId">ID của club</param>
+        /// <param name="searchRequest">Thông tin phân trang</param>
+        /// <remarks>
+        /// Quy tắc HOT đơn giản:
+        /// - Ưu tiên competition đang hoạt động (`PUBLISHED`, `REGISTRATION_OPEN`, `REGISTRATION_CLOSED`, `ONGOING`)
+        /// - Tính điểm từ độ phổ biến (participants), độ gần thời gian hiện tại (recency), trạng thái và activity gần đây
+        /// - Sắp xếp theo điểm HOT giảm dần
+        /// </remarks>
+        /// <returns>200 OK - Trả về danh sách competition HOT có phân trang</returns>
+        [HttpGet("club/{clubId}/hot")]
+        [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<CompetitionResponse>>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ApiResponse> GetHotCompetitionsByClub(Guid clubId, [FromQuery] HotCompetitionSearchRequest searchRequest)
+        {
+            var competitions = await _competitionService.GetHotCompetitionsByClub(clubId, searchRequest);
+            return SuccessResponse<PaginationResult<IEnumerable<CompetitionResponse>>>.Create(
+                competitions,
+                "Lấy danh sách cuộc thi HOT của club thành công!"
             );
         }
 
@@ -257,23 +285,45 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
-        /// Kết thúc cuộc thi.
+        /// Cập nhật trạng thái cuộc thi.
         /// </summary>
         /// <param name="competitionId">ID của cuộc thi</param>
+        /// <param name="request">Trạng thái mục tiêu cần cập nhật</param>
         /// <remarks>
-        /// Chỉ hợp lệ khi cuộc thi đang ở trạng thái `ONGOING`.
+        /// API dùng để cập nhật `CompetitionStatus` theo rule domain.
+        /// Ví dụ: `REGISTRATION_OPEN`, `REGISTRATION_CLOSED`, `ONGOING`, `FINISHED`, `RESULT_PUBLISHED`, `CANCELLED`, `INVALID`.
+        ///
+        /// Khi trạng thái được cập nhật sang `INVALID`, hệ thống yêu cầu cung cấp thêm `InvalidReason`
+        /// để xác định nguyên nhân cuộc thi không hợp lệ.
+        ///
+        /// Các giá trị `InvalidReason` bao gồm:
+        /// - `NoRounds`: Không có round hợp lệ để tổ chức thi đấu.
+        /// - `NoParticipants`: Không có người tham gia cuộc thi.
+        /// - `ScheduleInvalid`: Lịch thi đấu không hợp lệ (ngoài khoảng thời gian competition).
+        /// - `RegistrationTimeInvalid`: Thời gian đăng ký không hợp lệ.
+        /// - `CompetitionTimeInvalid`: Thời gian diễn ra cuộc thi không hợp lệ.
+        /// - `StartFailed`: Thất bại khi chuyển trạng thái sang ONGOING.
+        /// - `FinishFailed`: Thất bại khi kết thúc cuộc thi.
+        /// - `SystemError`: Lỗi hệ thống không xác định.
+        /// - `DependencyFailed`: Lỗi từ service bên ngoài (API khác, email, payment,...).
+        /// - `Unknown`: Không xác định được nguyên nhân cụ thể.
+        ///
+        /// Lưu ý:
+        /// - `InvalidReason` chỉ áp dụng khi `CompetitionStatus = INVALID`.
+        /// - Với các trạng thái khác, trường này có thể được bỏ qua.
         /// </remarks>
-        /// <returns>200 OK - Kết thúc cuộc thi thành công</returns>
-        [HttpPut("{competitionId}/finish")]
+        /// <returns>200 OK - Cập nhật trạng thái cuộc thi thành công</returns>
+        [HttpPatch("{competitionId}/status")]
         [ProducesResponseType(typeof(SuccessResponse<CompetitionResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [SwaggerRequestExample(typeof(CompetitionUpdateStatusDto), typeof(CompetitionUpdateStatusExample))]
         [Authorize(Roles = Roles.AdminOrManagerRoles)]
-        public async Task<ApiResponse> FinishCompetition(Guid competitionId)
+        public async Task<ApiResponse> UpdateCompetitionStatus(Guid competitionId, [FromBody] CompetitionUpdateStatusDto request)
         {
-            var competition = await _competitionService.FinishCompetition(competitionId);
+            var competition = await _competitionService.UpdateCompetitionStatus(competitionId, request);
             return SuccessResponse<CompetitionResponse>.Create(
                 competition,
-                "Kết thúc cuộc thi thành công!"
+                "Cập nhật trạng thái cuộc thi thành công!"
             );
         }
 

@@ -1,27 +1,54 @@
 ﻿using Droniverse.Community.Application.DTO.Extensions;
 using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
-using Droniverse.Community.Application.Helpers;
+using Droniverse.Shared.Helpers;
+using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository;
+using Droniverse.Shared.DTOs;
+using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
+using System.Text.Json;
 
 namespace Droniverse.Community.Application.Services
 {
     public class CompetitionService : ICompetitionService
     {
+        private const string HotCompetitionCachePrefix = "hot_competitions";
+
+        private static readonly DistributedCacheEntryOptions HotCompetitionCacheOptions = new DistributedCacheEntryOptions()
+            .SetAbsoluteExpiration(TimeSpan.FromMinutes(5))
+            .SetSlidingExpiration(TimeSpan.FromMinutes(2));
+
+        private static readonly ConcurrentDictionary<string, SemaphoreSlim> HotCompetitionLocks = new();
+
         private readonly IUnitOfWork _unitOfWork;
         private readonly ICurrentUserService _currentUserService;
         private readonly IClock _clock;
+        private readonly IdentityMicroserviceClient _identityMicroserviceClient;
+        private readonly IDistributedCache _distributedCache;
+        private readonly ILogger<CompetitionService> _logger;
 
-        public CompetitionService(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, IClock clock)
+        public CompetitionService(
+            IUnitOfWork unitOfWork,
+            ICurrentUserService currentUserService,
+            IClock clock,
+            IdentityMicroserviceClient identityMicroserviceClient,
+            IDistributedCache distributedCache,
+            ILogger<CompetitionService> logger)
         {
             _unitOfWork = unitOfWork;
             _currentUserService = currentUserService;
             _clock = clock;
+            _identityMicroserviceClient = identityMicroserviceClient;
+            _distributedCache = distributedCache;
+            _logger = logger;
         }
 
         public async Task<CompetitionResponse> CreateCompetition(CompetitionCreationRequest request)
@@ -52,6 +79,7 @@ namespace Droniverse.Community.Application.Services
 
             await _unitOfWork.Competitions.Add(competition);
             await _unitOfWork.SaveChangeAsync();
+            await InvalidateHotCompetitionsCache(competition.ClubID);
 
             return await MapToCompetitionResponse(competition);
         }
@@ -71,7 +99,6 @@ namespace Droniverse.Community.Application.Services
             if (competition == null)
                 throw new KeyNotFoundException($"Không tìm thấy cuộc thi với ID {id}.");
 
-            // ===== 1. Lưu state cũ =====
             var oldStartDate = competition.StartDate;
             var oldEndDate = competition.EndDate;
 
@@ -82,7 +109,7 @@ namespace Droniverse.Community.Application.Services
                         request.NameVN,
                         request.NameEN,
                         request.RuleContent,
-                        request.VisibleAt, 
+                        request.VisibleAt,
                         request.RegistrationStartDate,
                         request.RegistrationEndDate,
                         request.StartDate,
@@ -119,6 +146,7 @@ namespace Droniverse.Community.Application.Services
                 competition.ValidateAndMarkInvalidRounds();
 
             await _unitOfWork.SaveChangeAsync();
+            await InvalidateHotCompetitionsCache(competition.ClubID);
 
             return await MapToCompetitionResponse(competition);
         }
@@ -134,6 +162,7 @@ namespace Droniverse.Community.Application.Services
 
             await _unitOfWork.Competitions.Delete(competition);
             await _unitOfWork.SaveChangeAsync();
+            await InvalidateHotCompetitionsCache(competition.ClubID);
 
             return true;
         }
@@ -142,9 +171,7 @@ namespace Droniverse.Community.Application.Services
         {
             var competition = await _unitOfWork.Competitions.GetByCondition(
                 c => c.CompetitionID == id,
-                q => q.Include(c => c.Rounds)
-                      .Include(c => c.UserCompetitions)
-                      .Include(c => c.CompetitionPrizes)
+                q => q.AsNoTracking()
             );
 
             if (competition == null)
@@ -153,20 +180,34 @@ namespace Droniverse.Community.Application.Services
             return await MapToCompetitionResponse(competition);
         }
 
-        public async Task<IEnumerable<CompetitionResponse>> GetAllCompetitionsWithCondition(CompetitionSearchRequest searchRequest)
+        public async Task<PaginationResult<IEnumerable<CompetitionResponse>>> GetAllCompetitionsWithCondition(CompetitionSearchRequest searchRequest)
         {
-            var competitions = await _unitOfWork.Competitions.GetManyByCondition(
-                c => (!searchRequest.Status.HasValue || c.Status == searchRequest.Status) &&
-                     (string.IsNullOrEmpty(searchRequest.CompetitionName) ||
-                      c.NameVN.Contains(searchRequest.CompetitionName) ||
-                      c.NameEN.Contains(searchRequest.CompetitionName)),
-                q => q.Include(c => c.Rounds)
-                      .Include(c => c.UserCompetitions)
-                      .Include(c => c.CompetitionPrizes)
-                      .OrderByDescending(c => c.CreatedAt)
-            );
+            int currentPage = searchRequest.CurrentPage <= 0 ? 1 : searchRequest.CurrentPage;
+            int pageSize = searchRequest.PageSize <= 0 ? 5 : searchRequest.PageSize;
+            int skip = (currentPage - 1) * pageSize;
 
-            return await MapToCompetitionResponses(competitions);
+            var (competitions, totalRecords) = await _unitOfWork.Competitions.GetFilteredCompetitionsAsync(
+                searchRequest.CompetitionName,
+                searchRequest.Status,
+                searchRequest.RegistrationStartDate,
+                searchRequest.RegistrationEndDate,
+                searchRequest.StartDate,
+                searchRequest.EndDate,
+                skip,
+                pageSize);
+
+            if (totalRecords == 0)
+            {
+                return new PaginationResult<IEnumerable<CompetitionResponse>>([], 0, currentPage, pageSize);
+            }
+
+            var mappedData = (await MapToCompetitionResponses(competitions)).ToList();
+
+            return new PaginationResult<IEnumerable<CompetitionResponse>>(
+                mappedData,
+                totalRecords,
+                currentPage,
+                pageSize);
         }
 
         public async Task<IEnumerable<CompetitionResponse>> GetCompetitionsByClub(Guid clubId, CompetitionStatus? status = null)
@@ -179,6 +220,26 @@ namespace Droniverse.Community.Application.Services
             );
 
             return await MapToCompetitionResponses(competitions);
+        }
+
+        public async Task<PaginationResult<IEnumerable<CompetitionResponse>>> GetHotCompetitionsByClub(Guid clubId, HotCompetitionSearchRequest searchRequest)
+        {
+            var currentPage = searchRequest.CurrentPage <= 0 ? 1 : searchRequest.CurrentPage;
+            var pageSize = searchRequest.PageSize <= 0 ? 5 : searchRequest.PageSize;
+
+            var ranked = await GetOrBuildHotCompetitionCache(clubId);
+
+            var paged = ranked
+                .Skip((currentPage - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => x.Competition)
+                .ToList();
+
+            return new PaginationResult<IEnumerable<CompetitionResponse>>(
+                paged,
+                ranked.Count,
+                currentPage,
+                pageSize);
         }
 
         public async Task<UserCompetitionResponseDto> RegisterForCompetition(Guid competitionId)
@@ -194,12 +255,6 @@ namespace Droniverse.Community.Application.Services
             if (competition == null)
                 throw new KeyNotFoundException($"Không tìm thấy cuộc thi với ID [{competitionId}].");
 
-            // check user certificate
-            //var isValid = await _academyService.CheckUserCertificate();
-
-            //if (!isValid)
-            //    throw new InvalidOperationException("Bạn chưa đủ điều kiện tham gia.");
-
             var now = new ClockService().Now;
 
             var userCompetition = competition.RegisterParticipant(
@@ -209,6 +264,7 @@ namespace Droniverse.Community.Application.Services
 
             await _unitOfWork.UserCompetitions.Add(userCompetition);
             await _unitOfWork.SaveChangeAsync();
+            await InvalidateHotCompetitionsCache(competition.ClubID);
 
             return new UserCompetitionResponseDto
             {
@@ -247,6 +303,7 @@ namespace Droniverse.Community.Application.Services
 
             await _unitOfWork.UserCompetitions.Update(userCompetition);
             await _unitOfWork.SaveChangeAsync();
+            await InvalidateHotCompetitionsCache(competition.ClubID);
 
             return new UserCompetitionResponseDto
             {
@@ -288,9 +345,9 @@ namespace Droniverse.Community.Application.Services
 
         public async Task<IEnumerable<LeaderboardEntryDto>> GetCompetitionLeaderboard(Guid competitionId)
         {
-            var competition = await _unitOfWork.Competitions.GetByCondition(c => c.CompetitionID == competitionId);
+            var competition = await _unitOfWork.Competitions.GetByCondition(c => c.CompetitionID == competitionId, query => query.AsNoTracking());
             if (competition == null)
-                throw new KeyNotFoundException($"Competition with ID {competitionId} not found.");
+                throw new KeyNotFoundException($"Không tìm thấy cuộc thi với ID [{competitionId}].");
 
             var participants = await _unitOfWork.UserCompetitions.GetManyByCondition(
                 uc => uc.CompetitionID == competitionId && uc.Status == UserCompetitionStatus.ACTIVE,
@@ -306,108 +363,291 @@ namespace Droniverse.Community.Application.Services
             });
         }
 
-        public async Task<CompetitionResponse> FinishCompetition(Guid competitionId)
+        public async Task<CompetitionResponse> UpdateCompetitionStatus(Guid competitionId, CompetitionUpdateStatusDto request)
         {
             var currentUserId = Guid.Parse(_currentUserService.UserID
                 ?? throw new UnauthorizedAccessException("User is not authenticated."));
 
+            if (request.Status == CompetitionStatus.DRAFT)
+                throw new InvalidOperationException("Không hỗ trợ cập nhật về trạng thái DRAFT.");
+
+            var include = BuildCompetitionStatusInclude(request.Status);
+
             var competition = await _unitOfWork.Competitions.GetByCondition(
                 c => c.CompetitionID == competitionId,
-                q => q.Include(c => c.Rounds)
-                      .Include(c => c.UserCompetitions)
-                      .Include(c => c.CompetitionPrizes)
+                include
             );
 
             if (competition == null)
-                throw new KeyNotFoundException($"Competition with ID {competitionId} not found.");
+                throw new KeyNotFoundException($"Không tìm thấy cuộc thi có ID [{competitionId}].");
 
-            competition.FinishCompetition(currentUserId, _clock.Now);
+            competition.UpdateStatus(request.Status, currentUserId, _clock.Now, request.InvalidReason);
 
-            await _unitOfWork.Competitions.Update(competition);
             await _unitOfWork.SaveChangeAsync();
+            await InvalidateHotCompetitionsCache(competition.ClubID);
 
             return await MapToCompetitionResponse(competition);
         }
 
-        //public async Task UpdateCompetitionStatusesAsync()
-        //{
-        //    var now = _clock.Now;
+        public async Task RefreshHotCompetitionsCacheAsync()
+        {
+            var now = _clock.Now;
+            var minStartDate = now.AddDays(-30);
+            var validStatuses = GetHotStatuses();
 
-        //    var competitions = await _unitOfWork.Competitions.GetManyByCondition(
-        //        c => c.Status != CompetitionStatus.FINISHED &&
-        //             c.Status != CompetitionStatus.CANCELLED &&
-        //             c.Status != CompetitionStatus.RESULT_PUBLISHED,
-        //        q => q.Include(c => c.Rounds)
-        //    );
+            var clubIds = await _unitOfWork.Competitions
+                .GetManyByConditionAsQueryable(
+                    c => validStatuses.Contains(c.Status) && c.StartDate >= minStartDate,
+                    q => q.AsNoTracking())
+                .Select(c => c.ClubID)
+                .Distinct()
+                .ToListAsync();
 
-        //    bool isModified = false;
+            foreach (var clubId in clubIds)
+            {
+                await BuildAndSetHotCompetitionCache(clubId);
+            }
+        }
 
-        //    foreach (var competition in competitions)
-        //    {
-        //        bool changed = false;
+        private async Task<List<HotCompetitionCacheItem>> GetOrBuildHotCompetitionCache(Guid clubId)
+        {
+            var cacheKey = GetHotCompetitionCacheKey(clubId);
+            var cached = await TryGetHotCompetitionCache(cacheKey);
+            if (cached is not null)
+                return cached;
 
-        //        if (competition.CanAutoPublish(now))
-        //        {
-        //            competition.SystemPublish();
-        //            changed = true;
-        //        }
+            var lockObj = HotCompetitionLocks.GetOrAdd(cacheKey, _ => new SemaphoreSlim(1, 1));
+            await lockObj.WaitAsync();
+            try
+            {
+                cached = await TryGetHotCompetitionCache(cacheKey);
+                if (cached is not null)
+                    return cached;
 
-        //        if (competition.CanAutoOpenRegistration(now))
-        //        {
-        //            competition.SystemOpenRegistration();
-        //            changed = true;
-        //        }
+                return await BuildAndSetHotCompetitionCache(clubId);
+            }
+            finally
+            {
+                lockObj.Release();
+            }
+        }
 
-        //        if (competition.CanAutoCloseRegistration(now))
-        //        {
-        //            competition.SystemCloseRegistration();
-        //            changed = true;
-        //        }
+        private async Task<List<HotCompetitionCacheItem>> BuildAndSetHotCompetitionCache(Guid clubId)
+        {
+            var cacheKey = GetHotCompetitionCacheKey(clubId);
+            var ranked = await BuildHotCompetitionCacheData(clubId);
 
-        //        if (competition.CanAutoInvalidCompetition(now))
-        //        {
-        //            competition.SystemInvalidCompetition();
-        //            changed = true;
-        //        }
+            var cacheValue = JsonSerializer.Serialize(ranked);
+            await _distributedCache.SetStringAsync(cacheKey, cacheValue, HotCompetitionCacheOptions);
 
-        //        if (competition.CanAutoStartCompetition(now))
-        //        {
-        //            try
-        //            {
-        //                competition.SystemStartCompetition();
-        //                changed = true;
-        //            }
-        //            catch (Exception ex)
-        //            {
-        //                // log + mark invalid nếu cần
-        //                // _logger.LogError(ex, ...);
-        //            }
-        //        }
+            return ranked;
+        }
 
-        //        if (competition.CanAutoFinishCompetition(now))
-        //        {
-        //            competition.SystemFinishCompetition();
-        //            changed = true;
-        //        }
+        private async Task<List<HotCompetitionCacheItem>> BuildHotCompetitionCacheData(Guid clubId)
+        {
+            var now = _clock.Now;
+            var minStartDate = now.AddDays(-30);
+            var validStatuses = GetHotStatuses();
 
-        //        if (changed)
-        //        {
-        //            isModified = true;
-        //        }
-        //    }
+            var competitions = await _unitOfWork.Competitions.GetManyByCondition(
+                c => c.ClubID == clubId
+                     && validStatuses.Contains(c.Status)
+                     && c.StartDate >= minStartDate,
+                q => q.AsNoTracking());
 
-        //    if (isModified)
-        //    {
-        //        await _unitOfWork.SaveChangeAsync();
-        //    }
-        //}
+            var competitionList = competitions.ToList();
+            if (competitionList.Count == 0)
+                return [];
+
+            var competitionIds = competitionList.Select(c => c.CompetitionID).ToList();
+            var aggregateCounts = await _unitOfWork.Competitions.GetAggregateCountsByCompetitionIds(competitionIds);
+
+            var recentJoinDict = await _unitOfWork.UserCompetitions
+                .GetManyByConditionAsQueryable(
+                    uc => competitionIds.Contains(uc.CompetitionID) && uc.CreatedAt >= now.AddHours(-24),
+                    q => q.AsNoTracking())
+                .GroupBy(uc => uc.CompetitionID)
+                .Select(g => new { CompetitionID = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.CompetitionID, x => x.Count);
+
+            var responseMap = await BuildCompetitionResponseMap(competitionList, aggregateCounts);
+
+            return competitionList
+                .Select(c =>
+                {
+                    var counts = aggregateCounts.GetValueOrDefault(
+                        c.CompetitionID,
+                        (RoundCount: 0, CompetitorCount: 0, PrizeCount: 0));
+                    var participants = counts.CompetitorCount;
+                    var joinsLast24h = recentJoinDict.GetValueOrDefault(c.CompetitionID, 0);
+
+                    var popularity = Math.Log10(participants + 1d);
+                    var recency = CalculateRecencyScore(c.StartDate, now);
+                    var statusScore = GetStatusScore(c.Status);
+                    var activity = Math.Log10(joinsLast24h + 1d);
+
+                    var hotScore = (0.5 * popularity)
+                                   + (0.2 * recency)
+                                   + (0.2 * statusScore)
+                                   + (0.1 * activity);
+
+                    return new HotCompetitionCacheItem
+                    {
+                        Competition = responseMap[c.CompetitionID],
+                        Score = hotScore,
+                        Participants = participants,
+                        StartDate = c.StartDate
+                    };
+                })
+                .OrderByDescending(x => x.Score)
+                .ThenByDescending(x => x.Participants)
+                .ThenByDescending(x => x.StartDate)
+                .ToList();
+        }
+
+        private async Task<Dictionary<Guid, CompetitionResponse>> BuildCompetitionResponseMap(
+            List<Competition> competitionList,
+            Dictionary<Guid, (int RoundCount, int CompetitorCount, int PrizeCount)> aggregateCounts)
+        {
+            var userIds = competitionList
+                .Select(c => c.CreatedBy)
+                .Union(competitionList.Select(c => c.UpdatedBy).OfType<Guid>())
+                .Distinct()
+                .ToList();
+
+            var users = await GetUsersBulkSafe(userIds);
+            var userDict = users.ToDictionary(u => u.UserId, u => u);
+
+            return competitionList.ToDictionary(
+                c => c.CompetitionID,
+                c =>
+                {
+                    userDict.TryGetValue(c.CreatedBy, out var createdByUser);
+
+                    UserResponse? updatedByUser = null;
+                    if (c.UpdatedBy.HasValue)
+                        userDict.TryGetValue(c.UpdatedBy.Value, out updatedByUser);
+
+                    var counts = aggregateCounts.GetValueOrDefault(
+                        c.CompetitionID,
+                        (RoundCount: 0, CompetitorCount: 0, PrizeCount: 0));
+
+                    return new CompetitionResponse
+                    {
+                        CompetitionID = c.CompetitionID,
+                        ClubID = c.ClubID,
+                        NameVN = c.NameVN,
+                        NameEN = c.NameEN,
+                        DescriptionVN = c.DescriptionVN,
+                        DescriptionEN = c.DescriptionEN,
+                        RuleContent = c.RuleContent,
+                        MaxParticipants = c.MaxParticipants,
+                        VisibleAt = c.VisibleAt,
+                        RegistrationStartDate = c.RegistrationStartDate,
+                        RegistrationEndDate = c.RegistrationEndDate,
+                        StartDate = c.StartDate,
+                        EndDate = c.EndDate,
+                        Status = c.Status,
+                        ResultPublishedAt = c.ResultPublishedAt,
+                        CreatedBy = ToSimpleUserResponse(c.CreatedBy, createdByUser),
+                        UpdatedBy = c.UpdatedBy.HasValue
+                            ? ToSimpleUserResponse(c.UpdatedBy.Value, updatedByUser)
+                            : null,
+                        CreatedAt = c.CreatedAt,
+                        UpdatedAt = c.UpdatedAt,
+                        InvalidAt = c.InvalidAt,
+                        InvalidReason = c.InvalidReason,
+                        TotalRounds = counts.RoundCount,
+                        TotalCompetitors = counts.CompetitorCount,
+                        TotalPrizes = counts.PrizeCount
+                    };
+                });
+        }
+
+        private async Task<List<HotCompetitionCacheItem>?> TryGetHotCompetitionCache(string cacheKey)
+        {
+            try
+            {
+                var cache = await _distributedCache.GetStringAsync(cacheKey);
+                if (string.IsNullOrWhiteSpace(cache))
+                    return null;
+
+                var data = JsonSerializer.Deserialize<List<HotCompetitionCacheItem>>(cache);
+                if (data is not null)
+                    return data;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Không đọc được cache hot competitions key {CacheKey}", cacheKey);
+            }
+
+            return null;
+        }
+
+        private async Task InvalidateHotCompetitionsCache(Guid clubId)
+        {
+            var cacheKey = GetHotCompetitionCacheKey(clubId);
+            await _distributedCache.RemoveAsync(cacheKey);
+        }
+
+        private static string GetHotCompetitionCacheKey(Guid clubId) => $"{HotCompetitionCachePrefix}:{clubId}";
+
+        private static double CalculateRecencyScore(DateTime startDate, DateTime now)
+        {
+            if (startDate >= now)
+                return 1.0;
+
+            var hoursSinceStart = (now - startDate).TotalHours;
+            return 1 / (1 + hoursSinceStart);
+        }
+
+        private static double GetStatusScore(CompetitionStatus status)
+        {
+            return status switch
+            {
+                CompetitionStatus.ONGOING => 1.0,
+                CompetitionStatus.REGISTRATION_OPEN => 0.8,
+                CompetitionStatus.REGISTRATION_CLOSED => 0.6,
+                CompetitionStatus.PUBLISHED => 0.5,
+                CompetitionStatus.FINISHED => 0.2,
+                CompetitionStatus.CANCELLED => 0,
+                CompetitionStatus.INVALID => 0,
+                _ => 0
+            };
+        }
+
+        private static CompetitionStatus[] GetHotStatuses() =>
+        [
+            CompetitionStatus.PUBLISHED,
+            CompetitionStatus.REGISTRATION_OPEN,
+            CompetitionStatus.REGISTRATION_CLOSED,
+            CompetitionStatus.ONGOING
+        ];
+
+        private static Func<IQueryable<Competition>, IQueryable<Competition>>? BuildCompetitionStatusInclude(CompetitionStatus targetStatus)
+        {
+            return targetStatus switch
+            {
+                CompetitionStatus.ONGOING => q => q.Include(c => c.Rounds)
+                                                    .Include(c => c.UserCompetitions),
+                CompetitionStatus.RESULT_PUBLISHED => q => q.Include(c => c.UserPrizes),
+                _ => null
+            };
+        }
 
         private async Task<CompetitionResponse> MapToCompetitionResponse(Competition competition)
         {
             var competitionIds = new[] { competition.CompetitionID };
-            var roundCounts = await _unitOfWork.Rounds.GetRoundCountsByCompetitionIds(competitionIds);
-            var competitorCounts = await _unitOfWork.UserCompetitions.GetCompetitorCountsByCompetitionIds(competitionIds);
-            var prizeCounts = await _unitOfWork.Competitions.GetPrizeCountsByCompetitionIds(competitionIds);
+            var aggregateCounts = await _unitOfWork.Competitions.GetAggregateCountsByCompetitionIds(competitionIds);
+            var counts = aggregateCounts.GetValueOrDefault(
+                competition.CompetitionID,
+                (RoundCount: 0, CompetitorCount: 0, PrizeCount: 0));
+
+            UserResponse? createdByUser = await GetUserSafe(competition.CreatedBy);
+            UserResponse? updatedByUser = null;
+
+            if (competition.UpdatedBy.HasValue)
+                updatedByUser = await GetUserSafe(competition.UpdatedBy.Value);
 
             return new CompetitionResponse
             {
@@ -419,19 +659,22 @@ namespace Droniverse.Community.Application.Services
                 DescriptionEN = competition.DescriptionEN,
                 RuleContent = competition.RuleContent,
                 MaxParticipants = competition.MaxParticipants,
+                VisibleAt = competition.VisibleAt,
                 RegistrationStartDate = competition.RegistrationStartDate,
                 RegistrationEndDate = competition.RegistrationEndDate,
                 StartDate = competition.StartDate,
                 EndDate = competition.EndDate,
                 Status = competition.Status,
                 ResultPublishedAt = competition.ResultPublishedAt,
-                CreatedBy = competition.CreatedBy,
-                UpdatedBy = competition.UpdatedBy,
+                CreatedBy = ToSimpleUserResponse(competition.CreatedBy, createdByUser),
+                UpdatedBy = competition.UpdatedBy.HasValue
+                    ? ToSimpleUserResponse(competition.UpdatedBy.Value, updatedByUser)
+                    : null,
                 CreatedAt = competition.CreatedAt,
                 UpdatedAt = competition.UpdatedAt,
-                totalRounds = roundCounts.GetValueOrDefault(competition.CompetitionID, 0),
-                totalCompetitors = competitorCounts.GetValueOrDefault(competition.CompetitionID, 0),
-                totalPrizes = prizeCounts.GetValueOrDefault(competition.CompetitionID, 0)
+                TotalRounds = counts.RoundCount,
+                TotalCompetitors = counts.CompetitorCount,
+                TotalPrizes = counts.PrizeCount
             };
         }
 
@@ -442,34 +685,107 @@ namespace Droniverse.Community.Application.Services
                 return [];
 
             var competitionIds = competitionList.Select(c => c.CompetitionID).ToList();
-            var roundCounts = await _unitOfWork.Rounds.GetRoundCountsByCompetitionIds(competitionIds);
-            var competitorCounts = await _unitOfWork.UserCompetitions.GetCompetitorCountsByCompetitionIds(competitionIds);
-            var prizeCounts = await _unitOfWork.Competitions.GetPrizeCountsByCompetitionIds(competitionIds);
+            var userIds = competitionList
+                .Select(c => c.CreatedBy)
+                .Union(competitionList.Select(c => c.UpdatedBy).OfType<Guid>())
+                .Distinct()
+                .ToList();
 
-            return competitionList.Select(competition => new CompetitionResponse
+            var usersTask = GetUsersBulkSafe(userIds);
+            var aggregateCounts = await _unitOfWork.Competitions.GetAggregateCountsByCompetitionIds(competitionIds);
+            var users = await usersTask;
+
+            var userDict = users.ToDictionary(u => u.UserId, u => u);
+
+            return competitionList.Select(competition =>
             {
-                CompetitionID = competition.CompetitionID,
-                ClubID = competition.ClubID,
-                NameVN = competition.NameVN,
-                NameEN = competition.NameEN,
-                DescriptionVN = competition.DescriptionVN,
-                DescriptionEN = competition.DescriptionEN,
-                RuleContent = competition.RuleContent,
-                MaxParticipants = competition.MaxParticipants,
-                RegistrationStartDate = competition.RegistrationStartDate,
-                RegistrationEndDate = competition.RegistrationEndDate,
-                StartDate = competition.StartDate,
-                EndDate = competition.EndDate,
-                Status = competition.Status,
-                ResultPublishedAt = competition.ResultPublishedAt,
-                CreatedBy = competition.CreatedBy,
-                UpdatedBy = competition.UpdatedBy,
-                CreatedAt = competition.CreatedAt,
-                UpdatedAt = competition.UpdatedAt,
-                totalRounds = roundCounts.GetValueOrDefault(competition.CompetitionID, 0),
-                totalCompetitors = competitorCounts.GetValueOrDefault(competition.CompetitionID, 0),
-                totalPrizes = prizeCounts.GetValueOrDefault(competition.CompetitionID, 0)
+                userDict.TryGetValue(competition.CreatedBy, out var createdByUser);
+
+                UserResponse? updatedByUser = null;
+                if (competition.UpdatedBy.HasValue)
+                    userDict.TryGetValue(competition.UpdatedBy.Value, out updatedByUser);
+
+                var counts = aggregateCounts.GetValueOrDefault(
+                    competition.CompetitionID,
+                    (RoundCount: 0, CompetitorCount: 0, PrizeCount: 0));
+
+                return new CompetitionResponse
+                {
+                    CompetitionID = competition.CompetitionID,
+                    ClubID = competition.ClubID,
+                    NameVN = competition.NameVN,
+                    NameEN = competition.NameEN,
+                    DescriptionVN = competition.DescriptionVN,
+                    DescriptionEN = competition.DescriptionEN,
+                    RuleContent = competition.RuleContent,
+                    MaxParticipants = competition.MaxParticipants,
+                    VisibleAt = competition.VisibleAt,
+                    RegistrationStartDate = competition.RegistrationStartDate,
+                    RegistrationEndDate = competition.RegistrationEndDate,
+                    StartDate = competition.StartDate,
+                    EndDate = competition.EndDate,
+                    Status = competition.Status,
+                    ResultPublishedAt = competition.ResultPublishedAt,
+                    CreatedBy = ToSimpleUserResponse(competition.CreatedBy, createdByUser),
+                    UpdatedBy = competition.UpdatedBy.HasValue
+                        ? ToSimpleUserResponse(competition.UpdatedBy.Value, updatedByUser)
+                        : null,
+                    CreatedAt = competition.CreatedAt,
+                    UpdatedAt = competition.UpdatedAt,
+                    InvalidAt = competition.InvalidAt,
+                    InvalidReason = competition.InvalidReason,
+                    TotalRounds = counts.RoundCount,
+                    TotalCompetitors = counts.CompetitorCount,
+                    TotalPrizes = counts.PrizeCount
+                };
             });
+        }
+
+        private async Task<UserResponse?> GetUserSafe(Guid userId)
+        {
+            try
+            {
+                return await _identityMicroserviceClient.GetUserByUserID(userId);
+            }
+            catch
+            {
+                Console.WriteLine("Không lấy được thông tin user từ identity service.");
+                return null;
+            }
+        }
+
+        private async Task<IEnumerable<UserResponse>> GetUsersBulkSafe(IEnumerable<Guid> userIds)
+        {
+            if (!userIds.Any())
+                return [];
+
+            try
+            {
+                return await _identityMicroserviceClient.GetUsersBulk(userIds);
+            }
+            catch
+            {
+                Console.WriteLine("Không lấy được thông tin user từ identity service.");
+                return [];
+            }
+        }
+
+        private class HotCompetitionCacheItem
+        {
+            public required CompetitionResponse Competition { get; set; }
+            public double Score { get; set; }
+            public int Participants { get; set; }
+            public DateTime StartDate { get; set; }
+        }
+
+        private static SimpleUserReponse ToSimpleUserResponse(Guid userId, UserResponse? user)
+        {
+            return new SimpleUserReponse
+            {
+                UserId = userId,
+                FullName = AppHelper.GetFullName(user) ?? string.Empty,
+                Email = user?.Email ?? string.Empty
+            };
         }
     }
 }

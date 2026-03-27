@@ -2,6 +2,7 @@
 using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Domain.Enums;
+using Droniverse.Shared.DTOs.Response;
 
 namespace Droniverse.Community.Application.IService
 {
@@ -11,13 +12,15 @@ namespace Droniverse.Community.Application.IService
         Task<CompetitionResponse> UpdateCompetition(Guid id, CompetitionUpdateDto request);
         Task<bool> DeleteCompetition(Guid id);
         Task<CompetitionResponse> GetCompetitionById(Guid id);
-        Task<IEnumerable<CompetitionResponse>> GetAllCompetitionsWithCondition(CompetitionSearchRequest searchRequest);
+        Task<PaginationResult<IEnumerable<CompetitionResponse>>> GetAllCompetitionsWithCondition(CompetitionSearchRequest searchRequest);
         Task<IEnumerable<CompetitionResponse>> GetCompetitionsByClub(Guid clubId, CompetitionStatus? status = null);
+        Task<PaginationResult<IEnumerable<CompetitionResponse>>> GetHotCompetitionsByClub(Guid clubId, HotCompetitionSearchRequest searchRequest);
         Task<UserCompetitionResponseDto> RegisterForCompetition(Guid competitionId);
         Task<UserCompetitionResponseDto> WithdrawFromCompetition(Guid competitionId);
         Task<IEnumerable<UserCompetitionResponseDto>> GetCompetitionParticipants(Guid competitionId);
         Task<IEnumerable<LeaderboardEntryDto>> GetCompetitionLeaderboard(Guid competitionId);
-        Task<CompetitionResponse> FinishCompetition(Guid competitionId);
+        Task<CompetitionResponse> UpdateCompetitionStatus(Guid competitionId, CompetitionUpdateStatusDto request);
+        Task RefreshHotCompetitionsCacheAsync();
 
         //Task UpdateCompetitionStatusesAsync();
     }
