@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
+using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
@@ -8,6 +9,7 @@ using Droniverse.Academy.Domain.IRepository;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Services;
+using Microsoft.AspNetCore.Http.HttpResults;
 using System.Linq.Expressions;
 
 namespace Droniverse.Academy.Application.Services;
@@ -19,12 +21,14 @@ public class CourseService : ICourseService
     private readonly ICurrentUserService _currentUser;
     private readonly IClock _clock;
     private readonly IMapper _mapper;
-    public CourseService(IUnitOfWork unitOfWork, IClock clock, ICurrentUserService current, IMapper mapper)
+    private readonly IdentityMicroserviceClient _identityClient;
+    public CourseService(IUnitOfWork unitOfWork, IClock clock, ICurrentUserService current, IMapper mapper, IdentityMicroserviceClient identityMicroserviceClient)
     {
         _unitOfWork = unitOfWork;
         _clock = clock;
         _currentUser = current;
         _mapper = mapper;
+        _identityClient = identityMicroserviceClient;
     }
 
     public async Task<CourseDetailResponseDTO> CreateCourseAsync()
@@ -93,10 +97,19 @@ public class CourseService : ICourseService
     public async Task<CourseResponseDTO> GetCourseByIdAsync(Guid courseId)
     {
         var course = await _unitOfWork.Courses.GetByIdWithCurrentVersionAsync(courseId);
+        var courseResponse = _mapper.Map<CourseResponseDTO>(course);
+
+        if (course != null) {
+                var creator = await _identityClient.GetUserByUserID(course.CreateBy);
+                if (creator != null)
+                {
+                courseResponse.Name = creator.FirstName + " " + creator.LastName;
+
+            } 
+        }
         if (course == null)
             throw new BaseException("Không tìm thấy khóa học.", "NOT_FOUND");
-
-        return _mapper.Map<CourseResponseDTO>(course);
+        return courseResponse;
     }
 
     public async Task PublishCourseAsync(Guid courseId)

@@ -44,7 +44,7 @@ namespace Droniverse.Academy.Application.HttpClients
             }
 
             //HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/api/users/{userId}");
-            HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/api/users/{userId}");
+            HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/identity/users/{userId}");
             if (!httpResponseMsg.IsSuccessStatusCode)
             {
                 if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
