@@ -16,6 +16,7 @@ public class CourseVersionResponseDTO
     public int? EstimatedDuration { get; set; }
     public string? ChangeLog { get; set; }
     public Guid? UpdateBy { get; set; }
+    public string? Updater { get; set; }
     public DateTime? UpdateAt { get; set; }
     public string? ContextVN { get; set; }
     public string? ContextEN { get; set; }

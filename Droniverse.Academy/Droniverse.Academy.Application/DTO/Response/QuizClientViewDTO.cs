@@ -1,7 +1,8 @@
-namespace Droniverse.Academy.Application.DTO.Response;
+﻿namespace Droniverse.Academy.Application.DTO.Response;
 
 public class QuizClientViewDTO
 {
+    public Guid QuizID { get; set; }
     public string TitleVN { get; set; } = null!;
     public string TitleEN { get; set; } = null!;
     public string DescriptionVN { get; set; } = null!;
@@ -10,5 +11,9 @@ public class QuizClientViewDTO
     public float TotalScore { get; set; }
     public float PassScore { get; set; }
     public DateTime CreateAt { get; set; }
+    public Guid CreateBy { get; set; }
+    public string? Creator { get; set; }
     public DateTime UpdateAt { get; set; }
+    public Guid UpdateBy { get; set; }
+    public string? Updater { get; set; }
 }

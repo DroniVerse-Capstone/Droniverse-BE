@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
+using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Application.IService.Mongo;
 using Droniverse.Academy.Application.Validators;
@@ -21,14 +22,16 @@ public class LabService : ILabService
     private readonly IMapper _mapper;
     private readonly ICurrentUserService _currentUser;
     private readonly IClock _clock;
+    private readonly IdentityMicroserviceClient _identityClient;
 
-    public LabService(IUnitOfWork unitOfWork, ILabContentService labContentService, IMapper mapper, ICurrentUserService currentUser, IClock clock)
+    public LabService(IUnitOfWork unitOfWork, ILabContentService labContentService, IMapper mapper, ICurrentUserService currentUser, IClock clock, IdentityMicroserviceClient identityClient)
     {
         _unitOfWork = unitOfWork;
         _labContentService = labContentService;
         _mapper = mapper;
         _currentUser = currentUser;
         _clock = clock;
+        _identityClient = identityClient;
     }
 
     public async Task<LabDetailResponseDTO> CreateLabAsync(CreateLabRequestDTO request)
@@ -50,10 +53,12 @@ public class LabService : ILabService
         await _unitOfWork.SaveChangesAsync();
 
         var labContent = await _labContentService.CreateEmptyAsync(lab.LabID);
+        var mappedLab = _mapper.Map<LabClientViewDTO>(lab);
+        await PopulateUsersAsync(mappedLab);
 
         return new LabDetailResponseDTO
         {
-            Lab = _mapper.Map<LabClientViewDTO>(lab),
+            Lab = mappedLab,
             LabContent = labContent
         };
     }
@@ -109,7 +114,9 @@ public class LabService : ILabService
             pageIndex: query.PageIndex,
             pageSize: query.PageSize);
 
-        var mapped = _mapper.Map<IEnumerable<LabClientViewDTO>>(labs.Data);
+        var mapped = _mapper.Map<List<LabClientViewDTO>>(labs.Data);
+        await Task.WhenAll(mapped.Select(PopulateUsersAsync));
+
         return new PaginationResult<IEnumerable<LabClientViewDTO>>(mapped, labs.TotalRecords, labs.PageIndex, labs.PageSize);
     }
 
@@ -120,10 +127,12 @@ public class LabService : ILabService
             throw new BaseException("Không tìm thấy lab.", "NOT_FOUND");
 
         var labContent = await _labContentService.GetByLabIdAsync(labId) ?? await _labContentService.CreateEmptyAsync(labId);
+        var mappedLab = _mapper.Map<LabClientViewDTO>(lab);
+        await PopulateUsersAsync(mappedLab);
 
         return new LabDetailResponseDTO
         {
-            Lab = _mapper.Map<LabClientViewDTO>(lab),
+            Lab = mappedLab,
             LabContent = labContent
         };
     }
@@ -147,10 +156,12 @@ public class LabService : ILabService
         await _unitOfWork.SaveChangesAsync();
 
         var labContent = await _labContentService.GetByLabIdAsync(labId) ?? await _labContentService.CreateEmptyAsync(labId);
+        var mappedLab = _mapper.Map<LabClientViewDTO>(lab);
+        await PopulateUsersAsync(mappedLab);
 
         return new LabDetailResponseDTO
         {
-            Lab = _mapper.Map<LabClientViewDTO>(lab),
+            Lab = mappedLab,
             LabContent = labContent
         };
     }
@@ -212,5 +223,36 @@ public class LabService : ILabService
 
         if (duplicated != null)
             throw new ValidationException("OrderIndex phải là duy nhất trong mô-đun.");
+    }
+
+    private async Task PopulateUsersAsync(LabClientViewDTO lab)
+    {
+        if (lab.CreateBy == lab.UpdateBy)
+        {
+            var sameUser = await _identityClient.GetUserByUserID(lab.CreateBy);
+            if (sameUser is null)
+                return;
+
+            var fullName = $"{sameUser.FirstName} {sameUser.LastName}";
+            lab.Creator = fullName;
+            lab.Updater = fullName;
+            return;
+        }
+
+        var creatorTask = _identityClient.GetUserByUserID(lab.CreateBy);
+        var updaterTask = _identityClient.GetUserByUserID(lab.UpdateBy);
+        await Task.WhenAll(creatorTask, updaterTask);
+
+        var creator = await creatorTask;
+        if (creator is not null)
+        {
+            lab.Creator = $"{creator.FirstName} {creator.LastName}";
+        }
+
+        var updater = await updaterTask;
+        if (updater is not null)
+        {
+            lab.Updater = $"{updater.FirstName} {updater.LastName}";
+        }
     }
 }

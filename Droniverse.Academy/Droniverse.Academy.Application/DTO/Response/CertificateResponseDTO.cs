@@ -1,4 +1,4 @@
-namespace Droniverse.Academy.Application.DTO.Response;
+﻿namespace Droniverse.Academy.Application.DTO.Response;
 
 public class CertificateResponseDTO
 {
@@ -12,6 +12,8 @@ public class CertificateResponseDTO
     public string AuthorName { get; set; } = null!;
     public DateTime CreateAt { get; set; }
     public Guid CreateBy { get; set; }
+    public string? Creator { get; set; }
     public DateTime UpdateAt { get; set; }
     public Guid UpdateBy { get; set; }
+    public string? Updater { get; set; }
 }

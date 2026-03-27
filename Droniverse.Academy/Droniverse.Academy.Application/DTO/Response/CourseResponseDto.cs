@@ -6,7 +6,7 @@ public class CourseResponseDTO
 {
     public Guid CourseID { get; set; }
     public Guid CreateBy { get; set; }
-    public string Name { get; set; } = string.Empty;
+    public string? Creator { get; set; }
     public DateTime CreateAt { get; set; }
     public CourseStatus Status { get; set; }
     public CourseVersionResponseDTO? CurrentVersion { get; set; }

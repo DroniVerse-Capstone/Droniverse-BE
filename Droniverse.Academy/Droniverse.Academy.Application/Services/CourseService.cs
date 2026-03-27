@@ -44,7 +44,10 @@ public class CourseService : ICourseService
         await _unitOfWork.Courses.AddAsync(course);
         await _unitOfWork.SaveChangesAsync();
 
-        return _mapper.Map<CourseDetailResponseDTO>(course);
+        var response = _mapper.Map<CourseDetailResponseDTO>(course);
+        await PopulateCreatorAsync(response);
+
+        return response;
     }
 
     public async Task DeleteCourseAsync(Guid courseId)
@@ -91,24 +94,19 @@ public class CourseService : ICourseService
                 pageSize);
 
         var mapped = result.Data.Select(c => _mapper.Map<CourseResponseDTO>(c)).ToList();
+        await Task.WhenAll(mapped.Select(PopulateCreatorAsync));
+
         return new PaginationResult<IEnumerable<CourseResponseDTO>>(mapped, result.TotalRecords, result.PageIndex, result.PageSize);
     }
 
     public async Task<CourseResponseDTO> GetCourseByIdAsync(Guid courseId)
     {
-        var course = await _unitOfWork.Courses.GetByIdWithCurrentVersionAsync(courseId);
+        var course = await _unitOfWork.Courses.GetByIdWithCurrentVersionAsync(courseId)
+            ?? throw new BaseException("Không tìm thấy khóa học.", "NOT_FOUND");
+
         var courseResponse = _mapper.Map<CourseResponseDTO>(course);
+        await PopulateCreatorAsync(courseResponse);
 
-        if (course != null) {
-                var creator = await _identityClient.GetUserByUserID(course.CreateBy);
-                if (creator != null)
-                {
-                courseResponse.Name = creator.FirstName + " " + creator.LastName;
-
-            } 
-        }
-        if (course == null)
-            throw new BaseException("Không tìm thấy khóa học.", "NOT_FOUND");
         return courseResponse;
     }
 
@@ -149,8 +147,28 @@ public class CourseService : ICourseService
             .Select(c => _mapper.Map<CourseResponseDTO>(c))
             .ToList();
 
+        await Task.WhenAll(data.Select(PopulateCreatorAsync));
+
         return data
             .OrderBy(c => ids.IndexOf(c.CourseID))
             .ToList();
+    }
+
+    private async Task PopulateCreatorAsync(CourseResponseDTO course)
+    {
+        var creator = await _identityClient.GetUserByUserID(course.CreateBy);
+        if (creator is null)
+            return;
+
+        course.Creator = $"{creator.FirstName} {creator.LastName}";
+    }
+
+    private async Task PopulateCreatorAsync(CourseDetailResponseDTO course)
+    {
+        var creator = await _identityClient.GetUserByUserID(course.CreateBy);
+        if (creator is null)
+            return;
+
+        course.Creator = $"{creator.FirstName} {creator.LastName}";
     }
 }

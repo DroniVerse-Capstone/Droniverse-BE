@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
+using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Application.Validators;
 using Droniverse.Academy.Domain.Entities;
@@ -17,13 +18,15 @@ public class TheoryService : ITheoryService
     private readonly IMapper _mapper;
     private readonly ICurrentUserService _currentUser;
     private readonly IClock _clock;
+    private readonly IdentityMicroserviceClient _identityClient;
 
-    public TheoryService(IUnitOfWork unitOfWork, IMapper mapper, ICurrentUserService currentUser, IClock clock)
+    public TheoryService(IUnitOfWork unitOfWork, IMapper mapper, ICurrentUserService currentUser, IClock clock, IdentityMicroserviceClient identityClient)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _currentUser = currentUser;
         _clock = clock;
+        _identityClient = identityClient;
     }
 
     public async Task<TheoryClientViewDTO> CreateTheoryAsync(CreateTheoryRequestDTO request)
@@ -62,7 +65,10 @@ public class TheoryService : ITheoryService
 
         await _unitOfWork.SaveChangesAsync();
 
-        return _mapper.Map<TheoryClientViewDTO>(theory);
+        var response = _mapper.Map<TheoryClientViewDTO>(theory);
+        await PopulateUsersAsync(response);
+
+        return response;
     }
 
     public async Task<IEnumerable<TheoryClientViewDTO>> GetTheoriesAsync()
@@ -72,7 +78,10 @@ public class TheoryService : ITheoryService
             pageIndex: 1,
             pageSize: int.MaxValue);
 
-        return _mapper.Map<IEnumerable<TheoryClientViewDTO>>(theories.Data);
+        var mapped = _mapper.Map<List<TheoryClientViewDTO>>(theories.Data);
+        await Task.WhenAll(mapped.Select(PopulateUsersAsync));
+
+        return mapped;
     }
 
     public async Task<TheoryClientViewDTO> GetTheoryByIdAsync(Guid theoryId)
@@ -81,7 +90,10 @@ public class TheoryService : ITheoryService
         if (theory == null)
             throw new BaseException("Không tìm thấy bài lý thuyết.", "NOT_FOUND");
 
-        return _mapper.Map<TheoryClientViewDTO>(theory);
+        var response = _mapper.Map<TheoryClientViewDTO>(theory);
+        await PopulateUsersAsync(response);
+
+        return response;
     }
 
     public async Task<TheoryClientViewDTO> UpdateTheoryAsync(Guid theoryId, UpdateTheoryRequestDTO request)
@@ -102,7 +114,10 @@ public class TheoryService : ITheoryService
         await _unitOfWork.Theories.UpdateAsync(theory);
         await _unitOfWork.SaveChangesAsync();
 
-        return _mapper.Map<TheoryClientViewDTO>(theory);
+        var response = _mapper.Map<TheoryClientViewDTO>(theory);
+        await PopulateUsersAsync(response);
+
+        return response;
     }
 
     public async Task DeleteTheoryAsync(Guid theoryId)
@@ -144,5 +159,36 @@ public class TheoryService : ITheoryService
 
         if (duplicated != null)
             throw new ValidationException("OrderIndex phải là duy nhất trong mô-đun.");
+    }
+
+    private async Task PopulateUsersAsync(TheoryClientViewDTO theory)
+    {
+        if (theory.CreateBy == theory.UpdateBy)
+        {
+            var sameUser = await _identityClient.GetUserByUserID(theory.CreateBy);
+            if (sameUser is null)
+                return;
+
+            var fullName = $"{sameUser.FirstName} {sameUser.LastName}";
+            theory.Creator = fullName;
+            theory.Updater = fullName;
+            return;
+        }
+
+        var creatorTask = _identityClient.GetUserByUserID(theory.CreateBy);
+        var updaterTask = _identityClient.GetUserByUserID(theory.UpdateBy);
+        await Task.WhenAll(creatorTask, updaterTask);
+
+        var creator = await creatorTask;
+        if (creator is not null)
+        {
+            theory.Creator = $"{creator.FirstName} {creator.LastName}";
+        }
+
+        var updater = await updaterTask;
+        if (updater is not null)
+        {
+            theory.Updater = $"{updater.FirstName} {updater.LastName}";
+        }
     }
 }

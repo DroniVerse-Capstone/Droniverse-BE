@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
+using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.IRepository;
@@ -15,13 +16,15 @@ public class CertificateService : ICertificateService
     private readonly ICurrentUserService _currentUser;
     private readonly IClock _clock;
     private readonly IMapper _mapper;
+    private readonly IdentityMicroserviceClient _identityClient;
 
-    public CertificateService(IUnitOfWork unitOfWork, ICurrentUserService current, IClock clock, IMapper mapper)
+    public CertificateService(IUnitOfWork unitOfWork, ICurrentUserService current, IClock clock, IMapper mapper, IdentityMicroserviceClient identityClient)
     {
         _unitOfWork = unitOfWork;
         _currentUser = current;
         _clock = clock;
         _mapper = mapper;
+        _identityClient = identityClient;
     }
 
     public async Task<CertificateResponseDTO> CreateCertificateAsync(Guid courseId, Guid versionId, CreateCertificateRequestDTO request)
@@ -52,7 +55,10 @@ public class CertificateService : ICertificateService
         await _unitOfWork.Certificates.AddAsync(cert);
         await _unitOfWork.SaveChangesAsync();
 
-        return _mapper.Map<CertificateResponseDTO>(cert);
+        var response = _mapper.Map<CertificateResponseDTO>(cert);
+        await PopulateUsersAsync(response);
+
+        return response;
     }
 
     public async Task DeleteCertificateAsync(Guid courseId, Guid versionId, Guid certificateId)
@@ -74,7 +80,10 @@ public class CertificateService : ICertificateService
         if (cert == null)
             throw new BaseException("Không tìm thấy chứng chỉ.", "NOT_FOUND");
 
-        return _mapper.Map<CertificateResponseDTO>(cert);
+        var response = _mapper.Map<CertificateResponseDTO>(cert);
+        await PopulateUsersAsync(response);
+
+        return response;
     }
 
     public async Task<CertificateResponseDTO> GetCertificateByIdAsync(Guid certificateId)
@@ -83,7 +92,10 @@ public class CertificateService : ICertificateService
         if (cert == null)
             throw new BaseException("Không tìm thấy chứng chỉ.", "NOT_FOUND");
 
-        return _mapper.Map<CertificateResponseDTO>(cert);
+        var response = _mapper.Map<CertificateResponseDTO>(cert);
+        await PopulateUsersAsync(response);
+
+        return response;
     }
 
     public async Task<CertificateResponseDTO> UpdateCertificateAsync(Guid courseId, Guid versionId, Guid certificateId, UpdateCertificateRequestDTO request)
@@ -107,7 +119,10 @@ public class CertificateService : ICertificateService
         await _unitOfWork.Certificates.UpdateAsync(cert);
         await _unitOfWork.SaveChangesAsync();
 
-        return _mapper.Map<CertificateResponseDTO>(cert);
+        var response = _mapper.Map<CertificateResponseDTO>(cert);
+        await PopulateUsersAsync(response);
+
+        return response;
     }
 
     public async Task<IEnumerable<CertificateResponseDTO>> GetCertificatesByIdsAsync(IEnumerable<Guid> certificateIds)
@@ -125,8 +140,41 @@ public class CertificateService : ICertificateService
             .Select(c => _mapper.Map<CertificateResponseDTO>(c))
             .ToList();
 
+        await Task.WhenAll(data.Select(PopulateUsersAsync));
+
         return data
             .OrderBy(c => ids.IndexOf(c.CertificateID))
             .ToList();
+    }
+
+    private async Task PopulateUsersAsync(CertificateResponseDTO certificate)
+    {
+        if (certificate.CreateBy == certificate.UpdateBy)
+        {
+            var sameUser = await _identityClient.GetUserByUserID(certificate.CreateBy);
+            if (sameUser is null)
+                return;
+
+            var fullName = $"{sameUser.FirstName} {sameUser.LastName}";
+            certificate.Creator = fullName;
+            certificate.Updater = fullName;
+            return;
+        }
+
+        var creatorTask = _identityClient.GetUserByUserID(certificate.CreateBy);
+        var updaterTask = _identityClient.GetUserByUserID(certificate.UpdateBy);
+        await Task.WhenAll(creatorTask, updaterTask);
+
+        var creator = await creatorTask;
+        if (creator is not null)
+        {
+            certificate.Creator = $"{creator.FirstName} {creator.LastName}";
+        }
+
+        var updater = await updaterTask;
+        if (updater is not null)
+        {
+            certificate.Updater = $"{updater.FirstName} {updater.LastName}";
+        }
     }
 }

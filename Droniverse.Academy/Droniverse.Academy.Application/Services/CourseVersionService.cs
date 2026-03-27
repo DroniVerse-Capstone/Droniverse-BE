@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
+using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
@@ -18,13 +19,15 @@ public class CourseVersionService : ICourseVersionService
     private readonly ICurrentUserService _currentUser;
     private readonly IClock _clock;
     private readonly IMapper _mapper;
+    private readonly IdentityMicroserviceClient _identityClient;
 
-    public CourseVersionService(IUnitOfWork unitOfWork, ICurrentUserService current, IClock clock, IMapper mapper)
+    public CourseVersionService(IUnitOfWork unitOfWork, ICurrentUserService current, IClock clock, IMapper mapper, IdentityMicroserviceClient identityClient)
     {
         _unitOfWork = unitOfWork;
         _currentUser = current;
         _clock = clock;
         _mapper = mapper;
+        _identityClient = identityClient;
     }
 
     public async Task<CourseVersionResponseDTO> CreateCourseVersionAsync(Guid courseId, CreateCourseVersionRequestDTO request)
@@ -54,7 +57,10 @@ public class CourseVersionService : ICourseVersionService
         await _unitOfWork.CourseVersions.AddAsync(cv);
         await _unitOfWork.SaveChangesAsync();
 
-        return _mapper.Map<CourseVersionResponseDTO>(cv);
+        var response = _mapper.Map<CourseVersionResponseDTO>(cv);
+        await PopulateUpdaterAsync(response);
+
+        return response;
     }
 
     public async Task DeleteCourseVersionAsync(Guid courseId, Guid versionId)
@@ -83,7 +89,10 @@ public class CourseVersionService : ICourseVersionService
         if (cv == null)
             throw new BaseException("Không tìm thấy phiên bản khóa học.", "NOT_FOUND");
 
-        return _mapper.Map<CourseVersionResponseDTO>(cv);
+        var response = _mapper.Map<CourseVersionResponseDTO>(cv);
+        await PopulateUpdaterAsync(response);
+
+        return response;
     }
 
     public async Task<PaginationResult<IEnumerable<CourseVersionResponseDTO>>> GetCourseVersionsAsync(Guid courseId, int pageIndex, int pageSize, CourseVersionStatus? status = null)
@@ -97,6 +106,8 @@ public class CourseVersionService : ICourseVersionService
 
         var result = await _unitOfWork.CourseVersions.GetAllAsync(filter, null, pageIndex, pageSize, includeProperties: "CourseVersionCategories,RequiredDrones");
         var mapped = result.Data.Select(v => _mapper.Map<CourseVersionResponseDTO>(v)).ToList();
+        await Task.WhenAll(mapped.Select(PopulateUpdaterAsync));
+
         return new PaginationResult<IEnumerable<CourseVersionResponseDTO>>(mapped, result.TotalRecords, result.PageIndex, result.PageSize);
     }
 
@@ -164,6 +175,21 @@ public class CourseVersionService : ICourseVersionService
         await _unitOfWork.CourseVersions.UpdateAsync(cv);
         await _unitOfWork.SaveChangesAsync();
 
-        return _mapper.Map<CourseVersionResponseDTO>(cv);
+        var response = _mapper.Map<CourseVersionResponseDTO>(cv);
+        await PopulateUpdaterAsync(response);
+
+        return response;
+    }
+
+    private async Task PopulateUpdaterAsync(CourseVersionResponseDTO courseVersion)
+    {
+        if (!courseVersion.UpdateBy.HasValue || courseVersion.UpdateBy.Value == Guid.Empty)
+            return;
+
+        var updater = await _identityClient.GetUserByUserID(courseVersion.UpdateBy.Value);
+        if (updater is null)
+            return;
+
+        courseVersion.Updater = $"{updater.FirstName} {updater.LastName}";
     }
 }
