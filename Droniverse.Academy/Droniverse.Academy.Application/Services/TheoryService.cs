@@ -31,7 +31,7 @@ public class TheoryService : ITheoryService
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
-        TheoryValidator.ValidateTheoryData(request.EstimatedTime, request.ContentVN, request.ContentEN);
+        TheoryValidator.ValidateTheoryData(request.EstimatedTime, request.TitleVN, request.TitleEN, request.ContentVN, request.ContentEN);
 
         var module = await _unitOfWork.Modules.GetByIdAsync(request.ModuleID);
         if (module == null)
@@ -89,7 +89,7 @@ public class TheoryService : ITheoryService
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
-        TheoryValidator.ValidateTheoryData(request.EstimatedTime, request.ContentVN, request.ContentEN);
+        TheoryValidator.ValidateTheoryData(request.EstimatedTime, request.TitleVN, request.TitleEN, request.ContentVN, request.ContentEN);
 
         var theory = await _unitOfWork.Theories.GetByIdAsync(theoryId);
         if (theory == null)

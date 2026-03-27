@@ -11,6 +11,8 @@ public class TheoryMappingProfile : Profile
     {
         CreateMap<CreateTheoryRequestDTO, Theory>()
             .ForMember(dest => dest.TheoryID, opt => opt.Ignore())
+            .ForMember(dest => dest.TitleVN, opt => opt.MapFrom(src => src.TitleVN))
+            .ForMember(dest => dest.TitleEN, opt => opt.MapFrom(src => src.TitleEN))
             .ForMember(dest => dest.CreateAt, opt => opt.Ignore())
             .ForMember(dest => dest.UpdateAt, opt => opt.Ignore())
             .ForMember(dest => dest.CreateBy, opt => opt.Ignore())
@@ -18,11 +20,15 @@ public class TheoryMappingProfile : Profile
 
         CreateMap<UpdateTheoryRequestDTO, Theory>()
             .ForMember(dest => dest.TheoryID, opt => opt.Ignore())
+            .ForMember(dest => dest.TitleVN, opt => opt.MapFrom(src => src.TitleVN))
+            .ForMember(dest => dest.TitleEN, opt => opt.MapFrom(src => src.TitleEN))
             .ForMember(dest => dest.CreateAt, opt => opt.Ignore())
             .ForMember(dest => dest.UpdateAt, opt => opt.Ignore())
             .ForMember(dest => dest.CreateBy, opt => opt.Ignore())
             .ForMember(dest => dest.UpdateBy, opt => opt.Ignore());
 
-        CreateMap<Theory, TheoryClientViewDTO>();
+        CreateMap<Theory, TheoryClientViewDTO>()
+            .ForMember(dest => dest.TitleVN, opt => opt.MapFrom(src => src.TitleVN))
+            .ForMember(dest => dest.TitleEN, opt => opt.MapFrom(src => src.TitleEN));
     }
 }
