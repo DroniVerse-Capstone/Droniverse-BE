@@ -27,14 +27,14 @@ namespace Droniverse.Community.Domain.Enums
         /// Người dùng có thể xem và đăng ký tham gia cuộc thi.
         /// Thường nằm trong khoảng [RegistrationStartDate, RegistrationEndDate].
         /// </summary>
-        OPEN = 2,
+        REGISTRATION_OPEN = 2,
 
         /// <summary>
         /// Đã đóng đăng ký.
         /// Người dùng vẫn có thể xem cuộc thi nhưng KHÔNG thể đăng ký nữa.
         /// Chuẩn bị bước sang giai đoạn thi đấu.
         /// </summary>
-        REGISTRATIONCLOSED = 3,
+        REGISTRATION_CLOSED = 3,
 
         /// <summary>
         /// Cuộc thi đang diễn ra.

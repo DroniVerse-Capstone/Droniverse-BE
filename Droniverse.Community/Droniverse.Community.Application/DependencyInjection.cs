@@ -2,13 +2,11 @@
 using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
 using Droniverse.Community.Application.IService.Mongo;
-using Droniverse.Community.Application.Job;
-using Droniverse.Community.Application.Jobs;
-
-//using Droniverse.Community.Application.Jobs;
 using Droniverse.Community.Application.Mapper;
 using Droniverse.Community.Application.Services;
 using Droniverse.Community.Application.Services.Mongo;
+using Droniverse.Community.Application.States.CompetitionState;
+using Droniverse.Community.Application.States.RoundState;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -21,6 +19,7 @@ public static class DependencyInjection
         services.AddAutoMapper(typeof(ClubMappingProfile).Assembly);
         services.AddAutoMapper(typeof(ClubRequestMappingProfile).Assembly);
         services.AddAutoMapper(typeof(CategoryMappingProfile).Assembly);
+        services.AddScoped<INotificationService, EmailNotificationService>();
         services.AddScoped<IClubService, ClubService>();
         services.AddScoped<IClubAttemptRequestService, ClubAttemptRequestService>();
         services.AddScoped<IClubCreationRequestService, ClubCreationRequestService>();
@@ -31,12 +30,24 @@ public static class DependencyInjection
         services.AddScoped<IRoundService, RoundService>();
         services.AddScoped<ICompetitionPrizeService, CompetitionPrizeService>();
         services.AddScoped<IUserRoundService, UserRoundService>();
-        //services.AddScoped<IPaymentService, PaymentService>();
+        services.AddScoped<ICompetitionState, DraftState>();
+        services.AddScoped<ICompetitionState, PublishedState>();
+        services.AddScoped<ICompetitionState, RegistrationOpenState>();
+        services.AddScoped<ICompetitionState, RegistrationClosedState>();
+        services.AddScoped<ICompetitionState, OngoingState>();
+        services.AddScoped<ICompetitionState, FinishedState>();
 
-        // Đăng ký Background Jobs
-        services.AddScoped<CompetitionStatusJob>();
-        services.AddScoped<TestJob>();
-        services.AddScoped<TestJob2>();
+        services.AddScoped<ICompetitionStateFactory, CompetitionStateFactory>();
+        services.AddScoped<CompetitionLifecycleService>();
+
+        services.AddScoped<IRoundState, PendingRoundState>();
+        services.AddScoped<IRoundState, OngoingRoundState>();
+        services.AddScoped<IRoundState, FinishedRoundState>();
+        services.AddScoped<IRoundState, ScheduleInvalidRoundState>();
+
+        services.AddScoped<IRoundStateFactory, RoundStateFactory>();
+        services.AddScoped<RoundLifecycleService>();
+        //services.AddScoped<IPaymentService, PaymentService>();
 
         //Đăng ký DelegatingHandler
         services.AddTransient<AuthorizationDelegatingHandler>();

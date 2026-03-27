@@ -1,5 +1,4 @@
-﻿using DnsClient.Internal;
-using Droniverse.Shared.DTOs.Response;
+﻿using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Exceptions;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
@@ -10,6 +9,10 @@ namespace Droniverse.Community.Application.HttpClients;
 
 public class IdentityMicroserviceClient
 {
+    private static readonly DistributedCacheEntryOptions UserCacheOptions = new DistributedCacheEntryOptions()
+        .SetAbsoluteExpiration(TimeSpan.FromSeconds(300))
+        .SetSlidingExpiration(TimeSpan.FromSeconds(100));
+
     private readonly HttpClient _httpClient;
     private readonly ILogger<IdentityMicroserviceClient> _logger;
     private readonly IDistributedCache _distributedCache; //Redis Cache
@@ -77,13 +80,10 @@ public class IdentityMicroserviceClient
         //string userKeyToWrite
         string userKeyToWrite = $"user:{userId}";
         string userCacheString = JsonSerializer.Serialize(user);
-        DistributedCacheEntryOptions options = new DistributedCacheEntryOptions()
-            .SetAbsoluteExpiration(TimeSpan.FromSeconds(300))
-            .SetSlidingExpiration(TimeSpan.FromSeconds(100));
-        await _distributedCache.SetStringAsync(userKeyToWrite, userCacheString, options);
+        await _distributedCache.SetStringAsync(userKeyToWrite, userCacheString, UserCacheOptions);
         return user;
     }
-        
+
     public async Task<IEnumerable<UserResponse>> GetUsersBulk(IEnumerable<Guid> userIds)
     {
         if (userIds == null || !userIds.Any())
@@ -94,51 +94,104 @@ public class IdentityMicroserviceClient
             .Distinct()
             .ToList();
 
-        try
+        if (!distinctIds.Any())
+            return [];
+
+        var userDict = new Dictionary<Guid, UserResponse>();
+        var missingIds = new List<Guid>();
+
+        var cacheReadTasks = distinctIds.Select(async id =>
         {
-            //var response = await _httpClient.PostAsJsonAsync(
-            //    "/api/users/bulk",
-            //    distinctIds
-            //);
-            var response = await _httpClient.PostAsJsonAsync(
-                "/api/users/bulk",
-                distinctIds
-            );
+            var cacheKey = $"user:{id}";
+            var cacheValue = await _distributedCache.GetStringAsync(cacheKey);
+            return (Id: id, CacheValue: cacheValue);
+        });
 
-            if (!response.IsSuccessStatusCode)
+        var cachedUsers = await Task.WhenAll(cacheReadTasks);
+
+        foreach (var (id, cacheValue) in cachedUsers)
+        {
+            if (string.IsNullOrWhiteSpace(cacheValue))
             {
-                if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
-                {
-                    _logger.LogError("Identity service unavailable (bulk request).");
-                    throw new HttpRequestException(
-                        "Identity service unavailable",
-                        null,
-                        System.Net.HttpStatusCode.ServiceUnavailable);
-                }
-
-                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
-                {
-                    throw new HttpRequestException(
-                        "Bad request when calling Identity bulk API",
-                        null,
-                        System.Net.HttpStatusCode.BadRequest);
-                }
-
-                throw new HttpRequestException(
-                    $"Identity bulk API error: {response.StatusCode}",
-                    null,
-                    response.StatusCode);
+                missingIds.Add(id);
+                continue;
             }
 
-            var users = await response.Content.ReadFromJsonAsync<IEnumerable<UserResponse>>();
+            try
+            {
+                var cachedUser = JsonSerializer.Deserialize<UserResponse>(cacheValue);
+                if (cachedUser == null)
+                {
+                    missingIds.Add(id);
+                    continue;
+                }
 
-            return users ?? [];
+                userDict[id] = cachedUser;
+            }
+            catch
+            {
+                missingIds.Add(id);
+            }
         }
-        catch (Exception ex)
+
+        if (missingIds.Any())
         {
-            _logger.LogError(ex, "Error calling Identity bulk API");
-            throw;
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync(
+                    "/api/users/bulk",
+                    missingIds
+                );
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                    {
+                        _logger.LogError("Identity service unavailable (bulk request).");
+                        throw new HttpRequestException(
+                            "Identity service unavailable",
+                            null,
+                            System.Net.HttpStatusCode.ServiceUnavailable);
+                    }
+
+                    if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                    {
+                        throw new HttpRequestException(
+                            "Bad request when calling Identity bulk API",
+                            null,
+                            System.Net.HttpStatusCode.BadRequest);
+                    }
+
+                    throw new HttpRequestException(
+                        $"Identity bulk API error: {response.StatusCode}",
+                        null,
+                        response.StatusCode);
+                }
+
+                var usersFromApi = await response.Content.ReadFromJsonAsync<IEnumerable<UserResponse>>() ?? [];
+                var cacheWriteTasks = new List<Task>();
+
+                foreach (var user in usersFromApi)
+                {
+                    userDict[user.UserId] = user;
+                    string userKeyToWrite = $"user:{user.UserId}";
+                    string userCacheString = JsonSerializer.Serialize(user);
+                    cacheWriteTasks.Add(_distributedCache.SetStringAsync(userKeyToWrite, userCacheString, UserCacheOptions));
+                }
+
+                if (cacheWriteTasks.Count > 0)
+                    await Task.WhenAll(cacheWriteTasks);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calling Identity bulk API");
+                throw;
+            }
         }
+
+        return distinctIds
+            .Where(id => userDict.ContainsKey(id))
+            .Select(id => userDict[id]);
     }
 }
 

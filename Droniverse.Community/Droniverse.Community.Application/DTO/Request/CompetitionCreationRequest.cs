@@ -11,19 +11,21 @@ namespace Droniverse.Community.Application.DTO.Request
     {
         [Required]
         [Length(1,255, ErrorMessage = "Tên tiếng Việt của cuộc thi phải từ 1 đến 255 kí tự !")]
-        public string NameVN { get; set; }
+        public required string NameVN { get; set; }
         [Required]
         [Length(1, 255, ErrorMessage = "Tên tiếng Anh của cuộc thi phải từ 1 đến 255 kí tự !")]
-        public string NameEN { get; set; }
+        public required string NameEN { get; set; }
         [Required]
         [Length(1, 255, ErrorMessage = "Mô tả tiếng Việt của cuộc thi phải từ 1 đến 255 kí tự !")]
-        public string DescriptionVN { get; set; }
-        [Required]
+        public string? DescriptionVN { get; set; }
+
         [Length(1, 255, ErrorMessage = "Mô tả tiếng Anh của cuộc thi phải từ 1 đến 255 kí tự !")]
-        public string DescriptionEN { get; set; }
+        public string? DescriptionEN { get; set; }
         [Required]
-        public string RuleContent { get; set; }
+        public required string RuleContent { get; set; }
         public int? MaxParticipants { get; set; } // nếu null thì là không giới hạn người tham gia
+        [Required]
+        public DateTime VisibleAt { get; set; }
         [Required]
         public DateTime RegistrationStartDate { get; set; }
         [Required]

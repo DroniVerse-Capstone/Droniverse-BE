@@ -124,7 +124,6 @@ namespace Droniverse.Community.API.Controllers
 
         }
 
-
         [HttpPost("upload-temp-image")]
         [Authorize(Roles = Roles.AllRoles)]
         public async Task<IActionResult> UploadTempImage([FromForm] FileUploadDto file)

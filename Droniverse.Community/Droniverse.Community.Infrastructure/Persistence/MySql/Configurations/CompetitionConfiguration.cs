@@ -72,8 +72,13 @@ public class CompetitionConfiguration : IEntityTypeConfiguration<Competition>
             .HasConversion<int>()
             .IsRequired();
 
+        builder.Property(c => c.VisibleAt).HasColumnType("datetime").IsRequired();
+
         builder.Property(c => c.ResultPublishedAt)
             .HasColumnType("datetime");
+
+        builder.Property(c => c.InvalidReason).HasColumnType("varchar(45)");
+        builder.Property(c => c.InvalidAt).HasColumnType("datetime");
 
         builder.Property(c => c.CreatedAt)
             .HasColumnType("datetime")

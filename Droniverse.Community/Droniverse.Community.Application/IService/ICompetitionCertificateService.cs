@@ -1,4 +1,4 @@
-using Droniverse.Community.Application.DTO.Request;
+﻿using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
 
 namespace Droniverse.Community.Application.IService
@@ -7,6 +7,6 @@ namespace Droniverse.Community.Application.IService
     {
         Task<CompetitionCertificatesBulkResponseDto> AddCertificateToCompetition(Guid competitionId, CompetitionCertificateAddDto request);
         Task<IEnumerable<CompetitionCertificateResponseDto>> GetCertificatesByCompetition(Guid competitionId);
-        Task<bool> RemoveCertificateFromCompetition(Guid competitionId, Guid certificateId);
+        Task<bool> RemoveCertificatesFromCompetition(Guid competitionId, CompetitionCertificateRemoveDto request);
     }
 }
