@@ -93,6 +93,7 @@ public class CourseService : ICourseService
 
         var mapped = result.Data.Select(c => _mapper.Map<CourseResponseDTO>(c)).ToList();
         await Task.WhenAll(mapped.Select(PopulateCreatorAsync));
+        await Task.WhenAll(mapped.Select(PopulateCurrentVersionUpdaterAsync));
 
         return new PaginationResult<IEnumerable<CourseResponseDTO>>(mapped, result.TotalRecords, result.PageIndex, result.PageSize);
     }
@@ -104,6 +105,7 @@ public class CourseService : ICourseService
 
         var courseResponse = _mapper.Map<CourseResponseDTO>(course);
         await PopulateCreatorAsync(courseResponse);
+        await PopulateCurrentVersionUpdaterAsync(courseResponse);
 
         return courseResponse;
     }
@@ -146,6 +148,7 @@ public class CourseService : ICourseService
             .ToList();
 
         await Task.WhenAll(data.Select(PopulateCreatorAsync));
+        await Task.WhenAll(data.Select(PopulateCurrentVersionUpdaterAsync));
 
         return data
             .OrderBy(c => ids.IndexOf(c.CourseID))
@@ -160,5 +163,14 @@ public class CourseService : ICourseService
     private async Task PopulateCreatorAsync(CourseDetailResponseDTO course)
     {
         course.Creator = await _userDisplayNameService.ResolveUserDisplayNameAsync(course.CreateBy);
+    }
+
+    private async Task PopulateCurrentVersionUpdaterAsync(CourseResponseDTO course)
+    {
+        var updateBy = course.CurrentVersion?.UpdateBy;
+        if (!updateBy.HasValue || updateBy.Value == Guid.Empty)
+            return;
+
+        course.CurrentVersion!.Updater = await _userDisplayNameService.ResolveUserDisplayNameAsync(updateBy.Value);
     }
 }
