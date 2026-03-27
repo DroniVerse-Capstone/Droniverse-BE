@@ -11,6 +11,8 @@ public class TheoryConfiguration : IEntityTypeConfiguration<Theory>
         builder.HasKey(e => e.TheoryID);
 
         builder.Property(e => e.TheoryID).HasColumnType("char(36)");
+        builder.Property(e => e.TitleVN).HasColumnType("varchar(255)");
+        builder.Property(e => e.TitleEN).HasColumnType("varchar(255)");
         builder.Property(e => e.ContentVN).HasColumnType("varchar(255)");
         builder.Property(e => e.ContentEN).HasColumnType("varchar(255)");
         builder.Property(e => e.CreateBy).HasColumnType("char(36)");

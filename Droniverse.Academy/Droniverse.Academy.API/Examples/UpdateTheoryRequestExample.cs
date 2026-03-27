@@ -11,6 +11,8 @@ public class UpdateTheoryRequestExample : IMultipleExamplesProvider<UpdateTheory
             "Ví dụ cập nhật bài lý thuyết",
             new UpdateTheoryRequestDTO
             {
+                TitleVN = "Xử lý drone khi gió mạnh",
+                TitleEN = "Handling Drone in Strong Wind",
                 ContentVN = "Nội dung đã cập nhật: bổ sung quy trình xử lý khi drone gặp gió mạnh.",
                 ContentEN = "Updated content: added handling process for strong wind conditions.",
                 EstimatedTime = 20

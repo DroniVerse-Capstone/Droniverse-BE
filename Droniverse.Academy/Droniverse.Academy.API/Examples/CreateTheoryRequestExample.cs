@@ -13,6 +13,8 @@ public class CreateTheoryRequestExample : IMultipleExamplesProvider<CreateTheory
             {
                 ModuleID = Guid.Parse("55555555-5555-5555-5555-555555555555"),
                 OrderIndex = 1,
+                TitleVN = "Quy tắc an toàn bay cơ bản",
+                TitleEN = "Basic Flight Safety Rules",
                 ContentVN = "Nội dung lý thuyết về các quy tắc an toàn trước khi bay.",
                 ContentEN = "Theory content about pre-flight safety rules.",
                 EstimatedTime = 15
