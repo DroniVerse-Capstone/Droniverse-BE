@@ -10,7 +10,7 @@ using Swashbuckle.AspNetCore.Filters;
 
 namespace Droniverse.Academy.API.Controllers;
 
-[Route("quizzes/{quizId:guid}/questions")]
+[Route("academy/quizzes/{quizId:guid}/questions")]
 [ApiController]
 public class QuizQuestionController : ControllerBase
 {
