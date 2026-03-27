@@ -1,5 +1,7 @@
-﻿using Droniverse.Shared.DTOs.Response;
+﻿using Droniverse.Shared.DTOs;
+using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Exceptions;
+using Droniverse.Shared.Helpers;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using System;
@@ -28,9 +30,8 @@ namespace Droniverse.Academy.Application.HttpClients
             _distributedCache = distributedCache;
         }
 
-        public async Task<UserResponse?> GetUserByUserID(Guid userId)
+        public async Task<SimpleUserReponse?> GetUserByUserID(Guid userId)
         {
-
             //Read from cache
             //key:value
             //userid:{object} ttl:30p
@@ -40,7 +41,16 @@ namespace Droniverse.Academy.Application.HttpClients
             {
                 _logger.LogInformation($"User with id {userId} found in cache.");
                 UserResponse? userFromCache = JsonSerializer.Deserialize<UserResponse>(cacheUser);
-                return userFromCache ?? throw new NotFoundException($"User with ID {userId} not found in cache.");
+                if (userFromCache == null)
+                {
+                    throw new NotFoundException($"User with ID {userId} not found in cache.");
+                }
+                return new SimpleUserReponse
+                {
+                    UserId = userFromCache.UserId,
+                    Email = userFromCache.Email,
+                    FullName = AppHelper.GetFullName(userFromCache)
+                };
             }
 
             //HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/api/users/{userId}");
@@ -84,7 +94,14 @@ namespace Droniverse.Academy.Application.HttpClients
                 .SetAbsoluteExpiration(TimeSpan.FromSeconds(300))
                 .SetSlidingExpiration(TimeSpan.FromSeconds(100));
             await _distributedCache.SetStringAsync(userKeyToWrite, userCacheString, options);
-            return user;
+
+            return new SimpleUserReponse
+            {
+                UserId = user.UserId,
+                Email = user.Email,
+                FullName = AppHelper.GetFullName(user)
+
+            };
         }
 
         public async Task<IEnumerable<UserResponse>> GetUsersBulk(IEnumerable<Guid> userIds)

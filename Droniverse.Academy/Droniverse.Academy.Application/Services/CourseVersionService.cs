@@ -58,7 +58,7 @@ public class CourseVersionService : ICourseVersionService
         await _unitOfWork.SaveChangesAsync();
 
         var response = _mapper.Map<CourseVersionResponseDTO>(cv);
-        await PopulateUpdaterAsync(response);
+        await PopulateUpdaterAsync(response, cv.UpdateBy);
 
         return response;
     }
@@ -90,7 +90,7 @@ public class CourseVersionService : ICourseVersionService
             throw new BaseException("Không tìm thấy phiên bản khóa học.", "NOT_FOUND");
 
         var response = _mapper.Map<CourseVersionResponseDTO>(cv);
-        await PopulateUpdaterAsync(response);
+        await PopulateUpdaterAsync(response, cv.UpdateBy);
 
         return response;
     }
@@ -105,8 +105,9 @@ public class CourseVersionService : ICourseVersionService
         }
 
         var result = await _unitOfWork.CourseVersions.GetAllAsync(filter, null, pageIndex, pageSize, includeProperties: "CourseVersionCategories,RequiredDrones");
-        var mapped = result.Data.Select(v => _mapper.Map<CourseVersionResponseDTO>(v)).ToList();
-        await Task.WhenAll(mapped.Select(PopulateUpdaterAsync));
+        var entities = result.Data.ToList();
+        var mapped = entities.Select(v => _mapper.Map<CourseVersionResponseDTO>(v)).ToList();
+        await Task.WhenAll(entities.Zip(mapped, (entity, dto) => PopulateUpdaterAsync(dto, entity.UpdateBy)));
 
         return new PaginationResult<IEnumerable<CourseVersionResponseDTO>>(mapped, result.TotalRecords, result.PageIndex, result.PageSize);
     }
@@ -176,16 +177,16 @@ public class CourseVersionService : ICourseVersionService
         await _unitOfWork.SaveChangesAsync();
 
         var response = _mapper.Map<CourseVersionResponseDTO>(cv);
-        await PopulateUpdaterAsync(response);
+        await PopulateUpdaterAsync(response, cv.UpdateBy);
 
         return response;
     }
 
-    private async Task PopulateUpdaterAsync(CourseVersionResponseDTO courseVersion)
+    private async Task PopulateUpdaterAsync(CourseVersionResponseDTO courseVersion, Guid? updateBy)
     {
-        if (!courseVersion.UpdateBy.HasValue || courseVersion.UpdateBy.Value == Guid.Empty)
+        if (!updateBy.HasValue || updateBy.Value == Guid.Empty)
             return;
 
-        courseVersion.Updater = await _userDisplayNameService.ResolveUserDisplayNameAsync(courseVersion.UpdateBy.Value);
+        courseVersion.Updater = await _userDisplayNameService.ResolveUserDisplayNameAsync(updateBy.Value);
     }
 }

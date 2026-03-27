@@ -43,7 +43,7 @@ public class CourseService : ICourseService
         await _unitOfWork.SaveChangesAsync();
 
         var response = _mapper.Map<CourseDetailResponseDTO>(course);
-        await PopulateCreatorAsync(response);
+        await PopulateCreatorAsync(response, course.CreateBy);
 
         return response;
     }
@@ -91,9 +91,10 @@ public class CourseService : ICourseService
                 pageIndex,
                 pageSize);
 
-        var mapped = result.Data.Select(c => _mapper.Map<CourseResponseDTO>(c)).ToList();
-        await Task.WhenAll(mapped.Select(PopulateCreatorAsync));
-        await Task.WhenAll(mapped.Select(PopulateCurrentVersionUpdaterAsync));
+        var entities = result.Data.ToList();
+        var mapped = entities.Select(c => _mapper.Map<CourseResponseDTO>(c)).ToList();
+        await Task.WhenAll(entities.Zip(mapped, (entity, dto) => PopulateCreatorAsync(dto, entity.CreateBy)));
+        await Task.WhenAll(entities.Zip(mapped, (entity, dto) => PopulateCurrentVersionUpdaterAsync(dto, entity.CurrentVersion?.UpdateBy)));
 
         return new PaginationResult<IEnumerable<CourseResponseDTO>>(mapped, result.TotalRecords, result.PageIndex, result.PageSize);
     }
@@ -104,8 +105,8 @@ public class CourseService : ICourseService
             ?? throw new BaseException("Không tìm thấy khóa học.", "NOT_FOUND");
 
         var courseResponse = _mapper.Map<CourseResponseDTO>(course);
-        await PopulateCreatorAsync(courseResponse);
-        await PopulateCurrentVersionUpdaterAsync(courseResponse);
+        await PopulateCreatorAsync(courseResponse, course.CreateBy);
+        await PopulateCurrentVersionUpdaterAsync(courseResponse, course.CurrentVersion?.UpdateBy);
 
         return courseResponse;
     }
@@ -143,31 +144,31 @@ public class CourseService : ICourseService
             pageIndex: 1,
             pageSize: ids.Count);
 
-        var data = result.Data
+        var entities = result.Data.ToList();
+        var data = entities
             .Select(c => _mapper.Map<CourseResponseDTO>(c))
             .ToList();
 
-        await Task.WhenAll(data.Select(PopulateCreatorAsync));
-        await Task.WhenAll(data.Select(PopulateCurrentVersionUpdaterAsync));
+        await Task.WhenAll(entities.Zip(data, (entity, dto) => PopulateCreatorAsync(dto, entity.CreateBy)));
+        await Task.WhenAll(entities.Zip(data, (entity, dto) => PopulateCurrentVersionUpdaterAsync(dto, entity.CurrentVersion?.UpdateBy)));
 
         return data
             .OrderBy(c => ids.IndexOf(c.CourseID))
             .ToList();
     }
 
-    private async Task PopulateCreatorAsync(CourseResponseDTO course)
+    private async Task PopulateCreatorAsync(CourseResponseDTO course, Guid createBy)
     {
-        course.Creator = await _userDisplayNameService.ResolveUserDisplayNameAsync(course.CreateBy);
+        course.Creator = await _userDisplayNameService.ResolveUserDisplayNameAsync(createBy);
     }
 
-    private async Task PopulateCreatorAsync(CourseDetailResponseDTO course)
+    private async Task PopulateCreatorAsync(CourseDetailResponseDTO course, Guid createBy)
     {
-        course.Creator = await _userDisplayNameService.ResolveUserDisplayNameAsync(course.CreateBy);
+        course.Creator = await _userDisplayNameService.ResolveUserDisplayNameAsync(createBy);
     }
 
-    private async Task PopulateCurrentVersionUpdaterAsync(CourseResponseDTO course)
+    private async Task PopulateCurrentVersionUpdaterAsync(CourseResponseDTO course, Guid? updateBy)
     {
-        var updateBy = course.CurrentVersion?.UpdateBy;
         if (!updateBy.HasValue || updateBy.Value == Guid.Empty)
             return;
 

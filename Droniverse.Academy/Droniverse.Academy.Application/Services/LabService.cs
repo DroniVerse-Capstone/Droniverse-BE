@@ -50,7 +50,7 @@ public class LabService : ILabService
 
         var labContent = await _labContentService.CreateEmptyAsync(lab.LabID);
         var mappedLab = _mapper.Map<LabClientViewDTO>(lab);
-        await PopulateUsersAsync(mappedLab);
+        await PopulateUsersAsync(mappedLab, lab.CreateBy, lab.UpdateBy);
 
         return new LabDetailResponseDTO
         {
@@ -110,8 +110,9 @@ public class LabService : ILabService
             pageIndex: query.PageIndex,
             pageSize: query.PageSize);
 
-        var mapped = _mapper.Map<List<LabClientViewDTO>>(labs.Data);
-        await Task.WhenAll(mapped.Select(PopulateUsersAsync));
+        var entities = labs.Data.ToList();
+        var mapped = _mapper.Map<List<LabClientViewDTO>>(entities);
+        await Task.WhenAll(entities.Zip(mapped, (entity, dto) => PopulateUsersAsync(dto, entity.CreateBy, entity.UpdateBy)));
 
         return new PaginationResult<IEnumerable<LabClientViewDTO>>(mapped, labs.TotalRecords, labs.PageIndex, labs.PageSize);
     }
@@ -124,7 +125,7 @@ public class LabService : ILabService
 
         var labContent = await _labContentService.GetByLabIdAsync(labId) ?? await _labContentService.CreateEmptyAsync(labId);
         var mappedLab = _mapper.Map<LabClientViewDTO>(lab);
-        await PopulateUsersAsync(mappedLab);
+        await PopulateUsersAsync(mappedLab, lab.CreateBy, lab.UpdateBy);
 
         return new LabDetailResponseDTO
         {
@@ -152,7 +153,7 @@ public class LabService : ILabService
 
         var labContent = await _labContentService.GetByLabIdAsync(labId) ?? await _labContentService.CreateEmptyAsync(labId);
         var mappedLab = _mapper.Map<LabClientViewDTO>(lab);
-        await PopulateUsersAsync(mappedLab);
+        await PopulateUsersAsync(mappedLab, lab.CreateBy, lab.UpdateBy);
 
         return new LabDetailResponseDTO
         {
@@ -220,9 +221,9 @@ public class LabService : ILabService
             throw new ValidationException("OrderIndex phải là duy nhất trong mô-đun.");
     }
 
-    private async Task PopulateUsersAsync(LabClientViewDTO lab)
+    private async Task PopulateUsersAsync(LabClientViewDTO lab, Guid createBy, Guid updateBy)
     {
-        var (creator, updater) = await _userDisplayNameService.ResolveCreatorUpdaterAsync(lab.CreateBy, lab.UpdateBy);
+        var (creator, updater) = await _userDisplayNameService.ResolveCreatorUpdaterAsync(createBy, updateBy);
         lab.Creator = creator;
         lab.Updater = updater;
     }

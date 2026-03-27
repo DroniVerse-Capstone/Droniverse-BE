@@ -62,7 +62,7 @@ public class TheoryService : ITheoryService
         await _unitOfWork.SaveChangesAsync();
 
         var response = _mapper.Map<TheoryClientViewDTO>(theory);
-        await PopulateUsersAsync(response);
+        await PopulateUsersAsync(response, theory.CreateBy, theory.UpdateBy);
 
         return response;
     }
@@ -74,8 +74,9 @@ public class TheoryService : ITheoryService
             pageIndex: 1,
             pageSize: int.MaxValue);
 
-        var mapped = _mapper.Map<List<TheoryClientViewDTO>>(theories.Data);
-        await Task.WhenAll(mapped.Select(PopulateUsersAsync));
+        var entities = theories.Data.ToList();
+        var mapped = _mapper.Map<List<TheoryClientViewDTO>>(entities);
+        await Task.WhenAll(entities.Zip(mapped, (entity, dto) => PopulateUsersAsync(dto, entity.CreateBy, entity.UpdateBy)));
 
         return mapped;
     }
@@ -87,7 +88,7 @@ public class TheoryService : ITheoryService
             throw new BaseException("Không tìm thấy bài lý thuyết.", "NOT_FOUND");
 
         var response = _mapper.Map<TheoryClientViewDTO>(theory);
-        await PopulateUsersAsync(response);
+        await PopulateUsersAsync(response, theory.CreateBy, theory.UpdateBy);
 
         return response;
     }
@@ -110,7 +111,7 @@ public class TheoryService : ITheoryService
         await _unitOfWork.SaveChangesAsync();
 
         var response = _mapper.Map<TheoryClientViewDTO>(theory);
-        await PopulateUsersAsync(response);
+        await PopulateUsersAsync(response, theory.CreateBy, theory.UpdateBy);
 
         return response;
     }
@@ -156,9 +157,9 @@ public class TheoryService : ITheoryService
             throw new ValidationException("OrderIndex phải là duy nhất trong mô-đun.");
     }
 
-    private async Task PopulateUsersAsync(TheoryClientViewDTO theory)
+    private async Task PopulateUsersAsync(TheoryClientViewDTO theory, Guid createBy, Guid updateBy)
     {
-        var (creator, updater) = await _userDisplayNameService.ResolveCreatorUpdaterAsync(theory.CreateBy, theory.UpdateBy);
+        var (creator, updater) = await _userDisplayNameService.ResolveCreatorUpdaterAsync(createBy, updateBy);
         theory.Creator = creator;
         theory.Updater = updater;
     }

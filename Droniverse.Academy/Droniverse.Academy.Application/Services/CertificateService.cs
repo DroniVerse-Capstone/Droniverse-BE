@@ -44,7 +44,7 @@ public class CertificateService : ICertificateService
         await _unitOfWork.SaveChangesAsync();
 
         var response = _mapper.Map<CertificateResponseDTO>(cert);
-        await PopulateUsersAsync(response);
+        await PopulateUsersAsync(response, cert.CreateBy, cert.UpdateBy);
 
         return response;
     }
@@ -69,7 +69,7 @@ public class CertificateService : ICertificateService
             throw new BaseException("Không tìm thấy chứng chỉ.", "NOT_FOUND");
 
         var response = _mapper.Map<CertificateResponseDTO>(cert);
-        await PopulateUsersAsync(response);
+        await PopulateUsersAsync(response, cert.CreateBy, cert.UpdateBy);
 
         return response;
     }
@@ -81,7 +81,7 @@ public class CertificateService : ICertificateService
             throw new BaseException("Không tìm thấy chứng chỉ.", "NOT_FOUND");
 
         var response = _mapper.Map<CertificateResponseDTO>(cert);
-        await PopulateUsersAsync(response);
+        await PopulateUsersAsync(response, cert.CreateBy, cert.UpdateBy);
 
         return response;
     }
@@ -102,7 +102,7 @@ public class CertificateService : ICertificateService
         await _unitOfWork.SaveChangesAsync();
 
         var response = _mapper.Map<CertificateResponseDTO>(cert);
-        await PopulateUsersAsync(response);
+        await PopulateUsersAsync(response, cert.CreateBy, cert.UpdateBy);
 
         return response;
     }
@@ -118,20 +118,21 @@ public class CertificateService : ICertificateService
             pageIndex: 1,
             pageSize: ids.Count);
 
-        var data = result.Data
+        var entities = result.Data.ToList();
+        var data = entities
             .Select(c => _mapper.Map<CertificateResponseDTO>(c))
             .ToList();
 
-        await Task.WhenAll(data.Select(PopulateUsersAsync));
+        await Task.WhenAll(entities.Zip(data, (entity, dto) => PopulateUsersAsync(dto, entity.CreateBy, entity.UpdateBy)));
 
         return data
             .OrderBy(c => ids.IndexOf(c.CertificateID))
             .ToList();
     }
 
-    private async Task PopulateUsersAsync(CertificateResponseDTO certificate)
+    private async Task PopulateUsersAsync(CertificateResponseDTO certificate, Guid createBy, Guid updateBy)
     {
-        var (creator, updater) = await _userDisplayNameService.ResolveCreatorUpdaterAsync(certificate.CreateBy, certificate.UpdateBy);
+        var (creator, updater) = await _userDisplayNameService.ResolveCreatorUpdaterAsync(createBy, updateBy);
         certificate.Creator = creator;
         certificate.Updater = updater;
     }

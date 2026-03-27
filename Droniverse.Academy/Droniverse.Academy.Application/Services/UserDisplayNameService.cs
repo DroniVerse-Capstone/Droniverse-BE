@@ -1,5 +1,6 @@
 ﻿using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Shared.DTOs;
 
 namespace Droniverse.Academy.Application.Services;
 
@@ -12,24 +13,20 @@ public class UserDisplayNameService : IUserDisplayNameService
         _identityClient = identityClient;
     }
 
-    public async Task<string?> ResolveUserDisplayNameAsync(Guid userId)
+    public async Task<SimpleUserReponse?> ResolveUserDisplayNameAsync(Guid userId)
     {
         if (userId == Guid.Empty)
             return null;
 
-        var user = await _identityClient.GetUserByUserID(userId);
-        if (user is null)
-            return null;
-
-        return $"{user.FirstName} {user.LastName}";
+        return await _identityClient.GetUserByUserID(userId);
     }
 
-    public async Task<(string? Creator, string? Updater)> ResolveCreatorUpdaterAsync(Guid createBy, Guid updateBy)
+    public async Task<(SimpleUserReponse? Creator, SimpleUserReponse? Updater)> ResolveCreatorUpdaterAsync(Guid createBy, Guid updateBy)
     {
         if (createBy == updateBy)
         {
-            var fullName = await ResolveUserDisplayNameAsync(createBy);
-            return (fullName, fullName);
+            var user = await ResolveUserDisplayNameAsync(createBy);
+            return (user, user);
         }
 
         var creatorTask = ResolveUserDisplayNameAsync(createBy);
