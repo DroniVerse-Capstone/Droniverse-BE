@@ -7,9 +7,23 @@ public class Theory
     public string TitleEN { get; set; } = null!;
     public string ContentVN { get; set; } //text
     public string ContentEN { get; set; } //text
-    public Guid CreateBy { get; set; } //char(36) // reference to User
-    public Guid UpdateBy { get; set; }
-    public DateTime CreateAt { get; set; }
-    public DateTime UpdateAt { get; set; }
+    public Guid CreateBy { get; private set; } //char(36) // reference to User
+    public Guid UpdateBy { get; private set; }
+    public DateTime CreateAt { get; private set; }
+    public DateTime UpdateAt { get; private set; }
     public int EstimatedTime { get; set; }
+
+    public void SetAuditOnCreate(Guid userId, DateTime now)
+    {
+        CreateBy = userId;
+        CreateAt = now;
+        UpdateBy = userId;
+        UpdateAt = now;
+    }
+
+    public void SetAuditOnUpdate(Guid userId, DateTime now)
+    {
+        UpdateBy = userId;
+        UpdateAt = now;
+    }
 }

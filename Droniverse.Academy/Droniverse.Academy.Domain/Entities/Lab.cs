@@ -13,10 +13,24 @@ public class Lab
     public string NameEN { get; set; } //nvarchar(255)
     public string DescriptionVN { get; set; } //text
     public string DescriptionEN { get; set; } //text
-    public Guid CreateBy { get; set; } // reference to UserID
-    public Guid UpdateBy { get; set; }
-    public DateTime CreateAt { get; set;}
-    public DateTime UpdateAt { get; set; }
+    public Guid CreateBy { get; private set; } // reference to UserID
+    public Guid UpdateBy { get; private set; }
+    public DateTime CreateAt { get; private set;}
+    public DateTime UpdateAt { get; private set; }
+
+    public void SetAuditOnCreate(Guid userId, DateTime now)
+    {
+        CreateBy = userId;
+        CreateAt = now;
+        UpdateBy = userId;
+        UpdateAt = now;
+    }
+
+    public void SetAuditOnUpdate(Guid userId, DateTime now)
+    {
+        UpdateBy = userId;
+        UpdateAt = now;
+    }
 
 
 }

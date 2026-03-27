@@ -1,7 +1,6 @@
 ﻿using AutoMapper;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
-using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
@@ -19,15 +18,15 @@ public class CourseVersionService : ICourseVersionService
     private readonly ICurrentUserService _currentUser;
     private readonly IClock _clock;
     private readonly IMapper _mapper;
-    private readonly IdentityMicroserviceClient _identityClient;
+    private readonly IUserDisplayNameService _userDisplayNameService;
 
-    public CourseVersionService(IUnitOfWork unitOfWork, ICurrentUserService current, IClock clock, IMapper mapper, IdentityMicroserviceClient identityClient)
+    public CourseVersionService(IUnitOfWork unitOfWork, ICurrentUserService current, IClock clock, IMapper mapper, IUserDisplayNameService userDisplayNameService)
     {
         _unitOfWork = unitOfWork;
         _currentUser = current;
         _clock = clock;
         _mapper = mapper;
-        _identityClient = identityClient;
+        _userDisplayNameService = userDisplayNameService;
     }
 
     public async Task<CourseVersionResponseDTO> CreateCourseVersionAsync(Guid courseId, CreateCourseVersionRequestDTO request)
@@ -47,6 +46,7 @@ public class CourseVersionService : ICourseVersionService
         cv.CourseVersionID = Guid.NewGuid();
         cv.CourseID = course.CourseID;
         cv.Version = nextVersion;
+        cv.SetAuditOnCreate(_currentUser.UserId, _clock.Now);
 
         if (nextVersion == 1)
         {
@@ -186,10 +186,6 @@ public class CourseVersionService : ICourseVersionService
         if (!courseVersion.UpdateBy.HasValue || courseVersion.UpdateBy.Value == Guid.Empty)
             return;
 
-        var updater = await _identityClient.GetUserByUserID(courseVersion.UpdateBy.Value);
-        if (updater is null)
-            return;
-
-        courseVersion.Updater = $"{updater.FirstName} {updater.LastName}";
+        courseVersion.Updater = await _userDisplayNameService.ResolveUserDisplayNameAsync(courseVersion.UpdateBy.Value);
     }
 }

@@ -1,7 +1,6 @@
 ﻿using AutoMapper;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
-using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.IRepository;
@@ -16,15 +15,15 @@ public class CertificateService : ICertificateService
     private readonly ICurrentUserService _currentUser;
     private readonly IClock _clock;
     private readonly IMapper _mapper;
-    private readonly IdentityMicroserviceClient _identityClient;
+    private readonly IUserDisplayNameService _userDisplayNameService;
 
-    public CertificateService(IUnitOfWork unitOfWork, ICurrentUserService current, IClock clock, IMapper mapper, IdentityMicroserviceClient identityClient)
+    public CertificateService(IUnitOfWork unitOfWork, ICurrentUserService current, IClock clock, IMapper mapper, IUserDisplayNameService userDisplayNameService)
     {
         _unitOfWork = unitOfWork;
         _currentUser = current;
         _clock = clock;
         _mapper = mapper;
-        _identityClient = identityClient;
+        _userDisplayNameService = userDisplayNameService;
     }
 
     public async Task<CertificateResponseDTO> CreateCertificateAsync(Guid courseId, Guid versionId, CreateCertificateRequestDTO request)
@@ -36,21 +35,10 @@ public class CertificateService : ICertificateService
         if (cv.Certificate != null)
             throw new ValidationException("Phiên bản khóa học đã có chứng chỉ.");
 
-        var cert = new Certificate
-        {
-            CertificateID = Guid.NewGuid(),
-            CourseVersionID = versionId,
-            CertificateName = request.CertificateName,
-            ImageUrl = request.ImageUrl,
-            LogoCertificate = request.LogoCertificate,
-            Description = request.Description,
-            Signature = request.Signature,
-            AuthorName = request.AuthorName,
-            CreateAt = _clock.Now,
-            CreateBy = _currentUser.UserId,
-            UpdateAt = _clock.Now,
-            UpdateBy = _currentUser.UserId
-        };
+        var cert = _mapper.Map<Certificate>(request);
+        cert.CertificateID = Guid.NewGuid();
+        cert.CourseVersionID = versionId;
+        cert.SetAuditOnCreate(_currentUser.UserId, _clock.Now);
 
         await _unitOfWork.Certificates.AddAsync(cert);
         await _unitOfWork.SaveChangesAsync();
@@ -107,14 +95,8 @@ public class CertificateService : ICertificateService
         if (cert.CourseVersionID != versionId)
             throw new ValidationException("Chứng chỉ không thuộc phiên bản khóa học đã cung cấp.");
 
-        cert.CertificateName = request.CertificateName;
-        cert.ImageUrl = request.ImageUrl;
-        cert.LogoCertificate = request.LogoCertificate;
-        cert.Description = request.Description;
-        cert.Signature = request.Signature;
-        cert.AuthorName = request.AuthorName;
-        cert.UpdateAt = _clock.Now;
-        cert.UpdateBy = _currentUser.UserId;
+        _mapper.Map(request, cert);
+        cert.SetAuditOnUpdate(_currentUser.UserId, _clock.Now);
 
         await _unitOfWork.Certificates.UpdateAsync(cert);
         await _unitOfWork.SaveChangesAsync();
@@ -149,32 +131,8 @@ public class CertificateService : ICertificateService
 
     private async Task PopulateUsersAsync(CertificateResponseDTO certificate)
     {
-        if (certificate.CreateBy == certificate.UpdateBy)
-        {
-            var sameUser = await _identityClient.GetUserByUserID(certificate.CreateBy);
-            if (sameUser is null)
-                return;
-
-            var fullName = $"{sameUser.FirstName} {sameUser.LastName}";
-            certificate.Creator = fullName;
-            certificate.Updater = fullName;
-            return;
-        }
-
-        var creatorTask = _identityClient.GetUserByUserID(certificate.CreateBy);
-        var updaterTask = _identityClient.GetUserByUserID(certificate.UpdateBy);
-        await Task.WhenAll(creatorTask, updaterTask);
-
-        var creator = await creatorTask;
-        if (creator is not null)
-        {
-            certificate.Creator = $"{creator.FirstName} {creator.LastName}";
-        }
-
-        var updater = await updaterTask;
-        if (updater is not null)
-        {
-            certificate.Updater = $"{updater.FirstName} {updater.LastName}";
-        }
+        var (creator, updater) = await _userDisplayNameService.ResolveCreatorUpdaterAsync(certificate.CreateBy, certificate.UpdateBy);
+        certificate.Creator = creator;
+        certificate.Updater = updater;
     }
 }

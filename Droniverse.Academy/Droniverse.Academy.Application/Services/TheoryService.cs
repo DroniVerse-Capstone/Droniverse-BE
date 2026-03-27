@@ -1,7 +1,6 @@
 ﻿using AutoMapper;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
-using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Application.Validators;
 using Droniverse.Academy.Domain.Entities;
@@ -18,15 +17,15 @@ public class TheoryService : ITheoryService
     private readonly IMapper _mapper;
     private readonly ICurrentUserService _currentUser;
     private readonly IClock _clock;
-    private readonly IdentityMicroserviceClient _identityClient;
+    private readonly IUserDisplayNameService _userDisplayNameService;
 
-    public TheoryService(IUnitOfWork unitOfWork, IMapper mapper, ICurrentUserService currentUser, IClock clock, IdentityMicroserviceClient identityClient)
+    public TheoryService(IUnitOfWork unitOfWork, IMapper mapper, ICurrentUserService currentUser, IClock clock, IUserDisplayNameService userDisplayNameService)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _currentUser = currentUser;
         _clock = clock;
-        _identityClient = identityClient;
+        _userDisplayNameService = userDisplayNameService;
     }
 
     public async Task<TheoryClientViewDTO> CreateTheoryAsync(CreateTheoryRequestDTO request)
@@ -45,10 +44,7 @@ public class TheoryService : ITheoryService
 
         var theory = _mapper.Map<Theory>(request);
         theory.TheoryID = Guid.NewGuid();
-        theory.CreateAt = _clock.Now;
-        theory.UpdateAt = _clock.Now;
-        theory.CreateBy = _currentUser.UserId;
-        theory.UpdateBy = _currentUser.UserId;
+        theory.SetAuditOnCreate(_currentUser.UserId, _clock.Now);
 
         await _unitOfWork.Theories.AddAsync(theory);
 
@@ -108,8 +104,7 @@ public class TheoryService : ITheoryService
             throw new BaseException("Không tìm thấy bài lý thuyết.", "NOT_FOUND");
 
         _mapper.Map(request, theory);
-        theory.UpdateAt = _clock.Now;
-        theory.UpdateBy = _currentUser.UserId;
+        theory.SetAuditOnUpdate(_currentUser.UserId, _clock.Now);
 
         await _unitOfWork.Theories.UpdateAsync(theory);
         await _unitOfWork.SaveChangesAsync();
@@ -163,32 +158,8 @@ public class TheoryService : ITheoryService
 
     private async Task PopulateUsersAsync(TheoryClientViewDTO theory)
     {
-        if (theory.CreateBy == theory.UpdateBy)
-        {
-            var sameUser = await _identityClient.GetUserByUserID(theory.CreateBy);
-            if (sameUser is null)
-                return;
-
-            var fullName = $"{sameUser.FirstName} {sameUser.LastName}";
-            theory.Creator = fullName;
-            theory.Updater = fullName;
-            return;
-        }
-
-        var creatorTask = _identityClient.GetUserByUserID(theory.CreateBy);
-        var updaterTask = _identityClient.GetUserByUserID(theory.UpdateBy);
-        await Task.WhenAll(creatorTask, updaterTask);
-
-        var creator = await creatorTask;
-        if (creator is not null)
-        {
-            theory.Creator = $"{creator.FirstName} {creator.LastName}";
-        }
-
-        var updater = await updaterTask;
-        if (updater is not null)
-        {
-            theory.Updater = $"{updater.FirstName} {updater.LastName}";
-        }
+        var (creator, updater) = await _userDisplayNameService.ResolveCreatorUpdaterAsync(theory.CreateBy, theory.UpdateBy);
+        theory.Creator = creator;
+        theory.Updater = updater;
     }
 }

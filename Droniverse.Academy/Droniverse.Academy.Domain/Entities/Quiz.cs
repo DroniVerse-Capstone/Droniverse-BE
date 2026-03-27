@@ -9,10 +9,24 @@ public class Quiz
     public int TimeLimit { get; set; } // in minutes
     public float TotalScore { get; set; }
     public float PassScore { get; set; }
-    public DateTime CreateAt { get; set; }
-    public DateTime UpdateAt { get; set; }
-    public Guid CreateBy { get; set; } // reference to UserID
-    public Guid UpdateBy { get; set; } // reference to UserID
+    public DateTime CreateAt { get; private set; }
+    public DateTime UpdateAt { get; private set; }
+    public Guid CreateBy { get; private set; } // reference to UserID
+    public Guid UpdateBy { get; private set; } // reference to UserID
     public ICollection<QuizQuestion> QuizQuestions { get; set; }
     public ICollection<QuizAttempt> QuizAttempts { get; set; }
+
+    public void SetAuditOnCreate(Guid userId, DateTime now)
+    {
+        CreateBy = userId;
+        CreateAt = now;
+        UpdateBy = userId;
+        UpdateAt = now;
+    }
+
+    public void SetAuditOnUpdate(Guid userId, DateTime now)
+    {
+        UpdateBy = userId;
+        UpdateAt = now;
+    }
 }

@@ -1,7 +1,6 @@
 ﻿using AutoMapper;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
-using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Application.IService.Mongo;
 using Droniverse.Academy.Application.Validators;
@@ -22,16 +21,16 @@ public class LabService : ILabService
     private readonly IMapper _mapper;
     private readonly ICurrentUserService _currentUser;
     private readonly IClock _clock;
-    private readonly IdentityMicroserviceClient _identityClient;
+    private readonly IUserDisplayNameService _userDisplayNameService;
 
-    public LabService(IUnitOfWork unitOfWork, ILabContentService labContentService, IMapper mapper, ICurrentUserService currentUser, IClock clock, IdentityMicroserviceClient identityClient)
+    public LabService(IUnitOfWork unitOfWork, ILabContentService labContentService, IMapper mapper, ICurrentUserService currentUser, IClock clock, IUserDisplayNameService userDisplayNameService)
     {
         _unitOfWork = unitOfWork;
         _labContentService = labContentService;
         _mapper = mapper;
         _currentUser = currentUser;
         _clock = clock;
-        _identityClient = identityClient;
+        _userDisplayNameService = userDisplayNameService;
     }
 
     public async Task<LabDetailResponseDTO> CreateLabAsync(CreateLabRequestDTO request)
@@ -43,10 +42,7 @@ public class LabService : ILabService
 
         var lab = _mapper.Map<Lab>(request);
         lab.LabID = Guid.NewGuid();
-        lab.CreateAt = _clock.Now;
-        lab.UpdateAt = _clock.Now;
-        lab.CreateBy = _currentUser.UserId;
-        lab.UpdateBy = _currentUser.UserId;
+        lab.SetAuditOnCreate(_currentUser.UserId, _clock.Now);
 
         await _unitOfWork.Labs.AddAsync(lab);
 
@@ -149,8 +145,7 @@ public class LabService : ILabService
             throw new BaseException("Không tìm thấy lab.", "NOT_FOUND");
 
         _mapper.Map(request, lab);
-        lab.UpdateAt = _clock.Now;
-        lab.UpdateBy = _currentUser.UserId;
+        lab.SetAuditOnUpdate(_currentUser.UserId, _clock.Now);
 
         await _unitOfWork.Labs.UpdateAsync(lab);
         await _unitOfWork.SaveChangesAsync();
@@ -227,32 +222,8 @@ public class LabService : ILabService
 
     private async Task PopulateUsersAsync(LabClientViewDTO lab)
     {
-        if (lab.CreateBy == lab.UpdateBy)
-        {
-            var sameUser = await _identityClient.GetUserByUserID(lab.CreateBy);
-            if (sameUser is null)
-                return;
-
-            var fullName = $"{sameUser.FirstName} {sameUser.LastName}";
-            lab.Creator = fullName;
-            lab.Updater = fullName;
-            return;
-        }
-
-        var creatorTask = _identityClient.GetUserByUserID(lab.CreateBy);
-        var updaterTask = _identityClient.GetUserByUserID(lab.UpdateBy);
-        await Task.WhenAll(creatorTask, updaterTask);
-
-        var creator = await creatorTask;
-        if (creator is not null)
-        {
-            lab.Creator = $"{creator.FirstName} {creator.LastName}";
-        }
-
-        var updater = await updaterTask;
-        if (updater is not null)
-        {
-            lab.Updater = $"{updater.FirstName} {updater.LastName}";
-        }
+        var (creator, updater) = await _userDisplayNameService.ResolveCreatorUpdaterAsync(lab.CreateBy, lab.UpdateBy);
+        lab.Creator = creator;
+        lab.Updater = updater;
     }
 }

@@ -1,7 +1,6 @@
 ﻿using AutoMapper;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
-using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Application.Validators;
 using Droniverse.Academy.Domain.Entities;
@@ -18,15 +17,15 @@ public class QuizService : IQuizService
     private readonly IMapper _mapper;
     private readonly ICurrentUserService _currentUser;
     private readonly IClock _clock;
-    private readonly IdentityMicroserviceClient _identityClient;
+    private readonly IUserDisplayNameService _userDisplayNameService;
 
-    public QuizService(IUnitOfWork unitOfWork, IMapper mapper, ICurrentUserService currentUser, IClock clock, IdentityMicroserviceClient identityClient)
+    public QuizService(IUnitOfWork unitOfWork, IMapper mapper, ICurrentUserService currentUser, IClock clock, IUserDisplayNameService userDisplayNameService)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _currentUser = currentUser;
         _clock = clock;
-        _identityClient = identityClient;
+        _userDisplayNameService = userDisplayNameService;
     }
 
     public async Task<QuizClientViewDTO> CreateQuizAsync(CreateQuizRequestDTO request)
@@ -45,10 +44,7 @@ public class QuizService : IQuizService
 
         var quiz = _mapper.Map<Quiz>(request);
         quiz.QuizID = Guid.NewGuid();
-        quiz.CreateAt = _clock.Now;
-        quiz.UpdateAt = _clock.Now;
-        quiz.CreateBy = _currentUser.UserId;
-        quiz.UpdateBy = _currentUser.UserId;
+        quiz.SetAuditOnCreate(_currentUser.UserId, _clock.Now);
 
         await _unitOfWork.Quizs.AddAsync(quiz);
 
@@ -108,8 +104,7 @@ public class QuizService : IQuizService
             throw new BaseException("Không tìm thấy bài kiểm tra.", "NOT_FOUND");
 
         _mapper.Map(request, quiz);
-        quiz.UpdateAt = _clock.Now;
-        quiz.UpdateBy = _currentUser.UserId;
+        quiz.SetAuditOnUpdate(_currentUser.UserId, _clock.Now);
 
         await _unitOfWork.Quizs.UpdateAsync(quiz);
         await _unitOfWork.SaveChangesAsync();
@@ -163,32 +158,8 @@ public class QuizService : IQuizService
 
     private async Task PopulateUsersAsync(QuizClientViewDTO quiz)
     {
-        if (quiz.CreateBy == quiz.UpdateBy)
-        {
-            var sameUser = await _identityClient.GetUserByUserID(quiz.CreateBy);
-            if (sameUser is null)
-                return;
-
-            var fullName = $"{sameUser.FirstName} {sameUser.LastName}";
-            quiz.Creator = fullName;
-            quiz.Updater = fullName;
-            return;
-        }
-
-        var creatorTask = _identityClient.GetUserByUserID(quiz.CreateBy);
-        var updaterTask = _identityClient.GetUserByUserID(quiz.UpdateBy);
-        await Task.WhenAll(creatorTask, updaterTask);
-
-        var creator = await creatorTask;
-        if (creator is not null)
-        {
-            quiz.Creator = $"{creator.FirstName} {creator.LastName}";
-        }
-
-        var updater = await updaterTask;
-        if (updater is not null)
-        {
-            quiz.Updater = $"{updater.FirstName} {updater.LastName}";
-        }
+        var (creator, updater) = await _userDisplayNameService.ResolveCreatorUpdaterAsync(quiz.CreateBy, quiz.UpdateBy);
+        quiz.Creator = creator;
+        quiz.Updater = updater;
     }
 }

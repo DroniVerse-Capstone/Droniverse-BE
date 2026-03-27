@@ -1,7 +1,6 @@
 ﻿using AutoMapper;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
-using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
@@ -21,14 +20,14 @@ public class CourseService : ICourseService
     private readonly ICurrentUserService _currentUser;
     private readonly IClock _clock;
     private readonly IMapper _mapper;
-    private readonly IdentityMicroserviceClient _identityClient;
-    public CourseService(IUnitOfWork unitOfWork, IClock clock, ICurrentUserService current, IMapper mapper, IdentityMicroserviceClient identityMicroserviceClient)
+    private readonly IUserDisplayNameService _userDisplayNameService;
+    public CourseService(IUnitOfWork unitOfWork, IClock clock, ICurrentUserService current, IMapper mapper, IUserDisplayNameService userDisplayNameService)
     {
         _unitOfWork = unitOfWork;
         _clock = clock;
         _currentUser = current;
         _mapper = mapper;
-        _identityClient = identityMicroserviceClient;
+        _userDisplayNameService = userDisplayNameService;
     }
 
     public async Task<CourseDetailResponseDTO> CreateCourseAsync()
@@ -36,10 +35,9 @@ public class CourseService : ICourseService
         var course = new Course
         {
             CourseID = Guid.NewGuid(),
-            CourseVersions = new List<CourseVersion>(),
-            CreateBy = _currentUser.UserId,
-            CreateAt = _clock.Now
+            CourseVersions = new List<CourseVersion>()
         };
+        course.SetAuditOnCreate(_currentUser.UserId, _clock.Now);
 
         await _unitOfWork.Courses.AddAsync(course);
         await _unitOfWork.SaveChangesAsync();
@@ -156,19 +154,11 @@ public class CourseService : ICourseService
 
     private async Task PopulateCreatorAsync(CourseResponseDTO course)
     {
-        var creator = await _identityClient.GetUserByUserID(course.CreateBy);
-        if (creator is null)
-            return;
-
-        course.Creator = $"{creator.FirstName} {creator.LastName}";
+        course.Creator = await _userDisplayNameService.ResolveUserDisplayNameAsync(course.CreateBy);
     }
 
     private async Task PopulateCreatorAsync(CourseDetailResponseDTO course)
     {
-        var creator = await _identityClient.GetUserByUserID(course.CreateBy);
-        if (creator is null)
-            return;
-
-        course.Creator = $"{creator.FirstName} {creator.LastName}";
+        course.Creator = await _userDisplayNameService.ResolveUserDisplayNameAsync(course.CreateBy);
     }
 }

@@ -59,6 +59,16 @@ public class CourseVersion
 
     public Certificate? Certificate { get; set; }
 
+    public void SetAuditOnCreate(Guid userId, DateTime now)
+    {
+        SetAudit(userId, now);
+    }
+
+    public void SetAuditOnUpdate(Guid userId, DateTime now)
+    {
+        SetAudit(userId, now);
+    }
+
     /* =========================
        STATE MACHINE
        ========================= */
@@ -134,7 +144,7 @@ public class CourseVersion
         EstimatedDuration = estimatedDuration;
         ChangeLog = changeLog;
 
-        SetAudit(userId, now);
+        SetAuditOnUpdate(userId, now);
     }
 
     private void SetAudit(Guid userId, DateTime now)

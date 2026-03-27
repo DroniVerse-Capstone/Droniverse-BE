@@ -10,12 +10,26 @@ public class Certificate
     public string Description { get; set; }           // text
     public string Signature { get; set; }             // text
     public string AuthorName { get; set; }            // varchar(100)
-    public DateTime CreateAt { get; set; }
-    public Guid CreateBy { get; set; }                // FK -> User
-    public Guid UpdateBy { get; set; }                // FK -> User
-    public DateTime UpdateAt { get; set; }
+    public DateTime CreateAt { get; private set; }
+    public Guid CreateBy { get; private set; }                // FK -> User
+    public Guid UpdateBy { get; private set; }                // FK -> User
+    public DateTime UpdateAt { get; private set; }
 
     // Navigation
     public CourseVersion CourseVersion { get; set; }
     public ICollection<UserCertificate> UserCertificates { get; set; }
+
+    public void SetAuditOnCreate(Guid userId, DateTime now)
+    {
+        CreateBy = userId;
+        CreateAt = now;
+        UpdateBy = userId;
+        UpdateAt = now;
+    }
+
+    public void SetAuditOnUpdate(Guid userId, DateTime now)
+    {
+        UpdateBy = userId;
+        UpdateAt = now;
+    }
 }

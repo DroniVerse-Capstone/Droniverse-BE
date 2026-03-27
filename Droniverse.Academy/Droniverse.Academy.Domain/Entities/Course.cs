@@ -8,10 +8,16 @@ public class Course
 
     public ICollection<CourseVersion> CourseVersions { get; set; }
     public CourseVersion? CurrentVersion { get; set; }
-    public Guid CreateBy { get; set; } // reference to UserID
-    public DateTime CreateAt { get; set; }
+    public Guid CreateBy { get; private set; } // reference to UserID
+    public DateTime CreateAt { get; private set; }
     public CourseStatus Status { get; private set; } = CourseStatus.DRAFT;
     public Guid? CurrentVersionID { get; set; } // reference to CourseVersionID
+
+    public void SetAuditOnCreate(Guid userId, DateTime now)
+    {
+        CreateBy = userId;
+        CreateAt = now;
+    }
 
     public void Publish()
     {
