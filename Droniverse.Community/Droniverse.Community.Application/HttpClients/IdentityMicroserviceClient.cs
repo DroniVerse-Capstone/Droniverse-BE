@@ -43,7 +43,7 @@ public class IdentityMicroserviceClient
         }
 
         //HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/api/users/{userId}");
-        HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/identity/users/{userId}");
+        HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/api/users/{userId}");
 
         if (!httpResponseMsg.IsSuccessStatusCode)
         {
@@ -59,14 +59,9 @@ public class IdentityMicroserviceClient
                 return null;
             }
             else if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.BadRequest)
-            {
                 throw new HttpRequestException("Bad request", null, System.Net.HttpStatusCode.BadRequest);
-            }
             else
-            {
-                //fallback data
                 throw new HttpRequestException($"Identity service error: {httpResponseMsg.StatusCode}", null, httpResponseMsg.StatusCode);
-            }
         }
         UserResponse? user = await httpResponseMsg.Content.ReadFromJsonAsync<UserResponse>();
         if (user == null)
@@ -139,7 +134,7 @@ public class IdentityMicroserviceClient
             try
             {
                 var response = await _httpClient.PostAsJsonAsync(
-                    "/identity/users/bulk",
+                    "/api/users/bulk",
                     missingIds
                 );
 
