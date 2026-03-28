@@ -24,6 +24,10 @@ public class UserModuleController : ControllerBase
         _service = service;
     }
 
+    /// <summary>
+    /// Tạo user module cho người dùng hiện tại.
+    /// </summary>
+    /// <param name="request">Thông tin user module cần tạo.</param>
     [HttpPost]
     [SwaggerRequestExample(typeof(CreateUserModuleRequestDTO), typeof(CreateUserModuleRequestExample))]
     public async Task<IActionResult> CreateUserModule([FromBody] CreateUserModuleRequestDTO request)
@@ -40,6 +44,12 @@ public class UserModuleController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy danh sách user module của người dùng hiện tại.
+    /// </summary>
+    /// <param name="pageIndex">Trang hiện tại, bắt đầu từ 1.</param>
+    /// <param name="pageSize">Số bản ghi trên mỗi trang.</param>
+    /// <param name="completion">Bộ lọc trạng thái hoàn thành.</param>
     [HttpGet]
     public async Task<IActionResult> GetMyUserModules(
         [FromQuery] int pageIndex = 1,
@@ -58,6 +68,10 @@ public class UserModuleController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy chi tiết user module của người dùng hiện tại.
+    /// </summary>
+    /// <param name="moduleId">Mã module.</param>
     [HttpGet("{moduleId:guid}")]
     public async Task<IActionResult> GetMyUserModule(Guid moduleId)
     {
@@ -73,6 +87,11 @@ public class UserModuleController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Cập nhật user module của người dùng hiện tại.
+    /// </summary>
+    /// <param name="moduleId">Mã module.</param>
+    /// <param name="request">Thông tin user module cần cập nhật.</param>
     [HttpPut("{moduleId:guid}")]
     [SwaggerRequestExample(typeof(UpdateUserModuleRequestDTO), typeof(UpdateUserModuleRequestExample))]
     public async Task<IActionResult> UpdateMyUserModule(Guid moduleId, [FromBody] UpdateUserModuleRequestDTO request)
@@ -89,6 +108,10 @@ public class UserModuleController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Xóa user module của người dùng hiện tại.
+    /// </summary>
+    /// <param name="moduleId">Mã module.</param>
     [HttpDelete("{moduleId:guid}")]
     public async Task<IActionResult> DeleteMyUserModule(Guid moduleId)
     {

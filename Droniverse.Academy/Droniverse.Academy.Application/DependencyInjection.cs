@@ -39,6 +39,10 @@ public static class DependencyInjection
         services.AddScoped<IUserQuizQuestionAttemptService, UserQuizQuestionAttemptService>();
         services.AddScoped<IFeedbackService, FeedbackService>();
         services.AddScoped<IReportService, ReportService>();
+        services.AddScoped<IAdminEnrollmentService, AdminEnrollmentService>();
+        services.AddScoped<IAdminReportService, AdminReportService>();
+        services.AddScoped<IAdminUserCertificateService, AdminUserCertificateService>();
+        services.AddScoped<IAdminUserLearningService, AdminUserLearningService>();
         services.AddScoped<ILabContentService, LabContentService>();
         services.AddScoped<IUserDisplayNameService, UserDisplayNameService>();
 

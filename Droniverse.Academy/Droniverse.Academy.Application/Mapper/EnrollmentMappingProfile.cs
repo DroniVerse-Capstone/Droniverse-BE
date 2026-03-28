@@ -19,5 +19,14 @@ public class EnrollmentMappingProfile : Profile
             .ForMember(dest => dest.CourseVersion, opt => opt.Ignore());
 
         CreateMap<Enrollment, EnrollmentResponseDTO>();
+
+        CreateMap<AdminUpdateEnrollmentRequestDTO, Enrollment>()
+            .ForMember(dest => dest.EnrollmentID, opt => opt.Ignore())
+            .ForMember(dest => dest.CourseVersionID, opt => opt.Ignore())
+            .ForMember(dest => dest.UserID, opt => opt.Ignore())
+            .ForMember(dest => dest.ClubID, opt => opt.Ignore())
+            .ForMember(dest => dest.EnrollDate, opt => opt.Ignore())
+            .ForMember(dest => dest.CourseVersion, opt => opt.Ignore())
+            .ForAllMembers(opt => opt.Condition((src, _, srcMember) => srcMember != null));
     }
 }

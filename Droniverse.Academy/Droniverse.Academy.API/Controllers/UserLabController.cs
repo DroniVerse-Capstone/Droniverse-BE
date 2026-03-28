@@ -24,6 +24,10 @@ public class UserLabController : ControllerBase
         _service = service;
     }
 
+    /// <summary>
+    /// Tạo user lab cho người dùng hiện tại.
+    /// </summary>
+    /// <param name="request">Thông tin user lab cần tạo.</param>
     [HttpPost]
     [SwaggerRequestExample(typeof(CreateUserLabRequestDTO), typeof(CreateUserLabRequestExample))]
     public async Task<IActionResult> CreateUserLab([FromBody] CreateUserLabRequestDTO request)
@@ -40,6 +44,12 @@ public class UserLabController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy danh sách user lab của người dùng hiện tại.
+    /// </summary>
+    /// <param name="pageIndex">Trang hiện tại, bắt đầu từ 1.</param>
+    /// <param name="pageSize">Số bản ghi trên mỗi trang.</param>
+    /// <param name="completion">Bộ lọc trạng thái hoàn thành.</param>
     [HttpGet]
     public async Task<IActionResult> GetMyUserLabs(
         [FromQuery] int pageIndex = 1,
@@ -58,6 +68,10 @@ public class UserLabController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy chi tiết user lab của người dùng hiện tại.
+    /// </summary>
+    /// <param name="userLabId">Mã user lab.</param>
     [HttpGet("{userLabId:guid}")]
     public async Task<IActionResult> GetMyUserLabById(Guid userLabId)
     {
@@ -73,6 +87,11 @@ public class UserLabController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Cập nhật user lab của người dùng hiện tại.
+    /// </summary>
+    /// <param name="userLabId">Mã user lab.</param>
+    /// <param name="request">Thông tin user lab cần cập nhật.</param>
     [HttpPut("{userLabId:guid}")]
     [SwaggerRequestExample(typeof(UpdateUserLabRequestDTO), typeof(UpdateUserLabRequestExample))]
     public async Task<IActionResult> UpdateMyUserLab(Guid userLabId, [FromBody] UpdateUserLabRequestDTO request)
@@ -89,6 +108,10 @@ public class UserLabController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Xóa user lab của người dùng hiện tại.
+    /// </summary>
+    /// <param name="userLabId">Mã user lab.</param>
     [HttpDelete("{userLabId:guid}")]
     public async Task<IActionResult> DeleteMyUserLab(Guid userLabId)
     {

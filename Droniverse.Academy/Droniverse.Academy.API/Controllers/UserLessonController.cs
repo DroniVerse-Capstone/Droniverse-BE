@@ -25,6 +25,10 @@ public class UserLessonController : ControllerBase
         _service = service;
     }
 
+    /// <summary>
+    /// Tạo user lesson cho người dùng hiện tại.
+    /// </summary>
+    /// <param name="request">Thông tin user lesson cần tạo.</param>
     [HttpPost]
     [SwaggerRequestExample(typeof(CreateUserLessonRequestDTO), typeof(CreateUserLessonRequestExample))]
     public async Task<IActionResult> CreateUserLesson([FromBody] CreateUserLessonRequestDTO request)
@@ -41,6 +45,12 @@ public class UserLessonController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy danh sách user lesson của người dùng hiện tại.
+    /// </summary>
+    /// <param name="pageIndex">Trang hiện tại, bắt đầu từ 1.</param>
+    /// <param name="pageSize">Số bản ghi trên mỗi trang.</param>
+    /// <param name="status">Bộ lọc trạng thái bài học.</param>
     [HttpGet]
     public async Task<IActionResult> GetMyUserLessons(
         [FromQuery] int pageIndex = 1,
@@ -59,6 +69,10 @@ public class UserLessonController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy chi tiết user lesson của người dùng hiện tại.
+    /// </summary>
+    /// <param name="userLessonId">Mã user lesson.</param>
     [HttpGet("{userLessonId:guid}")]
     public async Task<IActionResult> GetMyUserLessonById(Guid userLessonId)
     {
@@ -74,6 +88,11 @@ public class UserLessonController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Cập nhật user lesson của người dùng hiện tại.
+    /// </summary>
+    /// <param name="userLessonId">Mã user lesson.</param>
+    /// <param name="request">Thông tin user lesson cần cập nhật.</param>
     [HttpPut("{userLessonId:guid}")]
     [SwaggerRequestExample(typeof(UpdateUserLessonRequestDTO), typeof(UpdateUserLessonRequestExample))]
     public async Task<IActionResult> UpdateMyUserLesson(Guid userLessonId, [FromBody] UpdateUserLessonRequestDTO request)
@@ -90,6 +109,10 @@ public class UserLessonController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Xóa user lesson của người dùng hiện tại.
+    /// </summary>
+    /// <param name="userLessonId">Mã user lesson.</param>
     [HttpDelete("{userLessonId:guid}")]
     public async Task<IActionResult> DeleteMyUserLesson(Guid userLessonId)
     {

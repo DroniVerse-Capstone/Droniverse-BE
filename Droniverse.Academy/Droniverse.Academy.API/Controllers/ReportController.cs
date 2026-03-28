@@ -24,6 +24,10 @@ public class ReportController : ControllerBase
         _service = service;
     }
 
+    /// <summary>
+    /// Tạo báo cáo mới cho lab.
+    /// </summary>
+    /// <param name="request">Thông tin báo cáo cần tạo.</param>
     [HttpPost]
     [SwaggerRequestExample(typeof(CreateReportRequestDTO), typeof(CreateReportRequestExample))]
     public async Task<IActionResult> CreateReport([FromBody] CreateReportRequestDTO request)
@@ -40,6 +44,13 @@ public class ReportController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy danh sách báo cáo và lọc theo lab hoặc người dùng.
+    /// </summary>
+    /// <param name="pageIndex">Trang hiện tại, bắt đầu từ 1.</param>
+    /// <param name="pageSize">Số bản ghi trên mỗi trang.</param>
+    /// <param name="labId">Mã lab cần lọc.</param>
+    /// <param name="userId">Mã người dùng cần lọc.</param>
     [HttpGet]
     [Authorize(Roles = Roles.AdminOrManagerRoles)]
     public async Task<IActionResult> GetReports(
@@ -60,6 +71,11 @@ public class ReportController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy danh sách báo cáo của người dùng hiện tại.
+    /// </summary>
+    /// <param name="pageIndex">Trang hiện tại, bắt đầu từ 1.</param>
+    /// <param name="pageSize">Số bản ghi trên mỗi trang.</param>
     [HttpGet("my")]
     public async Task<IActionResult> GetMyReports(
         [FromQuery] int pageIndex = 1,
@@ -77,6 +93,10 @@ public class ReportController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy chi tiết một báo cáo.
+    /// </summary>
+    /// <param name="reportId">Mã báo cáo.</param>
     [HttpGet("{reportId:guid}")]
     public async Task<IActionResult> GetReportById(Guid reportId)
     {
@@ -92,6 +112,11 @@ public class ReportController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Cập nhật báo cáo của người dùng hiện tại.
+    /// </summary>
+    /// <param name="reportId">Mã báo cáo.</param>
+    /// <param name="request">Nội dung báo cáo sau khi cập nhật.</param>
     [HttpPut("{reportId:guid}")]
     [SwaggerRequestExample(typeof(UpdateReportRequestDTO), typeof(UpdateReportRequestExample))]
     public async Task<IActionResult> UpdateMyReport(Guid reportId, [FromBody] UpdateReportRequestDTO request)
@@ -108,6 +133,11 @@ public class ReportController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Phản hồi báo cáo.
+    /// </summary>
+    /// <param name="reportId">Mã báo cáo.</param>
+    /// <param name="request">Nội dung phản hồi.</param>
     [HttpPatch("{reportId:guid}/response")]
     [Authorize(Roles = Roles.AdminOrManagerRoles)]
     [SwaggerRequestExample(typeof(RespondReportRequestDTO), typeof(RespondReportRequestExample))]
@@ -125,6 +155,10 @@ public class ReportController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Xóa báo cáo của người dùng hiện tại.
+    /// </summary>
+    /// <param name="reportId">Mã báo cáo.</param>
     [HttpDelete("{reportId:guid}")]
     public async Task<IActionResult> DeleteMyReport(Guid reportId)
     {

@@ -24,6 +24,10 @@ public class UserQuizQuestionAttemptController : ControllerBase
         _service = service;
     }
 
+    /// <summary>
+    /// Tạo quiz question attempt cho người dùng hiện tại.
+    /// </summary>
+    /// <param name="request">Thông tin quiz question attempt cần tạo.</param>
     [HttpPost]
     [SwaggerRequestExample(typeof(CreateUserQuizQuestionAttemptRequestDTO), typeof(CreateUserQuizQuestionAttemptRequestExample))]
     public async Task<IActionResult> CreateQuizQuestionAttempt([FromBody] CreateUserQuizQuestionAttemptRequestDTO request)
@@ -40,6 +44,12 @@ public class UserQuizQuestionAttemptController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy danh sách quiz question attempt của người dùng hiện tại.
+    /// </summary>
+    /// <param name="pageIndex">Trang hiện tại, bắt đầu từ 1.</param>
+    /// <param name="pageSize">Số bản ghi trên mỗi trang.</param>
+    /// <param name="correctness">Bộ lọc đúng/sai của câu trả lời.</param>
     [HttpGet]
     public async Task<IActionResult> GetMyQuizQuestionAttempts(
         [FromQuery] int pageIndex = 1,
@@ -58,6 +68,10 @@ public class UserQuizQuestionAttemptController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy chi tiết quiz question attempt của người dùng hiện tại.
+    /// </summary>
+    /// <param name="attemptAnswerId">Mã quiz question attempt.</param>
     [HttpGet("{attemptAnswerId:guid}")]
     public async Task<IActionResult> GetMyQuizQuestionAttemptById(Guid attemptAnswerId)
     {
@@ -73,6 +87,11 @@ public class UserQuizQuestionAttemptController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Cập nhật quiz question attempt của người dùng hiện tại.
+    /// </summary>
+    /// <param name="attemptAnswerId">Mã quiz question attempt.</param>
+    /// <param name="request">Thông tin quiz question attempt cần cập nhật.</param>
     [HttpPut("{attemptAnswerId:guid}")]
     [SwaggerRequestExample(typeof(UpdateUserQuizQuestionAttemptRequestDTO), typeof(UpdateUserQuizQuestionAttemptRequestExample))]
     public async Task<IActionResult> UpdateMyQuizQuestionAttempt(Guid attemptAnswerId, [FromBody] UpdateUserQuizQuestionAttemptRequestDTO request)
@@ -89,6 +108,10 @@ public class UserQuizQuestionAttemptController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Xóa quiz question attempt của người dùng hiện tại.
+    /// </summary>
+    /// <param name="attemptAnswerId">Mã quiz question attempt.</param>
     [HttpDelete("{attemptAnswerId:guid}")]
     public async Task<IActionResult> DeleteMyQuizQuestionAttempt(Guid attemptAnswerId)
     {
