@@ -1,10 +1,12 @@
 ﻿using Droniverse.Academy.API.Enums;
+using Droniverse.Academy.API.Examples;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Filters;
 
 namespace Droniverse.Academy.API.Controllers;
 
@@ -23,6 +25,7 @@ public class UserQuizAttemptController : ControllerBase
     }
 
     [HttpPost]
+    [SwaggerRequestExample(typeof(CreateUserQuizAttemptRequestDTO), typeof(CreateUserQuizAttemptRequestExample))]
     public async Task<IActionResult> CreateQuizAttempt([FromBody] CreateUserQuizAttemptRequestDTO request)
     {
         try
@@ -71,6 +74,7 @@ public class UserQuizAttemptController : ControllerBase
     }
 
     [HttpPut("{attemptId:guid}")]
+    [SwaggerRequestExample(typeof(UpdateUserQuizAttemptRequestDTO), typeof(UpdateUserQuizAttemptRequestExample))]
     public async Task<IActionResult> UpdateMyQuizAttempt(Guid attemptId, [FromBody] UpdateUserQuizAttemptRequestDTO request)
     {
         try

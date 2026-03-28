@@ -1,10 +1,12 @@
 ﻿using Droniverse.Academy.API.Enums;
+using Droniverse.Academy.API.Examples;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Filters;
 
 namespace Droniverse.Academy.API.Controllers;
 
@@ -23,6 +25,7 @@ public class UserModuleController : ControllerBase
     }
 
     [HttpPost]
+    [SwaggerRequestExample(typeof(CreateUserModuleRequestDTO), typeof(CreateUserModuleRequestExample))]
     public async Task<IActionResult> CreateUserModule([FromBody] CreateUserModuleRequestDTO request)
     {
         try
@@ -71,6 +74,7 @@ public class UserModuleController : ControllerBase
     }
 
     [HttpPut("{moduleId:guid}")]
+    [SwaggerRequestExample(typeof(UpdateUserModuleRequestDTO), typeof(UpdateUserModuleRequestExample))]
     public async Task<IActionResult> UpdateMyUserModule(Guid moduleId, [FromBody] UpdateUserModuleRequestDTO request)
     {
         try

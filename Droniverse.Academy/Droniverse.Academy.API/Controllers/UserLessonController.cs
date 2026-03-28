@@ -1,4 +1,5 @@
 ﻿using Droniverse.Academy.API.Enums;
+using Droniverse.Academy.API.Examples;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Enums;
@@ -6,6 +7,7 @@ using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Filters;
 
 namespace Droniverse.Academy.API.Controllers;
 
@@ -24,6 +26,7 @@ public class UserLessonController : ControllerBase
     }
 
     [HttpPost]
+    [SwaggerRequestExample(typeof(CreateUserLessonRequestDTO), typeof(CreateUserLessonRequestExample))]
     public async Task<IActionResult> CreateUserLesson([FromBody] CreateUserLessonRequestDTO request)
     {
         try
@@ -72,6 +75,7 @@ public class UserLessonController : ControllerBase
     }
 
     [HttpPut("{userLessonId:guid}")]
+    [SwaggerRequestExample(typeof(UpdateUserLessonRequestDTO), typeof(UpdateUserLessonRequestExample))]
     public async Task<IActionResult> UpdateMyUserLesson(Guid userLessonId, [FromBody] UpdateUserLessonRequestDTO request)
     {
         try

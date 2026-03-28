@@ -38,6 +38,7 @@ public static class DependencyInjection
         services.AddScoped<IUserQuizAttemptService, UserQuizAttemptService>();
         services.AddScoped<IUserQuizQuestionAttemptService, UserQuizQuestionAttemptService>();
         services.AddScoped<IFeedbackService, FeedbackService>();
+        services.AddScoped<IReportService, ReportService>();
         services.AddScoped<ILabContentService, LabContentService>();
         services.AddScoped<IUserDisplayNameService, UserDisplayNameService>();
 
