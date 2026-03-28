@@ -40,7 +40,7 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
-        /// Kiểm tra trạng thái của order và payment. #2. Luồng thanh toán
+        /// Kiểm tra trạng thái của order và payment. #2. #5. Luồng thanh toán
         /// </summary>
         /// <param name="orderId"></param>
         /// <returns></returns>
@@ -77,7 +77,7 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
-        /// Lấy danh sách các giao dịch thanh toán của người dùng hiện tại.
+        /// Lấy danh sách các giao dịch thanh toán của người dùng hiện tại. 6#. Luồng thanh toán
         /// </summary>
         /// <returns></returns>
         [HttpGet("me")]

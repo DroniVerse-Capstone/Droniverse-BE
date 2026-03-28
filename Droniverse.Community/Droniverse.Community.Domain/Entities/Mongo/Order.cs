@@ -18,7 +18,7 @@ public class Order // Document trong NoSql ~~ Table trong SequenceSql
     //[BsonRepresentation(BsonType.String)]
     public Guid InvoiceID { get; set; }
 
-    public List<OrderItem> Items { get; set; }
+    public OrderItem Item { get; set; }
     
     public Payment Payment { get; set; }
 

@@ -37,56 +37,44 @@ internal class OrderService : IOrderService
         if (orderAddRequest == null)
             throw new ArgumentNullException(nameof(orderAddRequest));
 
-        if(orderAddRequest.Items is null || orderAddRequest.Items.Count == 0)
-            throw new ArgumentNullException("Đơn hàng phải chứa ít nhất 1 item.", nameof(orderAddRequest.Items));
+        if(orderAddRequest.Item is null)
+            throw new ArgumentNullException("Đơn hàng không có sản phẩm.", nameof(orderAddRequest.Item));
+
+        if(_currentUserService.UserID == null)
+            throw new UnauthorizedAccessException("Không tìm thấy người dùng.");
 
         if(!Guid.TryParse(_currentUserService.UserID, out var currentUserId))
-            throw new UnauthorizedAccessException("Nguời dùng chưa được xác thực");
+            throw new UnauthorizedAccessException("Nguời dùng chưa được xác thực.");
 
         if(orderAddRequest.TotalAmount <= 0)
             throw new ArgumentException("Tổng tiền phải lớn hơn 0.", nameof(orderAddRequest.TotalAmount));
 
-        // Chặn user giả mạo userId từ req
-        if(orderAddRequest.UserID != Guid.Empty && orderAddRequest.UserID != currentUserId)
-            throw new UnauthorizedAccessException("UserId trong request không hợp lệ.");
-
-        // Tạo order items
-        List<OrderItem> orderItems = orderAddRequest.Items.Select(item => new OrderItem
+        // Tạo order item (chỉ có 1 item cho mỗi order
+        OrderItem orderItem = new OrderItem
         {
-            ProductID = item.ProductID,
-            ProductName = item.ProductName,
-            Type = item.Type,
-            UnitOfPrice = item.UnitOfPrice,
-            Quantity = item.Quantity,
-            Total = item.Total
-        }).ToList();
+            ProductID = orderAddRequest.Item.ProductID,
+            ProductName = orderAddRequest.Item.ProductName,
+            Type = orderAddRequest.Item.Type,
+            UnitOfPrice = orderAddRequest.Item.UnitOfPrice,
+            Quantity = orderAddRequest.Item.Quantity,
+            Total = orderAddRequest.Item.Total
+        };
 
-        Order order = new Order()
+        //Tạo order
+        Order order = new Order
         {
             _id = Guid.NewGuid(),
             UserID = currentUserId,
-            InvoiceID = Guid.NewGuid(),
-            TotalAmount = orderAddRequest.TotalAmount,
+            CreateAt = DateTime.UtcNow.AddDays(7),
+            InvoiceID = Guid.Empty, // Chưa có invoice khi tạo order
+            Item = orderItem,
             Status = OrderStatus.PENDING,
-            CreateAt = DateTime.UtcNow.AddHours(7),
-            Items = orderItems
+            TotalAmount = orderAddRequest.TotalAmount,
+            Payment = null // Chưa có payment khi tạo order
         };
 
-        foreach (var item in orderAddRequest.Items)
-        {
-            order.Items.Add(new OrderItem
-            {
-                ProductID = item.ProductID,
-                ProductName = item.ProductName,
-                Type = item.Type,
-                UnitOfPrice = item.UnitOfPrice,
-                Quantity = item.Quantity,
-                Total = item.Total
-            });
-        }
-        //Tạo order
+        //Add order into db
         Order? createdOrder = await _orderRepository.AddOrder(order) ?? throw new Exception("Create order failed");
-
         try
         {
             PaymentCreateDto paymentReq = new PaymentCreateDto(
@@ -110,11 +98,11 @@ internal class OrderService : IOrderService
         invoice.TotalAmount = order.TotalAmount;
         invoice.ContentEN = "Content invoice...";
         invoice.ContentVN = "Nội dung hóa đơn...";
-        invoice.IssueAt = DateTime.UtcNow;
+        invoice.IssueAt = DateTime.UtcNow.AddDays(7);
         invoice.CustomerInfo = new CustomerInfo
         {
             UserID = order.UserID,
-            Name = "Tuyền đẹp trai",
+            Name = _currentUserService.UserName,
             TaxCode = "xxx-yyy-zzz"
         };
         Invoice? responseInvoice = await _invoiceRepository.AddInvoice(invoice);
@@ -136,15 +124,6 @@ internal class OrderService : IOrderService
     {
         IEnumerable<Order> orders = await _orderRepository.GetOrders();
         IEnumerable<OrderResponseDto?> orderDtos = _mapper.Map<IEnumerable<Order>, IEnumerable<OrderResponseDto?>>(orders);
-        foreach (var orderDto in orderDtos)
-        {
-            var order = orders.FirstOrDefault(o => o._id == orderDto.OrderID);
-            if (order != null)
-            {
-                var itemDtos = _mapper.Map<List<OrderItem>, List<OrderItemDto>>(order.Items);
-                orderDto.Items.AddRange(itemDtos);
-            }
-        }
         return orderDtos.ToList();
 
     }

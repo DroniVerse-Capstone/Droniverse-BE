@@ -28,8 +28,10 @@ public static class DependencyInjection
         services.AddScoped<IRoundService, RoundService>();
         services.AddScoped<ICompetitionPrizeService, CompetitionPrizeService>();
         services.AddScoped<IUserRoundService, UserRoundService>();
+        services.AddScoped<IProductService, ProductService>();
         services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<IPaymentService, PaymentService>();
+        services.AddScoped<IProductCategoryService, ProductCategoryService>();
 
         // Đăng ký Background Jobs
         //services.AddTransient<CompetitionStatusJob>();

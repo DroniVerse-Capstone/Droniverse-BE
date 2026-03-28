@@ -23,11 +23,6 @@ internal class OrderRepository : IOrderRepository
     public async Task<Order> AddOrder(Order order)
     {
         //order._id = Guid.NewGuid();
-        foreach (OrderItem orderItem in order.Items)
-        {
-            orderItem.ProductID = Guid.NewGuid();
-        }
-
         await _orders.InsertOneAsync(order);
         return order;
     }

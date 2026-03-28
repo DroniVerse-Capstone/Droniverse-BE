@@ -17,7 +17,7 @@ public class Product
     public string DescriptionEN { get; set; }
     public decimal Price { get; set; }
     public CurrencyType Currency { get; set; }
-    public string Status { get; set; }
+    public ProductStatus Status { get; set; }
     public DateTime CreateAt { get; set; }
     public DateTime UpdateAt { get; set; }
 
