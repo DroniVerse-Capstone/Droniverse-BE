@@ -54,6 +54,9 @@ public class CourseService : ICourseService
         if (course == null)
             throw new BaseException("Không tìm thấy khóa học.", "NOT_FOUND");
 
+        if (course.Status != CourseStatus.DRAFT && course.Status != CourseStatus.UNPUBLISH)
+            throw new ValidationException("Chỉ khóa học ở trạng thái Draft hoặc Unpublish mới có thể xóa mềm.");
+
         course.Archive();
         await _unitOfWork.SaveChangesAsync();
     }
@@ -117,6 +120,13 @@ public class CourseService : ICourseService
         if (course == null)
             throw new BaseException("Không tìm thấy khóa học.", "NOT_FOUND");
 
+        var currentVersion = course.CourseVersions.FirstOrDefault(v => v.CourseVersionID == course.CurrentVersionID);
+        if (currentVersion == null)
+            throw new ValidationException("Không thể publish khóa học khi chưa có phiên bản hiện tại.");
+
+        if (currentVersion.Status != CourseVersionStatus.ACTIVE)
+            throw new ValidationException("Chỉ có thể publish khóa học khi phiên bản hiện tại đang ở trạng thái Active.");
+
         course.Publish();
 
         await _unitOfWork.SaveChangesAsync();
@@ -127,6 +137,16 @@ public class CourseService : ICourseService
         var course = await _unitOfWork.Courses.GetByIdWithAllVersionsAsync(courseId);
         if (course == null)
             throw new BaseException("Không tìm thấy khóa học.", "NOT_FOUND");
+
+        var currentVersion = course.CourseVersions.FirstOrDefault(v => v.CourseVersionID == course.CurrentVersionID);
+        if (currentVersion != null)
+        {
+            if (currentVersion.Status == CourseVersionStatus.INACTIVE)
+                throw new ValidationException("Phiên bản hiện tại đã xóa mềm, chỉ được xem.");
+
+            if (currentVersion.Status == CourseVersionStatus.ACTIVE)
+                currentVersion.Deprecate(_currentUser.UserId, _clock.Now);
+        }
 
         course.Unpublish();
 

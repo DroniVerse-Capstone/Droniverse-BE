@@ -35,6 +35,9 @@ public class CourseVersionService : ICourseVersionService
         if (course == null)
             throw new BaseException("Không tìm thấy khóa học.", "NOT_FOUND");
 
+        if (course.Status == CourseStatus.ARCHIVED)
+            throw new ValidationException("Khóa học đã lưu trữ chỉ được xem, không thể thao tác.");
+
         // determine next version number
         var nextVersion = 1;
         if (course.CourseVersions != null && course.CourseVersions.Any())
@@ -69,17 +72,25 @@ public class CourseVersionService : ICourseVersionService
         if (course == null)
             throw new BaseException("Không tìm thấy khóa học.", "NOT_FOUND");
 
+        if (course.Status == CourseStatus.ARCHIVED)
+            throw new ValidationException("Khóa học đã lưu trữ chỉ được xem, không thể thao tác.");
+
         var cv = await _unitOfWork.CourseVersions.GetByConditionAsync(v => v.CourseVersionID == versionId && v.CourseID == courseId);
         if (cv == null)
             throw new BaseException("Không tìm thấy phiên bản khóa học.", "NOT_FOUND");
 
         if (course.CurrentVersionID == versionId)
-            throw new ValidationException("Không thể xóa phiên bản hiện tại. Vui lòng vô hiệu hóa phiên bản hiện tại trước.");
+            throw new ValidationException("Không thể xóa phiên bản hiện tại.");
 
-        if (cv.Status == CourseVersionStatus.ACTIVE)
-            throw new ValidationException("Không thể xóa phiên bản đang hoạt động.");
+        if (cv.Status == CourseVersionStatus.INACTIVE)
+            throw new ValidationException("Phiên bản đã ở trạng thái đã xóa mềm, chỉ được xem.");
 
-        await _unitOfWork.CourseVersions.DeleteAsync(cv);
+        if (cv.Status != CourseVersionStatus.DRAFT && cv.Status != CourseVersionStatus.DEPRECATED)
+            throw new ValidationException("Chỉ phiên bản ở trạng thái Draft hoặc Deprecated mới có thể xóa mềm.");
+
+        cv.Inactivate(_currentUser.UserId, _clock.Now);
+
+        await _unitOfWork.CourseVersions.UpdateAsync(cv);
         await _unitOfWork.SaveChangesAsync();
     }
 
@@ -118,9 +129,15 @@ public class CourseVersionService : ICourseVersionService
         if (course == null)
             throw new BaseException("Không tìm thấy khóa học.", "NOT_FOUND");
 
+        if (course.Status == CourseStatus.ARCHIVED)
+            throw new ValidationException("Khóa học đã lưu trữ chỉ được xem, không thể thao tác.");
+
         var cv = course.CourseVersions.FirstOrDefault(v => v.CourseVersionID == versionId);
         if (cv == null)
             throw new BaseException("Không tìm thấy phiên bản khóa học.", "NOT_FOUND");
+
+        if (cv.Status == CourseVersionStatus.INACTIVE)
+            throw new ValidationException("Phiên bản đã xóa mềm chỉ được xem, không thể thao tác.");
 
         // deprecate other active versions
         var active = course.CourseVersions
@@ -142,34 +159,24 @@ public class CourseVersionService : ICourseVersionService
 
     public async Task DeactivateCourseVersionAsync(Guid courseId, Guid versionId)
     {
+        throw new ValidationException("Không hỗ trợ vô hiệu hóa trực tiếp phiên bản. Hãy kích hoạt phiên bản khác để phiên bản đang Active chuyển sang Deprecated.");
+    }
+
+    public async Task<CourseVersionResponseDTO> UpdateCourseVersionAsync(Guid courseId, Guid versionId, UpdateCourseVersionRequestDTO request)
+    {
         var course = await _unitOfWork.Courses.GetByIdWithAllVersionsAsync(courseId);
         if (course == null)
             throw new BaseException("Không tìm thấy khóa học.", "NOT_FOUND");
+
+        if (course.Status == CourseStatus.ARCHIVED)
+            throw new ValidationException("Khóa học đã lưu trữ chỉ được xem, không thể thao tác.");
 
         var cv = course.CourseVersions.FirstOrDefault(v => v.CourseVersionID == versionId);
         if (cv == null)
             throw new BaseException("Không tìm thấy phiên bản khóa học.", "NOT_FOUND");
 
-        if (cv.Status != CourseVersionStatus.ACTIVE)
-            throw new ValidationException("Chỉ phiên bản đang hoạt động mới có thể bị vô hiệu hóa.");
-
-        cv.Deprecate(_currentUser.UserId, _clock.Now);
-
-        // deprecated manually -> remove from current version if matched
-        if (course.CurrentVersionID == cv.CourseVersionID)
-        {
-            course.CurrentVersion = null;
-            course.CurrentVersionID = null;
-        }
-
-        await _unitOfWork.SaveChangesAsync();
-    }
-
-    public async Task<CourseVersionResponseDTO> UpdateCourseVersionAsync(Guid courseId, Guid versionId, UpdateCourseVersionRequestDTO request)
-    {
-        var cv = await _unitOfWork.CourseVersions.GetByConditionAsync(v => v.CourseVersionID == versionId && v.CourseID == courseId);
-        if (cv == null)
-            throw new BaseException("Không tìm thấy phiên bản khóa học.", "NOT_FOUND");
+        if (cv.Status == CourseVersionStatus.INACTIVE)
+            throw new ValidationException("Phiên bản đã xóa mềm chỉ được xem, không thể thao tác.");
 
         cv.UpdateContent(request.TitleVN, request.TitleEN, request.DescriptionVN, request.DescriptionEN, request.ContextVN, request.ContextEN, request.ImageUrl, request.Level, request.EstimatedDuration, request.ChangeLog, _currentUser.UserId, _clock.Now);
 
