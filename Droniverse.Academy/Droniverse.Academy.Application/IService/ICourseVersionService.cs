@@ -13,6 +13,8 @@ public interface ICourseVersionService
 
     Task<CourseVersionResponseDTO> GetCourseVersionByIdAsync(Guid courseId, Guid versionId);
 
+    Task<CourseVersionResponseDTO> DuplicateCourseVersionAsync(Guid courseId, Guid versionId);
+
     Task<CourseVersionResponseDTO> UpdateCourseVersionAsync(Guid courseId, Guid versionId, UpdateCourseVersionRequestDTO request);
 
     Task DeleteCourseVersionAsync(Guid courseId, Guid versionId);

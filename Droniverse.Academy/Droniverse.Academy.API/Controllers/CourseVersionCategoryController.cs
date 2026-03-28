@@ -23,25 +23,25 @@ public class CourseVersionCategoryController : ControllerBase
     }
 
     /// <summary>
-    /// Gán danh mục cho phiên bản khóa học.
+    /// Gán nhiều danh mục cho phiên bản khóa học.
     /// </summary>
     /// <param name="courseId">Mã khóa học.</param>
     /// <param name="versionId">Mã phiên bản khóa học.</param>
-    /// <param name="request">Thông tin danh mục cần gán.</param>
-    [HttpPost]
+    /// <param name="request">Danh sách category cần gán.</param>
+    [HttpPost("bulk")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
-    [SwaggerRequestExample(typeof(AssignCategoryRequestDTO), typeof(AssignCategoryRequestExample))]
+    [SwaggerRequestExample(typeof(AssignCategoriesRequestDTO), typeof(AssignCategoriesRequestExample))]
     [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> AddCategory(Guid courseId, Guid versionId, [FromBody] AssignCategoryRequestDTO request)
+    public async Task<IActionResult> AddCategories(Guid courseId, Guid versionId, [FromBody] AssignCategoriesRequestDTO request)
     {
         try
         {
-            await _service.AddCategoryAsync(courseId, versionId, request);
-            return Ok(SuccessResponse<object>.Create(null!, "Gán danh mục cho phiên bản khóa học thành công."));
+            await _service.AddCategoriesAsync(courseId, versionId, request);
+            return Ok(SuccessResponse<object>.Create(null!, "Gán nhiều danh mục cho phiên bản khóa học thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Gán danh mục cho phiên bản khóa học thất bại.");
+            _logger.LogError(ex, "Gán nhiều danh mục cho phiên bản khóa học thất bại.");
             throw;
         }
     }

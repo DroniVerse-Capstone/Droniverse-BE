@@ -1,19 +1,22 @@
-using Droniverse.Academy.Application.DTO.Request;
+﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Shared.Exceptions;
 
 namespace Droniverse.Academy.API.Validators;
 
 public static class RequiredDroneControllerValidator
 {
-    public static void ValidateAddRequiredDrone(Guid courseId, Guid versionId, AddRequiredDroneRequestDTO request)
+    public static void ValidateAddRequiredDrones(Guid courseId, Guid versionId, AddRequiredDronesRequestDTO request)
     {
         ValidateCourseVersionRoute(courseId, versionId);
 
         if (request == null)
             throw new ValidationException("Request body is required.");
 
-        if (request.DroneID == Guid.Empty)
-            throw new ValidationException("DroneID is required.");
+        if (request.DroneIDs.Count == 0)
+            throw new ValidationException("DroneIDs is required.");
+
+        if (request.DroneIDs.Any(id => id == Guid.Empty))
+            throw new ValidationException("DroneIDs contains invalid value.");
     }
 
     public static void ValidateRemoveRequiredDrone(Guid courseId, Guid versionId, Guid droneId)
