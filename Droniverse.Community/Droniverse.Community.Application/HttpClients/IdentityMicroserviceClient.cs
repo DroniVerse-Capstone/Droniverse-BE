@@ -43,7 +43,7 @@ public class IdentityMicroserviceClient
         }
 
         //HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/api/users/{userId}");
-        HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/api/users/{userId}");
+        HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/identity/users/{userId}");
 
         if (!httpResponseMsg.IsSuccessStatusCode)
         {
@@ -139,7 +139,7 @@ public class IdentityMicroserviceClient
             try
             {
                 var response = await _httpClient.PostAsJsonAsync(
-                    "/api/users/bulk",
+                    "/identity/users/bulk",
                     missingIds
                 );
 

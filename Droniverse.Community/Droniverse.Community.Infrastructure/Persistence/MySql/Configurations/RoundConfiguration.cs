@@ -51,7 +51,7 @@ public class RoundConfiguration : IEntityTypeConfiguration<Round>
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.ToTable(t =>
-            t.HasCheckConstraint("CK_Round_Status", "Status IN (0,1,2)")
+            t.HasCheckConstraint("CK_Round_Status", "Status IN (0,1,2,3)")
         );
     }
 }
