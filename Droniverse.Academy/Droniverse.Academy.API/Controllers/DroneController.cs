@@ -19,13 +19,38 @@ public class DroneController : ControllerBase
 {
     private readonly ILogger<DroneController> _logger;
     private readonly IDroneService _droneService;
+    private readonly IDroneTypeService _droneTypeService;
     private readonly IRequiredDroneService _requiredDroneService;
 
-    public DroneController(ILogger<DroneController> logger, IDroneService droneService, IRequiredDroneService requiredDroneService)
+    public DroneController(ILogger<DroneController> logger, IDroneService droneService, IDroneTypeService droneTypeService, IRequiredDroneService requiredDroneService)
     {
         _logger = logger;
         _droneService = droneService;
+        _droneTypeService = droneTypeService;
         _requiredDroneService = requiredDroneService;
+    }
+
+    /// <summary>
+    /// Tạo mới một drone.
+    /// </summary>
+    /// <param name="droneTypeId">Mã loại drone.</param>
+    /// <param name="request">Thông tin drone cần tạo.</param>
+    [HttpPost]
+    [Authorize(Roles = Roles.Admin)]
+    [SwaggerRequestExample(typeof(CreateDroneRequestDTO), typeof(CreateDroneRequestExample))]
+    [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status201Created)]
+    public async Task<IActionResult> CreateDrone([FromQuery] Guid droneTypeId, [FromBody] CreateDroneRequestDTO request)
+    {
+        try
+        {
+            var created = await _droneTypeService.CreateDroneAsync(droneTypeId, request);
+            return StatusCode(201, SuccessResponse<DroneClientViewDTO>.Create(created, "Tạo drone thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Tạo drone thất bại.");
+            throw;
+        }
     }
 
     /// <summary>
