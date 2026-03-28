@@ -5,6 +5,7 @@ using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.IRepository;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Droniverse.Community.Application.Services
 {
@@ -12,13 +13,16 @@ namespace Droniverse.Community.Application.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly AcademyMicroserviceClient _academyMicroserviceClient;
+        private readonly ILogger<CompetitionCertificateService> _logger;
 
         public CompetitionCertificateService(
             IUnitOfWork unitOfWork,
-            AcademyMicroserviceClient academyMicroserviceClient)
+            AcademyMicroserviceClient academyMicroserviceClient,
+            ILogger<CompetitionCertificateService> logger)
         {
             _unitOfWork = unitOfWork;
             _academyMicroserviceClient = academyMicroserviceClient;
+            _logger = logger;
         }
 
         public async Task<CompetitionCertificatesBulkResponseDto> AddCertificateToCompetition(
@@ -164,19 +168,58 @@ namespace Droniverse.Community.Application.Services
             });
         }
 
-        public async Task<bool> RemoveCertificateFromCompetition(Guid competitionId, Guid certificateId)
+        public async Task<bool> RemoveCertificatesFromCompetition(Guid competitionId, CompetitionCertificateRemoveDto request)
         {
+            var certificateIds = request.CertificateIDs.Distinct().ToList();
+            //_logger.LogInformation(
+            //    "Start removing certificates from competition. CompetitionId: {CompetitionId}, RequestedCount: {RequestedCount}",
+            //    competitionId,
+            //    certificateIds.Count);
+
             var competition = await _unitOfWork.Competitions.GetByCondition(
                 c => c.CompetitionID == competitionId,
                 q => q.Include(c => c.CompetitionCertificates)
             );
 
             if (competition == null)
+            {
+                _logger.LogWarning("Competition not found when removing certificates. CompetitionId: {CompetitionId}", competitionId);
                 throw new KeyNotFoundException($"Không tìm thấy cuộc thi với ID [{competitionId}].");
+            }
 
-            competition.RemoveCertificate(certificateId);
+            var removedCount = 0;
+
+            foreach (var certificateId in certificateIds)
+            {
+                try
+                {
+                    competition.RemoveCertificate(certificateId);
+                    removedCount++;
+                }
+                catch (KeyNotFoundException)
+                {
+                    _logger.LogDebug(
+                        "Skip removing certificate because it does not exist in competition. CompetitionId: {CompetitionId}, CertificateId: {CertificateId}",
+                        competitionId,
+                        certificateId);
+                }
+            }
+
+            if (removedCount == 0)
+            {
+                _logger.LogWarning(
+                    "No certificates were removed from competition. CompetitionId: {CompetitionId}, RequestedCount: {RequestedCount}",
+                    competitionId,
+                    certificateIds.Count);
+                throw new KeyNotFoundException("Không có certificate nào tồn tại trong cuộc thi để xóa.");
+            }
 
             await _unitOfWork.SaveChangeAsync();
+
+            _logger.LogInformation(
+                "Removed certificates from competition successfully. CompetitionId: {CompetitionId}, RemovedCount: {RemovedCount}",
+                competitionId,
+                removedCount);
 
             return true;
         }

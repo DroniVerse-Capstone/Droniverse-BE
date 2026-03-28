@@ -1,7 +1,8 @@
-namespace Droniverse.Academy.Application.DTO.Response;
+﻿namespace Droniverse.Academy.Application.DTO.Response;
 
 public class DroneTypeClientViewDTO
 {
+    public Guid DroneTypeID { get; set; }
     public string TypeNameVN { get; set; } = null!;
     public string TypeNameEN { get; set; } = null!;
     public string DescriptionVN { get; set; } = null!;

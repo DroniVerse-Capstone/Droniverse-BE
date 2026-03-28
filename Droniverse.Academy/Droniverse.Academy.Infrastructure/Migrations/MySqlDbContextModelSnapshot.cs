@@ -150,6 +150,9 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
 
+                    b.Property<string>("ChangeLog")
+                        .HasColumnType("text");
+
                     b.Property<string>("ContextEN")
                         .HasColumnType("text");
 
@@ -750,6 +753,14 @@ namespace Droniverse.Academy.Infrastructure.Migrations
 
                     b.Property<int>("EstimatedTime")
                         .HasColumnType("int");
+
+                    b.Property<string>("TitleEN")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("TitleVN")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
 
                     b.Property<DateTime>("UpdateAt")
                         .ValueGeneratedOnUpdate()

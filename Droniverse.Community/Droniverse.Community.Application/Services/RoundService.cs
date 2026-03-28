@@ -4,6 +4,7 @@ using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.IRepository;
+using Droniverse.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace Droniverse.Community.Application.Services
@@ -12,11 +13,13 @@ namespace Droniverse.Community.Application.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly AcademyMicroserviceClient _academyMicroserviceClient;
+        private readonly IClock _clock;
 
-        public RoundService(IUnitOfWork unitOfWork, AcademyMicroserviceClient academyMicroserviceClient)
+        public RoundService(IUnitOfWork unitOfWork, AcademyMicroserviceClient academyMicroserviceClient, IClock clock)
         {
             _unitOfWork = unitOfWork;
             _academyMicroserviceClient = academyMicroserviceClient;
+            _clock = clock;
         }
 
         public async Task<RoundResponseDto> CreateRound(RoundCreateDto request)
@@ -121,7 +124,7 @@ namespace Droniverse.Community.Application.Services
             if (round == null)
                 throw new KeyNotFoundException($"Round with ID {id} not found.");
 
-            round.StartRound();
+            round.StartRound(_clock.Now);
 
             await _unitOfWork.Rounds.Update(round);
             await _unitOfWork.SaveChangeAsync();
@@ -139,7 +142,7 @@ namespace Droniverse.Community.Application.Services
             if (round == null)
                 throw new KeyNotFoundException($"Round with ID {id} not found.");
 
-            round.FinishRound();
+            round.FinishRound(_clock.Now);
 
             await _unitOfWork.Rounds.Update(round);
             await _unitOfWork.SaveChangeAsync();

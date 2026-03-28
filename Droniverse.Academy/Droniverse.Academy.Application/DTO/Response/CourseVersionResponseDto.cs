@@ -1,4 +1,5 @@
 ﻿using Droniverse.Academy.Domain.Enums;
+using Droniverse.Shared.DTOs;
 
 namespace Droniverse.Academy.Application.DTO.Response;
 
@@ -14,7 +15,8 @@ public class CourseVersionResponseDTO
     public string? ImageUrl { get; set; }
     public CourseLevel Level { get; set; }
     public int? EstimatedDuration { get; set; }
-    public Guid? UpdateBy { get; set; }
+    public string? ChangeLog { get; set; }
+    public SimpleUserReponse? Updater { get; set; }
     public DateTime? UpdateAt { get; set; }
     public string? ContextVN { get; set; }
     public string? ContextEN { get; set; }

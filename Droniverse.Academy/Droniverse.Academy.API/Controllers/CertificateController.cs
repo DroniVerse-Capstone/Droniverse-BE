@@ -1,9 +1,11 @@
 ﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.API.Examples;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Filters;
 
 namespace Droniverse.Academy.API.Controllers;
 
@@ -23,9 +25,14 @@ public class CertificateController : ControllerBase
     /// <summary>
     /// Tạo chứng chỉ cho phiên bản khóa học.
     /// </summary>
+    /// <param name="courseId">Mã khóa học.</param>
+    /// <param name="versionId">Mã phiên bản khóa học.</param>
+    /// <param name="request">Thông tin chứng chỉ cần tạo.</param>
     // POST /academy/courses/{courseId}/versions/{versionId}/certificates
     [HttpPost("courses/{courseId:guid}/versions/{versionId:guid}/certificates")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
+    [SwaggerRequestExample(typeof(CreateCertificateRequestDTO), typeof(CreateCertificateRequestExample))]
+    [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> CreateCertificate(Guid courseId, Guid versionId, [FromBody] CreateCertificateRequestDTO request)
     {
         try
@@ -63,9 +70,15 @@ public class CertificateController : ControllerBase
     /// <summary>
     /// Cập nhật chứng chỉ.
     /// </summary>
+    /// <param name="courseId">Mã khóa học.</param>
+    /// <param name="versionId">Mã phiên bản khóa học.</param>
+    /// <param name="certificateId">Mã chứng chỉ.</param>
+    /// <param name="request">Thông tin chứng chỉ cần cập nhật.</param>
     // PUT /academy/courses/{courseId}/versions/{versionId}/certificates/{certificateId}
     [HttpPut("courses/{courseId:guid}/versions/{versionId:guid}/certificates/{certificateId:guid}")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
+    [SwaggerRequestExample(typeof(UpdateCertificateRequestDTO), typeof(UpdateCertificateRequestExample))]
+    [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> UpdateCertificate(Guid courseId, Guid versionId, Guid certificateId, [FromBody] UpdateCertificateRequestDTO request)
     {
         try
@@ -123,9 +136,12 @@ public class CertificateController : ControllerBase
     /// <summary>
     /// Lấy danh sách chứng chỉ theo danh sách ID.
     /// </summary>
+    /// <param name="request">Danh sách mã chứng chỉ cần truy vấn.</param>
     // POST /academy/certificates/by-ids
     [HttpPost("certificates/by-ids")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
+    [SwaggerRequestExample(typeof(GetCertificatesByIdsRequestDTO), typeof(GetCertificatesByIdsRequestExample))]
+    [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetCertificatesByIds([FromBody] GetCertificatesByIdsRequestDTO request)
     {
         try

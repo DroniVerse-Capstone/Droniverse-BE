@@ -16,7 +16,7 @@ namespace Droniverse.Community.Application.DTO.Extensions
     }
 
     public class CompetitionSearchRequest : SearchRequest
-    {
+    {   
         public string? CompetitionName { get; set; }
         public DateTime? RegistrationStartDate { get; set; }
         public DateTime? RegistrationEndDate { get; set; }
@@ -24,6 +24,10 @@ namespace Droniverse.Community.Application.DTO.Extensions
         public DateTime? EndDate { get; set; }
         [FromQuery]
         public CompetitionStatus? Status { get; set; }
+    }
+
+    public class HotCompetitionSearchRequest : SearchRequest
+    {
     }
 
     public class ClubCreationRequestSearchRequest : SearchRequest

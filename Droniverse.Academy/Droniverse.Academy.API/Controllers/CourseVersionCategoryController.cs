@@ -1,9 +1,11 @@
 ﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.API.Examples;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Filters;
 
 namespace Droniverse.Academy.API.Controllers;
 
@@ -23,8 +25,13 @@ public class CourseVersionCategoryController : ControllerBase
     /// <summary>
     /// Gán danh mục cho phiên bản khóa học.
     /// </summary>
+    /// <param name="courseId">Mã khóa học.</param>
+    /// <param name="versionId">Mã phiên bản khóa học.</param>
+    /// <param name="request">Thông tin danh mục cần gán.</param>
     [HttpPost]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
+    [SwaggerRequestExample(typeof(AssignCategoryRequestDTO), typeof(AssignCategoryRequestExample))]
+    [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> AddCategory(Guid courseId, Guid versionId, [FromBody] AssignCategoryRequestDTO request)
     {
         try

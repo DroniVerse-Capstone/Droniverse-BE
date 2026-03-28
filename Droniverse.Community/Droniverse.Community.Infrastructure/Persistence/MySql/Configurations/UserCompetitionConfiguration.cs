@@ -8,7 +8,7 @@ public class UserCompetitionConfiguration : IEntityTypeConfiguration<UserCompeti
 {
     public void Configure(EntityTypeBuilder<UserCompetition> builder)
     {
-        builder.ToTable("User_Competition");
+        builder.ToTable("UserCompetition");
 
         builder.HasKey(x => x.UserCompetitionID);
 

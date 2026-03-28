@@ -72,12 +72,49 @@ public class LabContentService : ILabContentService
         if (jsonElement.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
             return new BsonDocument();
 
+        if (jsonElement.ValueKind == JsonValueKind.String)
+        {
+            var raw = jsonElement.GetString();
+            if (string.IsNullOrWhiteSpace(raw))
+                return new BsonDocument();
+
+            return BsonDocument.Parse(raw);
+        }
+
+        if (jsonElement.ValueKind != JsonValueKind.Object)
+            throw new ValidationException("Environment phải là JSON object.");
+
         return BsonDocument.Parse(jsonElement.GetRawText());
     }
 
-    private static JsonElement ToJsonElement(BsonDocument? bsonDocument)
+    private static JsonElement ToJsonElement(BsonValue? bsonValue)
     {
-        var rawJson = bsonDocument?.ToJson() ?? "{}";
+        if (bsonValue == null || bsonValue.IsBsonNull)
+            return JsonDocument.Parse("{}").RootElement.Clone();
+
+        if (bsonValue.BsonType == BsonType.Document)
+        {
+            var documentJson = bsonValue.AsBsonDocument.ToJson();
+            return JsonDocument.Parse(documentJson).RootElement.Clone();
+        }
+
+        if (bsonValue.BsonType == BsonType.String)
+        {
+            var raw = bsonValue.AsString;
+            if (string.IsNullOrWhiteSpace(raw))
+                return JsonDocument.Parse("{}").RootElement.Clone();
+
+            try
+            {
+                return JsonDocument.Parse(raw).RootElement.Clone();
+            }
+            catch
+            {
+                return JsonDocument.Parse("{}").RootElement.Clone();
+            }
+        }
+
+        var rawJson = bsonValue.ToJson();
         return JsonDocument.Parse(rawJson).RootElement.Clone();
     }
 }

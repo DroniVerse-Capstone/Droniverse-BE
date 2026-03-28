@@ -1,10 +1,12 @@
 ﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.API.Examples;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Filters;
 
 namespace Droniverse.Academy.API.Controllers;
 
@@ -24,8 +26,13 @@ public class ModuleController : ControllerBase
     /// <summary>
     /// Tạo mô-đun mới.
     /// </summary>
+    /// <param name="courseId">Mã khóa học.</param>
+    /// <param name="versionId">Mã phiên bản khóa học.</param>
+    /// <param name="request">Thông tin mô-đun cần tạo.</param>
     [HttpPost]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
+    [SwaggerRequestExample(typeof(CreateModuleRequestDTO), typeof(CreateModuleRequestExample))]
+    [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> CreateModule(Guid courseId, Guid versionId, [FromBody] CreateModuleRequestDTO request)
     {
         try
@@ -82,8 +89,14 @@ public class ModuleController : ControllerBase
     /// <summary>
     /// Cập nhật mô-đun.
     /// </summary>
+    /// <param name="courseId">Mã khóa học.</param>
+    /// <param name="versionId">Mã phiên bản khóa học.</param>
+    /// <param name="moduleId">Mã mô-đun.</param>
+    /// <param name="request">Thông tin mô-đun cần cập nhật.</param>
     [HttpPut("{moduleId:guid}")]
     [Authorize(Roles = Roles.Admin)]
+    [SwaggerRequestExample(typeof(UpdateModuleRequestDTO), typeof(UpdateModuleRequestExample))]
+    [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> UpdateModule(Guid courseId, Guid versionId, Guid moduleId, [FromBody] UpdateModuleRequestDTO request)
     {
         try

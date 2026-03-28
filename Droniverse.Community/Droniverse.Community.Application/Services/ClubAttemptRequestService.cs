@@ -2,7 +2,7 @@
 using Droniverse.Community.Application.DTO.Extensions;
 using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
-using Droniverse.Community.Application.Helpers;
+using Droniverse.Shared.Helpers;
 using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Entities;
@@ -11,11 +11,6 @@ using Droniverse.Community.Domain.IRepository;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Services;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Droniverse.Community.Application.Services
 {

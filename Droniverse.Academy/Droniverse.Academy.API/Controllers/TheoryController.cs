@@ -1,10 +1,12 @@
 ﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.API.Examples;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Filters;
 
 namespace Droniverse.Academy.API.Controllers;
 
@@ -24,8 +26,11 @@ public class TheoryController : ControllerBase
     /// <summary>
     /// Tạo mới bài lý thuyết.
     /// </summary>
+    /// <param name="request">Thông tin bài lý thuyết cần tạo.</param>
     [HttpPost]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
+    [SwaggerRequestExample(typeof(CreateTheoryRequestDTO), typeof(CreateTheoryRequestExample))]
+    [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> CreateTheory([FromBody] CreateTheoryRequestDTO request)
     {
         try
@@ -81,8 +86,12 @@ public class TheoryController : ControllerBase
     /// <summary>
     /// Cập nhật bài lý thuyết.
     /// </summary>
+    /// <param name="theoryId">Mã bài lý thuyết.</param>
+    /// <param name="request">Thông tin bài lý thuyết cần cập nhật.</param>
     [HttpPut("{theoryId:guid}")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
+    [SwaggerRequestExample(typeof(UpdateTheoryRequestDTO), typeof(UpdateTheoryRequestExample))]
+    [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> UpdateTheory(Guid theoryId, [FromBody] UpdateTheoryRequestDTO request)
     {
         try

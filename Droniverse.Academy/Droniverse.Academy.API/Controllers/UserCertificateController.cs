@@ -24,8 +24,11 @@ public class UserCertificateController : ControllerBase
     /// <summary>
     /// Cấp chứng chỉ cho người dùng.
     /// </summary>
+    /// <param name="certificateId">Mã chứng chỉ.</param>
+    /// <param name="userId">Mã người dùng.</param>
     // POST /academy/certificates/{certificateId}/users/{userId}
     [HttpPost("certificates/{certificateId:guid}/users/{userId:guid}")]
+    [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GrantCertificate(Guid certificateId, Guid userId)
     {
         try
