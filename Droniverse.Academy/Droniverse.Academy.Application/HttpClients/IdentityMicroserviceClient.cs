@@ -4,13 +4,8 @@ using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Helpers;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http.Json;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace Droniverse.Academy.Application.HttpClients
 {
@@ -32,19 +27,10 @@ namespace Droniverse.Academy.Application.HttpClients
 
         public async Task<SimpleUserReponse?> GetUserByUserID(Guid userId)
         {
-            //Read from cache
-            //key:value
-            //userid:{object} ttl:30p
-            string cacheKeyToRead = $"user:{userId}";
-            string? cacheUser = await _distributedCache.GetStringAsync(cacheKeyToRead);
-            if (cacheUser != null)
+            var userFromCache = await TryGetUserFromCacheAsync(userId);
+            if (userFromCache != null)
             {
                 _logger.LogInformation($"User with id {userId} found in cache.");
-                UserResponse? userFromCache = JsonSerializer.Deserialize<UserResponse>(cacheUser);
-                if (userFromCache == null)
-                {
-                    throw new NotFoundException($"User with ID {userId} not found in cache.");
-                }
                 return new SimpleUserReponse
                 {
                     UserId = userFromCache.UserId,
@@ -85,15 +71,7 @@ namespace Droniverse.Academy.Application.HttpClients
 
             }
 
-            //Write to cache
-            //key:value
-            //string userKeyToWrite
-            string userKeyToWrite = $"user:{userId}";
-            string userCacheString = JsonSerializer.Serialize(user);
-            DistributedCacheEntryOptions options = new DistributedCacheEntryOptions()
-                .SetAbsoluteExpiration(TimeSpan.FromSeconds(300))
-                .SetSlidingExpiration(TimeSpan.FromSeconds(100));
-            await _distributedCache.SetStringAsync(userKeyToWrite, userCacheString, options);
+            await CacheUserAsync(user);
 
             return new SimpleUserReponse
             {
@@ -114,45 +92,72 @@ namespace Droniverse.Academy.Application.HttpClients
                 .Distinct()
                 .ToList();
 
+            if (distinctIds.Count == 0)
+                return [];
+
             try
             {
-                //var response = await _httpClient.PostAsJsonAsync(
-                //    "/api/users/bulk",
-                //    distinctIds
-                //);
-                var response = await _httpClient.PostAsJsonAsync(
-                    "/api/users/bulk",
-                    distinctIds
-                );
+                var usersById = new Dictionary<Guid, UserResponse>();
+                var missingIds = new List<Guid>();
 
-                if (!response.IsSuccessStatusCode)
+                foreach (var id in distinctIds)
                 {
-                    if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                    var cached = await TryGetUserFromCacheAsync(id);
+                    if (cached != null)
                     {
-                        _logger.LogError("Identity service unavailable (bulk request).");
-                        throw new HttpRequestException(
-                            "Identity service unavailable",
-                            null,
-                            System.Net.HttpStatusCode.ServiceUnavailable);
+                        usersById[id] = cached;
                     }
-
-                    if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                    else
                     {
-                        throw new HttpRequestException(
-                            "Bad request when calling Identity bulk API",
-                            null,
-                            System.Net.HttpStatusCode.BadRequest);
+                        missingIds.Add(id);
                     }
-
-                    throw new HttpRequestException(
-                        $"Identity bulk API error: {response.StatusCode}",
-                        null,
-                        response.StatusCode);
                 }
 
-                var users = await response.Content.ReadFromJsonAsync<IEnumerable<UserResponse>>();
+                if (missingIds.Count > 0)
+                {
+                    var response = await _httpClient.PostAsJsonAsync(
+                        "/identity/users/bulk",
+                        missingIds
+                    );
 
-                return users ?? [];
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                        {
+                            _logger.LogError("Identity service unavailable (bulk request).");
+                            throw new HttpRequestException(
+                                "Identity service unavailable",
+                                null,
+                                System.Net.HttpStatusCode.ServiceUnavailable);
+                        }
+
+                        if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                        {
+                            throw new HttpRequestException(
+                                "Bad request when calling Identity bulk API",
+                                null,
+                                System.Net.HttpStatusCode.BadRequest);
+                        }
+
+                        throw new HttpRequestException(
+                            $"Identity bulk API error: {response.StatusCode}",
+                            null,
+                            response.StatusCode);
+                    }
+
+                    var usersFromApi = await response.Content.ReadFromJsonAsync<IEnumerable<UserResponse>>() ?? [];
+
+                    foreach (var user in usersFromApi)
+                    {
+                        usersById[user.UserId] = user;
+                        await CacheUserAsync(user);
+                    }
+                }
+
+                return distinctIds
+                    .Where(id => usersById.ContainsKey(id))
+                    .Select(id => usersById[id])
+                    .ToList();
             }
             catch (Exception ex)
             {
@@ -160,5 +165,30 @@ namespace Droniverse.Academy.Application.HttpClients
                 throw;
             }
         }
+
+        private async Task<UserResponse?> TryGetUserFromCacheAsync(Guid userId)
+        {
+            var cacheUser = await _distributedCache.GetStringAsync(GetUserCacheKey(userId));
+            if (cacheUser == null)
+                return null;
+
+            var user = JsonSerializer.Deserialize<UserResponse>(cacheUser);
+            if (user == null)
+                throw new NotFoundException($"User with ID {userId} not found in cache.");
+
+            return user;
+        }
+
+        private async Task CacheUserAsync(UserResponse user)
+        {
+            var userCacheString = JsonSerializer.Serialize(user);
+            var options = new DistributedCacheEntryOptions()
+                .SetAbsoluteExpiration(TimeSpan.FromSeconds(300))
+                .SetSlidingExpiration(TimeSpan.FromSeconds(100));
+
+            await _distributedCache.SetStringAsync(GetUserCacheKey(user.UserId), userCacheString, options);
+        }
+
+        private static string GetUserCacheKey(Guid userId) => $"user:{userId}";
     }
 }
