@@ -42,8 +42,8 @@ public class IdentityMicroserviceClient
             return userFromCache ?? throw new NotFoundException($"User with ID {userId} not found in cache.");
         }
 
-        //HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/api/users/{userId}");
         HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/api/users/{userId}");
+        //HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/identity/users/{userId}");
 
         if (!httpResponseMsg.IsSuccessStatusCode)
         {
