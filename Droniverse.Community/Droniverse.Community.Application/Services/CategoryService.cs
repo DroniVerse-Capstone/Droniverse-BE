@@ -21,7 +21,7 @@ namespace Droniverse.Community.Application.Services
         {
             _mapper = mapper;
             _unitOfWork = unitOfWork;
-        }   
+        }
 
         public async Task<CategoryResponseDto> CreateCategory(CategoryRequestDto request)
         {
@@ -38,9 +38,8 @@ namespace Droniverse.Community.Application.Services
         {
             Category? category = await _unitOfWork.Categories.GetByCondition(c => c.CategoryID == id);
             if (category == null)
-            {
                 throw new KeyNotFoundException($"Category with ID {id} not found !");
-            }
+
             await _unitOfWork.Categories.Delete(category);
             await _unitOfWork.SaveChangeAsync();
             return true;
@@ -53,7 +52,7 @@ namespace Droniverse.Community.Application.Services
             return response;
         }
 
-        public async Task<CategoryResponseDto> GetCategoryById(Guid id) 
+        public async Task<CategoryResponseDto> GetCategoryById(Guid id)
         {
             Category? category = await _unitOfWork.Categories.GetByCondition(c => c.CategoryID == id);
             if (category == null)

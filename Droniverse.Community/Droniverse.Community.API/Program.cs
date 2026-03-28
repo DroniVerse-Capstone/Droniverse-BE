@@ -189,7 +189,6 @@ builder.Services.AddHangfire(config =>
 {
     config.UseSimpleAssemblyNameTypeSerializer();
     config.UseRecommendedSerializerSettings();
-
     config.UseStorage(new MySqlStorage(
         connectionString,
         new MySqlStorageOptions
@@ -203,7 +202,10 @@ builder.Services.AddHangfire(config =>
     ));
 });
 
-builder.Services.AddHangfireServer();
+builder.Services.AddHangfireServer(config =>
+{
+    config.WorkerCount = 5;
+});
 
 var app = builder.Build();
 
