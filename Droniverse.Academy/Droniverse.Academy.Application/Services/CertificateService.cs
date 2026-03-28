@@ -4,6 +4,7 @@ using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.IRepository;
+using Droniverse.Shared.DTOs;
 using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Services;
 
@@ -123,7 +124,8 @@ public class CertificateService : ICertificateService
             .Select(c => _mapper.Map<CertificateResponseDTO>(c))
             .ToList();
 
-        await Task.WhenAll(entities.Zip(data, (entity, dto) => PopulateUsersAsync(dto, entity.CreateBy, entity.UpdateBy)));
+        var userLookup = await BuildUserLookupAsync(entities);
+        PopulateMappedCertificatesUsers(entities, data, userLookup);
 
         return data
             .OrderBy(c => ids.IndexOf(c.CertificateID))
@@ -135,5 +137,36 @@ public class CertificateService : ICertificateService
         var (creator, updater) = await _userDisplayNameService.ResolveCreatorUpdaterAsync(createBy, updateBy);
         certificate.Creator = creator;
         certificate.Updater = updater;
+    }
+
+    private async Task<Dictionary<Guid, SimpleUserReponse?>> BuildUserLookupAsync(IEnumerable<Certificate> certificates)
+    {
+        var userIds = certificates
+            .SelectMany(c => new[] { c.CreateBy, c.UpdateBy })
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        var lookup = await _userDisplayNameService.ResolveUsersDisplayNameAsync(userIds);
+        return lookup.ToDictionary(x => x.Key, x => x.Value);
+    }
+
+    private static void PopulateMappedCertificatesUsers(
+        IEnumerable<Certificate> entities,
+        IEnumerable<CertificateResponseDTO> dtos,
+        IReadOnlyDictionary<Guid, SimpleUserReponse?> userLookup)
+    {
+        foreach (var (entity, dto) in entities.Zip(dtos))
+        {
+            if (userLookup.TryGetValue(entity.CreateBy, out var creator))
+            {
+                dto.Creator = creator;
+            }
+
+            if (userLookup.TryGetValue(entity.UpdateBy, out var updater))
+            {
+                dto.Updater = updater;
+            }
+        }
     }
 }

@@ -5,6 +5,7 @@ using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
+using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Services;
@@ -118,7 +119,9 @@ public class CourseVersionService : ICourseVersionService
         var result = await _unitOfWork.CourseVersions.GetAllAsync(filter, null, pageIndex, pageSize, includeProperties: "CourseVersionCategories,RequiredDrones");
         var entities = result.Data.ToList();
         var mapped = entities.Select(v => _mapper.Map<CourseVersionResponseDTO>(v)).ToList();
-        await Task.WhenAll(entities.Zip(mapped, (entity, dto) => PopulateUpdaterAsync(dto, entity.UpdateBy)));
+
+        var userLookup = await BuildUpdaterLookupAsync(entities);
+        PopulateMappedVersionsUpdater(entities, mapped, userLookup);
 
         return new PaginationResult<IEnumerable<CourseVersionResponseDTO>>(mapped, result.TotalRecords, result.PageIndex, result.PageSize);
     }
@@ -195,5 +198,34 @@ public class CourseVersionService : ICourseVersionService
             return;
 
         courseVersion.Updater = await _userDisplayNameService.ResolveUserDisplayNameAsync(updateBy.Value);
+    }
+
+    private async Task<Dictionary<Guid, SimpleUserReponse?>> BuildUpdaterLookupAsync(IEnumerable<CourseVersion> versions)
+    {
+        var userIds = versions
+            .Select(v => v.UpdateBy)
+            .Where(id => id.HasValue && id.Value != Guid.Empty)
+            .Select(id => id!.Value)
+            .Distinct()
+            .ToList();
+
+        var lookup = await _userDisplayNameService.ResolveUsersDisplayNameAsync(userIds);
+        return lookup.ToDictionary(x => x.Key, x => x.Value);
+    }
+
+    private static void PopulateMappedVersionsUpdater(
+        IEnumerable<CourseVersion> entities,
+        IEnumerable<CourseVersionResponseDTO> dtos,
+        IReadOnlyDictionary<Guid, SimpleUserReponse?> userLookup)
+    {
+        foreach (var (entity, dto) in entities.Zip(dtos))
+        {
+            var updaterId = entity.UpdateBy;
+            if (updaterId.HasValue && updaterId.Value != Guid.Empty
+                && userLookup.TryGetValue(updaterId.Value, out var updater))
+            {
+                dto.Updater = updater;
+            }
+        }
     }
 }
