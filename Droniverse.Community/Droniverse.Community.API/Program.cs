@@ -196,7 +196,7 @@ builder.Services.AddHangfire(config =>
             TablesPrefix = "Hangfire",
             PrepareSchemaIfNecessary = true,
             QueuePollInterval = TimeSpan.FromSeconds(15),
-            TransactionTimeout = TimeSpan.FromMinutes(1),
+            TransactionTimeout = TimeSpan.FromMinutes(3),
             TransactionIsolationLevel = IsolationLevel.ReadCommitted
         }
     ));
@@ -204,7 +204,7 @@ builder.Services.AddHangfire(config =>
 
 builder.Services.AddHangfireServer(config =>
 {
-    config.WorkerCount = 5;
+    config.WorkerCount = 2;
 });
 
 var app = builder.Build();
