@@ -39,6 +39,7 @@ public static class DependencyInjection
         services.AddScoped<IUserQuizQuestionAttemptService, UserQuizQuestionAttemptService>();
         services.AddScoped<IFeedbackService, FeedbackService>();
         services.AddScoped<ILabContentService, LabContentService>();
+        services.AddScoped<IUserDisplayNameService, UserDisplayNameService>();
 
         services.AddTransient<AuthorizationDelegatingHandler>();
 

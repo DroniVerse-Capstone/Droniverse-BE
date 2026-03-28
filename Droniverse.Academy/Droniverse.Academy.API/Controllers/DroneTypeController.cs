@@ -1,12 +1,14 @@
 ﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.API.Examples;
 using Droniverse.Academy.API.Enums;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Filters;
 
 namespace Droniverse.Academy.API.Controllers;
 
@@ -28,6 +30,7 @@ public class DroneTypeController : ControllerBase
     /// </summary>
     [HttpPost]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
+    [SwaggerRequestExample(typeof(CreateDroneTypeRequestDTO), typeof(CreateDroneTypeRequestExample))]
     public async Task<IActionResult> CreateDroneType([FromBody] CreateDroneTypeRequestDTO request)
     {
         try
@@ -114,25 +117,6 @@ public class DroneTypeController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Xóa loại drone thất bại.");
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Tạo drone mới thuộc một loại drone.
-    /// </summary>
-    [HttpPost("{droneTypeId:guid}/drones")]
-    [Authorize(Roles = Roles.Admin)]
-    public async Task<IActionResult> CreateDrone(Guid droneTypeId, [FromBody] CreateDroneRequestDTO request)
-    {
-        try
-        {
-            var created = await _droneTypeService.CreateDroneAsync(droneTypeId, request);
-            return StatusCode(201, SuccessResponse<DroneClientViewDTO>.Create(created, "Tạo drone thành công."));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Tạo drone thất bại.");
             throw;
         }
     }

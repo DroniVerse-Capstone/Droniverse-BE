@@ -12,11 +12,13 @@ namespace Droniverse.Community.Application.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly ICurrentUserService _currentUserService;
+        private readonly IClock _clock;
 
-        public UserRoundService(IUnitOfWork unitOfWork, ICurrentUserService currentUserService)
+        public UserRoundService(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, IClock clock)
         {
             _unitOfWork = unitOfWork;
             _currentUserService = currentUserService;
+            _clock = clock;
         }
 
         public async Task<UserRoundResponseDto> SubmitSolution(Guid roundId, UserRoundSubmitDto request)
@@ -27,7 +29,7 @@ namespace Droniverse.Community.Application.Services
             if (round == null)
                 throw new KeyNotFoundException($"Round with ID {roundId} not found.");
 
-            if (!round.IsActive())
+            if (!round.IsActive(_clock.Now))
                 throw new InvalidOperationException("Round is not active.");
 
             var userRound = await _unitOfWork.UserRounds.GetByCondition(

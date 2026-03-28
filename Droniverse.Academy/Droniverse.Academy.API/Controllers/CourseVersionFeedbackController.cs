@@ -1,10 +1,12 @@
 ﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.API.Examples;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Filters;
 
 namespace Droniverse.Academy.API.Controllers;
 
@@ -24,8 +26,13 @@ public class CourseVersionFeedbackController : ControllerBase
     /// <summary>
     /// Tạo phản hồi cho phiên bản khóa học.
     /// </summary>
+    /// <param name="courseId">Mã khóa học.</param>
+    /// <param name="versionId">Mã phiên bản khóa học.</param>
+    /// <param name="request">Nội dung phản hồi cần gửi.</param>
     [HttpPost]
     [Authorize(Roles = Roles.ClubMember)]
+    [SwaggerRequestExample(typeof(FeedbackCreateDTO), typeof(FeedbackCreateRequestExample))]
+    [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> CreateFeedback(Guid courseId, Guid versionId, [FromBody] FeedbackCreateDTO request)
     {
         try
@@ -84,8 +91,14 @@ public class CourseVersionFeedbackController : ControllerBase
     /// <summary>
     /// Cập nhật phản hồi.
     /// </summary>
+    /// <param name="courseId">Mã khóa học.</param>
+    /// <param name="versionId">Mã phiên bản khóa học.</param>
+    /// <param name="feedbackId">Mã phản hồi.</param>
+    /// <param name="request">Nội dung phản hồi sau khi chỉnh sửa.</param>
     [HttpPut("{feedbackId:guid}")]
     [Authorize(Roles = Roles.ClubMember)]
+    [SwaggerRequestExample(typeof(FeedbackUpdateDTO), typeof(FeedbackUpdateRequestExample))]
+    [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> UpdateFeedback(Guid courseId, Guid versionId, Guid feedbackId, [FromBody] FeedbackUpdateDTO request)
     {
         try

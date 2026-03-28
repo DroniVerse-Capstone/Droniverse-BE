@@ -30,6 +30,8 @@ public class CourseVersion
 
     public int? EstimatedDuration { get; set; }
 
+    public string? ChangeLog { get; set; }
+
     public Guid? UpdateBy { get; private set; }
     public DateTime? UpdateAt { get; private set; }
 
@@ -57,6 +59,16 @@ public class CourseVersion
 
     public Certificate? Certificate { get; set; }
 
+    public void SetAuditOnCreate(Guid userId, DateTime now)
+    {
+        SetAudit(userId, now);
+    }
+
+    public void SetAuditOnUpdate(Guid userId, DateTime now)
+    {
+        SetAudit(userId, now);
+    }
+
     /* =========================
        STATE MACHINE
        ========================= */
@@ -78,9 +90,8 @@ public class CourseVersion
     // Active → Deprecated
     public void Deprecate(Guid userId, DateTime now)
     {
-        if (Status != CourseVersionStatus.ACTIVE && Status != CourseVersionStatus.DRAFT)
+        if (Status != CourseVersionStatus.ACTIVE)
         {
-            // allow deprecating active versions; also allow deprecating draft to mark as deprecated if needed
             throw new DomainException(
                 $"Cannot deprecate version from status {Status}");
         }
@@ -89,12 +100,12 @@ public class CourseVersion
         SetAudit(userId, now);
     }
 
-    // Any → Inactive (trừ khi đã Inactive)
+    // Draft/Deprecated → Inactive
     public void Inactivate(Guid userId, DateTime now)
     {
-        if (Status == CourseVersionStatus.INACTIVE)
+        if (Status != CourseVersionStatus.DRAFT && Status != CourseVersionStatus.DEPRECATED)
         {
-            throw new DomainException("Course version already inactive");
+            throw new DomainException($"Cannot inactivate version from status {Status}");
         }
 
         Status = CourseVersionStatus.INACTIVE;
@@ -112,6 +123,7 @@ public class CourseVersion
         string? imageUrl,
         CourseLevel level,
         int? estimatedDuration,
+        string? changeLog,
         Guid userId,
         DateTime now)
     {
@@ -129,8 +141,9 @@ public class CourseVersion
         ImageUrl = imageUrl;
         Level = level;
         EstimatedDuration = estimatedDuration;
+        ChangeLog = changeLog;
 
-        SetAudit(userId, now);
+        SetAuditOnUpdate(userId, now);
     }
 
     private void SetAudit(Guid userId, DateTime now)

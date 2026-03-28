@@ -15,13 +15,15 @@ public class CertificateService : ICertificateService
     private readonly ICurrentUserService _currentUser;
     private readonly IClock _clock;
     private readonly IMapper _mapper;
+    private readonly IUserDisplayNameService _userDisplayNameService;
 
-    public CertificateService(IUnitOfWork unitOfWork, ICurrentUserService current, IClock clock, IMapper mapper)
+    public CertificateService(IUnitOfWork unitOfWork, ICurrentUserService current, IClock clock, IMapper mapper, IUserDisplayNameService userDisplayNameService)
     {
         _unitOfWork = unitOfWork;
         _currentUser = current;
         _clock = clock;
         _mapper = mapper;
+        _userDisplayNameService = userDisplayNameService;
     }
 
     public async Task<CertificateResponseDTO> CreateCertificateAsync(Guid courseId, Guid versionId, CreateCertificateRequestDTO request)
@@ -33,26 +35,18 @@ public class CertificateService : ICertificateService
         if (cv.Certificate != null)
             throw new ValidationException("Phiên bản khóa học đã có chứng chỉ.");
 
-        var cert = new Certificate
-        {
-            CertificateID = Guid.NewGuid(),
-            CourseVersionID = versionId,
-            CertificateName = request.CertificateName,
-            ImageUrl = request.ImageUrl,
-            LogoCertificate = request.LogoCertificate,
-            Description = request.Description,
-            Signature = request.Signature,
-            AuthorName = request.AuthorName,
-            CreateAt = _clock.Now,
-            CreateBy = _currentUser.UserId,
-            UpdateAt = _clock.Now,
-            UpdateBy = _currentUser.UserId
-        };
+        var cert = _mapper.Map<Certificate>(request);
+        cert.CertificateID = Guid.NewGuid();
+        cert.CourseVersionID = versionId;
+        cert.SetAuditOnCreate(_currentUser.UserId, _clock.Now);
 
         await _unitOfWork.Certificates.AddAsync(cert);
         await _unitOfWork.SaveChangesAsync();
 
-        return _mapper.Map<CertificateResponseDTO>(cert);
+        var response = _mapper.Map<CertificateResponseDTO>(cert);
+        await PopulateUsersAsync(response, cert.CreateBy, cert.UpdateBy);
+
+        return response;
     }
 
     public async Task DeleteCertificateAsync(Guid courseId, Guid versionId, Guid certificateId)
@@ -74,7 +68,10 @@ public class CertificateService : ICertificateService
         if (cert == null)
             throw new BaseException("Không tìm thấy chứng chỉ.", "NOT_FOUND");
 
-        return _mapper.Map<CertificateResponseDTO>(cert);
+        var response = _mapper.Map<CertificateResponseDTO>(cert);
+        await PopulateUsersAsync(response, cert.CreateBy, cert.UpdateBy);
+
+        return response;
     }
 
     public async Task<CertificateResponseDTO> GetCertificateByIdAsync(Guid certificateId)
@@ -83,7 +80,10 @@ public class CertificateService : ICertificateService
         if (cert == null)
             throw new BaseException("Không tìm thấy chứng chỉ.", "NOT_FOUND");
 
-        return _mapper.Map<CertificateResponseDTO>(cert);
+        var response = _mapper.Map<CertificateResponseDTO>(cert);
+        await PopulateUsersAsync(response, cert.CreateBy, cert.UpdateBy);
+
+        return response;
     }
 
     public async Task<CertificateResponseDTO> UpdateCertificateAsync(Guid courseId, Guid versionId, Guid certificateId, UpdateCertificateRequestDTO request)
@@ -95,19 +95,16 @@ public class CertificateService : ICertificateService
         if (cert.CourseVersionID != versionId)
             throw new ValidationException("Chứng chỉ không thuộc phiên bản khóa học đã cung cấp.");
 
-        cert.CertificateName = request.CertificateName;
-        cert.ImageUrl = request.ImageUrl;
-        cert.LogoCertificate = request.LogoCertificate;
-        cert.Description = request.Description;
-        cert.Signature = request.Signature;
-        cert.AuthorName = request.AuthorName;
-        cert.UpdateAt = _clock.Now;
-        cert.UpdateBy = _currentUser.UserId;
+        _mapper.Map(request, cert);
+        cert.SetAuditOnUpdate(_currentUser.UserId, _clock.Now);
 
         await _unitOfWork.Certificates.UpdateAsync(cert);
         await _unitOfWork.SaveChangesAsync();
 
-        return _mapper.Map<CertificateResponseDTO>(cert);
+        var response = _mapper.Map<CertificateResponseDTO>(cert);
+        await PopulateUsersAsync(response, cert.CreateBy, cert.UpdateBy);
+
+        return response;
     }
 
     public async Task<IEnumerable<CertificateResponseDTO>> GetCertificatesByIdsAsync(IEnumerable<Guid> certificateIds)
@@ -121,12 +118,22 @@ public class CertificateService : ICertificateService
             pageIndex: 1,
             pageSize: ids.Count);
 
-        var data = result.Data
+        var entities = result.Data.ToList();
+        var data = entities
             .Select(c => _mapper.Map<CertificateResponseDTO>(c))
             .ToList();
+
+        await Task.WhenAll(entities.Zip(data, (entity, dto) => PopulateUsersAsync(dto, entity.CreateBy, entity.UpdateBy)));
 
         return data
             .OrderBy(c => ids.IndexOf(c.CertificateID))
             .ToList();
+    }
+
+    private async Task PopulateUsersAsync(CertificateResponseDTO certificate, Guid createBy, Guid updateBy)
+    {
+        var (creator, updater) = await _userDisplayNameService.ResolveCreatorUpdaterAsync(createBy, updateBy);
+        certificate.Creator = creator;
+        certificate.Updater = updater;
     }
 }

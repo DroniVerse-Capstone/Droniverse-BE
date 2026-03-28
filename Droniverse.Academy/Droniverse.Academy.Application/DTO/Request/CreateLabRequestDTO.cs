@@ -4,7 +4,6 @@ namespace Droniverse.Academy.Application.DTO.Request;
 
 public class CreateLabRequestDTO
 {
-    public Guid LessonID { get; set; }
     public LabType Type { get; set; }
     public LabLevel Level { get; set; } = LabLevel.EASY;
     public LabStatus Status { get; set; } = LabStatus.DRAFT;

@@ -82,7 +82,7 @@ public class DroneService : IDroneService
 
         var inUse = await _unitOfWork.RequiredDrones.GetByConditionAsync(rd => rd.DroneID == droneId);
         if (inUse != null)
-            throw new ValidationException("Không thể xóa drone vì đang được sử dụng bởi các phiên bản khóa học.");
+            throw new ValidationException("Không thể xóa drone vì DroneID đang tồn tại trong RequiredDrone.");
 
         await _unitOfWork.Drones.DeleteAsync(drone);
         await _unitOfWork.SaveChangesAsync();

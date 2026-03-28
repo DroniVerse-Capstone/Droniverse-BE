@@ -17,13 +17,15 @@ public class TheoryService : ITheoryService
     private readonly IMapper _mapper;
     private readonly ICurrentUserService _currentUser;
     private readonly IClock _clock;
+    private readonly IUserDisplayNameService _userDisplayNameService;
 
-    public TheoryService(IUnitOfWork unitOfWork, IMapper mapper, ICurrentUserService currentUser, IClock clock)
+    public TheoryService(IUnitOfWork unitOfWork, IMapper mapper, ICurrentUserService currentUser, IClock clock, IUserDisplayNameService userDisplayNameService)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _currentUser = currentUser;
         _clock = clock;
+        _userDisplayNameService = userDisplayNameService;
     }
 
     public async Task<TheoryClientViewDTO> CreateTheoryAsync(CreateTheoryRequestDTO request)
@@ -31,33 +33,38 @@ public class TheoryService : ITheoryService
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
-        TheoryValidator.ValidateTheoryData(request.EstimatedTime, request.ContentVN, request.ContentEN);
+        TheoryValidator.ValidateTheoryData(request.EstimatedTime, request.TitleVN, request.TitleEN, request.ContentVN, request.ContentEN);
 
-        var lesson = await _unitOfWork.Lessons.GetByIdAsync(request.LessonID);
-        if (lesson == null)
-            throw new BaseException("Không tìm thấy bài học.", "NOT_FOUND");
+        var module = await _unitOfWork.Modules.GetByIdAsync(request.ModuleID);
+        if (module == null)
+            throw new BaseException("Không tìm thấy mô-đun.", "NOT_FOUND");
 
-        if (lesson.Type != LessonType.THEORY)
-            throw new ValidationException("Loại bài học phải là THEORY để gắn bài lý thuyết.");
-
-        if (lesson.ReferenceID != Guid.Empty)
-            throw new ValidationException("Bài học này đã có bài lý thuyết.");
+        var orderIndex = request.OrderIndex ?? await GetNextOrderIndexAsync(request.ModuleID);
+        await ValidateOrderIndexAsync(request.ModuleID, orderIndex);
 
         var theory = _mapper.Map<Theory>(request);
         theory.TheoryID = Guid.NewGuid();
-        theory.CreateAt = _clock.Now;
-        theory.UpdateAt = _clock.Now;
-        theory.CreateBy = _currentUser.UserId;
-        theory.UpdateBy = _currentUser.UserId;
+        theory.SetAuditOnCreate(_currentUser.UserId, _clock.Now);
 
         await _unitOfWork.Theories.AddAsync(theory);
 
-        lesson.ReferenceID = theory.TheoryID;
-        await _unitOfWork.Lessons.UpdateAsync(lesson);
+        var lesson = new Lesson
+        {
+            LessonID = Guid.NewGuid(),
+            ModuleID = request.ModuleID,
+            OrderIndex = orderIndex,
+            Type = LessonType.THEORY,
+            ReferenceID = theory.TheoryID
+        };
+
+        await _unitOfWork.Lessons.AddAsync(lesson);
 
         await _unitOfWork.SaveChangesAsync();
 
-        return _mapper.Map<TheoryClientViewDTO>(theory);
+        var response = _mapper.Map<TheoryClientViewDTO>(theory);
+        await PopulateUsersAsync(response, theory.CreateBy, theory.UpdateBy);
+
+        return response;
     }
 
     public async Task<IEnumerable<TheoryClientViewDTO>> GetTheoriesAsync()
@@ -67,7 +74,11 @@ public class TheoryService : ITheoryService
             pageIndex: 1,
             pageSize: int.MaxValue);
 
-        return _mapper.Map<IEnumerable<TheoryClientViewDTO>>(theories.Data);
+        var entities = theories.Data.ToList();
+        var mapped = _mapper.Map<List<TheoryClientViewDTO>>(entities);
+        await Task.WhenAll(entities.Zip(mapped, (entity, dto) => PopulateUsersAsync(dto, entity.CreateBy, entity.UpdateBy)));
+
+        return mapped;
     }
 
     public async Task<TheoryClientViewDTO> GetTheoryByIdAsync(Guid theoryId)
@@ -76,7 +87,10 @@ public class TheoryService : ITheoryService
         if (theory == null)
             throw new BaseException("Không tìm thấy bài lý thuyết.", "NOT_FOUND");
 
-        return _mapper.Map<TheoryClientViewDTO>(theory);
+        var response = _mapper.Map<TheoryClientViewDTO>(theory);
+        await PopulateUsersAsync(response, theory.CreateBy, theory.UpdateBy);
+
+        return response;
     }
 
     public async Task<TheoryClientViewDTO> UpdateTheoryAsync(Guid theoryId, UpdateTheoryRequestDTO request)
@@ -84,20 +98,22 @@ public class TheoryService : ITheoryService
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
-        TheoryValidator.ValidateTheoryData(request.EstimatedTime, request.ContentVN, request.ContentEN);
+        TheoryValidator.ValidateTheoryData(request.EstimatedTime, request.TitleVN, request.TitleEN, request.ContentVN, request.ContentEN);
 
         var theory = await _unitOfWork.Theories.GetByIdAsync(theoryId);
         if (theory == null)
             throw new BaseException("Không tìm thấy bài lý thuyết.", "NOT_FOUND");
 
         _mapper.Map(request, theory);
-        theory.UpdateAt = _clock.Now;
-        theory.UpdateBy = _currentUser.UserId;
+        theory.SetAuditOnUpdate(_currentUser.UserId, _clock.Now);
 
         await _unitOfWork.Theories.UpdateAsync(theory);
         await _unitOfWork.SaveChangesAsync();
 
-        return _mapper.Map<TheoryClientViewDTO>(theory);
+        var response = _mapper.Map<TheoryClientViewDTO>(theory);
+        await PopulateUsersAsync(response, theory.CreateBy, theory.UpdateBy);
+
+        return response;
     }
 
     public async Task DeleteTheoryAsync(Guid theoryId)
@@ -115,5 +131,36 @@ public class TheoryService : ITheoryService
 
         await _unitOfWork.Theories.DeleteAsync(theory);
         await _unitOfWork.SaveChangesAsync();
+    }
+
+    private async Task<int> GetNextOrderIndexAsync(Guid moduleId)
+    {
+        var lessons = await _unitOfWork.Lessons.GetAllAsync(
+            filter: l => l.ModuleID == moduleId,
+            orderBy: q => q.OrderByDescending(l => l.OrderIndex),
+            pageIndex: 1,
+            pageSize: 1);
+
+        var latest = lessons.Data.FirstOrDefault();
+        return (latest?.OrderIndex ?? 0) + 1;
+    }
+
+    private async Task ValidateOrderIndexAsync(Guid moduleId, int orderIndex)
+    {
+        if (orderIndex <= 0)
+            throw new ValidationException("OrderIndex phải lớn hơn 0.");
+
+        var duplicated = await _unitOfWork.Lessons.GetByConditionAsync(
+            l => l.ModuleID == moduleId && l.OrderIndex == orderIndex);
+
+        if (duplicated != null)
+            throw new ValidationException("OrderIndex phải là duy nhất trong mô-đun.");
+    }
+
+    private async Task PopulateUsersAsync(TheoryClientViewDTO theory, Guid createBy, Guid updateBy)
+    {
+        var (creator, updater) = await _userDisplayNameService.ResolveCreatorUpdaterAsync(createBy, updateBy);
+        theory.Creator = creator;
+        theory.Updater = updater;
     }
 }

@@ -2,7 +2,7 @@ name: Deploy to DOKS
 
 on:
   push:
-    branches: [main, production]
+    branches: [main, production ]
   pull_request:
     branches: [main, production]
     types: [closed]

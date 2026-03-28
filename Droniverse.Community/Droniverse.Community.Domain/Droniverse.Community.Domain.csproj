@@ -10,4 +10,12 @@
     <PackageReference Include="MongoDB.Driver" Version="3.5.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\Droniverse.Shared\Droniverse.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="AppHelpers\" />
+  </ItemGroup>
+
 </Project>

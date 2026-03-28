@@ -1,11 +1,6 @@
 ﻿using Droniverse.Shared.DTOs.Response;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Droniverse.Community.Application.Helpers
+namespace Droniverse.Shared.Helpers
 {
     public static class AppHelper
     {
@@ -16,6 +11,11 @@ namespace Droniverse.Community.Application.Helpers
                 return null;
 
             return $"{user.FirstName} {user.LastName}".Trim();
+        }
+
+        public static DateTime TrimToMinute(this DateTime dt)
+        {
+            return new DateTime(dt.Year, dt.Month, dt.Day, dt.Hour, dt.Minute, 0);
         }
     }
 }

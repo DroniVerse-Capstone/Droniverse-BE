@@ -1,5 +1,6 @@
 ﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.API.Examples;
 using Droniverse.Academy.API.Enums;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Shared.Constants;
@@ -7,6 +8,7 @@ using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Swashbuckle.AspNetCore.Filters;
 
 namespace Droniverse.Academy.API.Controllers;
 
@@ -28,9 +30,12 @@ public class CourseVersionController : ControllerBase
     /// </summary>
     /// <param name="courseId">Mã khóa học.</param>
     /// <param name="request">Thông tin phiên bản cần tạo.</param>
+    /// <remarks>Level gồm : EASY | MEDIUM | HARD</remarks>
     // POST /academy/courses/{courseId}/versions
     [HttpPost]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
+    [SwaggerRequestExample(typeof(CreateCourseVersionRequestDTO), typeof(CreateCourseVersionRequestExample))]
+    [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> CreateCourseVersion(Guid courseId, [FromBody] CreateCourseVersionRequestDTO request)
     {
         try
@@ -111,9 +116,12 @@ public class CourseVersionController : ControllerBase
     /// <param name="courseId">Mã khóa học.</param>
     /// <param name="versionId">Mã phiên bản khóa học.</param>
     /// <param name="request">Dữ liệu cập nhật.</param>
+    /// <remarks>Level gồm : EASY | MEDIUM | HARD</remarks>
     // PUT /academy/courses/{courseId}/versions/{versionId}
     [HttpPut("{versionId:guid}")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
+    [SwaggerRequestExample(typeof(UpdateCourseVersionRequestDTO), typeof(UpdateCourseVersionRequestExample))]
+    [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> UpdateCourseVersion(Guid courseId, Guid versionId, [FromBody] UpdateCourseVersionRequestDTO request)
     {
         try
@@ -158,6 +166,7 @@ public class CourseVersionController : ControllerBase
     // POST activate
     [HttpPost("{versionId:guid}/activate")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
+    [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Activate(Guid courseId, Guid versionId)
     {
         try
@@ -180,6 +189,7 @@ public class CourseVersionController : ControllerBase
     // POST deactivate
     [HttpPost("{versionId:guid}/deactivate")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
+    [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Deactivate(Guid courseId, Guid versionId)
     {
         try

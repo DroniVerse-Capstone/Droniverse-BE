@@ -7,5 +7,5 @@ namespace Droniverse.Academy.Domain.Entities;
 public class LabContent
 {
     public string _id { get; set; }  // lưu string
-    public BsonDocument Environment { get; set; }
+    public BsonValue Environment { get; set; } = new BsonDocument();
 }
