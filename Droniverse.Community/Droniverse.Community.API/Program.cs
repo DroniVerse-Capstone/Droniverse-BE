@@ -203,7 +203,7 @@ builder.Services.AddHangfire(config =>
     ));
 });
 
-builder.Services.AddHangfireServer();
+//builder.Services.AddHangfireServer();
 
 var app = builder.Build();
 
@@ -231,12 +231,12 @@ app.UseCors();
 
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseHangfireDashboard("/hangfire", new DashboardOptions
-{
-    Authorization = []
-});
+//app.UseHangfireDashboard("/hangfire", new DashboardOptions
+//{
+//    Authorization = []
+//});
 
-RecurringJobScheduler.ScheduleJobs();
+//RecurringJobScheduler.ScheduleJobs();
 
 app.MapControllers();
 

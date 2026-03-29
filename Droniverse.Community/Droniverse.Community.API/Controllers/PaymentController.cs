@@ -111,5 +111,17 @@ namespace Droniverse.Community.API.Controllers
                 return SuccessResponse<string>.Create("Failed to cancel payment.");
             }
         }
+
+        [HttpGet("payment-success")]
+        public async Task<IActionResult> PaymentSuccess()
+        {
+        return Ok(new { message = "Payment successful" });
+        }
+
+        [HttpGet("payment-cancel")]
+        public async Task<IActionResult> PaymentCancel()
+        {
+        return Ok(new { message = "Payment cancelled" });
+        }
     }
 }

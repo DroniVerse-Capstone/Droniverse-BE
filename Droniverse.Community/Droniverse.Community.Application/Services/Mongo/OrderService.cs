@@ -5,7 +5,6 @@ using Droniverse.Community.Application.IService.Mongo;
 using Droniverse.Community.Domain.Entities.Mongo;
 using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository.Mongo;
-using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Services;
 using MongoDB.Driver;
 
@@ -82,7 +81,16 @@ internal class OrderService : IOrderService
             PaymentMethod: orderAddRequest.PaymentMethod
         );
 
-            await _paymentService.CreatePaymentLink(createdOrder._id, paymentReq);
+            //await _paymentService.CreatePaymentLink(createdOrder._id, paymentReq);
+            var mockPayment = new Payment
+            {
+                TransactionID = order._id,
+                PaymentMethod = orderAddRequest.PaymentMethod,
+                PaymentStatus = PaymentStatus.PENDING,
+                TransactionDate = DateTime.UtcNow,
+                PaymentUrl = "http://localhost:5125/community/payment-success"
+            };
+            await _orderRepository.AddPayment(createdOrder._id, mockPayment);
         }
         catch
         {
