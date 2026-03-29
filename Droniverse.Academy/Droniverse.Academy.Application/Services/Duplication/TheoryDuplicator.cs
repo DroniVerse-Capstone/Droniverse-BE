@@ -20,6 +20,7 @@ public class TheoryDuplicator : ITheoryDuplicator
 
     public async Task<Guid> DuplicateAsync(Guid sourceTheoryId, CourseVersionDuplicationContext context)
     {
+        // Kiểm tra nếu đã sao chép bài lý thuyết này trước đó bằng cách tra cứu context.TheoryIdMap. Nếu đã tồn tại, trả về TheoryID đã sao chép để sử dụng làm ReferenceID cho các bài học khác nhau cùng tham chiếu đến bài lý thuyết này.
         if (context.TheoryIdMap.TryGetValue(sourceTheoryId, out var duplicatedTheoryId))
             return duplicatedTheoryId;
 

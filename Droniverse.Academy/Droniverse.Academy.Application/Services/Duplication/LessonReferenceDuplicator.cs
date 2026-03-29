@@ -26,6 +26,7 @@ public class LessonReferenceDuplicator : ILessonReferenceDuplicator
         if (sourceLesson.ReferenceID == Guid.Empty)
             return Guid.Empty;
 
+        // Sao chép nội dung của bài học dựa trên LessonType bằng cách gọi các duplicator tương ứng. Trả về ReferenceID mới sau khi sao chép.
         return sourceLesson.Type switch
         {
             LessonType.THEORY => await _theoryDuplicator.DuplicateAsync(sourceLesson.ReferenceID, context),

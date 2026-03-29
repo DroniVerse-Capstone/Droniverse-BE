@@ -26,9 +26,11 @@ public class CourseVersionDuplicator : ICourseVersionDuplicator
         Guid currentUserId,
         DateTime now)
     {
+        // Tạo bảng sao Version
         var duplicatedVersion = BuildDuplicatedVersion(course, sourceVersion, nextVersion, currentUserId, now);
         await _unitOfWork.CourseVersions.AddAsync(duplicatedVersion);
 
+        // Sao chép các bảng liên quan: Category, RequiredDrone
         await DuplicateCategoriesAsync(sourceVersion.CourseVersionID, duplicatedVersion.CourseVersionID);
         await DuplicateRequiredDronesAsync(sourceVersion.CourseVersionID, duplicatedVersion.CourseVersionID);
 
@@ -39,9 +41,9 @@ public class CourseVersionDuplicator : ICourseVersionDuplicator
             CurrentUserId = currentUserId,
             Now = now
         };
-
+        // Sao chép Module, Theory, Quiz, Lab
         await _moduleDuplicator.DuplicateAsync(context);
-
+        // Trả về kết quả bao gồm Version đã sao chép và danh sách Lab cần đồng bộ nội dung
         return new CourseVersionDuplicationResult
         {
             DuplicatedVersion = duplicatedVersion,

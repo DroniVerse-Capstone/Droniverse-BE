@@ -139,6 +139,7 @@ public class CourseVersionService : ICourseVersionService
             ? course.CourseVersions.Max(v => v.Version) + 1
             : 1;
 
+        // Sao chép Version của khóa học, đồng thời sao chép các nội dung liên quan như Module, Lesson, Theory, Quiz, Lab và các bảng liên quan như Category, RequiredDrone. Kết quả trả về bao gồm phiên bản đã sao chép và danh sách các Lab cần đồng bộ nội dung.
         var now = _clock.Now;
         var duplicationResult = await _courseVersionDuplicator.DuplicateAsync(
             course,
@@ -147,8 +148,10 @@ public class CourseVersionService : ICourseVersionService
             _currentUser.UserId,
             now);
 
+        // Đồng bộ nội dung Lab. Nếu có lỗi xảy ra trong quá trình đồng bộ, sẽ thực hiện dọn dẹp các Lab đã được tạo mới để tránh dữ liệu không nhất quán.
         try
         {
+            
             await _labContentSyncService.SyncAsync(duplicationResult.LabContentSyncQueue);
             await _unitOfWork.SaveChangesAsync();
         }
