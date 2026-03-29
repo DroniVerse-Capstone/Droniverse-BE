@@ -6,7 +6,7 @@ using System.Diagnostics;
 namespace Droniverse.Community.API.Jobs
 {
     [AutomaticRetry(Attempts = 3)]
-    [DisableConcurrentExecution(60)]
+    [DisableConcurrentExecution(300)]
     public class HotCompetitionsJob
     {
         private readonly ICompetitionService _competitionService;
