@@ -20,6 +20,12 @@ public class QuizQuestionMappingProfile : Profile
             .ForMember(dest => dest.Quiz, opt => opt.Ignore())
             .ForMember(dest => dest.QuizQuestionAttempts, opt => opt.Ignore());
 
+        CreateMap<QuizQuestion, QuizQuestion>()
+            .ForMember(dest => dest.QuestionID, opt => opt.Ignore())
+            .ForMember(dest => dest.QuizID, opt => opt.Ignore())
+            .ForMember(dest => dest.Quiz, opt => opt.Ignore())
+            .ForMember(dest => dest.QuizQuestionAttempts, opt => opt.Ignore());
+
         CreateMap<QuizQuestion, QuizQuestionClientViewDTO>();
     }
 }

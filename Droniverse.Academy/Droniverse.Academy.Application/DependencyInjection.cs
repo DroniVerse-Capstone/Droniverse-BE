@@ -1,10 +1,12 @@
 ﻿using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Application.IService.Mongo;
+using Droniverse.Academy.Application.IService.Duplication;
 ﻿using Droniverse.Academy.Application.Delegate;
 using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Application.Mapper;
 using Droniverse.Academy.Application.Services;
+using Droniverse.Academy.Application.Services.Duplication;
 using Droniverse.Academy.Application.Services.Mongo;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -34,6 +36,15 @@ public static class DependencyInjection
         services.AddScoped<IFeedbackService, FeedbackService>();
         services.AddScoped<ILabContentService, LabContentService>();
         services.AddScoped<IUserDisplayNameService, UserDisplayNameService>();
+
+        services.AddScoped<ICourseVersionDuplicator, CourseVersionDuplicator>();
+        services.AddScoped<IModuleDuplicator, ModuleDuplicator>();
+        services.AddScoped<ILessonDuplicator, LessonDuplicator>();
+        services.AddScoped<ILessonReferenceDuplicator, LessonReferenceDuplicator>();
+        services.AddScoped<ITheoryDuplicator, TheoryDuplicator>();
+        services.AddScoped<IQuizDuplicator, QuizDuplicator>();
+        services.AddScoped<ILabDuplicator, LabDuplicator>();
+        services.AddScoped<ILabContentSyncService, LabContentSyncService>();
 
         services.AddTransient<AuthorizationDelegatingHandler>();
 

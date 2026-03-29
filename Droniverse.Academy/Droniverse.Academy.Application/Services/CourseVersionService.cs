@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
+using Droniverse.Academy.Application.IService.Duplication;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
@@ -20,14 +21,25 @@ public class CourseVersionService : ICourseVersionService
     private readonly IClock _clock;
     private readonly IMapper _mapper;
     private readonly IUserDisplayNameService _userDisplayNameService;
+    private readonly ICourseVersionDuplicator _courseVersionDuplicator;
+    private readonly ILabContentSyncService _labContentSyncService;
 
-    public CourseVersionService(IUnitOfWork unitOfWork, ICurrentUserService current, IClock clock, IMapper mapper, IUserDisplayNameService userDisplayNameService)
+    public CourseVersionService(
+        IUnitOfWork unitOfWork,
+        ICurrentUserService current,
+        IClock clock,
+        IMapper mapper,
+        IUserDisplayNameService userDisplayNameService,
+        ICourseVersionDuplicator courseVersionDuplicator,
+        ILabContentSyncService labContentSyncService)
     {
         _unitOfWork = unitOfWork;
         _currentUser = current;
         _clock = clock;
         _mapper = mapper;
         _userDisplayNameService = userDisplayNameService;
+        _courseVersionDuplicator = courseVersionDuplicator;
+        _labContentSyncService = labContentSyncService;
     }
 
     public async Task<CourseVersionResponseDTO> CreateCourseVersionAsync(Guid courseId, CreateCourseVersionRequestDTO request)
@@ -104,6 +116,53 @@ public class CourseVersionService : ICourseVersionService
         var response = _mapper.Map<CourseVersionResponseDTO>(cv);
         await PopulateUpdaterAsync(response, cv.UpdateBy);
 
+        return response;
+    }
+
+    public async Task<CourseVersionResponseDTO> DuplicateCourseVersionAsync(Guid courseId, Guid versionId)
+    {
+        var course = await _unitOfWork.Courses.GetByIdWithAllVersionsAsync(courseId);
+        if (course == null)
+            throw new BaseException("Không tìm thấy khóa học.", "NOT_FOUND");
+
+        if (course.Status == CourseStatus.ARCHIVED)
+            throw new ValidationException("Khóa học đã lưu trữ chỉ được xem, không thể thao tác.");
+
+        var sourceVersion = course.CourseVersions.FirstOrDefault(v => v.CourseVersionID == versionId);
+        if (sourceVersion == null)
+            throw new BaseException("Không tìm thấy phiên bản khóa học.", "NOT_FOUND");
+
+        if (sourceVersion.Status == CourseVersionStatus.INACTIVE)
+            throw new ValidationException("Không thể nhân bản phiên bản đã xóa mềm.");
+
+        var nextVersion = course.CourseVersions.Any()
+            ? course.CourseVersions.Max(v => v.Version) + 1
+            : 1;
+
+        // Sao chép Version của khóa học, đồng thời sao chép các nội dung liên quan như Module, Lesson, Theory, Quiz, Lab và các bảng liên quan như Category, RequiredDrone. Kết quả trả về bao gồm phiên bản đã sao chép và danh sách các Lab cần đồng bộ nội dung.
+        var now = _clock.Now;
+        var duplicationResult = await _courseVersionDuplicator.DuplicateAsync(
+            course,
+            sourceVersion,
+            nextVersion,
+            _currentUser.UserId,
+            now);
+
+        // Đồng bộ nội dung Lab. Nếu có lỗi xảy ra trong quá trình đồng bộ, sẽ thực hiện dọn dẹp các Lab đã được tạo mới để tránh dữ liệu không nhất quán.
+        try
+        {
+            
+            await _labContentSyncService.SyncAsync(duplicationResult.LabContentSyncQueue);
+            await _unitOfWork.SaveChangesAsync();
+        }
+        catch
+        {
+            await _labContentSyncService.CleanupAsync(duplicationResult.LabContentSyncQueue.Select(x => x.NewLabId));
+            throw;
+        }
+
+        var response = _mapper.Map<CourseVersionResponseDTO>(duplicationResult.DuplicatedVersion);
+        await PopulateUpdaterAsync(response, duplicationResult.DuplicatedVersion.UpdateBy);
         return response;
     }
 

@@ -1,4 +1,4 @@
-using Droniverse.Academy.Application.DTO.Request;
+﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Shared.DTOs.Response;
 
@@ -6,7 +6,7 @@ namespace Droniverse.Academy.Application.IService;
 
 public interface ICourseVersionCategoryService
 {
-    Task AddCategoryAsync(Guid courseId, Guid versionId, AssignCategoryRequestDTO request);
+    Task AddCategoriesAsync(Guid courseId, Guid versionId, AssignCategoriesRequestDTO request);
 
     Task RemoveCategoryAsync(Guid courseId, Guid versionId, Guid categoryId);
 

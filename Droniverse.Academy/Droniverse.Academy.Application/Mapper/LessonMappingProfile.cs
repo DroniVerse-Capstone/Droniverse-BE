@@ -23,6 +23,12 @@ public class LessonMappingProfile : Profile
             .ForMember(dest => dest.Module, opt => opt.Ignore())
             .ForMember(dest => dest.UserLessons, opt => opt.Ignore());
 
+        CreateMap<Lesson, Lesson>()
+            .ForMember(dest => dest.LessonID, opt => opt.Ignore())
+            .ForMember(dest => dest.ModuleID, opt => opt.Ignore())
+            .ForMember(dest => dest.Module, opt => opt.Ignore())
+            .ForMember(dest => dest.UserLessons, opt => opt.Ignore());
+
         CreateMap<Lesson, LessonClientViewDTO>();
     }
 }
