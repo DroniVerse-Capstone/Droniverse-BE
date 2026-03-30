@@ -295,6 +295,38 @@ public class LessonService : ILessonService
     {
         var lesson = await GetLessonAsync(moduleId, lessonId);
 
+        if (lesson.ReferenceID != Guid.Empty)
+        {
+            switch (lesson.Type)
+            {
+                case LessonType.THEORY:
+                    var theory = await _unitOfWork.Theories.GetByIdAsync(lesson.ReferenceID);
+                    if (theory != null)
+                    {
+                        await _unitOfWork.Theories.DeleteAsync(theory);
+                    }
+                    break;
+
+                case LessonType.QUIZ:
+                    var quiz = await _unitOfWork.Quizs.GetByIdAsync(lesson.ReferenceID);
+                    if (quiz != null)
+                    {
+                        var questions = await _unitOfWork.QuizQuestions.GetAllAsync(
+                            filter: q => q.QuizID == quiz.QuizID,
+                            pageIndex: 1,
+                            pageSize: int.MaxValue);
+
+                        foreach (var question in questions.Data)
+                        {
+                            await _unitOfWork.QuizQuestions.DeleteAsync(question);
+                        }
+
+                        await _unitOfWork.Quizs.DeleteAsync(quiz);
+                    }
+                    break;
+            }
+        }
+
         await _unitOfWork.Lessons.DeleteAsync(lesson);
         await _unitOfWork.SaveChangesAsync();
     }
