@@ -30,6 +30,22 @@ namespace Droniverse.Academy.Application.Mapper
                 .ForMember(dest => dest.ChangeLog, opt => opt.MapFrom(src => src.ChangeLog))
                 .ForMember(dest => dest.Categories, opt => opt.MapFrom(src => src.CourseVersionCategories))
                 .ForMember(dest => dest.RequiredDrones, opt => opt.MapFrom(src => src.RequiredDrones));
+
+            CreateMap<CourseVersion, CourseVersion>()
+                .ForMember(dest => dest.CourseVersionID, opt => opt.Ignore())
+                .ForMember(dest => dest.CourseID, opt => opt.Ignore())
+                .ForMember(dest => dest.Course, opt => opt.Ignore())
+                .ForMember(dest => dest.Version, opt => opt.Ignore())
+                .ForMember(dest => dest.Status, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdateBy, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdateAt, opt => opt.Ignore())
+                .ForMember(dest => dest.Modules, opt => opt.Ignore())
+                .ForMember(dest => dest.CourseVersionCategories, opt => opt.Ignore())
+                .ForMember(dest => dest.Codes, opt => opt.Ignore())
+                .ForMember(dest => dest.Feedbacks, opt => opt.Ignore())
+                .ForMember(dest => dest.RequiredDrones, opt => opt.Ignore())
+                .ForMember(dest => dest.Enrollments, opt => opt.Ignore())
+                .ForMember(dest => dest.Certificate, opt => opt.Ignore());
         }
     }
 }

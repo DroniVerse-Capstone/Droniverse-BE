@@ -1,6 +1,7 @@
 ﻿using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Shared.DTOs;
+using Droniverse.Shared.Helpers;
 
 namespace Droniverse.Academy.Application.Services;
 
@@ -21,6 +22,37 @@ public class UserDisplayNameService : IUserDisplayNameService
         return await _identityClient.GetUserByUserID(userId);
     }
 
+    public async Task<IReadOnlyDictionary<Guid, SimpleUserReponse?>> ResolveUsersDisplayNameAsync(IEnumerable<Guid> userIds)
+    {
+        var ids = userIds?
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList() ?? [];
+
+        if (ids.Count == 0)
+            return new Dictionary<Guid, SimpleUserReponse?>();
+
+        var users = await _identityClient.GetUsersBulk(ids);
+        var lookup = users.ToDictionary(
+            u => u.UserId,
+            u => (SimpleUserReponse?)new SimpleUserReponse
+            {
+                UserId = u.UserId,
+                Email = u.Email,
+                FullName = AppHelper.GetFullName(u)
+            });
+
+        foreach (var id in ids)
+        {
+            if (!lookup.ContainsKey(id))
+            {
+                lookup[id] = null;
+            }
+        }
+
+        return lookup;
+    }
+
     public async Task<(SimpleUserReponse? Creator, SimpleUserReponse? Updater)> ResolveCreatorUpdaterAsync(Guid createBy, Guid updateBy)
     {
         if (createBy == updateBy)
@@ -29,10 +61,10 @@ public class UserDisplayNameService : IUserDisplayNameService
             return (user, user);
         }
 
-        var creatorTask = ResolveUserDisplayNameAsync(createBy);
-        var updaterTask = ResolveUserDisplayNameAsync(updateBy);
-        await Task.WhenAll(creatorTask, updaterTask);
+        var users = await ResolveUsersDisplayNameAsync(new[] { createBy, updateBy });
+        users.TryGetValue(createBy, out var creator);
+        users.TryGetValue(updateBy, out var updater);
 
-        return (await creatorTask, await updaterTask);
+        return (creator, updater);
     }
 }

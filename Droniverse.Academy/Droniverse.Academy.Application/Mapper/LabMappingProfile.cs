@@ -27,6 +27,15 @@ public class LabMappingProfile : Profile
             .ForMember(dest => dest.CreateAt, opt => opt.Ignore())
             .ForMember(dest => dest.UpdateAt, opt => opt.Ignore());
 
+        CreateMap<Lab, Lab>()
+            .ForMember(dest => dest.LabID, opt => opt.Ignore())
+            .ForMember(dest => dest.UserLabs, opt => opt.Ignore())
+            .ForMember(dest => dest.Reports, opt => opt.Ignore())
+            .ForMember(dest => dest.CreateBy, opt => opt.Ignore())
+            .ForMember(dest => dest.UpdateBy, opt => opt.Ignore())
+            .ForMember(dest => dest.CreateAt, opt => opt.Ignore())
+            .ForMember(dest => dest.UpdateAt, opt => opt.Ignore());
+
         CreateMap<Lab, LabClientViewDTO>();
     }
 }

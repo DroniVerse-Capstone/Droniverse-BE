@@ -9,4 +9,7 @@ public class LessonClientViewDTO
     public int OrderIndex { get; set; }
     public LessonType Type { get; set; }
     public Guid ReferenceID { get; set; }
+    public string? TitleVN { get; set; }
+    public string? TitleEN { get; set; }
+    public int? EstimatedTime { get; set; }
 }

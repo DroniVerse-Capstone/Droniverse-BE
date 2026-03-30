@@ -1,27 +1,22 @@
 ﻿using DotNetEnv;
-using Droniverse.Community.API.BackgroundJobs;
-using Droniverse.Community.API.Jobs;
 using Droniverse.Community.Application;
-using Droniverse.Community.Application.Jobs;
 using Droniverse.Community.Infrastructure;
 using Droniverse.Identity.API;
 using Droniverse.Shared;
 using Droniverse.Shared.Settings;
-using Hangfire;
-using Hangfire.MySql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
-using MongoDB.Bson.Serialization.Serializers;
+using MongoDB.Bson;
 using Swashbuckle.AspNetCore.Filters;
+using MongoDB.Bson.Serialization.Serializers;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using System.Reflection;
 using System.Text;
 using System.Text.Json.Serialization;
-using System.Transactions;
+
 
 Env.Load("../../.env");
 
@@ -31,9 +26,9 @@ builder.Configuration.AddEnvironmentVariables();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication(builder.Configuration);
 builder.Services.AddShared(builder.Configuration);
-builder.Services.AddScoped<CompetitionStatusJob>();
-builder.Services.AddScoped<RoundStatusJob>();
-builder.Services.AddScoped<HotCompetitionsJob>();
+//builder.Services.AddScoped<CompetitionStatusJob>();
+//builder.Services.AddScoped<RoundStatusJob>();
+//builder.Services.AddScoped<HotCompetitionsJob>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -183,27 +178,35 @@ builder.Services.AddCors(options =>
 // HANGFIRE
 // ======================
 
-var connectionString = builder.Configuration.GetConnectionString("MySqlConnection");
+//var hangfireConnectionString = builder.Configuration.GetConnectionString("HangfireMySqlConnection")
+//    ?? throw new InvalidOperationException("Missing connection string 'HangfireMySqlConnection'.");
 
-builder.Services.AddHangfire(config =>
-{
-    config.UseSimpleAssemblyNameTypeSerializer();
-    config.UseRecommendedSerializerSettings();
+//builder.Services.AddHangfire(config =>
+//{
+//    config.UseSimpleAssemblyNameTypeSerializer();
+//    config.UseRecommendedSerializerSettings();
+//    config.UseStorage(new MySqlStorage(
+//        hangfireConnectionString,
+//        new MySqlStorageOptions
+//        {
+//            TablesPrefix = "Hangfire",
+//            PrepareSchemaIfNecessary = true,
+//            QueuePollInterval = TimeSpan.FromSeconds(30),
+//            TransactionTimeout = TimeSpan.FromMinutes(3),
+//            TransactionIsolationLevel = IsolationLevel.ReadCommitted
+//        }
+//    ));
+//});
 
-    config.UseStorage(new MySqlStorage(
-        connectionString,
-        new MySqlStorageOptions
-        {
-            TablesPrefix = "Hangfire",
-            PrepareSchemaIfNecessary = true,
-            QueuePollInterval = TimeSpan.FromSeconds(15),
-            TransactionTimeout = TimeSpan.FromMinutes(1),
-            TransactionIsolationLevel = IsolationLevel.ReadCommitted
-        }
-    ));
-});
-
-//builder.Services.AddHangfireServer();
+//builder.Services.AddHangfireServer(config =>
+//{
+//    config.WorkerCount = 1;
+//    config.Queues = ["default"];
+//    config.SchedulePollingInterval = TimeSpan.FromSeconds(30);
+//    config.HeartbeatInterval = TimeSpan.FromSeconds(30);
+//    config.ServerCheckInterval = TimeSpan.FromMinutes(1);
+//    config.CancellationCheckInterval = TimeSpan.FromSeconds(15);
+//});
 
 var app = builder.Build();
 
@@ -214,7 +217,7 @@ if (app.Environment.IsDevelopment())
     {
         //c.SwaggerEndpoint("/swagger/v1/swagger.json", "Droniverse Community API v1");
         c.DocExpansion(DocExpansion.None); //Đóng các api lại cho gọn
-        
+
     });
 }
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();

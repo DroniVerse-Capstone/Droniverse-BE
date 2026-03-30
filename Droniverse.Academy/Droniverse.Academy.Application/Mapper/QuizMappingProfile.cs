@@ -25,6 +25,15 @@ public class QuizMappingProfile : Profile
             .ForMember(dest => dest.CreateBy, opt => opt.Ignore())
             .ForMember(dest => dest.UpdateBy, opt => opt.Ignore());
 
+        CreateMap<Quiz, Quiz>()
+            .ForMember(dest => dest.QuizID, opt => opt.Ignore())
+            .ForMember(dest => dest.QuizQuestions, opt => opt.Ignore())
+            .ForMember(dest => dest.QuizAttempts, opt => opt.Ignore())
+            .ForMember(dest => dest.CreateAt, opt => opt.Ignore())
+            .ForMember(dest => dest.UpdateAt, opt => opt.Ignore())
+            .ForMember(dest => dest.CreateBy, opt => opt.Ignore())
+            .ForMember(dest => dest.UpdateBy, opt => opt.Ignore());
+
         CreateMap<Quiz, QuizClientViewDTO>();
     }
 }
