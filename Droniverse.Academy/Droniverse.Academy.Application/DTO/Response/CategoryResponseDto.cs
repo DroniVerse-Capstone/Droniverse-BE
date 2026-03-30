@@ -8,4 +8,3 @@ public class CategoryResponseDTO
     public string DescriptionVN { get; set; }
     public string DescriptionEN { get; set; }
 }
-

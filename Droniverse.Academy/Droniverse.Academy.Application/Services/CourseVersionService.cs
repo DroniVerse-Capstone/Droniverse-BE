@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
+using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService.Duplication;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
@@ -21,6 +22,7 @@ public class CourseVersionService : ICourseVersionService
     private readonly IClock _clock;
     private readonly IMapper _mapper;
     private readonly IUserDisplayNameService _userDisplayNameService;
+    private readonly CommunityMicroserviceClient _communityMicroserviceClient;
     private readonly ICourseVersionDuplicator _courseVersionDuplicator;
     private readonly ILabContentSyncService _labContentSyncService;
 
@@ -30,6 +32,7 @@ public class CourseVersionService : ICourseVersionService
         IClock clock,
         IMapper mapper,
         IUserDisplayNameService userDisplayNameService,
+        CommunityMicroserviceClient communityMicroserviceClient,
         ICourseVersionDuplicator courseVersionDuplicator,
         ILabContentSyncService labContentSyncService)
     {
@@ -38,6 +41,7 @@ public class CourseVersionService : ICourseVersionService
         _clock = clock;
         _mapper = mapper;
         _userDisplayNameService = userDisplayNameService;
+        _communityMicroserviceClient = communityMicroserviceClient;
         _courseVersionDuplicator = courseVersionDuplicator;
         _labContentSyncService = labContentSyncService;
     }
@@ -115,6 +119,8 @@ public class CourseVersionService : ICourseVersionService
 
         var response = _mapper.Map<CourseVersionResponseDTO>(cv);
         await PopulateUpdaterAsync(response, cv.UpdateBy);
+        await PopulateCategoriesAsync(response, cv.CourseVersionCategories);
+        await PopulateRequiredDronesAsync(response, cv.RequiredDrones);
 
         return response;
     }
@@ -286,5 +292,55 @@ public class CourseVersionService : ICourseVersionService
                 dto.Updater = updater;
             }
         }
+    }
+
+    private async Task PopulateCategoriesAsync(CourseVersionResponseDTO response, IEnumerable<CourseVersionCategory>? courseVersionCategories)
+    {
+        var categoryIds = courseVersionCategories?
+            .Select(x => x.CategoryID)
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList() ?? [];
+
+        if (categoryIds.Count == 0)
+        {
+            response.Categories = [];
+            return;
+        }
+
+        var categories = await _communityMicroserviceClient.GetCategoriesBulk(categoryIds);
+        var categoryMap = categories.ToDictionary(x => x.CategoryID, x => x);
+        response.Categories = categoryIds
+            .Where(id => categoryMap.ContainsKey(id))
+            .Select(id => categoryMap[id])
+            .ToList();
+    }
+
+    private async Task PopulateRequiredDronesAsync(CourseVersionResponseDTO response, IEnumerable<RequiredDrone>? requiredDrones)
+    {
+        var droneIds = requiredDrones?
+            .Select(x => x.DroneID)
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList() ?? [];
+
+        if (droneIds.Count == 0)
+        {
+            response.RequiredDrones = [];
+            return;
+        }
+
+        var dronesResult = await _unitOfWork.Drones.GetAllAsync(
+            filter: d => droneIds.Contains(d.DroneID),
+            pageIndex: 1,
+            pageSize: int.MaxValue,
+            includeProperties: "DroneType");
+
+        var mappedDrones = _mapper.Map<IEnumerable<DroneClientViewDTO>>(dronesResult.Data).ToList();
+        var droneMap = mappedDrones.ToDictionary(x => x.DroneID, x => x);
+        response.RequiredDrones = droneIds
+            .Where(id => droneMap.ContainsKey(id))
+            .Select(id => droneMap[id])
+            .ToList();
     }
 }
