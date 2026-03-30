@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 namespace Droniverse.Community.Application.Jobs
 {
     [AutomaticRetry(Attempts = 3)]
-    [DisableConcurrentExecution(60)]
+    [DisableConcurrentExecution(300)]
     public class CompetitionStatusJob
     {
         private readonly CompetitionLifecycleService _lifecycleService;
