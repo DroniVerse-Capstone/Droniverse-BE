@@ -6,4 +6,8 @@ namespace Droniverse.Community.Application.DTO.Request.Mongo;
 public record PaymentCreateDto(
     decimal TotalAmount, PaymentMethod PaymentMethod
     )
-{ }
+{ 
+    public PaymentCreateDto() : this(default, default)
+    {
+    }
+}

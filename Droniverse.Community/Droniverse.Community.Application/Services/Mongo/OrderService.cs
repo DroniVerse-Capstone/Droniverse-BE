@@ -76,21 +76,26 @@ internal class OrderService : IOrderService
         Order? createdOrder = await _orderRepository.AddOrder(order) ?? throw new Exception("Create order failed");
         try
         {
-            PaymentCreateDto paymentReq = new PaymentCreateDto(
-            TotalAmount: order.TotalAmount,
-            PaymentMethod: orderAddRequest.PaymentMethod
-        );
+            // ===== MOCK PAYMENT - Skip PayOS for testing =====
+            //var mockPayment = new Payment
+            //{
+            //    TransactionID = order._id,
+            //    PaymentMethod = orderAddRequest.PaymentMethod,
+            //    PaymentStatus = PaymentStatus.PENDING,
+            //    TransactionDate = DateTime.UtcNow.AddHours(7),
+            //    PaymentUrl = "http://localhost:5125/community/payment-success"
+            //};
+            //await _orderRepository.AddPayment(createdOrder._id, mockPayment);
+            // ===== END MOCK =====
 
-            //await _paymentService.CreatePaymentLink(createdOrder._id, paymentReq);
-            var mockPayment = new Payment
+            // Gọi PayOS để tạo payment link
+            var paymentCreateDto = new PaymentCreateDto
             {
-                TransactionID = order._id,
-                PaymentMethod = orderAddRequest.PaymentMethod,
-                PaymentStatus = PaymentStatus.PENDING,
-                TransactionDate = DateTime.UtcNow,
-                PaymentUrl = "http://localhost:5125/community/payment-success"
+                TotalAmount = order.TotalAmount,
+                PaymentMethod = orderAddRequest.PaymentMethod
             };
-            await _orderRepository.AddPayment(createdOrder._id, mockPayment);
+            await _paymentService.CreatePaymentLink(createdOrder._id, paymentCreateDto);
+
         }
         catch
         {

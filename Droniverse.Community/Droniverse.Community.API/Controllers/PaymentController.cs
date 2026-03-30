@@ -65,7 +65,9 @@ namespace Droniverse.Community.API.Controllers
             {
                 return Unauthorized();
             }
+            _logger.LogInformation("Verify webhook... Received webhook: {WebhookData}", weebhookData);
             bool result = await _paymentService.HandleWebhook(webhook);
+            _logger.LogInformation("Handle webhook... Result: {Result}", result);
             if (result)
             {
                 return Ok();

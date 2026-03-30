@@ -77,17 +77,17 @@ internal class PaymentService : IPaymentService
 
     public async Task<PaymentResponseDto> CreatePaymentLink(Guid orderId, PaymentCreateDto paymentCreateDto)
     {
-        if(paymentCreateDto is null)
+        if (paymentCreateDto is null)
         {
             throw new ArgumentNullException(nameof(paymentCreateDto), "PaymentCreateDto không được null");
         }
 
-        if(paymentCreateDto.TotalAmount <= 0)
+        if (paymentCreateDto.TotalAmount <= 0)
         {
             throw new ArgumentException("TotalAmount phải lớn hơn 0", nameof(paymentCreateDto.TotalAmount));
         }
 
-        if(!Guid.TryParse(_currentUserService.UserID , out var userId))
+        if (!Guid.TryParse(_currentUserService.UserID, out var userId))
         {
             throw new UnauthorizedAccessException("Người dùng chưa được xác thực");
         }
@@ -105,7 +105,7 @@ internal class PaymentService : IPaymentService
                 ?? throw new NotFoundException($"Order {orderId} không tồn tại hoặc không thuộc user hiện tại.");
 
             //Nếu đã có link pending thì trả về link đó, không tạo mới
-            if(order.Payment is not null 
+            if (order.Payment is not null
                 && order.Payment.PaymentStatus == PaymentStatus.PENDING
                 && !string.IsNullOrWhiteSpace(order.Payment.PaymentUrl))
             {
@@ -116,19 +116,30 @@ internal class PaymentService : IPaymentService
             string? cancelUrl = _configuration["PAYOS_CANCEL_URL"] ?? "trang thanh toán thất bại";
             _logger.LogInformation("URLs - Return: {ReturnUrl}, Cancel: {CancelUrl}", returnUrl, cancelUrl);
 
-            //Parse orderId (Từ Guid thành long để tương ứng với Datatype của CreatePaymentLinkRequest)
-            byte[] bytes = orderId.ToByteArray();
-            long orderCode = Math.Abs(BitConverter.ToInt64(bytes, 0));
-            string description = $"Order {orderCode}";
+            // Sử dụng Unix timestamp thay vì Guid bytes (match FStreak-BE)
+            long orderCode = DateTimeOffset.Now.ToUnixTimeSeconds();
+            string fullDescription = $"Order {orderCode}";
+            // Cắt ngắn description tối đa 25 ký tự (requirement của PayOS)
+            string description = fullDescription.Length > 25 
+                ? fullDescription.Substring(0, 25) 
+                : fullDescription;
+
+            _logger.LogInformation(
+            "Creating PayOS Payment Link - OrderId: {OrderId}, OrderCode: {OrderCode}, Amount: {Amount}, ReturnUrl: {ReturnUrl}",
+            orderId, orderCode, paymentCreateDto.TotalAmount, returnUrl);
+
 
             CreatePaymentLinkRequest? request = new CreatePaymentLinkRequest
             {
-                OrderCode = orderCode,
+                OrderCode = (int)orderCode,  // Cast to int (PayOS requirement)
                 Amount = (long)paymentCreateDto.TotalAmount,
                 CancelUrl = cancelUrl,
                 ReturnUrl = returnUrl,
-                Description = description, // Nội dung thanh toán
+                Description = description, // Cắt ngắn tối đa 25 ký tự
             };
+
+            _logger.LogInformation("PayOS Request - OrderCode: {OrderCode}, Amount: {Amount}",
+             request.OrderCode, request.Amount);
 
 
             // Gọi PayOs Api
@@ -159,7 +170,7 @@ internal class PaymentService : IPaymentService
                 "PaymentStatus: {PaymentStatus}, TransactionDate: {TransactionDate}",
                 payment.TransactionID, payment.PaymentMethod, payment.PaymentStatus, payment.TransactionDate);
 
-            
+
 
             return new PaymentResponseDto
             {
@@ -248,7 +259,7 @@ internal class PaymentService : IPaymentService
             _logger.LogInformation("Processing webhook for orderId: {OrderId}", webhook.Data.OrderId);
 
             Payment? payment = await _orderRepository.GetPaymentByOrderID(webhook.Data.OrderId);
-            if(payment == null)
+            if (payment == null)
             {
                 _logger.LogWarning("Payment not found for orderId: {OrderId}", webhook.Data.OrderId);
             }
