@@ -90,7 +90,11 @@ public class LabService : ILabService
         await _unitOfWork.Lessons.AddAsync(lesson);
         await _unitOfWork.SaveChangesAsync();
 
-        return _mapper.Map<LessonClientViewDTO>(lesson);
+        var response = _mapper.Map<LessonClientViewDTO>(lesson);
+        response.TitleVN = lab.NameVN;
+        response.TitleEN = lab.NameEN;
+
+        return response;
     }
 
     public async Task<PaginationResult<IEnumerable<LabClientViewDTO>>> GetLabsAsync(GetLabsQueryDTO query)
