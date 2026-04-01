@@ -1,12 +1,16 @@
 ﻿using DotNetEnv;
 using Droniverse.Academy.Application;
 using Droniverse.Academy.Infrastructure;
+using Droniverse.Academy.Infrastructure.Persistence.MySql;
 using Droniverse.Shared;
+using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Settings;
 using Hangfire;
 using Hangfire.Dashboard;
 using Hangfire.MySql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MongoDB.Bson;
@@ -18,9 +22,6 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Transactions;
-using Microsoft.EntityFrameworkCore;
-using Droniverse.Academy.Infrastructure.Persistence.MySql;
-using Droniverse.Shared.Exceptions;
 
 // Load .env
 Env.Load("../../.env");
@@ -111,29 +112,30 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
+    var serviceProvider = builder.Services.BuildServiceProvider();
+    var jwtSettings = serviceProvider.GetRequiredService<IOptions<JwtSettings>>().Value;
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-
         ValidIssuer = jwtSettings.Issuer,
         ValidAudience = jwtSettings.Audience,
-
         IssuerSigningKey = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(jwtSettings.Key)
         ),
-
         ClockSkew = TimeSpan.Zero
     };
-
+    //JwtBearerEventsConfigurator.Configure(options);
     options.Events = new JwtBearerEvents
     {
         OnMessageReceived = context =>
         {
+            // Đọc token từ cookie trước
             var accessToken = context.Request.Cookies["AccessToken"];
 
+            // Nếu không có trong cookie, thử đọc từ header (cho mobile app)
             if (string.IsNullOrEmpty(accessToken))
             {
                 accessToken = context.Request.Headers["Authorization"]

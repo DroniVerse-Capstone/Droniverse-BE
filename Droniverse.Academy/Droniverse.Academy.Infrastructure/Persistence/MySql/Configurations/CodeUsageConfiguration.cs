@@ -10,7 +10,7 @@ public class CodeUsageConfiguration : IEntityTypeConfiguration<CodeUsage>
         builder.ToTable("CodeUsage");
 
         builder.HasKey(cu => new { cu.CodeID , cu.UserID});
-        builder.Property(c => c.CodeID).HasColumnType("char(36)");
+        builder.Property(c => c.CodeID).HasColumnType("varchar(50)");
         builder.HasOne(c => c.Code)
             .WithMany(cv => cv.CodeUsages)
             .HasForeignKey(c => c.CodeID)

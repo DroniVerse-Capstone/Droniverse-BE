@@ -11,7 +11,7 @@ public class CodeConfiguration : IEntityTypeConfiguration<Code>
         builder.ToTable("Code");
 
         builder.HasKey(c => c.CodeID);
-        builder.Property(c => c.CodeID).HasColumnType("char(36)");
+        builder.Property(c => c.CodeID).HasColumnType("varchar(50)");
         builder.HasOne(c => c.Course)
             .WithMany(cv => cv.Codes)
             .HasForeignKey(c => c.CourseID)
