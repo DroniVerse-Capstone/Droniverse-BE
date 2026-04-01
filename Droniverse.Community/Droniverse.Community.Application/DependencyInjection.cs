@@ -30,12 +30,19 @@ public static class DependencyInjection
         services.AddScoped<IRoundService, RoundService>();
         services.AddScoped<ICompetitionPrizeService, CompetitionPrizeService>();
         services.AddScoped<IUserRoundService, UserRoundService>();
+        services.AddScoped<IProductService, ProductService>();
+        services.AddScoped<IOrderService, OrderService>();
+        services.AddScoped<IPaymentService, PaymentService>();
+        services.AddScoped<IProductCategoryService, ProductCategoryService>();
         services.AddScoped<ICompetitionState, DraftState>();
         services.AddScoped<ICompetitionState, PublishedState>();
         services.AddScoped<ICompetitionState, RegistrationOpenState>();
         services.AddScoped<ICompetitionState, RegistrationClosedState>();
         services.AddScoped<ICompetitionState, OngoingState>();
         services.AddScoped<ICompetitionState, FinishedState>();
+        services.AddScoped<ICompetitionState, ResultPublishedState>();
+        services.AddScoped<ICompetitionState, CancelledState>();
+        services.AddScoped<ICompetitionState, InvalidState>();
 
         services.AddScoped<ICompetitionStateFactory, CompetitionStateFactory>();
         services.AddScoped<CompetitionLifecycleService>();
@@ -56,7 +63,7 @@ public static class DependencyInjection
         services.AddHttpClient<IdentityMicroserviceClient>(client =>
         {
             client.BaseAddress = new Uri($"http://{configuration["IdentityMicroserviceName"]}:{configuration["IdentityMicroservicePort"]}");
-        }).AddHttpMessageHandler<AuthorizationDelegatingHandler>(); ;
+        }).AddHttpMessageHandler<AuthorizationDelegatingHandler>();
         services.AddHttpClient<AcademyMicroserviceClient>(client =>
         {
             client.BaseAddress = new Uri($"http://{configuration["AcademyMicroserviceName"]}:{configuration["AcademyMicroservicePort"]}");

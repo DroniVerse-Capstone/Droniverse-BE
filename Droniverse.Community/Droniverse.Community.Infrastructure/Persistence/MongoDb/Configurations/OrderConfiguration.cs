@@ -19,7 +19,7 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
             .IsRequired();
         builder.Property(o => o.InvoiceID);
 
-        builder.OwnsMany(o => o.Items, items =>
+        builder.OwnsOne(o => o.Item, items =>
         {
             items.Property(i => i.ProductID).IsRequired();
             items.Property(i => i.ProductName).IsRequired();

@@ -45,9 +45,6 @@ public class CourseVersion
     public ICollection<CourseVersionCategory> CourseVersionCategories { get; set; }
         = new List<CourseVersionCategory>();
 
-    public ICollection<Code> Codes { get; set; }
-        = new List<Code>();
-
     public ICollection<Feedback> Feedbacks { get; set; }
         = new List<Feedback>();
 

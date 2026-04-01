@@ -21,6 +21,5 @@ public class CourseVersionResponseDTO
     public string? ContextVN { get; set; }
     public string? ContextEN { get; set; }
     public IEnumerable<CategoryResponseDTO> Categories { get; set; } = [];
-    public IEnumerable<RequiredDroneResponseDTO> RequiredDrones { get; set; } = [];
+    public IEnumerable<DroneClientViewDTO> RequiredDrones { get; set; } = [];
 }
-

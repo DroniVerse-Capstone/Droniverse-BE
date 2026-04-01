@@ -44,7 +44,7 @@ public static class DependencyInjection
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IOrderRepository, OrderRepository>();
-        services.AddScoped<IInvoiceRepository, InvoiceRepository >();
+        services.AddScoped<IInvoiceRepository, InvoiceRepository>();
         return services;
     }
 }

@@ -1,7 +1,6 @@
 ﻿using DotNetEnv;
 using Droniverse.Academy.Application;
 using Droniverse.Academy.Infrastructure;
-using Droniverse.Identity.API;
 using Droniverse.Shared;
 using Droniverse.Shared.Settings;
 using Hangfire;
@@ -21,6 +20,7 @@ using System.Text.Json.Serialization;
 using System.Transactions;
 using Microsoft.EntityFrameworkCore;
 using Droniverse.Academy.Infrastructure.Persistence.MySql;
+using Droniverse.Shared.Exceptions;
 
 // Load .env
 Env.Load("../../.env");

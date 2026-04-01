@@ -25,26 +25,26 @@ public class CourseVersionRequiredDroneController : ControllerBase
     }
 
     /// <summary>
-    /// Gán drone yêu cầu cho phiên bản khóa học.
+    /// Gán nhiều drone yêu cầu cho phiên bản khóa học.
     /// </summary>
     /// <param name="courseId">Mã khóa học.</param>
     /// <param name="versionId">Mã phiên bản khóa học.</param>
-    /// <param name="request">Thông tin drone cần gán cho phiên bản khóa học.</param>
-    [HttpPost]
+    /// <param name="request">Danh sách drone cần gán cho phiên bản khóa học.</param>
+    [HttpPost("bulk")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
-    [SwaggerRequestExample(typeof(AddRequiredDroneRequestDTO), typeof(AddRequiredDroneRequestExample))]
+    [SwaggerRequestExample(typeof(AddRequiredDronesRequestDTO), typeof(AddRequiredDronesRequestExample))]
     [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> AddRequiredDrone(Guid courseId, Guid versionId, [FromBody] AddRequiredDroneRequestDTO request)
+    public async Task<IActionResult> AddRequiredDrones(Guid courseId, Guid versionId, [FromBody] AddRequiredDronesRequestDTO request)
     {
         try
         {
-            RequiredDroneControllerValidator.ValidateAddRequiredDrone(courseId, versionId, request);
-            var added = await _requiredDroneService.AddRequiredDroneAsync(courseId, versionId, request);
-            return StatusCode(201, SuccessResponse<DroneClientViewDTO>.Create(added, "Gán drone yêu cầu thành công."));
+            RequiredDroneControllerValidator.ValidateAddRequiredDrones(courseId, versionId, request);
+            var added = await _requiredDroneService.AddRequiredDronesAsync(courseId, versionId, request);
+            return StatusCode(201, SuccessResponse<IEnumerable<DroneClientViewDTO>>.Create(added, "Gán nhiều drone yêu cầu thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Gán drone yêu cầu thất bại.");
+            _logger.LogError(ex, "Gán nhiều drone yêu cầu thất bại.");
             throw;
         }
     }

@@ -1,14 +1,12 @@
 ﻿using AutoMapper;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
-using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Exceptions;
-using Droniverse.Shared.Services;
 using System.Linq.Expressions;
 
 namespace Droniverse.Academy.Application.Services;
@@ -17,34 +15,48 @@ public class CourseVersionCategoryService : ICourseVersionCategoryService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
-    private readonly ICurrentUserService _currentUser;
-    private readonly IdentityMicroserviceClient _client;
 
-    public CourseVersionCategoryService(IUnitOfWork unitOfWork, IMapper mapper, ICurrentUserService current, IdentityMicroserviceClient client)
+    public CourseVersionCategoryService(IUnitOfWork unitOfWork, IMapper mapper)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
-        _currentUser = current;
-        _client = client;
     }
 
-    public async Task AddCategoryAsync(Guid courseId, Guid versionId, AssignCategoryRequestDTO request)
+    public async Task AddCategoriesAsync(Guid courseId, Guid versionId, AssignCategoriesRequestDTO request)
     {
+        if (request == null)
+            throw new ArgumentNullException(nameof(request));
+
+        if (request.CategoryIDs.Count == 0)
+            throw new ValidationException("Danh sách categoryID là bắt buộc.");
+
+        var categoryIds = request.CategoryIDs.Distinct().ToList();
+        if (categoryIds.Any(id => id == Guid.Empty))
+            throw new ValidationException("CategoryID không hợp lệ.");
+
         var cv = await _unitOfWork.CourseVersions.GetByConditionAsync(v => v.CourseVersionID == versionId && v.CourseID == courseId);
         if (cv == null)
             throw new BaseException("Không tìm thấy phiên bản khóa học.", "NOT_FOUND");
 
-        // prevent duplicate
-        if (cv.CourseVersionCategories.Any(c => c.CategoryID == request.CategoryID))
-            throw new ValidationException("Danh mục đã được gán cho phiên bản khóa học.");
+        var existing = await _unitOfWork.CourseVersionCategories.GetAllAsync(
+            filter: x => x.CourseVersionID == versionId,
+            pageIndex: 1,
+            pageSize: int.MaxValue);
 
-        var cvc = new CourseVersionCategory
+        foreach (var item in existing.Data)
         {
-            CategoryID = request.CategoryID,
-            CourseVersionID = versionId
-        };
+            await _unitOfWork.CourseVersionCategories.DeleteAsync(item);
+        }
 
-        await _unitOfWork.CourseVersionCategories.AddAsync(cvc);
+        foreach (var categoryId in categoryIds)
+        {
+            await _unitOfWork.CourseVersionCategories.AddAsync(new CourseVersionCategory
+            {
+                CategoryID = categoryId,
+                CourseVersionID = versionId
+            });
+        }
+
         await _unitOfWork.SaveChangesAsync();
     }
 

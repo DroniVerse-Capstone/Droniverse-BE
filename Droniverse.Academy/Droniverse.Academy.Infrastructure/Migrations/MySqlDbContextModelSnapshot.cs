@@ -80,7 +80,7 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
 
-                    b.Property<Guid>("CourseVersionID")
+                    b.Property<Guid>("CourseID")
                         .HasColumnType("char(36)");
 
                     b.Property<DateTime>("ExpireDate")
@@ -91,7 +91,7 @@ namespace Droniverse.Academy.Infrastructure.Migrations
 
                     b.HasKey("CodeID");
 
-                    b.HasIndex("CourseVersionID");
+                    b.HasIndex("CourseID");
 
                     b.ToTable("Code", null, t =>
                         {
@@ -608,7 +608,15 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("AnswerA_EN")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("AnswerB")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("AnswerB_EN")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -616,7 +624,15 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("AnswerC_EN")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("AnswerD")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("AnswerD_EN")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -926,13 +942,13 @@ namespace Droniverse.Academy.Infrastructure.Migrations
 
             modelBuilder.Entity("Droniverse.Academy.Domain.Entities.Code", b =>
                 {
-                    b.HasOne("Droniverse.Academy.Domain.Entities.CourseVersion", "CourseVersion")
+                    b.HasOne("Droniverse.Academy.Domain.Entities.Course", "Course")
                         .WithMany("Codes")
-                        .HasForeignKey("CourseVersionID")
+                        .HasForeignKey("CourseID")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("CourseVersion");
+                    b.Navigation("Course");
                 });
 
             modelBuilder.Entity("Droniverse.Academy.Domain.Entities.CodeUsage", b =>
@@ -1160,14 +1176,14 @@ namespace Droniverse.Academy.Infrastructure.Migrations
 
             modelBuilder.Entity("Droniverse.Academy.Domain.Entities.Course", b =>
                 {
+                    b.Navigation("Codes");
+
                     b.Navigation("CourseVersions");
                 });
 
             modelBuilder.Entity("Droniverse.Academy.Domain.Entities.CourseVersion", b =>
                 {
                     b.Navigation("Certificate");
-
-                    b.Navigation("Codes");
 
                     b.Navigation("CourseVersionCategories");
 

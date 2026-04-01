@@ -6,7 +6,7 @@ using System.Diagnostics;
 namespace Droniverse.Community.Application.Jobs
 {
     [AutomaticRetry(Attempts = 3)]
-    [DisableConcurrentExecution(60)]
+    [DisableConcurrentExecution(300)]
     public class RoundStatusJob
     {
         private readonly RoundLifecycleService _lifecycleService;

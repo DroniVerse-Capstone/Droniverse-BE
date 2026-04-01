@@ -39,6 +39,21 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
+        /// Lấy danh sách danh mục theo danh sách ID (bulk).
+        /// </summary>
+        /// <param name="ids">Danh sách ID danh mục cần lấy.</param>
+        /// <returns>
+        /// Trả về mảng <see cref="CategoryResponseDto"/> thuần để tương thích microservice client.
+        /// </returns>
+        [HttpPost("bulk")]
+        [ProducesResponseType(typeof(IEnumerable<CategoryResponseDto>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<IEnumerable<CategoryResponseDto>>> GetCategoriesBulk([FromBody] IEnumerable<Guid> ids)
+        {
+            var categories = await _categoryService.GetCategoriesBulk(ids);
+            return Ok(categories);
+        }
+
+        /// <summary>
         /// Lấy thông tin chi tiết của một danh mục theo ID.
         /// </summary>
         /// <param name="id">ID của danh mục cần truy vấn.</param>

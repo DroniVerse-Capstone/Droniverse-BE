@@ -6,6 +6,7 @@ using Droniverse.Academy.Application.Validators;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
+using Droniverse.Shared.DTOs;
 using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Services;
 
@@ -76,7 +77,9 @@ public class QuizService : IQuizService
 
         var entities = quizzes.Data.ToList();
         var mapped = _mapper.Map<List<QuizClientViewDTO>>(entities);
-        await Task.WhenAll(entities.Zip(mapped, (entity, dto) => PopulateUsersAsync(dto, entity.CreateBy, entity.UpdateBy)));
+
+        var userLookup = await BuildUserLookupAsync(entities);
+        PopulateMappedQuizzesUsers(entities, mapped, userLookup);
 
         return mapped;
     }
@@ -162,5 +165,36 @@ public class QuizService : IQuizService
         var (creator, updater) = await _userDisplayNameService.ResolveCreatorUpdaterAsync(createBy, updateBy);
         quiz.Creator = creator;
         quiz.Updater = updater;
+    }
+
+    private async Task<Dictionary<Guid, SimpleUserReponse?>> BuildUserLookupAsync(IEnumerable<Quiz> quizzes)
+    {
+        var userIds = quizzes
+            .SelectMany(q => new[] { q.CreateBy, q.UpdateBy })
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        var lookup = await _userDisplayNameService.ResolveUsersDisplayNameAsync(userIds);
+        return lookup.ToDictionary(x => x.Key, x => x.Value);
+    }
+
+    private static void PopulateMappedQuizzesUsers(
+        IEnumerable<Quiz> entities,
+        IEnumerable<QuizClientViewDTO> dtos,
+        IReadOnlyDictionary<Guid, SimpleUserReponse?> userLookup)
+    {
+        foreach (var (entity, dto) in entities.Zip(dtos))
+        {
+            if (userLookup.TryGetValue(entity.CreateBy, out var creator))
+            {
+                dto.Creator = creator;
+            }
+
+            if (userLookup.TryGetValue(entity.UpdateBy, out var updater))
+            {
+                dto.Updater = updater;
+            }
+        }
     }
 }

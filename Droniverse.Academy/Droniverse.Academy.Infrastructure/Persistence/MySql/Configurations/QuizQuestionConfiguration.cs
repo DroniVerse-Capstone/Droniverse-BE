@@ -27,6 +27,10 @@ public class QuizQuestionConfiguration : IEntityTypeConfiguration<QuizQuestion>
         builder.Property(e => e.AnswerB).HasColumnType("text");
         builder.Property(e => e.AnswerC).HasColumnType("text");
         builder.Property(e => e.AnswerD).HasColumnType("text");
+        builder.Property(e => e.AnswerA_EN).HasColumnType("text");
+        builder.Property(e => e.AnswerB_EN).HasColumnType("text");
+        builder.Property(e => e.AnswerC_EN).HasColumnType("text");
+        builder.Property(e => e.AnswerD_EN).HasColumnType("text");
         builder.Property(e => e.CorrectAnswer).HasColumnType("char(1)");
         builder.Property(e => e.Score).HasColumnType("float");
         builder.ToTable(t => t.HasCheckConstraint("CK_QuizQuestion_CorrectAnswer", "`CorrectAnswer` IN ('A','B','C','D')"));

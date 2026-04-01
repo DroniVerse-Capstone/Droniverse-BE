@@ -75,8 +75,24 @@ public class ModuleService : IModuleService
     public async Task DeleteModuleAsync(Guid courseId, Guid versionId, Guid moduleId)
     {
         var module = await GetModuleEntityAsync(courseId, versionId, moduleId);
+        var deletedModuleNumber = module.ModuleNumber;
 
         await _unitOfWork.Modules.DeleteAsync(module);
+
+        var modulesAfterDeleted = await _unitOfWork.Modules.GetAllAsync(
+            filter: m => m.CourseVersionID == versionId && m.ModuleNumber > deletedModuleNumber,
+            orderBy: q => q.OrderBy(m => m.ModuleNumber),
+            pageIndex: 1,
+            pageSize: int.MaxValue);
+
+        var now = _clock.Now;
+        foreach (var item in modulesAfterDeleted.Data)
+        {
+            item.ModuleNumber--;
+            item.UpdateAt = now;
+            await _unitOfWork.Modules.UpdateAsync(item);
+        }
+
         await _unitOfWork.SaveChangesAsync();
     }
 
