@@ -1,9 +1,9 @@
 ﻿using DotNetEnv;
-using Droniverse.Identity.API;
 using Droniverse.Identity.API.Swagger;
 using Droniverse.Identity.Application;
 using Droniverse.Identity.Infrastructure;
 using Droniverse.Shared;
+using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Settings;
 using Hangfire;
 using Hangfire.Dashboard;
