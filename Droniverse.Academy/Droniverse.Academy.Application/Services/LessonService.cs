@@ -294,6 +294,7 @@ public class LessonService : ILessonService
     public async Task DeleteLessonAsync(Guid moduleId, Guid lessonId)
     {
         var lesson = await GetLessonAsync(moduleId, lessonId);
+        var deletedOrderIndex = lesson.OrderIndex;
 
         if (lesson.ReferenceID != Guid.Empty)
         {
@@ -328,6 +329,19 @@ public class LessonService : ILessonService
         }
 
         await _unitOfWork.Lessons.DeleteAsync(lesson);
+
+        var lessonsAfterDeleted = await _unitOfWork.Lessons.GetAllAsync(
+            filter: l => l.ModuleID == moduleId && l.OrderIndex > deletedOrderIndex,
+            orderBy: q => q.OrderBy(l => l.OrderIndex),
+            pageIndex: 1,
+            pageSize: int.MaxValue);
+
+        foreach (var item in lessonsAfterDeleted.Data)
+        {
+            item.OrderIndex--;
+            await _unitOfWork.Lessons.UpdateAsync(item);
+        }
+
         await _unitOfWork.SaveChangesAsync();
     }
 

@@ -6,7 +6,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MySql.Data.MySqlClient;
 
-namespace Droniverse.Identity.API;
+namespace Droniverse.Shared.Exceptions;
 // You may need to install the Microsoft.AspNetCore.Http.Abstractions package into your project
 public class GlobalExceptionHandlerMiddleware
 {
@@ -135,5 +135,7 @@ public class GlobalExceptionHandlerMiddleware
         return ErrorResponse.Create(message, "INTERNAL_ERROR");
     }
 }
+
+
 
 
