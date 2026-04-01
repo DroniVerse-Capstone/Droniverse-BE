@@ -15,7 +15,7 @@ namespace Droniverse.Community.Application.DTO.Response
         DateTime UpdateAt
     )
     {
-        public ProductCategoryResponseDto() : this(default,default,default, default, default,default,default,default)
+        public ProductCategoryResponseDto() : this(default, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, default,default)
         {
         }
     }
