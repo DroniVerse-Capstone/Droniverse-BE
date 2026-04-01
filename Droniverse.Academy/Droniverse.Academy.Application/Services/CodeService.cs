@@ -19,8 +19,8 @@ public class CodeService : ICodeService
     }
     public async Task<IEnumerable<string>> CreateCodeAsync(Guid courseId, int quantity)
     {
-        Course? course = await _unitOfWork.Courses.GetByIdAsync(courseId);
-        if(course is null)
+        Course? course = await _unitOfWork.Courses.GetByConditionAsync(c => c.CourseID == courseId, includeProperties:"CurrentVersion");
+        if (course is null)
         {
             throw new NotFoundException($"Course with id {courseId} not found");
         }
@@ -30,7 +30,7 @@ public class CodeService : ICodeService
         {
             Code code = new Code
             {
-                CodeID = Guid.NewGuid().ToString(),
+                CodeID = GenerateCodeId(course.CurrentVersion.TitleEN),
                 CourseID = courseId,
                 ExpireDate = DateTime.UtcNow.AddHours(7).AddMonths(6),
                 Status = CodeStatus.ACTIVE,
@@ -50,6 +50,44 @@ public class CodeService : ICodeService
         IEnumerable<string> listCodeIds = codes.Select(c => c.CodeID).ToList();
         return listCodeIds;
 
+    }
+
+    private string GenerateCodeId(string courseName)
+    {
+        // Lấy 4 ký tự đầu tiên trong courseName
+        string prefix = courseName.Substring(0, Math.Min(4, courseName.Length)).ToUpper();
+
+        // Nếu courseName < 4 ký tự, pad thêm ký tự
+        while (prefix.Length < 4)
+        {
+            prefix += GenerateRandomChar();
+        }
+
+        //Lấy ddMMyyyy
+        string datePart = DateTime.UtcNow.AddHours(7).ToString("ddMMyy");
+
+        //Generate 2 phần ngẫu nhiên
+        string randomPart1 = GenerateRandomPart();
+        string randomPart2 = GenerateRandomPart();
+
+        return $"{prefix}-{datePart}-{randomPart1}-{randomPart2}";
+
+    }
+
+    private string GenerateRandomPart()
+    {
+        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        var random = new Random();
+        return new string(Enumerable.Range(0, 4)
+        .Select(_ => chars[random.Next(chars.Length)])
+        .ToArray());
+    }
+
+    private char GenerateRandomChar()
+    {
+        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        Random random = new Random();
+        return chars[random.Next(chars.Length)];
     }
 
     public Task<CodeResponseDTO> DeleteCodeAsync(string codeId)
@@ -75,7 +113,8 @@ public class CodeService : ICodeService
     public async Task<CodeResponseDTO> GetCodeAsync(string codeId)
     {
         Code? code = await _unitOfWork.Codes.GetByIdAsync(codeId);
-        if(code is null) {
+        if (code is null)
+        {
             throw new NotFoundException($"Code with id {codeId} not found");
         }
         CodeResponseDTO response = _mapper.Map<CodeResponseDTO>(code);
