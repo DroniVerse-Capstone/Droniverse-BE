@@ -44,13 +44,15 @@ public class RequiredDroneService : IRequiredDroneService
         if (drones.Count != droneIds.Count)
             throw new BaseException("Có drone không tồn tại.", "NOT_FOUND");
 
-        var existsResult = await _unitOfWork.RequiredDrones.GetAllAsync(
-            filter: rd => rd.CourseVersionID == versionId && droneIds.Contains(rd.DroneID),
+        var existing = await _unitOfWork.RequiredDrones.GetAllAsync(
+            filter: rd => rd.CourseVersionID == versionId,
             pageIndex: 1,
             pageSize: int.MaxValue);
 
-        if (existsResult.Data.Any())
-            throw new ValidationException("Có drone đã được yêu cầu cho phiên bản khóa học này.");
+        foreach (var item in existing.Data)
+        {
+            await _unitOfWork.RequiredDrones.DeleteAsync(item);
+        }
 
         foreach (var droneId in droneIds)
         {

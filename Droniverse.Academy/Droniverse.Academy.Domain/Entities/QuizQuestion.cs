@@ -10,6 +10,10 @@ public class QuizQuestion
     public string AnswerB { get; set; }
     public string AnswerC { get; set; }
     public string AnswerD { get; set; }
+    public string AnswerA_EN { get; set; }
+    public string AnswerB_EN { get; set; }
+    public string AnswerC_EN { get; set; }
+    public string AnswerD_EN { get; set; }
     public string CorrectAnswer { get; set; }
     public float Score { get; set; } //float
     public Quiz Quiz { get; set; }

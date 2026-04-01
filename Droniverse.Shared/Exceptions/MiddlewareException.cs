@@ -1,5 +1,4 @@
-﻿using Droniverse.Identity.API;
-using Microsoft.AspNetCore.Builder;
+﻿using Microsoft.AspNetCore.Builder;
 
 namespace Droniverse.Shared.Exceptions;
 

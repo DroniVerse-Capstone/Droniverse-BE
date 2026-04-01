@@ -38,13 +38,15 @@ public class CourseVersionCategoryService : ICourseVersionCategoryService
         if (cv == null)
             throw new BaseException("Không tìm thấy phiên bản khóa học.", "NOT_FOUND");
 
-        var assigned = await _unitOfWork.CourseVersionCategories.GetAllAsync(
-            filter: x => x.CourseVersionID == versionId && categoryIds.Contains(x.CategoryID),
+        var existing = await _unitOfWork.CourseVersionCategories.GetAllAsync(
+            filter: x => x.CourseVersionID == versionId,
             pageIndex: 1,
             pageSize: int.MaxValue);
 
-        if (assigned.Data.Any())
-            throw new ValidationException("Có danh mục đã được gán cho phiên bản khóa học.");
+        foreach (var item in existing.Data)
+        {
+            await _unitOfWork.CourseVersionCategories.DeleteAsync(item);
+        }
 
         foreach (var categoryId in categoryIds)
         {
