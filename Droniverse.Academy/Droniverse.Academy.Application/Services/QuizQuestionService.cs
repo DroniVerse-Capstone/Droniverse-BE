@@ -31,6 +31,10 @@ public class QuizQuestionService : IQuizQuestionService
             request.AnswerB,
             request.AnswerC,
             request.AnswerD,
+            request.AnswerA_EN,
+            request.AnswerB_EN,
+            request.AnswerC_EN,
+            request.AnswerD_EN,
             request.CorrectAnswer,
             request.Score);
 
@@ -85,6 +89,10 @@ public class QuizQuestionService : IQuizQuestionService
             request.AnswerB,
             request.AnswerC,
             request.AnswerD,
+            request.AnswerA_EN,
+            request.AnswerB_EN,
+            request.AnswerC_EN,
+            request.AnswerD_EN,
             request.CorrectAnswer,
             request.Score);
 
@@ -123,6 +131,10 @@ public class QuizQuestionService : IQuizQuestionService
         string answerB,
         string answerC,
         string answerD,
+        string answerA_EN,
+        string answerB_EN,
+        string answerC_EN,
+        string answerD_EN,
         string correctAnswer,
         float score)
     {
@@ -137,6 +149,12 @@ public class QuizQuestionService : IQuizQuestionService
             string.IsNullOrWhiteSpace(answerC) ||
             string.IsNullOrWhiteSpace(answerD))
             throw new ValidationException("Các đáp án A, B, C, D là bắt buộc.");
+
+        if (string.IsNullOrWhiteSpace(answerA_EN) ||
+            string.IsNullOrWhiteSpace(answerB_EN) ||
+            string.IsNullOrWhiteSpace(answerC_EN) ||
+            string.IsNullOrWhiteSpace(answerD_EN))
+            throw new ValidationException("Các đáp án tiếng Anh A, B, C, D là bắt buộc.");
 
         if (score <= 0)
             throw new ValidationException("Điểm câu hỏi phải lớn hơn 0.");
