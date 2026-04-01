@@ -172,7 +172,9 @@ builder.Services.AddCors(options =>
 // HANGFIRE
 // ======================
 
-var connectionString = builder.Configuration.GetConnectionString("MySqlConnection");
+//var connectionString = builder.Configuration.GetConnectionString("MySqlConnection");
+var hangfireConnectionString = builder.Configuration.GetConnectionString("HangfireMySqlConnection")
+    ?? throw new InvalidOperationException("Missing connection string 'HangfireMySqlConnection'.");
 
 builder.Services.AddHangfire(config =>
 {
@@ -180,7 +182,7 @@ builder.Services.AddHangfire(config =>
     config.UseRecommendedSerializerSettings();
 
     config.UseStorage(new MySqlStorage(
-        connectionString,
+        hangfireConnectionString,
         new MySqlStorageOptions
         {
             TablesPrefix = "Hangfire",
@@ -192,8 +194,18 @@ builder.Services.AddHangfire(config =>
     ));
 });
 
-builder.Services.AddHangfireServer();
+//builder.Services.AddHangfireServer();
 
+builder.Services.AddHangfireServer(config =>
+{
+    config.WorkerCount = 3;
+    config.Queues = ["critical", "default", "low"];
+    //config.Queues = new[] { "critical", "default", "low" };
+    config.SchedulePollingInterval = TimeSpan.FromSeconds(10);
+    config.HeartbeatInterval = TimeSpan.FromSeconds(30);
+    config.ServerCheckInterval = TimeSpan.FromMinutes(1);
+    config.CancellationCheckInterval = TimeSpan.FromSeconds(15);
+});
 
 // ======================
 // BUILD APP
