@@ -7,6 +7,7 @@ using Droniverse.Academy.Application.Validators;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
+using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Services;
@@ -89,7 +90,11 @@ public class LabService : ILabService
         await _unitOfWork.Lessons.AddAsync(lesson);
         await _unitOfWork.SaveChangesAsync();
 
-        return _mapper.Map<LessonClientViewDTO>(lesson);
+        var response = _mapper.Map<LessonClientViewDTO>(lesson);
+        response.TitleVN = lab.NameVN;
+        response.TitleEN = lab.NameEN;
+
+        return response;
     }
 
     public async Task<PaginationResult<IEnumerable<LabClientViewDTO>>> GetLabsAsync(GetLabsQueryDTO query)
@@ -112,7 +117,9 @@ public class LabService : ILabService
 
         var entities = labs.Data.ToList();
         var mapped = _mapper.Map<List<LabClientViewDTO>>(entities);
-        await Task.WhenAll(entities.Zip(mapped, (entity, dto) => PopulateUsersAsync(dto, entity.CreateBy, entity.UpdateBy)));
+
+        var userLookup = await BuildUserLookupAsync(entities);
+        PopulateMappedLabsUsers(entities, mapped, userLookup);
 
         return new PaginationResult<IEnumerable<LabClientViewDTO>>(mapped, labs.TotalRecords, labs.PageIndex, labs.PageSize);
     }
@@ -171,7 +178,13 @@ public class LabService : ILabService
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
-        return await _labContentService.UpdateByLabIdAsync(labId, request);
+        var updatedContent = await _labContentService.UpdateByLabIdAsync(labId, request);
+
+        lab.SetAuditOnUpdate(_currentUser.UserId, _clock.Now);
+        await _unitOfWork.Labs.UpdateAsync(lab);
+        await _unitOfWork.SaveChangesAsync();
+
+        return updatedContent;
     }
 
     public async Task DeleteLabAsync(Guid labId)
@@ -226,5 +239,36 @@ public class LabService : ILabService
         var (creator, updater) = await _userDisplayNameService.ResolveCreatorUpdaterAsync(createBy, updateBy);
         lab.Creator = creator;
         lab.Updater = updater;
+    }
+
+    private async Task<Dictionary<Guid, SimpleUserReponse?>> BuildUserLookupAsync(IEnumerable<Lab> labs)
+    {
+        var userIds = labs
+            .SelectMany(l => new[] { l.CreateBy, l.UpdateBy })
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        var lookup = await _userDisplayNameService.ResolveUsersDisplayNameAsync(userIds);
+        return lookup.ToDictionary(x => x.Key, x => x.Value);
+    }
+
+    private static void PopulateMappedLabsUsers(
+        IEnumerable<Lab> entities,
+        IEnumerable<LabClientViewDTO> dtos,
+        IReadOnlyDictionary<Guid, SimpleUserReponse?> userLookup)
+    {
+        foreach (var (entity, dto) in entities.Zip(dtos))
+        {
+            if (userLookup.TryGetValue(entity.CreateBy, out var creator))
+            {
+                dto.Creator = creator;
+            }
+
+            if (userLookup.TryGetValue(entity.UpdateBy, out var updater))
+            {
+                dto.Updater = updater;
+            }
+        }
     }
 }

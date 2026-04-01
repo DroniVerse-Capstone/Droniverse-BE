@@ -101,10 +101,6 @@ public class CourseVersionConfiguration
             .WithOne(cvc => cvc.CourseVersion)
             .HasForeignKey(cvc => cvc.CourseVersionID);
 
-        builder.HasMany(cv => cv.Codes)
-            .WithOne(c => c.CourseVersion)
-            .HasForeignKey(c => c.CourseVersionID);
-
         builder.HasMany(cv => cv.Feedbacks)
             .WithOne(f => f.CourseVersion)
             .HasForeignKey(f => f.CourseVersionID);

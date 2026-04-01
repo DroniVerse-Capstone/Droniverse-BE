@@ -1,13 +1,16 @@
 ﻿using DotNetEnv;
 using Droniverse.Academy.Application;
 using Droniverse.Academy.Infrastructure;
-using Droniverse.Identity.API;
+using Droniverse.Academy.Infrastructure.Persistence.MySql;
 using Droniverse.Shared;
+using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Settings;
 using Hangfire;
 using Hangfire.Dashboard;
 using Hangfire.MySql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MongoDB.Bson;
@@ -19,8 +22,6 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Transactions;
-using Microsoft.EntityFrameworkCore;
-using Droniverse.Academy.Infrastructure.Persistence.MySql;
 
 // Load .env
 Env.Load("../../.env");
@@ -113,29 +114,30 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
+    var serviceProvider = builder.Services.BuildServiceProvider();
+    var jwtSettings = serviceProvider.GetRequiredService<IOptions<JwtSettings>>().Value;
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-
         ValidIssuer = jwtSettings.Issuer,
         ValidAudience = jwtSettings.Audience,
-
         IssuerSigningKey = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(jwtSettings.Key)
         ),
-
         ClockSkew = TimeSpan.Zero
     };
-
+    //JwtBearerEventsConfigurator.Configure(options);
     options.Events = new JwtBearerEvents
     {
         OnMessageReceived = context =>
         {
+            // Đọc token từ cookie trước
             var accessToken = context.Request.Cookies["AccessToken"];
 
+            // Nếu không có trong cookie, thử đọc từ header (cho mobile app)
             if (string.IsNullOrEmpty(accessToken))
             {
                 accessToken = context.Request.Headers["Authorization"]
@@ -174,7 +176,9 @@ builder.Services.AddCors(options =>
 // HANGFIRE
 // ======================
 
-var connectionString = builder.Configuration.GetConnectionString("MySqlConnection");
+//var connectionString = builder.Configuration.GetConnectionString("MySqlConnection");
+var hangfireConnectionString = builder.Configuration.GetConnectionString("HangfireMySqlConnection")
+    ?? throw new InvalidOperationException("Missing connection string 'HangfireMySqlConnection'.");
 
 builder.Services.AddHangfire(config =>
 {
@@ -182,7 +186,7 @@ builder.Services.AddHangfire(config =>
     config.UseRecommendedSerializerSettings();
 
     config.UseStorage(new MySqlStorage(
-        connectionString,
+        hangfireConnectionString,
         new MySqlStorageOptions
         {
             TablesPrefix = "Hangfire",
@@ -194,8 +198,18 @@ builder.Services.AddHangfire(config =>
     ));
 });
 
-builder.Services.AddHangfireServer();
+//builder.Services.AddHangfireServer();
 
+builder.Services.AddHangfireServer(config =>
+{
+    config.WorkerCount = 3;
+    config.Queues = ["critical", "default", "low"];
+    //config.Queues = new[] { "critical", "default", "low" };
+    config.SchedulePollingInterval = TimeSpan.FromSeconds(10);
+    config.HeartbeatInterval = TimeSpan.FromSeconds(30);
+    config.ServerCheckInterval = TimeSpan.FromMinutes(1);
+    config.CancellationCheckInterval = TimeSpan.FromSeconds(15);
+});
 
 // ======================
 // BUILD APP

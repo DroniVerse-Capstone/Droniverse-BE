@@ -11,4 +11,3 @@ public class CourseResponseDTO
     public CourseStatus Status { get; set; }
     public CourseVersionResponseDTO? CurrentVersion { get; set; }
 }
-

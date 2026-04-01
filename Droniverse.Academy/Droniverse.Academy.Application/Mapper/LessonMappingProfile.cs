@@ -23,6 +23,26 @@ public class LessonMappingProfile : Profile
             .ForMember(dest => dest.Module, opt => opt.Ignore())
             .ForMember(dest => dest.UserLessons, opt => opt.Ignore());
 
+        CreateMap<Lesson, Lesson>()
+            .ForMember(dest => dest.LessonID, opt => opt.Ignore())
+            .ForMember(dest => dest.ModuleID, opt => opt.Ignore())
+            .ForMember(dest => dest.Module, opt => opt.Ignore())
+            .ForMember(dest => dest.UserLessons, opt => opt.Ignore());
+
         CreateMap<Lesson, LessonClientViewDTO>();
+
+        CreateMap<Theory, LessonClientViewDTO>()
+            .ForMember(dest => dest.TitleVN, opt => opt.MapFrom(src => src.TitleVN))
+            .ForMember(dest => dest.TitleEN, opt => opt.MapFrom(src => src.TitleEN))
+            .ForMember(dest => dest.EstimatedTime, opt => opt.MapFrom(src => src.EstimatedTime));
+
+        CreateMap<Quiz, LessonClientViewDTO>()
+            .ForMember(dest => dest.TitleVN, opt => opt.MapFrom(src => src.TitleVN))
+            .ForMember(dest => dest.TitleEN, opt => opt.MapFrom(src => src.TitleEN))
+            .ForMember(dest => dest.EstimatedTime, opt => opt.MapFrom(src => src.TimeLimit));
+
+        CreateMap<Lab, LessonClientViewDTO>()
+            .ForMember(dest => dest.TitleVN, opt => opt.MapFrom(src => src.NameVN))
+            .ForMember(dest => dest.TitleEN, opt => opt.MapFrom(src => src.NameEN));
     }
 }

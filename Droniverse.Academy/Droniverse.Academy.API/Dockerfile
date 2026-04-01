@@ -15,6 +15,7 @@ WORKDIR /src
 COPY ["Droniverse.Academy/Droniverse.Academy.API/Droniverse.Academy.API.csproj", "Droniverse.Academy/Droniverse.Academy.API/"]
 COPY ["Droniverse.Academy/Droniverse.Academy.Application/Droniverse.Academy.Application.csproj", "Droniverse.Academy/Droniverse.Academy.Application/"]
 COPY ["Droniverse.Academy/Droniverse.Academy.Domain/Droniverse.Academy.Domain.csproj", "Droniverse.Academy/Droniverse.Academy.Domain/"]
+COPY ["Droniverse.Shared/Droniverse.Shared.csproj", "Droniverse.Shared/"]
 COPY ["Droniverse.Academy/Droniverse.Academy.Infrastructure/Droniverse.Academy.Infrastructure.csproj", "Droniverse.Academy/Droniverse.Academy.Infrastructure/"]
 RUN dotnet restore "./Droniverse.Academy/Droniverse.Academy.API/Droniverse.Academy.API.csproj"
 COPY . .

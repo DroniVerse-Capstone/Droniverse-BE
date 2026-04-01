@@ -111,6 +111,29 @@ public class CourseVersionController : ControllerBase
     }
 
     /// <summary>
+    /// Nhân bản một phiên bản khóa học.
+    /// </summary>
+    /// <param name="courseId">Mã khóa học.</param>
+    /// <param name="versionId">Mã phiên bản khóa học nguồn.</param>
+    [HttpPost("{versionId:guid}/duplicate")]
+    [Authorize(Roles = Roles.AdminOrSystemManager)]
+    [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> DuplicateCourseVersion(Guid courseId, Guid versionId)
+    {
+        try
+        {
+            var duplicated = await _service.DuplicateCourseVersionAsync(courseId, versionId);
+            return CreatedAtAction(nameof(GetCourseVersionById), new { courseId, versionId = duplicated.CourseVersionID },
+                SuccessResponse<object>.Create(duplicated, "Nhân bản phiên bản khóa học thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Nhân bản phiên bản khóa học thất bại.");
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Cập nhật nội dung phiên bản khóa học.
     /// </summary>
     /// <param name="courseId">Mã khóa học.</param>

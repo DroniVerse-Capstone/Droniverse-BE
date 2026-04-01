@@ -1,0 +1,13 @@
+﻿using Droniverse.Community.Application.DTO.Response.Mongo;
+using Droniverse.Community.Domain.Enums;
+
+namespace Droniverse.Community.Application.DTO.Request.Mongo;
+
+public record PaymentCreateDto(
+    decimal TotalAmount, PaymentMethod PaymentMethod
+    )
+{ 
+    public PaymentCreateDto() : this(default, default)
+    {
+    }
+}

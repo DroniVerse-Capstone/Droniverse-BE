@@ -19,39 +19,55 @@ public class RequiredDroneService : IRequiredDroneService
         _mapper = mapper;
     }
 
-    public async Task<DroneClientViewDTO> AddRequiredDroneAsync(Guid courseId, Guid versionId, AddRequiredDroneRequestDTO request)
+    public async Task<IEnumerable<DroneClientViewDTO>> AddRequiredDronesAsync(Guid courseId, Guid versionId, AddRequiredDronesRequestDTO request)
     {
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
-        if (request.DroneID == Guid.Empty)
-            throw new ValidationException("DroneID là bắt buộc.");
+        if (request.DroneIDs.Count == 0)
+            throw new ValidationException("Danh sách DroneID là bắt buộc.");
+
+        var droneIds = request.DroneIDs.Distinct().ToList();
+        if (droneIds.Any(id => id == Guid.Empty))
+            throw new ValidationException("DroneID không hợp lệ.");
 
         await EnsureCourseVersionExistsAsync(courseId, versionId);
 
-        var drone = await _unitOfWork.Drones.GetByConditionAsync(
-            d => d.DroneID == request.DroneID,
+        var dronesResult = await _unitOfWork.Drones.GetAllAsync(
+            filter: d => droneIds.Contains(d.DroneID),
+            orderBy: q => q.OrderBy(x => x.DroneNameEN),
+            pageIndex: 1,
+            pageSize: int.MaxValue,
             includeProperties: "DroneType");
 
-        if (drone == null)
-            throw new BaseException("Không tìm thấy drone.", "NOT_FOUND");
+        var drones = dronesResult.Data.ToList();
+        if (drones.Count != droneIds.Count)
+            throw new BaseException("Có drone không tồn tại.", "NOT_FOUND");
 
-        var exists = await _unitOfWork.RequiredDrones.GetByConditionAsync(
-            rd => rd.CourseVersionID == versionId && rd.DroneID == request.DroneID);
+        var existing = await _unitOfWork.RequiredDrones.GetAllAsync(
+            filter: rd => rd.CourseVersionID == versionId,
+            pageIndex: 1,
+            pageSize: int.MaxValue);
 
-        if (exists != null)
-            throw new ValidationException("Drone này đã được yêu cầu cho phiên bản khóa học này.");
-
-        var requiredDrone = new RequiredDrone
+        foreach (var item in existing.Data)
         {
-            CourseVersionID = versionId,
-            DroneID = request.DroneID
-        };
+            await _unitOfWork.RequiredDrones.DeleteAsync(item);
+        }
 
-        await _unitOfWork.RequiredDrones.AddAsync(requiredDrone);
+        foreach (var droneId in droneIds)
+        {
+            await _unitOfWork.RequiredDrones.AddAsync(new RequiredDrone
+            {
+                CourseVersionID = versionId,
+                DroneID = droneId
+            });
+        }
+
         await _unitOfWork.SaveChangesAsync();
 
-        return _mapper.Map<DroneClientViewDTO>(drone);
+        var droneMap = drones.ToDictionary(d => d.DroneID, d => d);
+        var ordered = droneIds.Select(id => droneMap[id]).ToList();
+        return _mapper.Map<IEnumerable<DroneClientViewDTO>>(ordered);
     }
 
     public async Task RemoveRequiredDroneAsync(Guid courseId, Guid versionId, Guid droneId)

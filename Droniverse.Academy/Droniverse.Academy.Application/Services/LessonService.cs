@@ -38,7 +38,7 @@ public class LessonService : ILessonService
         await _unitOfWork.Lessons.AddAsync(lesson);
         await _unitOfWork.SaveChangesAsync();
 
-        return _mapper.Map<LessonClientViewDTO>(lesson);
+        return await MapLessonWithReferenceAsync(lesson);
     }
 
     public async Task<IEnumerable<LessonClientViewDTO>> GetLessonsByModuleAsync(Guid moduleId)
@@ -51,13 +51,13 @@ public class LessonService : ILessonService
             pageIndex: 1,
             pageSize: int.MaxValue);
 
-        return _mapper.Map<IEnumerable<LessonClientViewDTO>>(lessons.Data);
+        return await MapLessonsWithReferenceAsync(lessons.Data);
     }
 
     public async Task<LessonClientViewDTO> GetLessonDetailAsync(Guid moduleId, Guid lessonId)
     {
         var lesson = await GetLessonAsync(moduleId, lessonId);
-        return _mapper.Map<LessonClientViewDTO>(lesson);
+        return await MapLessonWithReferenceAsync(lesson);
     }
 
     public async Task<LessonClientViewDTO> UpdateLessonAsync(Guid moduleId, Guid lessonId, UpdateLessonRequestDTO request)
@@ -79,7 +79,7 @@ public class LessonService : ILessonService
         await _unitOfWork.Lessons.UpdateAsync(lesson);
         await _unitOfWork.SaveChangesAsync();
 
-        return _mapper.Map<LessonClientViewDTO>(lesson);
+        return await MapLessonWithReferenceAsync(lesson);
     }
 
     public async Task<IEnumerable<LessonClientViewDTO>> ReorderLessonsAsync(Guid moduleId, ReorderLessonsRequestDTO request)
@@ -124,14 +124,224 @@ public class LessonService : ILessonService
         await _unitOfWork.SaveChangesAsync();
 
         var ordered = lessons.OrderBy(l => l.OrderIndex).ToList();
-        return _mapper.Map<IEnumerable<LessonClientViewDTO>>(ordered);
+        return await MapLessonsWithReferenceAsync(ordered);
     }
+
+    private async Task<LessonClientViewDTO> MapLessonWithReferenceAsync(Lesson lesson)
+    {
+        var mapped = _mapper.Map<LessonClientViewDTO>(lesson);
+        await PopulateReferenceInfoAsync(lesson, mapped);
+        return mapped;
+    }
+
+    private async Task<List<LessonClientViewDTO>> MapLessonsWithReferenceAsync(IEnumerable<Lesson> lessons)
+    {
+        var lessonList = lessons.ToList();
+        var mapped = _mapper.Map<List<LessonClientViewDTO>>(lessonList);
+
+        if (lessonList.Count == 0)
+            return mapped;
+
+        var lookups = await BuildReferenceLookupsAsync(lessonList);
+
+        for (var index = 0; index < lessonList.Count; index++)
+        {
+            PopulateReferenceInfo(lessonList[index], mapped[index], lookups);
+        }
+
+        return mapped;
+    }
+
+    private async Task PopulateReferenceInfoAsync(Lesson lesson, LessonClientViewDTO dto)
+    {
+        if (lesson.ReferenceID == Guid.Empty)
+            return;
+
+        switch (lesson.Type)
+        {
+            case LessonType.THEORY:
+                var theory = await _unitOfWork.Theories.GetByIdAsync(lesson.ReferenceID);
+                if (theory != null)
+                {
+                    MapTheoryToDto(theory, dto);
+                }
+                break;
+            case LessonType.QUIZ:
+                var quiz = await _unitOfWork.Quizs.GetByIdAsync(lesson.ReferenceID);
+                if (quiz != null)
+                {
+                    MapQuizToDto(quiz, dto);
+                }
+                break;
+            case LessonType.LAB:
+                var lab = await _unitOfWork.Labs.GetByIdAsync(lesson.ReferenceID);
+                if (lab != null)
+                {
+                    MapLabToDto(lab, dto);
+                }
+                break;
+        }
+    }
+
+    private async Task<ReferenceLookups> BuildReferenceLookupsAsync(List<Lesson> lessons)
+    {
+        var theoryIds = GetReferenceIdsByType(lessons, LessonType.THEORY);
+        var quizIds = GetReferenceIdsByType(lessons, LessonType.QUIZ);
+        var labIds = GetReferenceIdsByType(lessons, LessonType.LAB);
+
+        var theoryLookup = await GetTheoryLookupAsync(theoryIds);
+        var quizLookup = await GetQuizLookupAsync(quizIds);
+        var labLookup = await GetLabLookupAsync(labIds);
+
+        return new ReferenceLookups(theoryLookup, quizLookup, labLookup);
+    }
+
+    private static HashSet<Guid> GetReferenceIdsByType(IEnumerable<Lesson> lessons, LessonType type)
+    {
+        return lessons
+            .Where(l => l.Type == type && l.ReferenceID != Guid.Empty)
+            .Select(l => l.ReferenceID)
+            .ToHashSet();
+    }
+
+    private async Task<Dictionary<Guid, Theory>> GetTheoryLookupAsync(IReadOnlySet<Guid> theoryIds)
+    {
+        if (theoryIds.Count == 0)
+            return [];
+
+        var theoryResult = await _unitOfWork.Theories.GetAllAsync(
+            filter: t => theoryIds.Contains(t.TheoryID),
+            pageIndex: 1,
+            pageSize: int.MaxValue);
+
+        return theoryResult.Data.ToDictionary(x => x.TheoryID);
+    }
+
+    private async Task<Dictionary<Guid, Quiz>> GetQuizLookupAsync(IReadOnlySet<Guid> quizIds)
+    {
+        if (quizIds.Count == 0)
+            return [];
+
+        var quizResult = await _unitOfWork.Quizs.GetAllAsync(
+            filter: q => quizIds.Contains(q.QuizID),
+            pageIndex: 1,
+            pageSize: int.MaxValue);
+
+        return quizResult.Data.ToDictionary(x => x.QuizID);
+    }
+
+    private async Task<Dictionary<Guid, Lab>> GetLabLookupAsync(IReadOnlySet<Guid> labIds)
+    {
+        if (labIds.Count == 0)
+            return [];
+
+        var labResult = await _unitOfWork.Labs.GetAllAsync(
+            filter: l => labIds.Contains(l.LabID),
+            pageIndex: 1,
+            pageSize: int.MaxValue);
+
+        return labResult.Data.ToDictionary(x => x.LabID);
+    }
+
+    private void PopulateReferenceInfo(Lesson lesson, LessonClientViewDTO dto, ReferenceLookups lookups)
+    {
+        if (lesson.ReferenceID == Guid.Empty)
+            return;
+
+        switch (lesson.Type)
+        {
+            case LessonType.THEORY:
+                if (lookups.Theories.TryGetValue(lesson.ReferenceID, out var theory))
+                {
+                    MapTheoryToDto(theory, dto);
+                }
+                break;
+            case LessonType.QUIZ:
+                if (lookups.Quizs.TryGetValue(lesson.ReferenceID, out var quiz))
+                {
+                    MapQuizToDto(quiz, dto);
+                }
+                break;
+            case LessonType.LAB:
+                if (lookups.Labs.TryGetValue(lesson.ReferenceID, out var lab))
+                {
+                    MapLabToDto(lab, dto);
+                }
+                break;
+        }
+    }
+
+    private void MapTheoryToDto(Theory theory, LessonClientViewDTO dto)
+    {
+        _mapper.Map(theory, dto);
+    }
+
+    private void MapQuizToDto(Quiz quiz, LessonClientViewDTO dto)
+    {
+        _mapper.Map(quiz, dto);
+    }
+
+    private void MapLabToDto(Lab lab, LessonClientViewDTO dto)
+    {
+        _mapper.Map(lab, dto);
+    }
+
+    private sealed record ReferenceLookups(
+        IReadOnlyDictionary<Guid, Theory> Theories,
+        IReadOnlyDictionary<Guid, Quiz> Quizs,
+        IReadOnlyDictionary<Guid, Lab> Labs);
 
     public async Task DeleteLessonAsync(Guid moduleId, Guid lessonId)
     {
         var lesson = await GetLessonAsync(moduleId, lessonId);
+        var deletedOrderIndex = lesson.OrderIndex;
+
+        if (lesson.ReferenceID != Guid.Empty)
+        {
+            switch (lesson.Type)
+            {
+                case LessonType.THEORY:
+                    var theory = await _unitOfWork.Theories.GetByIdAsync(lesson.ReferenceID);
+                    if (theory != null)
+                    {
+                        await _unitOfWork.Theories.DeleteAsync(theory);
+                    }
+                    break;
+
+                case LessonType.QUIZ:
+                    var quiz = await _unitOfWork.Quizs.GetByIdAsync(lesson.ReferenceID);
+                    if (quiz != null)
+                    {
+                        var questions = await _unitOfWork.QuizQuestions.GetAllAsync(
+                            filter: q => q.QuizID == quiz.QuizID,
+                            pageIndex: 1,
+                            pageSize: int.MaxValue);
+
+                        foreach (var question in questions.Data)
+                        {
+                            await _unitOfWork.QuizQuestions.DeleteAsync(question);
+                        }
+
+                        await _unitOfWork.Quizs.DeleteAsync(quiz);
+                    }
+                    break;
+            }
+        }
 
         await _unitOfWork.Lessons.DeleteAsync(lesson);
+
+        var lessonsAfterDeleted = await _unitOfWork.Lessons.GetAllAsync(
+            filter: l => l.ModuleID == moduleId && l.OrderIndex > deletedOrderIndex,
+            orderBy: q => q.OrderBy(l => l.OrderIndex),
+            pageIndex: 1,
+            pageSize: int.MaxValue);
+
+        foreach (var item in lessonsAfterDeleted.Data)
+        {
+            item.OrderIndex--;
+            await _unitOfWork.Lessons.UpdateAsync(item);
+        }
+
         await _unitOfWork.SaveChangesAsync();
     }
 

@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Domain.Entities;
@@ -29,5 +29,14 @@ public class ModuleMappingProfile : Profile
 
         CreateMap<Module, ModuleResponseDTO>();
         CreateMap<Module, ModuleClientViewDTO>();
+
+        CreateMap<Module, Module>()
+            .ForMember(dest => dest.ModuleID, opt => opt.Ignore())
+            .ForMember(dest => dest.CourseVersionID, opt => opt.Ignore())
+            .ForMember(dest => dest.CourseVersion, opt => opt.Ignore())
+            .ForMember(dest => dest.UserModules, opt => opt.Ignore())
+            .ForMember(dest => dest.Lessons, opt => opt.Ignore())
+            .ForMember(dest => dest.CreateAt, opt => opt.Ignore())
+            .ForMember(dest => dest.UpdateAt, opt => opt.Ignore());
     }
 }

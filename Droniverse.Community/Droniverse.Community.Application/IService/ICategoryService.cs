@@ -11,6 +11,7 @@ namespace Droniverse.Community.Application.IService
     public interface ICategoryService
     {
         Task<IEnumerable<CategoryResponseDto>> GetAllCategory();
+        Task<IEnumerable<CategoryResponseDto>> GetCategoriesBulk(IEnumerable<Guid> ids);
         Task<CategoryResponseDto> GetCategoryById(Guid id);
         Task<CategoryResponseDto> CreateCategory(CategoryRequestDto request);
         Task<CategoryResponseDto> UpdateCategory(Guid categoryID, CategoryRequestDto request);
