@@ -178,7 +178,13 @@ public class LabService : ILabService
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
-        return await _labContentService.UpdateByLabIdAsync(labId, request);
+        var updatedContent = await _labContentService.UpdateByLabIdAsync(labId, request);
+
+        lab.SetAuditOnUpdate(_currentUser.UserId, _clock.Now);
+        await _unitOfWork.Labs.UpdateAsync(lab);
+        await _unitOfWork.SaveChangesAsync();
+
+        return updatedContent;
     }
 
     public async Task DeleteLabAsync(Guid labId)
