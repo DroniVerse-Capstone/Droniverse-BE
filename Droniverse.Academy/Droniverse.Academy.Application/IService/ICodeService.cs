@@ -9,5 +9,6 @@ public interface ICodeService
     Task<CodeResponseDTO> DeleteCodeAsync(string codeId);
     Task<CodeResponseDTO> GetCodeAsync(string codeId);
     Task<PaginationResult<IEnumerable<CodeResponseDTO>>> GetAllCodesAsync();
+    Task<CodeUsageResponseDTO> EnterCodeAsync(string codeId);
 }
 

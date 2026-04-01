@@ -5,6 +5,9 @@ using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
 using Droniverse.Shared.Exceptions;
+using Droniverse.Shared.Services;
+using Microsoft.Extensions.Logging;
+using System.Security.Claims;
 
 namespace Droniverse.Academy.Application.Services;
 
@@ -12,13 +15,32 @@ public class CodeService : ICodeService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
-    public CodeService(IUnitOfWork unitOfWork, IMapper mapper)
+    private readonly ICurrentUserService _currentUserService;
+    private readonly ILogger<CodeService> _logger;
+    public CodeService(
+        IUnitOfWork unitOfWork, 
+        IMapper mapper, 
+        ICurrentUserService currentUserService,
+        ILogger<CodeService> logger)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
+        _currentUserService = currentUserService;
+        _logger = logger;
     }
     public async Task<IEnumerable<string>> CreateCodeAsync(Guid courseId, int quantity)
     {
+        if(quantity<=0)
+        {
+            throw new ValidationException("Số lượng code phải lớn hơn 0");
+        }
+
+        ClaimsPrincipal user = _currentUserService.User;
+        if (user is null)
+        {
+            throw new UnauthorizedAccessException("Người dùng chưa xác thực");
+        }
+
         Course? course = await _unitOfWork.Courses.GetByConditionAsync(c => c.CourseID == courseId, includeProperties:"CurrentVersion");
         if (course is null)
         {
@@ -124,6 +146,48 @@ public class CodeService : ICodeService
     public Task<CodeResponseDTO> UpdateCodeAsync(string codeId)
     {
         throw new NotImplementedException();
+    }
+
+    public async Task<CodeUsageResponseDTO> EnterCodeAsync(string codeId)
+    {
+        try
+        {
+            ClaimsPrincipal user = _currentUserService.User;
+            if (user is null)
+            {
+                throw new UnauthorizedAccessException("Người dùng chưa xác thực");
+            }
+
+            Code? code = await _unitOfWork.Codes.GetByConditionAsync(c => c.CodeID == codeId);
+            if (code is null)
+            {
+                throw new ValidationException("Mã code của khóa học chưa đúng! Vui lòng nhập lại");
+            }
+
+            CodeUsage? existCodeUsage = await _unitOfWork.CodeUsages.GetByConditionAsync(cu => cu.CodeID == codeId && cu.UserID == _currentUserService.UserId);
+            if(existCodeUsage is not null)
+            {
+                throw new ValidationException("Mã code này đã được sử dụng trước đó!");
+            }
+
+            CodeUsage codeUsage = new CodeUsage
+            {
+                CodeID = code.CodeID,
+                UserID = _currentUserService.UserId,
+                UsedDate = DateTime.UtcNow.AddHours(7)
+            };
+
+            CodeUsage addedCodeUsage = await _unitOfWork.CodeUsages.AddAsync(codeUsage);
+            await _unitOfWork.SaveChangesAsync();
+
+            return _mapper.Map<CodeUsageResponseDTO>(addedCodeUsage);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error occurred while entering code {CodeID} for user {UserID}", codeId, _currentUserService.UserId);
+            throw;
+        }
+
     }
 }
 

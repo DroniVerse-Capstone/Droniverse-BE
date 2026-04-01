@@ -37,11 +37,18 @@ public class CodeController : ControllerBase
         return Ok(SuccessResponse<CodeResponseDTO>.Create(codeResponseDTO, "Lấy thông tin code thành công."));
     }
 
-    [HttpPost]
+    [HttpPost("generate-codes")]
     public async Task<IActionResult> CreateCode(Guid courseId, int quantity)
     {
         IEnumerable<string> listIds = await _codeService.CreateCodeAsync(courseId, quantity);
         return Ok(SuccessResponse<IEnumerable<string>>.Create(listIds, "Tạo code thành công."));
+    }
+
+    [HttpPost("enter-codes")]
+    public async Task<IActionResult> EnterCodes(string codeId)
+    {
+        CodeUsageResponseDTO result = await _codeService.EnterCodeAsync(codeId);
+        return Ok(SuccessResponse<CodeUsageResponseDTO>.Create(result, "Truy cập khóa học thành công"));
     }
 
 

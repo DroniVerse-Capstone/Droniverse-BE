@@ -13,7 +13,7 @@ public class CodeResponseDTO
 
 public class CodeUsageResponseDTO
 {
-    public Guid CodeID { get; set; }
+    public string CodeID { get; set; }
     public Guid UserID { get; set; }
     public DateTime UsedDate { get; set; }
 }
