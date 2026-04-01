@@ -40,6 +40,10 @@ public class CourseConfiguration : IEntityTypeConfiguration<Course>
             .HasForeignKey(cv => cv.CourseID)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasMany(cv => cv.Codes)
+               .WithOne(c => c.Course)
+               .HasForeignKey(c => c.CourseID);
+
 
         // Constraints
         builder.ToTable(t =>
