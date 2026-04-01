@@ -17,6 +17,10 @@ public class UpdateQuizQuestionRequestExample : IMultipleExamplesProvider<Update
                 AnswerB = "Bay ngẫu nhiên",
                 AnswerC = "Kích hoạt chế độ quay về điểm xuất phát",
                 AnswerD = "Tắt động cơ ngay lập tức",
+                AnswerA_EN = "Increase speed to maximum",
+                AnswerB_EN = "Fly randomly",
+                AnswerC_EN = "Activate return-to-home mode",
+                AnswerD_EN = "Shut down motors immediately",
                 CorrectAnswer = "C",
                 Score = 1
             }

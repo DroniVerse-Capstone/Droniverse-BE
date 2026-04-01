@@ -17,6 +17,10 @@ public class CreateQuizQuestionRequestExample : IMultipleExamplesProvider<Create
                 AnswerB = "3 mét",
                 AnswerC = "5 mét",
                 AnswerD = "10 mét",
+                AnswerA_EN = "1 meter",
+                AnswerB_EN = "3 meters",
+                AnswerC_EN = "5 meters",
+                AnswerD_EN = "10 meters",
                 CorrectAnswer = "C",
                 Score = 1
             }
