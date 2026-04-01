@@ -273,12 +273,12 @@ namespace Droniverse.Community.API.Controllers
         /// <param name="competitionId">ID của cuộc thi</param>
         /// <returns>200 OK - Trả về bảng xếp hạng</returns>
         [HttpGet("{competitionId}/leaderboard")]
-        [ProducesResponseType(typeof(SuccessResponse<IEnumerable<LeaderboardEntryDto>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<LeaderboardEntryDto>>>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ApiResponse> GetCompetitionLeaderboard(Guid competitionId)
+        public async Task<ApiResponse> GetCompetitionLeaderboard([FromQuery] CompetitionLeaderboardSearchRequest request, Guid competitionId)
         {
-            var leaderboard = await _competitionService.GetCompetitionLeaderboard(competitionId);
-            return SuccessResponse<IEnumerable<LeaderboardEntryDto>>.Create(
+            var leaderboard = await _competitionService.GetCompetitionLeaderboard(request, competitionId);
+            return SuccessResponse<PaginationResult<IEnumerable<LeaderboardEntryDto>>>.Create(
                 leaderboard,
                 "Lấy bảng xếp hạng cuộc thi thành công!"
             );

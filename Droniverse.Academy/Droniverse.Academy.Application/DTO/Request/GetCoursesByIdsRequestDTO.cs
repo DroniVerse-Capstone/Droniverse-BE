@@ -1,4 +1,7 @@
-﻿namespace Droniverse.Academy.Application.DTO.Request;
+﻿using Droniverse.Academy.Domain.Enums;
+using Droniverse.Academy;
+
+namespace Droniverse.Academy.Application.DTO.Request;
 
 public class GetCoursesByIdsRequestDTO
 {

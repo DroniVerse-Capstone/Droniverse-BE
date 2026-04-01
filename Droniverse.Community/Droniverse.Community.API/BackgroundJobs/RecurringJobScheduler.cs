@@ -12,9 +12,9 @@ namespace Droniverse.Community.API.BackgroundJobs
 
         public static void ScheduleJobs()
         {
+            RecurringJob.RemoveIfExists(RoundStatusJobId);
             ScheduleCompetitionJob();
-            ScheduleRoundJob();
-            ScheduleHotCompetitionsJob();
+            //ScheduleHotCompetitionsJob();
         }
 
         private static void ScheduleCompetitionJob()
@@ -30,25 +30,12 @@ namespace Droniverse.Community.API.BackgroundJobs
             );
         }
 
-        private static void ScheduleRoundJob()
-        {
-            RecurringJob.AddOrUpdate<RoundStatusJob>(
-                RoundStatusJobId,
-                job => job.ExecuteAsync(),
-                Cron.Minutely,
-                new RecurringJobOptions
-                {
-                    TimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")
-                }
-            );
-        }
-
         private static void ScheduleHotCompetitionsJob()
         {
             RecurringJob.AddOrUpdate<HotCompetitionsJob>(
                 HotCompetitionsJobId,
                 job => job.ExecuteAsync(),
-                Cron.MinuteInterval(5),
+                "2-59/10 * * * *",
                 new RecurringJobOptions
                 {
                     TimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")

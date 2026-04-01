@@ -9,7 +9,6 @@
 	<ItemGroup>
 		<Folder Include="Abstractions\" />
 		<Folder Include="Config\" />
-		<Folder Include="DTOs\Request\" />
 		<Folder Include="Middleware\" />
 		<PackageReference Include="CloudinaryDotNet" Version="1.27.8" />
 		<PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.1" />

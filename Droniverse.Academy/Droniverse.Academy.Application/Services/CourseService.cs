@@ -1,14 +1,14 @@
 ﻿using AutoMapper;
-using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
+using Droniverse.Academy.Application.Enums;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
+using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Services;
-using Microsoft.AspNetCore.Http.HttpResults;
 using System.Linq.Expressions;
 
 namespace Droniverse.Academy.Application.Services;
@@ -153,28 +153,80 @@ public class CourseService : ICourseService
         await _unitOfWork.SaveChangesAsync();
     }
 
-    public async Task<IEnumerable<CourseResponseDTO>> GetCoursesByIdsAsync(IEnumerable<Guid> courseIds)
+    public async Task<IEnumerable<CourseBulkResponseDTO>> GetCoursesByIdsAsync(
+        CourseBulkSearchRequest searchRequest,
+        IEnumerable<Guid> courseIds)
     {
+        searchRequest ??= new CourseBulkSearchRequest();
+
         var ids = courseIds?.Distinct().ToList() ?? [];
         if (ids.Count == 0)
+        {
             return [];
+        }
 
-        var result = await _unitOfWork.Courses.GetAllWithCurrentVersionAsync(
-            filter: c => ids.Contains(c.CourseID),
-            pageIndex: 1,
-            pageSize: ids.Count);
+        var courseResult = await _unitOfWork.Courses.GetAllWithCurrentVersionNoPagingAsync(
+                    filter: c => ids.Contains(c.CourseID));
 
-        var entities = result.Data.ToList();
-        var data = entities
-            .Select(c => _mapper.Map<CourseResponseDTO>(c))
+        var filteredCourses = courseResult
+            .Where(c => c.CurrentVersion != null)
+            .Where(c => !searchRequest.Level.HasValue || c.CurrentVersion!.Level == searchRequest.Level.Value)
+            .Where(c => searchRequest.CourseOwner != CourseOwnerFilter.Owned || c.CreateBy == _currentUser.UserId)
+            .Where(c =>
+                string.IsNullOrWhiteSpace(searchRequest.CourseName) ||
+                (c.CurrentVersion!.TitleEN != null && c.CurrentVersion.TitleEN.Contains(searchRequest.CourseName.Trim(), StringComparison.OrdinalIgnoreCase)) ||
+                (c.CurrentVersion.TitleVN != null && c.CurrentVersion.TitleVN.Contains(searchRequest.CourseName.Trim(), StringComparison.OrdinalIgnoreCase)))
             .ToList();
 
-        await Task.WhenAll(entities.Zip(data, (entity, dto) => PopulateCreatorAsync(dto, entity.CreateBy)));
-        await Task.WhenAll(entities.Zip(data, (entity, dto) => PopulateCurrentVersionUpdaterAsync(dto, entity.CurrentVersion?.UpdateBy)));
-
-        return data
-            .OrderBy(c => ids.IndexOf(c.CourseID))
+        var courseVersionIds = filteredCourses
+            .Select(c => c.CurrentVersion!.CourseVersionID)
+            .Distinct()
             .ToList();
+
+        var participantCountByVersionId =
+            await _unitOfWork.Enrollments.GetActiveOrCompletedParticipantCountsByCourseVersionIdsAsync(courseVersionIds);
+
+        var ratingByVersionId =
+            await _unitOfWork.Feedbacks.GetAverageRatingsByCourseVersionIdsAsync(courseVersionIds);
+
+        var data = filteredCourses
+            .Select(c =>
+            {
+                var currentVersion = c.CurrentVersion!;
+                var versionId = currentVersion.CourseVersionID;
+
+                participantCountByVersionId.TryGetValue(versionId, out var numberOfParticipants);
+                ratingByVersionId.TryGetValue(versionId, out var rating);
+
+                return new CourseBulkResponseDTO
+                {
+                    CourseId = c.CourseID,
+                    CourseVersionId = versionId,
+                    TitleVN = currentVersion.TitleVN,
+                    TitleEN = currentVersion.TitleEN,
+                    Level = currentVersion.Level,
+                    EstimatedDuration = currentVersion.EstimatedDuration,
+                    Price = null,
+                    RemainingCode = 0,
+                    Rating = rating,
+                    NumberOfParticipants = numberOfParticipants,
+                    ImageUrl = currentVersion.ImageUrl
+                };
+            })
+            .ToList();
+
+        IOrderedEnumerable<CourseBulkResponseDTO> orderedData = searchRequest.NumberOfParticipation switch
+        {
+            CourseParticipationFilter.MostPopular => data
+                .OrderByDescending(x => x.NumberOfParticipants)
+                .ThenBy(x => ids.IndexOf(x.CourseId)),
+            CourseParticipationFilter.LeastPopular => data
+                .OrderBy(x => x.NumberOfParticipants)
+                .ThenBy(x => ids.IndexOf(x.CourseId)),
+            _ => data.OrderBy(x => ids.IndexOf(x.CourseId))
+        };
+
+        return orderedData;
     }
 
     private async Task PopulateCreatorAsync(CourseResponseDTO course, Guid createBy)

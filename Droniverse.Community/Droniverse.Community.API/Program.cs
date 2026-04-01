@@ -16,6 +16,12 @@ using Swashbuckle.AspNetCore.SwaggerUI;
 using System.Reflection;
 using System.Text;
 using System.Text.Json.Serialization;
+using Droniverse.Community.Application.Jobs;
+using Droniverse.Community.API.Jobs;
+using Hangfire;
+using Hangfire.MySql;
+using System.Transactions;
+using Droniverse.Community.API.BackgroundJobs;
 
 
 Env.Load("../../.env");
@@ -26,9 +32,9 @@ builder.Configuration.AddEnvironmentVariables();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication(builder.Configuration);
 builder.Services.AddShared(builder.Configuration);
-//builder.Services.AddScoped<CompetitionStatusJob>();
-//builder.Services.AddScoped<RoundStatusJob>();
-//builder.Services.AddScoped<HotCompetitionsJob>();
+builder.Services.AddScoped<CompetitionStatusJob>();
+builder.Services.AddScoped<RoundStatusJob>();
+builder.Services.AddScoped<HotCompetitionsJob>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -174,39 +180,42 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Logging.SetMinimumLevel(LogLevel.Debug);
+
 // ======================
 // HANGFIRE
 // ======================
 
-//var hangfireConnectionString = builder.Configuration.GetConnectionString("HangfireMySqlConnection")
-//    ?? throw new InvalidOperationException("Missing connection string 'HangfireMySqlConnection'.");
+var hangfireConnectionString = builder.Configuration.GetConnectionString("HangfireMySqlConnection")
+    ?? throw new InvalidOperationException("Missing connection string 'HangfireMySqlConnection'.");
 
-//builder.Services.AddHangfire(config =>
-//{
-//    config.UseSimpleAssemblyNameTypeSerializer();
-//    config.UseRecommendedSerializerSettings();
-//    config.UseStorage(new MySqlStorage(
-//        hangfireConnectionString,
-//        new MySqlStorageOptions
-//        {
-//            TablesPrefix = "Hangfire",
-//            PrepareSchemaIfNecessary = true,
-//            QueuePollInterval = TimeSpan.FromSeconds(30),
-//            TransactionTimeout = TimeSpan.FromMinutes(3),
-//            TransactionIsolationLevel = IsolationLevel.ReadCommitted
-//        }
-//    ));
-//});
+builder.Services.AddHangfire(config =>
+{
+    config.UseSimpleAssemblyNameTypeSerializer();
+    config.UseRecommendedSerializerSettings();
+    config.UseStorage(new MySqlStorage(
+        hangfireConnectionString,
+        new MySqlStorageOptions
+        {
+            TablesPrefix = "Hangfire",
+            PrepareSchemaIfNecessary = true,
+            QueuePollInterval = TimeSpan.FromSeconds(15),
+            TransactionTimeout = TimeSpan.FromSeconds(30),
+            TransactionIsolationLevel = IsolationLevel.ReadCommitted,
+            JobExpirationCheckInterval = TimeSpan.FromMinutes(10),
+        }
+    ));
+});
 
-//builder.Services.AddHangfireServer(config =>
-//{
-//    config.WorkerCount = 1;
-//    config.Queues = ["default"];
-//    config.SchedulePollingInterval = TimeSpan.FromSeconds(30);
-//    config.HeartbeatInterval = TimeSpan.FromSeconds(30);
-//    config.ServerCheckInterval = TimeSpan.FromMinutes(1);
-//    config.CancellationCheckInterval = TimeSpan.FromSeconds(15);
-//});
+builder.Services.AddHangfireServer(config =>
+{
+    config.WorkerCount = 3;
+    config.Queues = ["critical", "default", "low"];
+    config.SchedulePollingInterval = TimeSpan.FromSeconds(10);
+    config.HeartbeatInterval = TimeSpan.FromSeconds(30);
+    config.ServerCheckInterval = TimeSpan.FromMinutes(1);
+    config.CancellationCheckInterval = TimeSpan.FromSeconds(15);
+});
 
 var app = builder.Build();
 
@@ -234,12 +243,21 @@ app.UseCors();
 
 app.UseAuthentication();
 app.UseAuthorization();
-//app.UseHangfireDashboard("/hangfire", new DashboardOptions
-//{
-//    Authorization = []
-//});
 
-//RecurringJobScheduler.ScheduleJobs();
+app.UseHangfireDashboard("/hangfire", new DashboardOptions
+{
+    Authorization = [],
+    DisplayStorageConnectionString = true,
+});
+
+app.Lifetime.ApplicationStarted.Register(() =>
+{
+    RecurringJobScheduler.ScheduleJobs();
+});
+
+app.Lifetime.ApplicationStopping.Register(() => Console.WriteLine("App is stopping..."));
+
+app.Lifetime.ApplicationStopped.Register(() => Console.WriteLine("App stopped."));
 
 app.MapControllers();
 

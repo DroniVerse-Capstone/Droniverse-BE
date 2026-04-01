@@ -99,5 +99,22 @@ internal class CourseRepository : MySqlRepository<Course>, ICourseRepository
             pageSize
         );
     }
+
+    public async Task<IEnumerable<Course>> GetAllWithCurrentVersionNoPagingAsync(
+    Expression<Func<Course, bool>>? filter = null,
+    Func<IQueryable<Course>, IOrderedQueryable<Course>>? orderBy = null,
+    CancellationToken cancellationToken = default)
+    {
+        IQueryable<Course> query = _dbSet
+            .Include(c => c.CurrentVersion);
+
+        if (filter != null)
+            query = query.Where(filter);
+
+        if (orderBy != null)
+            query = orderBy(query);
+
+        return await query.ToListAsync(cancellationToken);
+    }
 }
 

@@ -22,6 +22,7 @@ internal class ClubService : IClubService
     private readonly IdentityMicroserviceClient _identityMicroserviceClient;
     private readonly AcademyMicroserviceClient _academyMicroserviceClient;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IClock _clock;
 
     public ClubService(
         IUnitOfWork unitOfWork,
@@ -148,8 +149,8 @@ internal class ClubService : IClubService
         }
         var memberCounts = await _unitOfWork.Clubs.GetMemberCountsByClubIds([id]);
         var courseCounts = await _unitOfWork.Clubs.GetCourseCountsByClubIds([id]);
-       
-        
+
+
         var creator = await _identityMicroserviceClient.GetUserByUserID(club.CreatedBy);
 
         ClubResponseDto response = _mapper.Map<ClubResponseDto>(club);
@@ -330,14 +331,14 @@ internal class ClubService : IClubService
 
     public async Task<IEnumerable<ClubResponseDto>> GetClubsByCurrentUsersID(ClubStatus? status = null)
     {
-        var currentUserId = Guid.Parse(_currentUserService.UserID 
+        var currentUserId = Guid.Parse(_currentUserService.UserID
             ?? throw new UnauthorizedAccessException("Người dùng chưa được xác thực."));
 
         var roles = _currentUserService.Roles.ToList();
         bool isMember = roles.Contains(Droniverse.Shared.Constants.Roles.ClubMember);
-        
+
         IEnumerable<Club> clubs;
-        
+
         if (isMember)
             // CLUB_MEMBER: Lấy clubs đã tham gia
             clubs = await _unitOfWork.Clubs.GetClubsByParticipantUserId(currentUserId, status);
@@ -348,7 +349,7 @@ internal class ClubService : IClubService
         var userIds = clubs.Select(c => c.CreatedBy).ToList();
         var users = await GetUsersByIds(userIds);
         var userDict = users.ToDictionary(u => u.UserId);
-        
+
         return await MapClubsWithStats(clubs, userDict);
     }
 
@@ -374,7 +375,7 @@ internal class ClubService : IClubService
     }
 
     // ===== Status Management Methods =====
-    
+
     /// <summary>
     /// Update Club Status với phân quyền động
     /// </summary>
@@ -384,9 +385,9 @@ internal class ClubService : IClubService
         if (club == null)
             throw new KeyNotFoundException($"Club with ID {clubId} not found.");
 
-        var currentUserId = Guid.Parse(_currentUserService.UserID 
+        var currentUserId = Guid.Parse(_currentUserService.UserID
             ?? throw new UnauthorizedAccessException("User is not authenticated."));
-        
+
         var userRoles = _currentUserService.Roles.ToList();
 
         ValidateStatusChangePermission(dto.Status, userRoles, club, currentUserId);
@@ -400,21 +401,21 @@ internal class ClubService : IClubService
         switch (dto.Status)
         {
             case Domain.Enums.ClubStatus.ACTIVE:
-                club.Restore(); 
+                club.Restore(_clock.Now);
                 break;
-                
+
             case Domain.Enums.ClubStatus.INACTIVE:
-                club.Deactivate();
+                club.Deactivate(_clock.Now);
                 break;
-                
+
             case Domain.Enums.ClubStatus.SUSPENDED:
-                club.Suspend();
+                club.Suspend(_clock.Now);
                 break;
-                
+
             case Domain.Enums.ClubStatus.ARCHIVED:
-                club.Archive();
+                club.Archive(_clock.Now);
                 break;
-                
+
             default:
                 throw new ArgumentException($"Invalid status: {dto.Status}");
         }
@@ -429,7 +430,7 @@ internal class ClubService : IClubService
         ClubResponseDto response = _mapper.Map<ClubResponseDto>(club);
         response.TotalMembers = memberCounts.GetValueOrDefault(clubId, 0);
         response.TotalCourses = courseCounts.GetValueOrDefault(clubId, 0);
-        
+
         return response;
     }
 
@@ -437,8 +438,8 @@ internal class ClubService : IClubService
     /// Validate quyền thay đổi status
     /// </summary>
     private void ValidateStatusChangePermission(
-        Domain.Enums.ClubStatus targetStatus, 
-        List<string> userRoles, 
+        Domain.Enums.ClubStatus targetStatus,
+        List<string> userRoles,
         Club club,
         Guid currentUserId)
     {
@@ -481,42 +482,42 @@ internal class ClubService : IClubService
                 throw new ArgumentException($"Invalid target status: {targetStatus}");
         }
     }
-    
+
     [Obsolete("Use UpdateClubStatus instead")]
     public async Task<ClubResponseDto> SuspendClub(Guid clubId, string? reason = null)
     {
-        return await UpdateClubStatus(clubId, new ClubUpdateStatusDto 
-        { 
-            Status = Domain.Enums.ClubStatus.SUSPENDED, 
-            Reason = reason 
+        return await UpdateClubStatus(clubId, new ClubUpdateStatusDto
+        {
+            Status = Domain.Enums.ClubStatus.SUSPENDED,
+            Reason = reason
         });
     }
 
     [Obsolete("Use UpdateClubStatus instead")]
     public async Task<ClubResponseDto> ArchiveClub(Guid clubId, string? reason = null)
     {
-        return await UpdateClubStatus(clubId, new ClubUpdateStatusDto 
-        { 
-            Status = Domain.Enums.ClubStatus.ARCHIVED, 
-            Reason = reason 
+        return await UpdateClubStatus(clubId, new ClubUpdateStatusDto
+        {
+            Status = Domain.Enums.ClubStatus.ARCHIVED,
+            Reason = reason
         });
     }
 
     [Obsolete("Use UpdateClubStatus instead")]
     public async Task<ClubResponseDto> RestoreClub(Guid clubId)
     {
-        return await UpdateClubStatus(clubId, new ClubUpdateStatusDto 
-        { 
-            Status = Domain.Enums.ClubStatus.ACTIVE 
+        return await UpdateClubStatus(clubId, new ClubUpdateStatusDto
+        {
+            Status = Domain.Enums.ClubStatus.ACTIVE
         });
     }
 
     [Obsolete("Use UpdateClubStatus instead")]
     public async Task<ClubResponseDto> DeactivateClub(Guid clubId)
     {
-        return await UpdateClubStatus(clubId, new ClubUpdateStatusDto 
-        { 
-            Status = Domain.Enums.ClubStatus.INACTIVE 
+        return await UpdateClubStatus(clubId, new ClubUpdateStatusDto
+        {
+            Status = Domain.Enums.ClubStatus.INACTIVE
         });
     }
 }

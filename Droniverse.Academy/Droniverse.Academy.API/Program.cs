@@ -61,6 +61,8 @@ builder.Services.AddSwaggerGen(c =>
         c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
     }
 
+    c.CustomSchemaIds(type => type.FullName);
+
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "JWT Authorization header sử dụng Bearer scheme " +

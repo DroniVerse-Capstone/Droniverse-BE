@@ -86,6 +86,7 @@ public class GlobalExceptionHandlerMiddleware
                 StatusCodes.Status400BadRequest,
                 ErrorResponse.Create(ex.Message, ex.ErrorCode)
             ),
+            MySqlException ex => HandleMySqlException(ex),
 
             _ => (
                 StatusCodes.Status500InternalServerError,
@@ -127,6 +128,50 @@ public class GlobalExceptionHandlerMiddleware
         }
         return (StatusCodes.Status500InternalServerError, ErrorResponse.Create("Lỗi cập nhật cơ sở dữ liệu", "DB_UPDATE_ERROR"));
     }
+
+    private static (int StatusCode, ErrorResponse Response) HandleMySqlException(MySqlException ex)
+    {
+        // 1. Too many connections (DB overload)
+        if (ex.Number == 1040)
+        {
+            return (
+                StatusCodes.Status503ServiceUnavailable,
+                ErrorResponse.Create(
+                    "Hệ thống đang quá tải kết nối cơ sở dữ liệu. Vui lòng thử lại sau.",
+                    "DB_TOO_MANY_CONNECTIONS"
+                )
+            );
+        }
+
+        // 2. Pool timeout (client side)
+        if (ex.Message.Contains("Timeout", StringComparison.OrdinalIgnoreCase))
+        {
+            return (
+                StatusCodes.Status503ServiceUnavailable,
+                ErrorResponse.Create(
+                    "Máy chủ đang bận, vui lòng thử lại sau.",
+                    "DB_CONNECTION_TIMEOUT"
+                )
+            );
+        }
+
+        if (ex.Message.Contains("Command timeout", StringComparison.OrdinalIgnoreCase))
+        {
+            return (
+                StatusCodes.Status504GatewayTimeout,
+                ErrorResponse.Create(
+                    "Truy vấn cơ sở dữ liệu quá thời gian cho phép.",
+                    "DB_QUERY_TIMEOUT"
+                )
+            );
+        }
+
+        return (
+            StatusCodes.Status500InternalServerError,
+            ErrorResponse.Create("Lỗi cơ sở dữ liệu.", "DB_ERROR")
+        );
+    }
+
     private ErrorResponse CreateInternalServerError(Exception ex)
     {
         var message = _env.IsDevelopment()

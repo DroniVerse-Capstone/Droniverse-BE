@@ -1,14 +1,13 @@
 ﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Domain.Enums;
+using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.DTOs.Response;
 
 namespace Droniverse.Academy.Application.IService;
 
 public interface ICourseService
 {
-
-
     /// <summary>
     /// Get course detail by id with current version.
     /// </summary>
@@ -49,6 +48,9 @@ public interface ICourseService
     /// </summary>
     Task DeleteCourseAsync(Guid courseId);
 
-    Task<IEnumerable<CourseResponseDTO>> GetCoursesByIdsAsync(IEnumerable<Guid> courseIds);
+    /// <summary>
+    /// Get many course information by courseIds
+    /// </summary>
+    Task<IEnumerable<CourseBulkResponseDTO>> GetCoursesByIdsAsync(CourseBulkSearchRequest searchRequest, IEnumerable<Guid> courseIds);
 }
 
