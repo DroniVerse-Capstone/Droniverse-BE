@@ -12,14 +12,14 @@ public class CodeConfiguration : IEntityTypeConfiguration<Code>
 
         builder.HasKey(c => c.CodeID);
         builder.Property(c => c.CodeID).HasColumnType("char(36)");
-        builder.HasOne(c => c.CourseVersion)
+        builder.HasOne(c => c.Course)
             .WithMany(cv => cv.Codes)
-            .HasForeignKey(c => c.CourseVersionID)
+            .HasForeignKey(c => c.CourseID)
             .OnDelete(DeleteBehavior.Restrict);
         builder.HasMany(c => c.CodeUsages)
             .WithOne(cu => cu.Code);
 
-        builder.Property(c => c.CourseVersionID).HasColumnType("char(36)").IsRequired();
+        builder.Property(c => c.CourseID).HasColumnType("char(36)").IsRequired();
         builder.Property(c => c.ExpireDate).HasColumnType("datetime").IsRequired();
         builder.Property(c => c.Status).HasColumnType("tinyint").HasConversion<int>().IsRequired();
         builder.ToTable(t => t.HasCheckConstraint("CK_Code_Status", "`Status` IN (0, 1)"));

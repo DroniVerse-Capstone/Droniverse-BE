@@ -7,6 +7,7 @@ public class Course
     public Guid CourseID { get; set; }
 
     public ICollection<CourseVersion> CourseVersions { get; set; }
+    public ICollection<Code> Codes { get; set; }
     public CourseVersion? CurrentVersion { get; set; }
     public Guid CreateBy { get; private set; } // reference to UserID
     public DateTime CreateAt { get; private set; }

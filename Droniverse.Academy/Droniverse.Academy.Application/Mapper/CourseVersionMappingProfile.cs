@@ -41,7 +41,6 @@ namespace Droniverse.Academy.Application.Mapper
                 .ForMember(dest => dest.UpdateAt, opt => opt.Ignore())
                 .ForMember(dest => dest.Modules, opt => opt.Ignore())
                 .ForMember(dest => dest.CourseVersionCategories, opt => opt.Ignore())
-                .ForMember(dest => dest.Codes, opt => opt.Ignore())
                 .ForMember(dest => dest.Feedbacks, opt => opt.Ignore())
                 .ForMember(dest => dest.RequiredDrones, opt => opt.Ignore())
                 .ForMember(dest => dest.Enrollments, opt => opt.Ignore())
