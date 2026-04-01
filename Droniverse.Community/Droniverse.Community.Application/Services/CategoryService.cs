@@ -52,6 +52,25 @@ namespace Droniverse.Community.Application.Services
             return response;
         }
 
+        public async Task<IEnumerable<CategoryResponseDto>> GetCategoriesBulk(IEnumerable<Guid> ids)
+        {
+            if (ids == null)
+                return [];
+
+            var distinctIds = ids
+                .Where(id => id != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (!distinctIds.Any())
+                return [];
+
+            var categories = await _unitOfWork.Categories
+                .GetManyByCondition(c => distinctIds.Contains(c.CategoryID));
+
+            return _mapper.Map<IEnumerable<CategoryResponseDto>>(categories);
+        }
+
         public async Task<CategoryResponseDto> GetCategoryById(Guid id)
         {
             Category? category = await _unitOfWork.Categories.GetByCondition(c => c.CategoryID == id);
