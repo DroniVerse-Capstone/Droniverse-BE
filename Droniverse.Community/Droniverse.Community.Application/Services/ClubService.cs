@@ -7,10 +7,9 @@ using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository;
-using Droniverse.Shared.DTOs;
+using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Services;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
 
@@ -323,10 +322,32 @@ internal class ClubService : IClubService
         return query;
     }
 
-    public async Task<IEnumerable<DTO.Response.CourseResponseDto>> GetClubCourses(Guid clubId, ClubCourseSearchRequest searchRequest)
+    public async Task<PaginationResult<IEnumerable<CourseBulkResponseDTO>>> GetClubCourses(Guid clubId, CourseBulkSearchRequest searchRequest)
     {
-        // todo
-        throw new Exception();
+        Club? club = await _unitOfWork.Clubs.GetByCondition(
+            c => c.ClubID == clubId,
+            query => query.AsNoTracking());
+
+        if (club == null)
+            throw new KeyNotFoundException($"Không tìm thấy câu lạc bộ với ID [{clubId}].");
+
+        var clubCourses = await _unitOfWork.ClubCourses.GetManyByCondition(
+            c => c.ClubID == clubId,
+            query => query.AsNoTracking());
+
+        var courseIds = clubCourses?
+            .Select(c => c.CourseID)
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList() ?? [];
+
+        if (courseIds.Count == 0)
+            return Enumerable.Empty<CourseBulkResponseDTO>().ToPaginationResult(searchRequest);
+
+        var course = await _academyMicroserviceClient.GetCourseById(courseIds, searchRequest);
+
+
+        return course.ToPaginationResult(searchRequest);
     }
 
     public async Task<IEnumerable<ClubResponseDto>> GetClubsByCurrentUsersID(ClubStatus? status = null)

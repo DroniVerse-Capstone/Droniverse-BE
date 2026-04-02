@@ -1,7 +1,6 @@
 ﻿using DotNetEnv;
 using Droniverse.Community.Application;
 using Droniverse.Community.Infrastructure;
-using Droniverse.Identity.API;
 using Droniverse.Shared;
 using Droniverse.Shared.Settings;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -22,6 +21,7 @@ using Hangfire;
 using Hangfire.MySql;
 using System.Transactions;
 using Droniverse.Community.API.BackgroundJobs;
+using Droniverse.Shared.Exceptions;
 
 
 Env.Load("../../.env");

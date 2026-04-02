@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Droniverse.Shared.DTOs.Request
 {
-    public class CourseBulkSearchRequest
+    public class CourseBulkSearchRequest : SearchRequest
     {
         public CourseLevel? Level { get; set; }
         public CourseParticipationFilter? NumberOfParticipation { get; set; }

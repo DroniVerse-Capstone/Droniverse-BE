@@ -49,8 +49,9 @@ internal class CourseRepository : MySqlRepository<Course>, ICourseRepository
         if (filter != null)
             query = query.Where(filter);
 
-        if (orderBy != null)
-            query = orderBy(query);
+        query = orderBy != null
+            ? orderBy(query)
+            : query.OrderBy(c => c.CourseID);
 
         var totalCount = await query.CountAsync(cancellationToken);
 

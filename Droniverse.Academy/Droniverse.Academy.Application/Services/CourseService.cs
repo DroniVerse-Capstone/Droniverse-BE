@@ -36,7 +36,7 @@ public class CourseService : ICourseService
         var course = new Course
         {
             CourseID = Guid.NewGuid(),
-            CourseVersions = new List<CourseVersion>()
+            CourseVersions = []
         };
         course.SetAuditOnCreate(_currentUser.UserId, _clock.Now);
 
@@ -156,31 +156,45 @@ public class CourseService : ICourseService
     }
 
     public async Task<IEnumerable<CourseBulkResponseDTO>> GetCoursesByIdsAsync(
-        CourseBulkSearchRequest searchRequest,
-        IEnumerable<Guid> courseIds)
+    CourseBulkSearchRequest searchRequest,
+    IEnumerable<Guid> courseIds)
     {
         searchRequest ??= new CourseBulkSearchRequest();
 
-        var ids = courseIds?.Distinct().ToList() ?? [];
+        var pageIndex = searchRequest.CurrentPage < 1 ? 1 : searchRequest.CurrentPage;
+        var pageSize = searchRequest.PageSize < 5 ? 5 : (searchRequest.PageSize > 20 ? 20 : searchRequest.PageSize);
+
+        var ids = courseIds?
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToList() ?? [];
+
         if (ids.Count == 0)
-        {
             return [];
-        }
 
-        var courseResult = await _unitOfWork.Courses.GetAllWithCurrentVersionNoPagingAsync(
-                    filter: c => ids.Contains(c.CourseID));
-
-        var filteredCourses = courseResult
-            .Where(c => c.CurrentVersion != null)
-            .Where(c => !searchRequest.Level.HasValue || c.CurrentVersion!.Level == searchRequest.Level.Value)
-            .Where(c => searchRequest.CourseOwner != CourseOwnerFilter.Owned || c.CreateBy == _currentUser.UserId)
-            .Where(c =>
+        Expression<Func<Course, bool>> filter = c =>
+            ids.Contains(c.CourseID) &&
+            c.CurrentVersion != null &&
+            (!searchRequest.Level.HasValue || c.CurrentVersion.Level == searchRequest.Level.Value) &&
+            (searchRequest.CourseOwner != CourseOwnerFilter.Owned || c.CreateBy == _currentUser.UserId) &&
+            (
                 string.IsNullOrWhiteSpace(searchRequest.CourseName) ||
-                (c.CurrentVersion!.TitleEN != null && c.CurrentVersion.TitleEN.Contains(searchRequest.CourseName.Trim(), StringComparison.OrdinalIgnoreCase)) ||
-                (c.CurrentVersion.TitleVN != null && c.CurrentVersion.TitleVN.Contains(searchRequest.CourseName.Trim(), StringComparison.OrdinalIgnoreCase)))
-            .ToList();
+                (c.CurrentVersion.TitleEN != null && c.CurrentVersion.TitleEN.Contains(searchRequest.CourseName)) ||
+                (c.CurrentVersion.TitleVN != null && c.CurrentVersion.TitleVN.Contains(searchRequest.CourseName))
+            );
 
-        var courseVersionIds = filteredCourses
+        var courseResult = await _unitOfWork.Courses.GetAllWithCurrentVersionAsync(
+            filter: filter,
+            orderBy: q => q.OrderBy(c => c.CourseID),
+            pageIndex: pageIndex,
+            pageSize: pageSize);
+
+        var courses = courseResult.Data.ToList();
+
+        if (courses.Count == 0)
+            return [];
+
+        var courseVersionIds = courses
             .Select(c => c.CurrentVersion!.CourseVersionID)
             .Distinct()
             .ToList();
@@ -191,7 +205,11 @@ public class CourseService : ICourseService
         var ratingByVersionId =
             await _unitOfWork.Feedbacks.GetAverageRatingsByCourseVersionIdsAsync(courseVersionIds);
 
-        var data = filteredCourses
+        var idOrder = ids
+            .Select((id, index) => new { id, index })
+            .ToDictionary(x => x.id, x => x.index);
+
+        var data = courses
             .Select(c =>
             {
                 var currentVersion = c.CurrentVersion!;
@@ -217,18 +235,20 @@ public class CourseService : ICourseService
             })
             .ToList();
 
-        IOrderedEnumerable<CourseBulkResponseDTO> orderedData = searchRequest.NumberOfParticipation switch
+        var orderedData = searchRequest.NumberOfParticipation switch
         {
             CourseParticipationFilter.MostPopular => data
                 .OrderByDescending(x => x.NumberOfParticipants)
-                .ThenBy(x => ids.IndexOf(x.CourseId)),
+                .ThenBy(x => idOrder[x.CourseId]),
+
             CourseParticipationFilter.LeastPopular => data
                 .OrderBy(x => x.NumberOfParticipants)
-                .ThenBy(x => ids.IndexOf(x.CourseId)),
-            _ => data.OrderBy(x => ids.IndexOf(x.CourseId))
+                .ThenBy(x => idOrder[x.CourseId]),
+
+            _ => data.OrderBy(x => idOrder[x.CourseId])
         };
 
-        return orderedData;
+        return orderedData.ToList();
     }
 
     private async Task PopulateCreatorAsync(CourseResponseDTO course, Guid createBy)

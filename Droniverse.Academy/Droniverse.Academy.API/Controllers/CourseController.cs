@@ -53,7 +53,7 @@ namespace Droniverse.Academy.API.Controllers
         // POST academy/courses/by-ids
         [HttpPost("by-ids")]
         //[SwaggerRequestExample(typeof(GetCoursesByIdsRequestDTO), typeof(GetCoursesByIdsExample))]
-        [ProducesResponseType(typeof(SuccessResponse<IEnumerable<CourseBulkResponseDTO>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(IEnumerable<CourseBulkResponseDTO>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetCoursesByIds(
             [FromQuery] CourseBulkSearchRequest searchRequest,
             [FromBody] GetCoursesByIdsRequestDTO request)
@@ -61,7 +61,7 @@ namespace Droniverse.Academy.API.Controllers
             try
             {
                 var result = await _courseService.GetCoursesByIdsAsync(searchRequest, request.CourseIds);
-                return Ok(SuccessResponse<object>.Create(result, "Lấy danh sách course theo id thành công."));
+                return Ok(result);
             }
             catch (Exception ex)
             {

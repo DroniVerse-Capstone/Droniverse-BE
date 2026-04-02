@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Filters;
 using System.ComponentModel;
+using Droniverse.Shared.DTOs.Request;
 
 namespace Droniverse.Community.API.Controllers
 {
@@ -27,7 +28,7 @@ namespace Droniverse.Community.API.Controllers
     {
         private readonly IClubService _clubService;
         private readonly ICloudinaryService _cloudinaryService;
-        
+
         public ClubController(IClubService clubService, ICloudinaryService cloudinaryService)
         {
             _clubService = clubService;
@@ -106,6 +107,7 @@ namespace Droniverse.Community.API.Controllers
         /// Lấy danh sách khóa học thuộc một câu lạc bộ
         /// </summary>
         /// <param name="id">GUID của câu lạc bộ</param>
+        /// <param name="searchRequest">Filter cho course</param>
         /// <returns>
         /// 200 OK - Trả về danh sách khóa học  
         /// 404 NotFound - Nếu không tồn tại câu lạc bộ  
@@ -115,13 +117,12 @@ namespace Droniverse.Community.API.Controllers
         [ProducesResponseType(typeof(SuccessResponse<IEnumerable<Application.DTO.Response.CourseResponseDto>>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ApiResponse> GetClubCourses(Guid id, [FromQuery] ClubCourseSearchRequest searchRequest)
+        public async Task<ApiResponse> GetClubCourses(Guid id, [FromQuery] CourseBulkSearchRequest searchRequest)
         {
 
             var courses = await _clubService.GetClubCourses(id, searchRequest);
-            return SuccessResponse<IEnumerable<Application.DTO.Response.CourseResponseDto>>
-                .Create(courses, "Lấy danh sách khóa học của câu lạc bộ thành công!");
-
+            return SuccessResponse<PaginationResult<IEnumerable<CourseBulkResponseDTO>>>
+                .Create(courses, "Lấy danh khóa học của câu lạc bộ thành công!");
         }
 
         [HttpPost("upload-temp-image")]
@@ -248,11 +249,11 @@ namespace Droniverse.Community.API.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [Authorize(Roles = Roles.AdminOrManagerRoles)] // Require at least one of these roles
         public async Task<ApiResponse> UpdateClubStatus(
-            Guid id, 
+            Guid id,
             [FromBody] ClubUpdateStatusDto request)
         {
             var club = await _clubService.UpdateClubStatus(id, request);
-            
+
             string statusMessage = request.Status switch
             {
                 Domain.Enums.ClubStatus.SUSPENDED => "đình chỉ",
@@ -316,11 +317,11 @@ namespace Droniverse.Community.API.Controllers
         public async Task<ApiResponse> GetMyClubs([FromQuery] Domain.Enums.ClubStatus? status = null)
         {
             var clubs = await _clubService.GetClubsByCurrentUsersID(status);
-            
-            string message = status.HasValue 
+
+            string message = status.HasValue
                 ? $"Lấy danh sách câu lạc bộ [{GetStatusDisplayName(status.Value)}] thành công!"
                 : "Lấy danh sách câu lạc bộ đang tham gia thành công!";
-            
+
             return SuccessResponse<IEnumerable<ClubResponseDto>>
                 .Create(clubs, message);
         }
