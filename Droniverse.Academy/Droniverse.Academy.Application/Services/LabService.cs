@@ -108,6 +108,12 @@ public class LabService : ILabService
 
         Expression<Func<Lab, bool>> filter = x => true;
 
+        if (query.Type.HasValue)
+        {
+            var type = query.Type.Value;
+            filter = filter.And(x => x.Type == type);
+        }
+
         if (query.Status.HasValue)
         {
             var status = query.Status.Value;
