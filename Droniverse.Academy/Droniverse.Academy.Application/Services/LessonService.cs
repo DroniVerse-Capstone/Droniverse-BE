@@ -381,8 +381,12 @@ public class LessonService : ILessonService
                     throw new ValidationException("Không tìm thấy tham chiếu bài kiểm tra.");
                 break;
             case LessonType.LAB:
-                if (await _unitOfWork.Labs.GetByIdAsync(referenceId) == null)
+                var lab = await _unitOfWork.Labs.GetByIdAsync(referenceId);
+                if (lab == null)
                     throw new ValidationException("Không tìm thấy tham chiếu bài lab.");
+
+                if (lab.Status != LabStatus.ACTIVE)
+                    throw new ValidationException("Chỉ có thể thêm bài lab ở trạng thái Active vào lesson.");
                 break;
             default:
                 throw new ValidationException("Loại bài học không hợp lệ.");
