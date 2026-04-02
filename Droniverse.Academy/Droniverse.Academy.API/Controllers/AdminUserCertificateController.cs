@@ -1,21 +1,28 @@
-﻿using Droniverse.Academy.Application.IService;
-using Droniverse.Academy.API.Enums;
+﻿using Droniverse.Academy.API.Enums;
+using Droniverse.Academy.API.Examples;
+using Droniverse.Academy.Application.DTO.Request;
+using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Filters;
 
 namespace Droniverse.Academy.API.Controllers;
 
-[Route("academy")]
+[Route("academy/admin")]
 [ApiController]
-public class UserCertificateController : ControllerBase
+[Authorize(Roles = Roles.AdminOrManagerRoles)]
+/// <summary>
+/// Quản lý chứng chỉ người dùng dành cho Admin/Manager.
+/// </summary>
+public class AdminUserCertificateController : ControllerBase
 {
-    private readonly ILogger<UserCertificateController> _logger;
-    private readonly IUserCertificateService _service;
+    private readonly ILogger<AdminUserCertificateController> _logger;
+    private readonly IAdminUserCertificateService _service;
 
-    public UserCertificateController(ILogger<UserCertificateController> logger, IUserCertificateService service)
+    public AdminUserCertificateController(ILogger<AdminUserCertificateController> logger, IAdminUserCertificateService service)
     {
         _logger = logger;
         _service = service;
@@ -24,16 +31,14 @@ public class UserCertificateController : ControllerBase
     /// <summary>
     /// Cấp chứng chỉ cho người dùng.
     /// </summary>
-    /// <param name="certificateId">Mã chứng chỉ.</param>
-    /// <param name="userId">Mã người dùng.</param>
-    // POST /academy/certificates/{certificateId}/users/{userId}
-    [HttpPost("certificates/{certificateId:guid}/users/{userId:guid}")]
-    [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GrantCertificate(Guid certificateId, Guid userId)
+    /// <param name="request">Thông tin cấp chứng chỉ cho người dùng.</param>
+    [HttpPost("user-certificates/grant")]
+    [SwaggerRequestExample(typeof(GrantUserCertificateRequestDTO), typeof(GrantUserCertificateRequestExample))]
+    public async Task<IActionResult> GrantCertificate([FromBody] GrantUserCertificateRequestDTO request)
     {
         try
         {
-            await _service.GrantCertificateToUserAsync(certificateId, userId);
+            await _service.GrantCertificateToUserAsync(request);
             return Ok(SuccessResponse<object>.Create(null!, "Cấp chứng chỉ cho người dùng thành công."));
         }
         catch (Exception ex)
@@ -44,11 +49,13 @@ public class UserCertificateController : ControllerBase
     }
 
     /// <summary>
-    /// Lấy danh sách chứng chỉ của một người dùng và lọc theo trạng thái.
+    /// Lấy danh sách chứng chỉ của một người dùng.
     /// </summary>
-    // GET /academy/users/{userId}/certificates
+    /// <param name="userId">Mã người dùng.</param>
+    /// <param name="pageIndex">Trang hiện tại, bắt đầu từ 1.</param>
+    /// <param name="pageSize">Số bản ghi trên mỗi trang.</param>
+    /// <param name="status">Bộ lọc trạng thái chứng chỉ.</param>
     [HttpGet("users/{userId:guid}/certificates")]
-    [Authorize(Roles = Roles.AdminOrManagerRoles)]
     public async Task<IActionResult> GetUserCertificates(
         Guid userId,
         [FromQuery] int pageIndex = 1,
@@ -70,9 +77,9 @@ public class UserCertificateController : ControllerBase
     /// <summary>
     /// Lấy chi tiết chứng chỉ của người dùng.
     /// </summary>
-    // GET /academy/users/{userId}/certificates/{certificateId}
+    /// <param name="userId">Mã người dùng.</param>
+    /// <param name="certificateId">Mã chứng chỉ.</param>
     [HttpGet("users/{userId:guid}/certificates/{certificateId:guid}")]
-    [Authorize(Roles = Roles.AdminOrManagerRoles)]
     public async Task<IActionResult> GetUserCertificate(Guid userId, Guid certificateId)
     {
         try
@@ -88,11 +95,13 @@ public class UserCertificateController : ControllerBase
     }
 
     /// <summary>
-    /// Lấy danh sách người dùng theo chứng chỉ và lọc theo trạng thái.
+    /// Lấy danh sách người dùng theo chứng chỉ.
     /// </summary>
-    // GET /academy/certificates/{certificateId}/users
+    /// <param name="certificateId">Mã chứng chỉ.</param>
+    /// <param name="pageIndex">Trang hiện tại, bắt đầu từ 1.</param>
+    /// <param name="pageSize">Số bản ghi trên mỗi trang.</param>
+    /// <param name="status">Bộ lọc trạng thái chứng chỉ.</param>
     [HttpGet("certificates/{certificateId:guid}/users")]
-    [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> GetUsersByCertificate(
         Guid certificateId,
         [FromQuery] int pageIndex = 1,
@@ -114,9 +123,9 @@ public class UserCertificateController : ControllerBase
     /// <summary>
     /// Thu hồi chứng chỉ của người dùng.
     /// </summary>
-    // PATCH /academy/users/{userId}/certificates/{certificateId}/revoke
+    /// <param name="userId">Mã người dùng.</param>
+    /// <param name="certificateId">Mã chứng chỉ.</param>
     [HttpPatch("users/{userId:guid}/certificates/{certificateId:guid}/revoke")]
-    [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> RevokeUserCertificate(Guid userId, Guid certificateId)
     {
         try

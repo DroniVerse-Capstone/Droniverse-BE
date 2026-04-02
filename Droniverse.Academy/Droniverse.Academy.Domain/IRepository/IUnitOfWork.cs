@@ -17,12 +17,15 @@ namespace Droniverse.Academy.Domain.IRepository
         ILessonRepository Lessons { get; }
         IModuleRepository Modules { get; }
         IQuizRepository Quizs { get; }
+        IQuizAttemptRepository QuizAttempts { get; }
+        IQuizQuestionAttemptRepository QuizQuestionAttempts { get; }
         IQuizQuestionRepository QuizQuestions { get; }
         IReportRepository Reports { get; }
         IRequiredDroneRepository RequiredDrones { get; }
         ITheoryRepository Theories { get; }
         IUserCertificateRepository UserCertificates { get; }
         IUserLabRepository UserLabs { get; }
+        IUserLessonRepository UserLessons { get; }
         IUserModuleRepository UserModules { get; }
 
         Task<int> SaveChangesAsync();

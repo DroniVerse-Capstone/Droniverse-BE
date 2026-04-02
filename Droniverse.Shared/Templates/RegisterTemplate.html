@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #8B008B;
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #8B008B;
+        }
+
+        .header p {
+            margin: 5px 0 0 0;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .welcome-section {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-left: 4px solid #8B008B;
+        }
+
+        .welcome-section h2 {
+            margin: 0 0 10px 0;
+            color: #8B008B;
+            font-size: 16px;
+        }
+
+        .welcome-section p {
+            margin: 8px 0;
+            line-height: 1.6;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        .info-table tr {
+            border-bottom: 1px solid #ddd;
+        }
+
+        .info-table td {
+            padding: 10px;
+            font-size: 14px;
+        }
+
+        .info-table td:first-child {
+            font-weight: bold;
+            width: 120px;
+            color: #8B008B;
+        }
+
+        .info-table td:last-child {
+            color: #333;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background-color: #8B008B;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+            margin: 20px auto;
+            text-align: center;
+            width: 200px;
+        }
+
+        .cta-section {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .footer p {
+            margin: 5px 0;
+        }
+
+        .note {
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 15px 0;
+            font-size: 12px;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <!-- Header -->
+        <div class='header'>
+            <h1>DRONIVERSE</h1>
+            <p>Nền tảng học tập Drone</p>
+        </div>
+
+        <!-- Welcome Section -->
+        <div class='welcome-section'>
+            <h2>Chào mừng đến với Droniverse!</h2>
+            <p>Cảm ơn bạn đã đăng ký tài khoản. Chúng tôi rất vui khi có bạn là một phần của cộng đồng học tập của chúng tôi.</p>
+        </div>
+
+        <!-- User Information -->
+        <div style='margin: 20px 0;'>
+            <h3 style='color: #8B008B; margin: 0 0 15px 0; font-size: 14px;'>THÔNG TIN TÀI KHOẢN</h3>
+            <table class='info-table'>
+                <tr>
+                    <td>HỌ VÀ TÊN</td>
+                    <td>{FullName}</td>
+                </tr>
+                <tr>
+                    <td>EMAIL</td>
+                    <td>{Email}</td>
+                </tr>
+                <tr>
+                    <td>NGÀY ĐĂNG KÝ</td>
+                    <td>{RegistrationDate}</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Call to Action -->
+        <!--<div class='cta-section'>
+            <p style='color: #333; margin-bottom: 15px; font-size: 14px;'>
+                Vui lòng xác nhận địa chỉ email của bạn để hoàn tất quá trình đăng ký:
+            </p>
+            <a href='{ConfirmationUrl}' class='cta-button' style='color: white;'>Xác Nhận Email</a>
+        </div>-->
+
+        <!-- Note -->
+        <!--<div class='note'>
+            <strong>Lưu ý:</strong> Nếu bạn không thực hiện đăng ký tài khoản này, vui lòng bỏ qua email này hoặc liên hệ với chúng tôi.
+        </div>-->
+
+        <!-- Next Steps -->
+        <div style='background-color: #f9f9f9; padding: 15px; border-radius: 4px; margin: 20px 0;'>
+            <h3 style='color: #8B008B; margin: 0 0 10px 0; font-size: 14px;'>BƯỚC TIẾP THEO</h3>
+            <ol style='margin: 0; padding-left: 20px; color: #333; font-size: 13px;'>
+                <li>Xác nhận địa chỉ email của bạn</li>
+                <li>Hoàn thành hồ sơ cá nhân (tuỳ chọn)</li>
+                <li>Bắt đầu khám phá các khóa học</li>
+                <li>Kết nối với cộng đồng học tập</li>
+            </ol>
+        </div>
+
+        <!-- Footer -->
+        <div class='footer'>
+            <p>Nếu bạn có bất kỳ câu hỏi nào, vui lòng liên hệ với chúng tôi tại support@droniverse.com</p>
+            <p>© 2024 Droniverse. Tất cả các quyền được bảo lưu.</p>
+        </div>
+    </div>
+</body>
+</html>

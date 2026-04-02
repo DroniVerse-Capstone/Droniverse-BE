@@ -1,4 +1,6 @@
 ﻿using AutoMapper;
+using Droniverse.Academy.Application.Common.Extensions;
+using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.Enums;
 using Droniverse.Academy.Application.IService;
@@ -64,28 +66,20 @@ public class CourseService : ICourseService
 
     public async Task<PaginationResult<IEnumerable<CourseResponseDTO>>> GetAllCoursesAsync(int pageIndex, int pageSize, string? search = null, CourseStatus? status = null)
     {
-        Expression<Func<Course, bool>>? filter = null;
+        Expression<Func<Course, bool>> filter = c => true;
 
-        if (status.HasValue && !string.IsNullOrWhiteSpace(search))
-        {
-            var s = search.Trim();
-            var st = status.Value;
-            filter = c => c.Status == st
-                && c.CurrentVersion != null
-                && ((c.CurrentVersion.TitleEN != null && c.CurrentVersion.TitleEN.Contains(s))
-                    || (c.CurrentVersion.TitleVN != null && c.CurrentVersion.TitleVN.Contains(s)));
-        }
-        else if (status.HasValue)
+        if (status.HasValue)
         {
             var st = status.Value;
-            filter = c => c.Status == st;
+            filter = filter.And(c => c.Status == st);
         }
-        else if (!string.IsNullOrWhiteSpace(search))
+
+        if (!string.IsNullOrWhiteSpace(search))
         {
             var s = search.Trim();
-            filter = c => c.CurrentVersion != null
+            filter = filter.And(c => c.CurrentVersion != null
                 && ((c.CurrentVersion.TitleEN != null && c.CurrentVersion.TitleEN.Contains(s))
-                    || (c.CurrentVersion.TitleVN != null && c.CurrentVersion.TitleVN.Contains(s)));
+                    || (c.CurrentVersion.TitleVN != null && c.CurrentVersion.TitleVN.Contains(s))));
         }
 
         var result = await _unitOfWork.Courses

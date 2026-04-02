@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Droniverse.Academy.Application.Common.Extensions;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
@@ -69,6 +70,9 @@ public class LabService : ILabService
         if (lab == null)
             throw new BaseException("Không tìm thấy lab.", "NOT_FOUND");
 
+        if (lab.Status != LabStatus.ACTIVE)
+            throw new ValidationException("Chỉ có thể thêm bài lab ở trạng thái Active vào lesson.");
+
         var module = await _unitOfWork.Modules.GetByIdAsync(request.ModuleID);
         if (module == null)
             throw new BaseException("Không tìm thấy mô-đun.", "NOT_FOUND");
@@ -102,11 +106,18 @@ public class LabService : ILabService
         if (query.PageIndex < 1) query.PageIndex = 1;
         if (query.PageSize < 1) query.PageSize = 10;
 
-        Expression<Func<Lab, bool>>? filter = null;
+        Expression<Func<Lab, bool>> filter = x => true;
+
         if (query.Status.HasValue)
         {
             var status = query.Status.Value;
-            filter = x => x.Status == status;
+            filter = filter.And(x => x.Status == status);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.SearchTerm))
+        {
+            var keyword = query.SearchTerm.Trim();
+            filter = filter.And(x => x.NameVN.Contains(keyword) || x.NameEN.Contains(keyword));
         }
 
         var labs = await _unitOfWork.Labs.GetAllAsync(
