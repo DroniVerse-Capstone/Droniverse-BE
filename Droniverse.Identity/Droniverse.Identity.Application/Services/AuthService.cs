@@ -9,8 +9,10 @@ using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Services;
 using Droniverse.Shared.Settings;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using System.Data.Common;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -24,17 +26,23 @@ internal class AuthService : IAuthService
     private readonly IMapper _mapper;
     private readonly JwtSettings _jwtSettings;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IEmailService _emailService;
+    private readonly ILogger<AuthService> _logger;
 
     public AuthService(
         IUnitOfWork unitOfWork, 
         IMapper mapper, 
         IOptions<JwtSettings> jwtSettings,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        IEmailService emailService,
+        ILogger<AuthService> logger)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _jwtSettings = jwtSettings.Value;
         _currentUserService = currentUserService;
+        _emailService = emailService;
+        _logger = logger;
     }
     public async Task<AuthResponse> RefreshToken(string accessToken, string refreshToken)
     {
@@ -84,6 +92,22 @@ internal class AuthService : IAuthService
         newAccount.PasswordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password);
         await _unitOfWork.Accounts.Add(newAccount);
         await _unitOfWork.SaveChangeAsync();
+        try
+        {
+            //gửi mail xác nhận register thành công
+            await _emailService.SendRegistrationEmailAsync(
+                newAccount.Email, 
+                newAccount.Username, 
+                DateTime.UtcNow.AddHours(7).ToString(), 
+                null);
+        }
+        catch (Exception emailEx)
+        {
+            _logger.LogError($"Failed to send email: {emailEx.Message}");
+            throw new Exception("Failed to send confirmation email.", emailEx);
+        }
+
+
         UserResponse user = _mapper.Map<UserResponse>(newAccount);
         //string accessToken = GenerateAccessToken(newAccount);
         //string refreshToken = GenerateRefreshToken(newAccount);

@@ -126,17 +126,35 @@ internal class ClubService : IClubService
         }
     }
 
-    public async Task<IEnumerable<ClubResponseDto>> GetAllClubs()
+    public async Task<PaginationResult<IEnumerable<ClubResponseDto>>> GetAllClubs(GetAllClubsSearchRequest request)
     {
-        IEnumerable<Club> clubList = await _unitOfWork.Clubs.GetAllWithCategories();
-        // get creator
+        request ??= new GetAllClubsSearchRequest();
+
+        var currentPage = request.CurrentPage < 1 ? 1 : request.CurrentPage;
+        var pageSize = request.PageSize < 5 ? 5 : (request.PageSize > 20 ? 20 : request.PageSize);
+
+        var clubResult = await _unitOfWork.Clubs.GetAllWithCategories(
+                   request.ClubName,
+                   request.ClubStatus,
+                   currentPage,
+                   pageSize);
+
+        var clubList = clubResult.Data?.ToList() ?? [];
+        if (clubList.Count == 0)
+            return new PaginationResult<IEnumerable<ClubResponseDto>>([], clubResult.TotalRecords, currentPage, pageSize);
+
         var userIds = clubList.Select(c => c.CreatedBy).Distinct().ToList();
-
         var users = await GetUsersByIds(userIds);
-
         var userDict = users.ToDictionary(u => u.UserId);
 
-        return await MapClubsWithStats(clubList, userDict);
+        var mappedClubs = await MapClubsWithStats(clubList, userDict);
+
+        return new PaginationResult<IEnumerable<ClubResponseDto>>(
+            mappedClubs,
+            clubResult.TotalRecords,
+            currentPage,
+            pageSize
+        );
     }
 
     public async Task<ClubResponseDto> GetClubById(Guid id)
@@ -282,7 +300,7 @@ internal class ClubService : IClubService
             .Distinct()
             .ToList();
 
-        if (!ids.Any())
+        if (ids.Count == 0)
             return [];
 
         try
@@ -377,20 +395,20 @@ internal class ClubService : IClubService
     private async Task<IEnumerable<ClubResponseDto>> MapClubsWithStats(IEnumerable<Club> clubs, Dictionary<Guid, UserResponse> userDict)
     {
         var clubList = clubs?.ToList() ?? [];
-        if (!clubList.Any())
+        if (clubList.Count == 0)
             return [];
 
         var clubIds = clubList.Select(c => c.ClubID).Distinct().ToList();
-        var memberCounts = await _unitOfWork.Clubs.GetMemberCountsByClubIds(clubIds);
-        var courseCounts = await _unitOfWork.Clubs.GetCourseCountsByClubIds(clubIds);
+        var clubStats = await _unitOfWork.Clubs.GetClubStatsByClubIds(clubIds);
 
         return clubList.Select(club =>
         {
             var response = _mapper.Map<ClubResponseDto>(club);
             userDict.TryGetValue(club.CreatedBy, out var creator);
             response.Creator = creator;
-            response.TotalMembers = memberCounts.GetValueOrDefault(club.ClubID, 0);
-            response.TotalCourses = courseCounts.GetValueOrDefault(club.ClubID, 0);
+            var (MemberCount, CourseCount) = clubStats.GetValueOrDefault(club.ClubID, (MemberCount: 0, CourseCount: 0));
+            response.TotalMembers = MemberCount;
+            response.TotalCourses = CourseCount;
             return response;
         });
     }

@@ -2,6 +2,7 @@
 using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Community.Infrastructure.Persistence.MySql;
+using Droniverse.Shared.DTOs.Response;
 using Microsoft.EntityFrameworkCore;
 
 namespace Droniverse.Community.Infrastructure.Repositories;
@@ -11,14 +12,43 @@ internal class ClubRepository : MySqlRepository<Club>, IClubRepository
     {
     }
 
-    public async Task<IEnumerable<Club>> GetAllWithCategories()
+    public async Task<PaginationResult<IEnumerable<Club>>> GetAllWithCategories(
+        string? clubName = null,
+        ClubStatus? clubStatus = null,
+        int currentPage = 1,
+        int pageSize = 5)
     {
-        return await _context.Set<Club>()
+        currentPage = currentPage < 1 ? 1 : currentPage;
+        pageSize = pageSize < 5 ? 5 : (pageSize > 20 ? 20 : pageSize);
+
+        var query = _context.Set<Club>()
             .AsNoTracking()
-            .Include(c => c.ClubCategories)
-            .ThenInclude(cc => cc.Category)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(clubName))
+        {
+            var keyword = clubName.Trim();
+            query = query.Where(c =>
+                c.NameVN.Contains(keyword) ||
+                c.NameEN.Contains(keyword));
+        }
+
+        if (clubStatus.HasValue)
+            query = query.Where(c => c.Status == clubStatus.Value);
+
+        var totalRecords = await query.CountAsync();
+
+        query = query
+                .Include(c => c.ClubCategories)
+                .ThenInclude(cc => cc.Category);
+
+        var data = await query
             .OrderByDescending(c => c.CreatedAt)
+            .Skip((currentPage - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync();
+
+        return new PaginationResult<IEnumerable<Club>>(data, totalRecords, currentPage, pageSize);
     }
 
     public async Task<Club?> GetByIdWithCategories(Guid clubId)
@@ -65,6 +95,32 @@ internal class ClubRepository : MySqlRepository<Club>, IClubRepository
             .OrderByDescending(c => c.CreatedAt);
 
         return await query.ToListAsync();
+    }
+
+    public async Task<Dictionary<Guid, (int MemberCount, int CourseCount)>> GetClubStatsByClubIds(IEnumerable<Guid> clubIds)
+    {
+        var ids = clubIds.Distinct().ToList();
+        if (!ids.Any())
+            return new Dictionary<Guid, (int MemberCount, int CourseCount)>();
+
+        var memberCounts = await _context.Set<Participation>()
+            .Where(p => ids.Contains(p.ClubID) && p.Status == ParticipationStatus.ACTIVE)
+            .GroupBy(p => p.ClubID)
+            .Select(g => new { ClubID = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.ClubID, x => x.Count);
+
+        var courseCounts = await _context.Set<ClubCourse>()
+            .Where(cc => ids.Contains(cc.ClubID))
+            .GroupBy(cc => cc.ClubID)
+            .Select(g => new { ClubID = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.ClubID, x => x.Count);
+
+        return ids.ToDictionary(
+            id => id,
+            id => (
+                memberCounts.GetValueOrDefault(id, 0),
+                courseCounts.GetValueOrDefault(id, 0)
+            ));
     }
 
     public async Task<Dictionary<Guid, int>> GetMemberCountsByClubIds(IEnumerable<Guid> clubIds)

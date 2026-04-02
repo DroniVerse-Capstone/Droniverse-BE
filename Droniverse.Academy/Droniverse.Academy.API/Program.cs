@@ -242,14 +242,20 @@ using (var scope = app.Services.CreateScope())
 
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 
-if (app.Environment.IsDevelopment())
+//if (app.Environment.IsDevelopment())
+//{
+//    app.UseSwagger();
+//    app.UseSwaggerUI(c =>
+//    {
+//        c.DocExpansion(DocExpansion.None);
+//    });
+//}
+
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.DocExpansion(DocExpansion.None);
-    });
-}
+    c.DocExpansion(DocExpansion.None);
+});
 
 // app.UseHttpsRedirection();
 
