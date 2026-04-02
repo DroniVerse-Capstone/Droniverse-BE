@@ -1,10 +1,11 @@
-using Droniverse.Community.Domain.Enums;
+﻿using Droniverse.Community.Domain.Enums;
+using Droniverse.Shared.DTOs;
 
 namespace Droniverse.Community.Application.DTO.Response
 {
     public class LeaderboardEntryDto
     {
-        public Guid UserID { get; set; }
+        public required SimpleUserReponse User { get; set; }
         public decimal? Score { get; set; }
         public int? Rank { get; set; }
         public UserCompetitionStatus Status { get; set; }

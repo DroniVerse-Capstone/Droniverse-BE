@@ -57,6 +57,8 @@ public static class DependencyInjection
         services.AddScoped<ILabDuplicator, LabDuplicator>();
         services.AddScoped<ILabContentSyncService, LabContentSyncService>();
 
+        services.AddScoped<ICodeService, CodeService>();
+
         services.AddTransient<AuthorizationDelegatingHandler>();
 
         //đăng ký httpclient

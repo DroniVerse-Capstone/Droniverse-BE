@@ -28,17 +28,20 @@ namespace Droniverse.Community.Application.Services
         //private readonly IMapper _mapper;
         private readonly IdentityMicroserviceClient _identityMicroserviceClient;
         private readonly ICurrentUserService _currentUserService;
+        private readonly IClock _clock;
 
         public ClubCreationRequestService(
             IUnitOfWork unitOfWork,
             IMapper mapper,
             IdentityMicroserviceClient identityMicroserviceClient,
-            ICurrentUserService currentUserService)
+            ICurrentUserService currentUserService,
+            IClock clock)
         {
             _unitOfWork = unitOfWork;
             //_mapper = mapper;
             _identityMicroserviceClient = identityMicroserviceClient;
             _currentUserService = currentUserService;
+            _clock = clock;
         }
 
         public async Task<ClubCreationRequestCreateResponseDto> CreateRequestToCreateClub(ClubCreationRequestCreateDto dto)
@@ -329,6 +332,7 @@ namespace Droniverse.Community.Application.Services
                         request.LimitParticipant,
                         request.LimitClubManager,
                         request.RequesterID,
+                        _clock.Now,
                         request.ImageUrl
                     );
 
