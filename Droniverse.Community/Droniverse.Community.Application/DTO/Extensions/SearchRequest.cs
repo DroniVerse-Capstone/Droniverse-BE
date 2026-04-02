@@ -45,4 +45,9 @@ namespace Droniverse.Community.Application.DTO.Extensions
         // số người học
         // các course mà club sở hữu
     }
+    public class GetAllClubsSearchRequest : SearchRequest
+    {
+        public string? ClubName { get; set; }
+        public ClubStatus? ClubStatus { get; set; }
+    }
 }

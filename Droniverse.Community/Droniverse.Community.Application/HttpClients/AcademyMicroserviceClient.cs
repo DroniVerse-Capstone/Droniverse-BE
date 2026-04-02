@@ -3,6 +3,7 @@ using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.DTOs.Response;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -29,6 +30,7 @@ public class AcademyMicroserviceClient
     private readonly HttpClient _httpClient;
     private readonly ILogger<AcademyMicroserviceClient> _logger;
     private readonly IDistributedCache _distributedCache; //Redis Cache
+    private readonly IHostEnvironment _environment;
     private static readonly DistributedCacheEntryOptions CourseCacheOptions =
     new DistributedCacheEntryOptions()
         .SetAbsoluteExpiration(TimeSpan.FromMinutes(5))
@@ -41,12 +43,14 @@ public class AcademyMicroserviceClient
     public AcademyMicroserviceClient(
         HttpClient httpClient,
         ILogger<AcademyMicroserviceClient> logger,
-        IDistributedCache distributedCache
+        IDistributedCache distributedCache,
+        IHostEnvironment environment
         )
     {
         _httpClient = httpClient;
         _logger = logger;
         _distributedCache = distributedCache;
+        _environment = environment;
     }
 
     //public async Task<CourseResponse?> GetCourseById(Guid courseId)
@@ -113,7 +117,9 @@ public class AcademyMicroserviceClient
 
     public async Task<FeedbackResponseDto> GetFeedbackById(Guid feedbackId)
     {
-        HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/api/feedbacks/{feedbackId}");
+        HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync(
+            BuildAcademyPath($"feedbacks/{feedbackId}"));
+
         if (!httpResponseMsg.IsSuccessStatusCode)
         {
             if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
@@ -187,7 +193,8 @@ public class AcademyMicroserviceClient
     {
         try
         {
-            HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/api/labs/{labId}");
+            HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync(
+                BuildAcademyPath($"labs/{labId}"));
 
             if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
@@ -214,7 +221,8 @@ public class AcademyMicroserviceClient
     {
         try
         {
-            HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/api/certificates/{certificateId}");
+            HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync(
+                BuildAcademyPath($"certificates/{certificateId}"));
 
             if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
@@ -241,7 +249,8 @@ public class AcademyMicroserviceClient
     {
         try
         {
-            HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/api/certificates/{certificateId}");
+            HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync(
+                BuildAcademyPath($"certificates/{certificateId}"));
 
             if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
@@ -278,7 +287,7 @@ public class AcademyMicroserviceClient
         try
         {
             var response = await _httpClient.PostAsJsonAsync(
-                "/api/certificates/bulk",
+                BuildAcademyPath("certificates/bulk"),
                 distinctIds
             );
 
@@ -364,8 +373,7 @@ public class AcademyMicroserviceClient
         if (missingIds.Count > 0)
         {
             HttpResponseMessage httpResponseMsg = await _httpClient.PostAsJsonAsync(
-                //$"/academy/courses/by-ids?{queryString}",
-                $"/api/academy/courses/by-ids?{queryString}",
+                $"{BuildAcademyPath("courses/by-ids")}?{queryString}",
                 new GetCoursesByIdsRequestDTO { CourseIds = missingIds });
 
             if (!httpResponseMsg.IsSuccessStatusCode)
@@ -442,6 +450,18 @@ public class AcademyMicroserviceClient
         }
 
         return string.Join("&", queryParts);
+    }
+
+    private string BuildAcademyPath(string relativePath)
+    {
+        return $"{GetEndpoint().TrimEnd('/')}/{relativePath.TrimStart('/')}";
+    }
+
+    private string GetEndpoint()
+    {
+        return _environment.IsDevelopment()
+            ? "/academy"
+            : "/api/academy";
     }
 }
 

@@ -9,7 +9,7 @@ using Droniverse.Shared.DTOs.Response;
 namespace Droniverse.Community.Application.IService;
 public interface IClubService
 {
-    Task<IEnumerable<ClubResponseDto>> GetAllClubs();
+    Task<PaginationResult<IEnumerable<ClubResponseDto>>> GetAllClubs(GetAllClubsSearchRequest request);
     Task<ClubResponseDto> GetClubById(Guid id);
     Task<ClubResponseDto> GetClubByClubCode(string clubCode);
     Task<ClubResponseDto> CreateClub(ClubCreateDto club);
