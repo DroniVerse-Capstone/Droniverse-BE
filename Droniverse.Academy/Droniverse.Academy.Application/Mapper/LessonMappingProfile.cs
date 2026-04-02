@@ -43,6 +43,7 @@ public class LessonMappingProfile : Profile
 
         CreateMap<Lab, LessonClientViewDTO>()
             .ForMember(dest => dest.TitleVN, opt => opt.MapFrom(src => src.NameVN))
-            .ForMember(dest => dest.TitleEN, opt => opt.MapFrom(src => src.NameEN));
+            .ForMember(dest => dest.TitleEN, opt => opt.MapFrom(src => src.NameEN))
+            .ForMember(dest => dest.Type, opt => opt.Ignore());
     }
 }

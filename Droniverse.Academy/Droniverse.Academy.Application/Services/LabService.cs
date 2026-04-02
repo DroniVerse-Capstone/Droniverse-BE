@@ -70,6 +70,9 @@ public class LabService : ILabService
         if (lab == null)
             throw new BaseException("Không tìm thấy lab.", "NOT_FOUND");
 
+        if (lab.Status != LabStatus.ACTIVE)
+            throw new ValidationException("Chỉ có thể thêm bài lab ở trạng thái Active vào lesson.");
+
         var module = await _unitOfWork.Modules.GetByIdAsync(request.ModuleID);
         if (module == null)
             throw new BaseException("Không tìm thấy mô-đun.", "NOT_FOUND");
