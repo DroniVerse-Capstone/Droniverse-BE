@@ -1,11 +1,14 @@
 ﻿using AutoMapper;
+using Droniverse.Academy.Application.Common.Extensions;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Exceptions;
+using System.Linq.Expressions;
 
 namespace Droniverse.Academy.Application.Services;
 
@@ -22,10 +25,28 @@ public class AdminEnrollmentService : IAdminEnrollmentService
 
     public async Task<PaginationResult<IEnumerable<EnrollmentResponseDTO>>> GetEnrollmentsAsync(int pageIndex = 1, int pageSize = 10, Guid? userId = null, Guid? courseVersionId = null, EnrollStatus? status = null)
     {
+        Expression<Func<Enrollment, bool>> filter = x => true;
+
+        if (userId.HasValue)
+        {
+            var value = userId.Value;
+            filter = filter.And(x => x.UserID == value);
+        }
+
+        if (courseVersionId.HasValue)
+        {
+            var value = courseVersionId.Value;
+            filter = filter.And(x => x.CourseVersionID == value);
+        }
+
+        if (status.HasValue)
+        {
+            var value = status.Value;
+            filter = filter.And(x => x.Status == value);
+        }
+
         var result = await _unitOfWork.Enrollments.GetAllAsync(
-            filter: x => (!userId.HasValue || x.UserID == userId.Value)
-                      && (!courseVersionId.HasValue || x.CourseVersionID == courseVersionId.Value)
-                      && (!status.HasValue || x.Status == status.Value),
+            filter: filter,
             pageIndex: pageIndex,
             pageSize: pageSize,
             orderBy: q => q.OrderByDescending(x => x.EnrollDate));
