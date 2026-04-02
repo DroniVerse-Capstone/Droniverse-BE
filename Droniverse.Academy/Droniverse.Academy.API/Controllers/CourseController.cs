@@ -1,13 +1,11 @@
 ﻿using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Application.DTO.Request;
-using Droniverse.Academy.API.Examples;
 using Droniverse.Academy.API.Enums;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using Swashbuckle.AspNetCore.Filters;
-using Droniverse.Academy.Application.DTO.Response;
+using Droniverse.Shared.DTOs.Response;
+using Droniverse.Shared.DTOs.Request;
 
 namespace Droniverse.Academy.API.Controllers
 {
@@ -47,20 +45,23 @@ namespace Droniverse.Academy.API.Controllers
         }
 
         /// <summary>
-        /// Lấy danh sách khóa học theo danh sách ID.
+        /// Lấy danh sách khóa học theo danh sách ID (kèm filter + pagination).
         /// </summary>
         /// <param name="request">Danh sách <c>CourseId</c> cần truy vấn.</param>
+        /// <param name="searchRequest">Bộ lọc + phân trang.</param>
         /// <returns>Danh sách khóa học tương ứng với các ID được gửi lên.</returns>
         // POST academy/courses/by-ids
         [HttpPost("by-ids")]
-        [SwaggerRequestExample(typeof(GetCoursesByIdsRequestDTO), typeof(GetCoursesByIdsExample))]
-        [ProducesResponseType(typeof(SuccessResponse<IEnumerable<CourseResponseDTO>>), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetCoursesByIds([FromBody] GetCoursesByIdsRequestDTO request)
+        //[SwaggerRequestExample(typeof(GetCoursesByIdsRequestDTO), typeof(GetCoursesByIdsExample))]
+        [ProducesResponseType(typeof(IEnumerable<CourseBulkResponseDTO>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetCoursesByIds(
+            [FromQuery] CourseBulkSearchRequest searchRequest,
+            [FromBody] GetCoursesByIdsRequestDTO request)
         {
             try
             {
-                var result = await _courseService.GetCoursesByIdsAsync(request.CourseIds);
-                return Ok(SuccessResponse<object>.Create(result, "Lấy danh sách course theo id thành công."));
+                var result = await _courseService.GetCoursesByIdsAsync(searchRequest, request.CourseIds);
+                return Ok(result);
             }
             catch (Exception ex)
             {

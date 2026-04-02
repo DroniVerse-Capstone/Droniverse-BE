@@ -1,50 +1,54 @@
-﻿using Droniverse.Community.Application.IService;
-using Droniverse.Community.Application.Services;
+﻿using Droniverse.Community.Application.Services;
 using Droniverse.Shared.Services;
 using Hangfire;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 
 namespace Droniverse.Community.Application.Jobs
 {
     [AutomaticRetry(Attempts = 3)]
-    [DisableConcurrentExecution(300)]
     public class CompetitionStatusJob
     {
-        private readonly CompetitionLifecycleService _lifecycleService;
+        private readonly CompetitionLifecycleService _competitionLifecycleService;
+        private readonly RoundLifecycleService _roundLifecycleService;
         private readonly ILogger<CompetitionStatusJob> _logger;
-        //private readonly IClock _clock;
+        private readonly IClock _clock;
 
         public CompetitionStatusJob(
-            CompetitionLifecycleService lifecycleService,
-            ILogger<CompetitionStatusJob> logger)
+            CompetitionLifecycleService competitionLifecycleService,
+            RoundLifecycleService roundLifecycleService,
+            ILogger<CompetitionStatusJob> logger,
+            IClock clock)
         {
-            _lifecycleService = lifecycleService;
+            _competitionLifecycleService = competitionLifecycleService;
+            _roundLifecycleService = roundLifecycleService;
             _logger = logger;
+            _clock = clock;
         }
 
-        [JobDisplayName("Competition Lifecycle Job")]
+        [JobDisplayName("Competition + Round Lifecycle Job")]
+        [DisableConcurrentExecution(10)]
+        [Queue("critical")]
         public async Task ExecuteAsync()
         {
-            _logger.LogInformation("CompetitionStatusJob started");
+            _logger.LogInformation("CompetitionStatusJob (combined) started");
             var stopwatch = Stopwatch.StartNew();
+
             try
             {
-                await _lifecycleService.UpdateCompetitionStatusesAsync();
+                await _competitionLifecycleService.UpdateCompetitionStatusesAsync();
+                await _roundLifecycleService.UpdateRoundStatusesAsync();
 
                 stopwatch.Stop();
-                _logger.LogInformation($"Executed in {stopwatch.ElapsedMilliseconds} ms");
-                _logger.LogInformation("CompetitionStatusJob finished successfully");
+                var finishedAt = _clock.Now;
+
+                _logger.LogInformation(
+                    "CompetitionStatusJob (combined) finished in {ElapsedMs} ms at {FinishedAt}",
+                    stopwatch.ElapsedMilliseconds,
+                    finishedAt);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "CompetitionStatusJob failed");
+                _logger.LogError(ex, "CompetitionStatusJob (combined) failed");
                 throw;
             }
         }

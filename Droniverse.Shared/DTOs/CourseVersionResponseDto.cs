@@ -1,4 +1,5 @@
-﻿using Droniverse.Shared.Enums.Response;
+﻿using Droniverse.Academy.Domain.Enums;
+using Droniverse.Shared.Enums.Response;
 
 namespace Droniverse.Shared.DTOs.Response;
 public record CourseVersionResponseDto(

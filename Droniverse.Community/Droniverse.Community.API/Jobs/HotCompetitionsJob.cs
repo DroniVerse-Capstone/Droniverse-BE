@@ -1,4 +1,5 @@
 ﻿using Droniverse.Community.Application.IService;
+using Droniverse.Shared.Services;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
@@ -6,21 +7,25 @@ using System.Diagnostics;
 namespace Droniverse.Community.API.Jobs
 {
     [AutomaticRetry(Attempts = 3)]
-    [DisableConcurrentExecution(300)]
     public class HotCompetitionsJob
     {
         private readonly ICompetitionService _competitionService;
         private readonly ILogger<HotCompetitionsJob> _logger;
+        private readonly IClock _clock;
 
         public HotCompetitionsJob(
             ICompetitionService competitionService,
-            ILogger<HotCompetitionsJob> logger)
+            ILogger<HotCompetitionsJob> logger,
+            IClock clock)
         {
             _competitionService = competitionService;
             _logger = logger;
+            _clock = clock;
         }
 
         [JobDisplayName("Hot Competitions Cache Refresh Job")]
+        [DisableConcurrentExecution(10)]
+        [Queue("default")]
         public async Task ExecuteAsync()
         {
             _logger.LogInformation("HotCompetitionsJob bắt đầu");
@@ -31,8 +36,11 @@ namespace Droniverse.Community.API.Jobs
                 await _competitionService.RefreshHotCompetitionsCacheAsync();
 
                 stopwatch.Stop();
-                _logger.LogInformation("HotCompetitionsJob được thực thi trong {ElapsedMs} ms", stopwatch.ElapsedMilliseconds);
-                _logger.LogInformation("HotCompetitionsJob đã hoàn thành");
+                var finishedAt = _clock.Now;
+                _logger.LogInformation(
+                    "HotCompetitionsJob đã hoàn thành {ElapsedMs} ms at {FinishedAt}",
+                    stopwatch.ElapsedMilliseconds,
+                    finishedAt);
             }
             catch (Exception ex)
             {

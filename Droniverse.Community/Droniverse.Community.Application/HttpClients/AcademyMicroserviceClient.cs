@@ -1,7 +1,12 @@
-﻿using Droniverse.Shared.DTOs.Response;
+﻿using Droniverse.Community.Application.DTO.Extensions;
+using Droniverse.Shared.DTOs;
+using Droniverse.Shared.DTOs.Request;
+using Droniverse.Shared.DTOs.Response;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Droniverse.Community.Application.HttpClients;
 
@@ -23,16 +28,88 @@ public class AcademyMicroserviceClient
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<AcademyMicroserviceClient> _logger;
-    //private readonly IDistributedCache _distributedCache; //Redis Cache
+    private readonly IDistributedCache _distributedCache; //Redis Cache
+    private static readonly DistributedCacheEntryOptions CourseCacheOptions =
+    new DistributedCacheEntryOptions()
+        .SetAbsoluteExpiration(TimeSpan.FromMinutes(5))
+        .SetSlidingExpiration(TimeSpan.FromMinutes(2));
+    private static readonly JsonSerializerOptions _jsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        Converters = { new JsonStringEnumConverter() }
+    };
     public AcademyMicroserviceClient(
         HttpClient httpClient,
-        ILogger<AcademyMicroserviceClient> logger
+        ILogger<AcademyMicroserviceClient> logger,
+        IDistributedCache distributedCache
         )
     {
         _httpClient = httpClient;
         _logger = logger;
-        
+        _distributedCache = distributedCache;
     }
+
+    //public async Task<CourseResponse?> GetCourseById(Guid courseId)
+    //{
+    //    // ========== 1. READ CACHE ==========
+    //    string cacheKey = $"course:{courseId}";
+    //    string? cacheCourse = await _distributedCache.GetStringAsync(cacheKey);
+
+    //    if (cacheCourse != null)
+    //    {
+    //        _logger.LogInformation("Course with id {CourseId} found in cache.", courseId);
+
+    //        var courseFromCache = JsonSerializer.Deserialize<CourseResponse>(cacheCourse);
+    //        return courseFromCache ?? throw new KeyNotFoundException($"Course with ID [{courseId}] not found in cache.");
+    //    }
+
+    //    // ========== 2. CALL API (bulk nhưng giấu đi) ==========
+    //    HttpResponseMessage httpResponseMsg = await _httpClient.PostAsJsonAsync(
+    //        "/academy/courses/by-ids?pageIndex=1&pageSize=1",
+    //        new { courseIds = new List<Guid> { courseId } }
+    //    );
+
+    //    if (!httpResponseMsg.IsSuccessStatusCode)
+    //    {
+    //        if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+    //        {
+    //            _logger.LogError("Academy service unavailable.");
+    //            return null;
+    //        }
+    //        else if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.NotFound)
+    //        {
+    //            _logger.LogWarning("Course with ID [{CourseId}] not found in Academy Microservice.", courseId);
+    //            return null;
+    //        }
+    //        else if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.BadRequest)
+    //        {
+    //            throw new HttpRequestException("Bad request", null, System.Net.HttpStatusCode.BadRequest);
+    //        }
+    //        else
+    //        {
+    //            throw new HttpRequestException(
+    //                $"Academy service error: {httpResponseMsg.StatusCode}",
+    //                null,
+    //                httpResponseMsg.StatusCode);
+    //        }
+    //    }
+
+    //    // ========== 3. PARSE RESPONSE ==========
+    //    var result = await httpResponseMsg.Content.ReadFromJsonAsync<
+    //        SuccessResponse<PaginationResult<IEnumerable<CourseResponse>>>
+    //    >();
+
+    //    var course = result?.Data?.Data?.FirstOrDefault();
+
+    //    if (course == null)
+    //        throw new ArgumentException("Invalid courseId");
+
+    //    // ========== 4. WRITE CACHE ==========
+    //    string cacheString = JsonSerializer.Serialize(course);
+    //    await _distributedCache.SetStringAsync(cacheKey, cacheString, CourseCacheOptions);
+
+    //    return course;
+    //}
 
     public async Task<FeedbackResponseDto> GetFeedbackById(Guid feedbackId)
     {
@@ -65,53 +142,53 @@ public class AcademyMicroserviceClient
         return feedback;
     }
 
-    public async Task<CourseResponse> GetCourseById(Guid courseId)
-    {
-        try
-        {
-            HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/api/courses/{courseId}");
-            if (!httpResponseMsg.IsSuccessStatusCode)
-            {
-                if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
-                {
-                    _logger.LogWarning("Academy service is unavailable.");
-                    return null;
-                }
-                else if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.NotFound)
-                {
-                    _logger.LogWarning("Course with ID {CourseId} not found in Academy Microservice.", courseId);
-                    return null;
-                }
-                else if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.BadRequest)
-                {
-                    throw new HttpRequestException("Bad request", null, System.Net.HttpStatusCode.BadRequest);
-                }
-                else
-                {
-                    throw new HttpRequestException($"Academy service error: {httpResponseMsg.StatusCode}", null, httpResponseMsg.StatusCode);
-                }
-            }
+    //public async Task<CourseResponse> GetCourseById(Guid courseId)
+    //{
+    //    try
+    //    {
+    //        HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/api/courses/{courseId}");
+    //        if (!httpResponseMsg.IsSuccessStatusCode)
+    //        {
+    //            if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+    //            {
+    //                _logger.LogWarning("Academy service is unavailable.");
+    //                return null;
+    //            }
+    //            else if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.NotFound)
+    //            {
+    //                _logger.LogWarning("Course with ID {CourseId} not found in Academy Microservice.", courseId);
+    //                return null;
+    //            }
+    //            else if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.BadRequest)
+    //            {
+    //                throw new HttpRequestException("Bad request", null, System.Net.HttpStatusCode.BadRequest);
+    //            }
+    //            else
+    //            {
+    //                throw new HttpRequestException($"Academy service error: {httpResponseMsg.StatusCode}", null, httpResponseMsg.StatusCode);
+    //            }
+    //        }
 
-            CourseResponse? course = await httpResponseMsg.Content.ReadFromJsonAsync<CourseResponse>();
-            if (course == null)
-            {
-                throw new ArgumentException("Invalid courseID");
-            }
-            return course;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error fetching course with ID {CourseId} from Academy service.", courseId);
-            throw;
-        }
-    }
+    //        CourseResponse? course = await httpResponseMsg.Content.ReadFromJsonAsync<CourseResponse>();
+    //        if (course == null)
+    //        {
+    //            throw new ArgumentException("Invalid courseID");
+    //        }
+    //        return course;
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        _logger.LogError(ex, "Error fetching course with ID {CourseId} from Academy service.", courseId);
+    //        throw;
+    //    }
+    //}
 
     public async Task<bool> IsLabExist(Guid labId)
     {
         try
         {
             HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/api/labs/{labId}");
-            
+
             if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
                 _logger.LogWarning("Lab with ID {LabId} not found in Academy Microservice.", labId);
@@ -138,7 +215,7 @@ public class AcademyMicroserviceClient
         try
         {
             HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/api/certificates/{certificateId}");
-            
+
             if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
                 _logger.LogWarning("Certificate with ID [{CertificateId}] not found in Academy Microservice.", certificateId);
@@ -165,7 +242,7 @@ public class AcademyMicroserviceClient
         try
         {
             HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/api/certificates/{certificateId}");
-            
+
             if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
                 _logger.LogWarning("Certificate with ID {CertificateId} not found in Academy Microservice.", certificateId);
@@ -233,6 +310,138 @@ public class AcademyMicroserviceClient
             _logger.LogError(ex, "Error calling Academy certificates bulk API");
             return Enumerable.Empty<CertificateDetailResponse>();
         }
+    }
+
+    public async Task<IEnumerable<CourseBulkResponseDTO>> GetCourseById(
+        IEnumerable<Guid> courseIds,
+        CourseBulkSearchRequest searchRequest)
+    {
+        searchRequest ??= new CourseBulkSearchRequest();
+
+        var ids = courseIds?
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToList() ?? [];
+
+        if (ids.Count == 0)
+            return [];
+
+        string queryString = BuildCourseBulkSearchQuery(searchRequest);
+
+        var courseById = new Dictionary<Guid, CourseBulkResponseDTO>();
+        var missingIds = new List<Guid>();
+
+        // 1) Read cache first
+        foreach (var id in ids)
+        {
+            var cacheKey = BuildBulkCourseCacheKey(id, queryString);
+            var cacheValue = await _distributedCache.GetStringAsync(cacheKey);
+
+            if (string.IsNullOrWhiteSpace(cacheValue))
+            {
+                missingIds.Add(id);
+                continue;
+            }
+
+            try
+            {
+                var cachedCourse = JsonSerializer.Deserialize<CourseBulkResponseDTO>(cacheValue, _jsonOptions);
+                if (cachedCourse != null)
+                {
+                    courseById[id] = cachedCourse;
+                    continue;
+                }
+            }
+            catch
+            {
+                // ignore invalid cache and fallback to API
+            }
+
+            missingIds.Add(id);
+        }
+
+        // 2) Call API only for missing ids
+        if (missingIds.Count > 0)
+        {
+            HttpResponseMessage httpResponseMsg = await _httpClient.PostAsJsonAsync(
+                //$"/academy/courses/by-ids?{queryString}",
+                $"/api/academy/courses/by-ids?{queryString}",
+                new GetCoursesByIdsRequestDTO { CourseIds = missingIds });
+
+            if (!httpResponseMsg.IsSuccessStatusCode)
+            {
+                if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                {
+                    _logger.LogError("Academy service unavailable.");
+                    return ids.Where(courseById.ContainsKey).Select(id => courseById[id]).ToList();
+                }
+                else if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    _logger.LogWarning("Courses not found in Academy Microservice.");
+                    return ids.Where(courseById.ContainsKey).Select(id => courseById[id]).ToList();
+                }
+                else if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    throw new HttpRequestException("Bad request", null, System.Net.HttpStatusCode.BadRequest);
+                }
+                else
+                {
+                    throw new HttpRequestException(
+                        $"Academy service error: {httpResponseMsg.StatusCode}",
+                        null,
+                        httpResponseMsg.StatusCode);
+                }
+            }
+
+            var courses = await httpResponseMsg.Content.ReadFromJsonAsync<IEnumerable<CourseBulkResponseDTO>>(_jsonOptions) ?? [];
+
+            foreach (var course in courses)
+            {
+                courseById[course.CourseId] = course;
+
+                var cacheKey = BuildBulkCourseCacheKey(course.CourseId, queryString);
+                var cacheString = JsonSerializer.Serialize(course);
+                await _distributedCache.SetStringAsync(cacheKey, cacheString, CourseCacheOptions);
+            }
+        }
+
+        // 3) Return in requested order
+        return ids
+            .Where(courseById.ContainsKey)
+            .Select(id => courseById[id])
+            .ToList();
+    }
+
+    private static string BuildBulkCourseCacheKey(Guid courseId, string queryString)
+    {
+        return $"course:bulk:{courseId}:{queryString}";
+    }
+
+    private static string BuildCourseBulkSearchQuery(CourseBulkSearchRequest searchRequest)
+    {
+        var queryParts = new List<string>
+        {
+            $"CurrentPage={searchRequest.CurrentPage}",
+            $"PageSize={searchRequest.PageSize}",
+            $"CourseOwner={(int)searchRequest.CourseOwner}"
+        };
+
+        if (searchRequest.Level.HasValue)
+        {
+            queryParts.Add($"Level={(int)searchRequest.Level.Value}");
+        }
+
+        if (searchRequest.NumberOfParticipation.HasValue)
+        {
+            queryParts.Add($"NumberOfParticipation={(int)searchRequest.NumberOfParticipation.Value}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(searchRequest.CourseName))
+        {
+            queryParts.Add($"CourseName={Uri.EscapeDataString(searchRequest.CourseName.Trim())}");
+        }
+
+        return string.Join("&", queryParts);
     }
 }
 
