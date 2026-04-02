@@ -19,6 +19,7 @@ public class LabConfiguration : IEntityTypeConfiguration<Lab>
         builder.Property(e => e.NameEN).HasColumnType("varchar(255)");
         builder.Property(e => e.DescriptionVN).HasColumnType("text");
         builder.Property(e => e.DescriptionEN).HasColumnType("text");
+        builder.Property(e => e.EstimatedTime).HasColumnType("int");
         builder.Property(e => e.Level).HasColumnType("tinyint").HasConversion<byte>();
         builder.Property(e => e.Status).HasColumnType("tinyint").HasConversion<byte>();
         builder.Property(e => e.CreateBy).HasColumnType("char(36)");

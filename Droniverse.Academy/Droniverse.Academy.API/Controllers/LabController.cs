@@ -105,6 +105,7 @@ public class LabController : ControllerBase
     /// </summary>
     [HttpPut("{labId:guid}")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
+    [SwaggerRequestExample(typeof(UpdateLabRequestDTO), typeof(UpdateLabRequestExample))]
     public async Task<IActionResult> UpdateLab(Guid labId, [FromBody] UpdateLabRequestDTO request)
     {
         try

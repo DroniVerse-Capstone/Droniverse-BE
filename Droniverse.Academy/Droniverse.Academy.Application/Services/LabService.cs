@@ -40,7 +40,7 @@ public class LabService : ILabService
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
-        LabValidator.ValidateLabData(request.NameVN, request.NameEN, request.DescriptionVN, request.DescriptionEN);
+        LabValidator.ValidateLabData(request.EstimatedTime, request.NameVN, request.NameEN, request.DescriptionVN, request.DescriptionEN);
 
         var lab = _mapper.Map<Lab>(request);
         lab.LabID = Guid.NewGuid();
@@ -97,6 +97,7 @@ public class LabService : ILabService
         var response = _mapper.Map<LessonClientViewDTO>(lesson);
         response.TitleVN = lab.NameVN;
         response.TitleEN = lab.NameEN;
+        response.EstimatedTime = lab.EstimatedTime;
 
         return response;
     }
@@ -163,7 +164,7 @@ public class LabService : ILabService
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
-        LabValidator.ValidateLabData(request.NameVN, request.NameEN, request.DescriptionVN, request.DescriptionEN);
+        LabValidator.ValidateLabData(request.EstimatedTime, request.NameVN, request.NameEN, request.DescriptionVN, request.DescriptionEN);
 
         var lab = await _unitOfWork.Labs.GetByIdAsync(labId);
         if (lab == null)
