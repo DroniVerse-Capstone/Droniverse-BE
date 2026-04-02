@@ -255,29 +255,13 @@ namespace Droniverse.Community.Application.Services
             if (competition == null)
                 throw new KeyNotFoundException($"Không tìm thấy cuộc thi với ID [{competitionId}].");
 
-            var now = new ClockService().Now;
-
-            var userCompetition = competition.RegisterParticipant(
-                currentUserId,
-                now
-            );
+            var userCompetition = competition.RegisterParticipant(currentUserId, _clock.Now);
 
             await _unitOfWork.UserCompetitions.Add(userCompetition);
             await _unitOfWork.SaveChangeAsync();
             await InvalidateHotCompetitionsCache(competition.ClubID);
 
-            return new UserCompetitionResponseDto
-            {
-                UserCompetitionID = userCompetition.UserCompetitionID,
-                UserID = userCompetition.UserID,
-                CompetitionID = userCompetition.CompetitionID,
-                Status = userCompetition.Status,
-                Score = userCompetition.Score,
-                Rank = userCompetition.Rank,
-                PrizeID = userCompetition.PrizeID,
-                CreatedAt = userCompetition.CreatedAt,
-                UpdatedAt = userCompetition.UpdatedAt
-            };
+            return await MapToUserCompetitionResponse(userCompetition, competition);
         }
 
         public async Task<UserCompetitionResponseDto> WithdrawFromCompetition(Guid competitionId)
@@ -305,18 +289,7 @@ namespace Droniverse.Community.Application.Services
             await _unitOfWork.SaveChangeAsync();
             await InvalidateHotCompetitionsCache(competition.ClubID);
 
-            return new UserCompetitionResponseDto
-            {
-                UserCompetitionID = userCompetition.UserCompetitionID,
-                UserID = userCompetition.UserID,
-                CompetitionID = userCompetition.CompetitionID,
-                Status = userCompetition.Status,
-                Score = userCompetition.Score,
-                Rank = userCompetition.Rank,
-                PrizeID = userCompetition.PrizeID,
-                CreatedAt = userCompetition.CreatedAt,
-                UpdatedAt = userCompetition.UpdatedAt
-            };
+            return await MapToUserCompetitionResponse(userCompetition, competition);
         }
 
         public async Task<IEnumerable<UserCompetitionResponseDto>> GetCompetitionParticipants(Guid competitionId)
@@ -329,23 +302,15 @@ namespace Droniverse.Community.Application.Services
                 uc => uc.CompetitionID == competitionId && uc.Status == UserCompetitionStatus.ACTIVE
             );
 
-            return participants.Select(uc => new UserCompetitionResponseDto
-            {
-                UserCompetitionID = uc.UserCompetitionID,
-                UserID = uc.UserID,
-                CompetitionID = uc.CompetitionID,
-                Status = uc.Status,
-                Score = uc.Score,
-                Rank = uc.Rank,
-                PrizeID = uc.PrizeID,
-                CreatedAt = uc.CreatedAt,
-                UpdatedAt = uc.UpdatedAt
-            });
+            return await MapToUserCompetitionResponses(participants, competition);
         }
 
-        public async Task<IEnumerable<LeaderboardEntryDto>> GetCompetitionLeaderboard(Guid competitionId)
+        public async Task<PaginationResult<IEnumerable<LeaderboardEntryDto>>> GetCompetitionLeaderboard(CompetitionLeaderboardSearchRequest request, Guid competitionId)
         {
-            var competition = await _unitOfWork.Competitions.GetByCondition(c => c.CompetitionID == competitionId, query => query.AsNoTracking());
+            var competition = await _unitOfWork.Competitions.GetByCondition(
+                c => c.CompetitionID == competitionId,
+                query => query.AsNoTracking());
+
             if (competition == null)
                 throw new KeyNotFoundException($"Không tìm thấy cuộc thi với ID [{competitionId}].");
 
@@ -354,13 +319,28 @@ namespace Droniverse.Community.Application.Services
                 q => q.OrderByDescending(uc => uc.Score).ThenBy(uc => uc.UpdatedAt)
             );
 
-            return participants.Select((uc, index) => new LeaderboardEntryDto
+            var participantList = participants.ToList();
+            if (participantList.Count == 0)
+                return Enumerable.Empty<LeaderboardEntryDto>().ToPaginationResult(request);
+
+            var userIds = participantList.Select(uc => uc.UserID).Distinct().ToList();
+            var users = await GetUsersBulkSafe(userIds);
+            var userDict = users.ToDictionary(u => u.UserId, u => u);
+
+            var leaderboard = participantList.Select((uc, index) =>
             {
-                UserID = uc.UserID,
-                Score = uc.Score,
-                Rank = uc.Rank ?? (index + 1),
-                Status = uc.Status
+                userDict.TryGetValue(uc.UserID, out var user);
+
+                return new LeaderboardEntryDto
+                {
+                    User = ToSimpleUserResponse(uc.UserID, user),
+                    Score = uc.Score,
+                    Rank = uc.Rank ?? (index + 1),
+                    Status = uc.Status
+                };
             });
+
+            return leaderboard.ToPaginationResult(request);
         }
 
         public async Task<CompetitionResponse> UpdateCompetitionStatus(Guid competitionId, CompetitionUpdateStatusDto request)
@@ -786,6 +766,65 @@ namespace Droniverse.Community.Application.Services
                 FullName = AppHelper.GetFullName(user) ?? string.Empty,
                 Email = user?.Email ?? string.Empty
             };
+        }
+
+        private async Task<UserCompetitionResponseDto> MapToUserCompetitionResponse(UserCompetition userCompetition, Competition competition)
+        {
+            var user = await GetUserSafe(userCompetition.UserID);
+
+            return new UserCompetitionResponseDto
+            {
+                UserCompetitionID = userCompetition.UserCompetitionID,
+                User = ToSimpleUserResponse(userCompetition.UserID, user),
+                Competition = new SimpleCompetitionResponse
+                {
+                    CompetitionID = competition.CompetitionID,
+                    NameVN = competition.NameVN,
+                    NameEN = competition.NameEN
+                },
+                Status = userCompetition.Status,
+                Score = userCompetition.Score,
+                Rank = userCompetition.Rank,
+                PrizeID = userCompetition.PrizeID,
+                CreatedAt = userCompetition.CreatedAt,
+                UpdatedAt = userCompetition.UpdatedAt
+            };
+        }
+
+        private async Task<IEnumerable<UserCompetitionResponseDto>> MapToUserCompetitionResponses(
+            IEnumerable<UserCompetition> userCompetitions,
+            Competition competition)
+        {
+            var list = userCompetitions.ToList();
+            if (list.Count == 0)
+                return [];
+
+            var userIds = list.Select(x => x.UserID).Distinct().ToList();
+            var users = await GetUsersBulkSafe(userIds);
+            var userDict = users.ToDictionary(x => x.UserId, x => x);
+
+            return list.Select(uc =>
+            {
+                userDict.TryGetValue(uc.UserID, out var user);
+
+                return new UserCompetitionResponseDto
+                {
+                    UserCompetitionID = uc.UserCompetitionID,
+                    User = ToSimpleUserResponse(uc.UserID, user),
+                    Competition = new SimpleCompetitionResponse
+                    {
+                        CompetitionID = competition.CompetitionID,
+                        NameVN = competition.NameVN,
+                        NameEN = competition.NameEN
+                    },
+                    Status = uc.Status,
+                    Score = uc.Score,
+                    Rank = uc.Rank,
+                    PrizeID = uc.PrizeID,
+                    CreatedAt = uc.CreatedAt,
+                    UpdatedAt = uc.UpdatedAt
+                };
+            });
         }
     }
 }

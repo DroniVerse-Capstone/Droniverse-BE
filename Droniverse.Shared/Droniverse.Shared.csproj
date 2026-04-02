@@ -9,7 +9,6 @@
 	<ItemGroup>
 		<Folder Include="Abstractions\" />
 		<Folder Include="Config\" />
-		<Folder Include="DTOs\Request\" />
 		<Folder Include="Middleware\" />
 		<Folder Include="Templates\" />
 		<EmbeddedResource Include="Templates/**/*.html" />

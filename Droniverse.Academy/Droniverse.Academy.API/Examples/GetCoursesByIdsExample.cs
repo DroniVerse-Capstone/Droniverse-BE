@@ -1,4 +1,5 @@
 ﻿using Droniverse.Academy.Application.DTO.Request;
+using Droniverse.Shared.DTOs.Request;
 using Swashbuckle.AspNetCore.Filters;
 
 namespace Droniverse.Academy.API.Examples

@@ -1,0 +1,15 @@
+﻿using Droniverse.Academy.Application.DTO.Request;
+using Droniverse.Academy.Application.DTO.Response;
+using Droniverse.Academy.Domain.Enums;
+using Droniverse.Shared.DTOs.Response;
+
+namespace Droniverse.Academy.Application.IService;
+
+public interface IEnrollmentService
+{
+    Task<EnrollmentResponseDTO> CreateEnrollmentAsync(CreateEnrollmentRequestDTO request);
+    Task<PaginationResult<IEnumerable<EnrollmentResponseDTO>>> GetMyEnrollmentsAsync(int pageIndex = 1, int pageSize = 10, EnrollStatus? status = null);
+    Task<EnrollmentResponseDTO> GetMyEnrollmentByIdAsync(Guid enrollmentId);
+    Task<EnrollmentResponseDTO> UpdateMyEnrollmentAsync(Guid enrollmentId, UpdateEnrollmentRequestDTO request);
+    Task DeleteMyEnrollmentAsync(Guid enrollmentId);
+}

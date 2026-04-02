@@ -10,10 +10,8 @@ public class Competition
 
     public Guid ClubID { get; private set; }
     public Club Club { get; private set; }
-
     public string NameVN { get; private set; }
     public string NameEN { get; private set; }
-
     public string? DescriptionVN { get; private set; }
     public string? DescriptionEN { get; private set; }
 

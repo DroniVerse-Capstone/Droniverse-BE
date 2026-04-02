@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
@@ -15,36 +16,47 @@ public class UserCertificateService : IUserCertificateService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly IClock _clock;
+    private readonly ICurrentUserService _currentUser;
 
-    public UserCertificateService(IUnitOfWork unitOfWork, IMapper mapper, IClock clock)
+    public UserCertificateService(IUnitOfWork unitOfWork, IMapper mapper, IClock clock, ICurrentUserService currentUser)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _clock = clock;
+        _currentUser = currentUser;
     }
 
-    public async Task GrantCertificateToUserAsync(Guid certificateId, Guid userId)
+    public async Task GrantCertificateToUserAsync(GrantUserCertificateRequestDTO request)
     {
-        var cert = await _unitOfWork.Certificates.GetByIdAsync(certificateId);
+        if (request == null)
+            throw new ArgumentNullException(nameof(request));
+
+        var cert = await _unitOfWork.Certificates.GetByIdAsync(request.CertificateID);
         if (cert == null)
             throw new BaseException("Không tìm thấy chứng chỉ.", "NOT_FOUND");
 
         // prevent duplicate
-        var existing = await _unitOfWork.UserCertificates.GetByConditionAsync(uc => uc.CertificateID == certificateId && uc.UserID == userId);
+        var existing = await _unitOfWork.UserCertificates.GetByConditionAsync(uc => uc.CertificateID == request.CertificateID && uc.UserID == request.UserID);
         if (existing != null)
             throw new ValidationException("Người dùng đã được cấp chứng chỉ này.");
 
-        var uc = new UserCertificate
-        {
-            CertificateID = certificateId,
-            UserID = userId,
-            SerialNumber = Guid.NewGuid(),
-            AchievedDate = _clock.Now,
-            Status = UserCertificateStatus.ACHIEVED
-        };
+        var uc = _mapper.Map<UserCertificate>(request);
+        uc.SerialNumber = Guid.NewGuid();
+        uc.AchievedDate = _clock.Now;
+        uc.Status = UserCertificateStatus.ACHIEVED;
 
         await _unitOfWork.UserCertificates.AddAsync(uc);
         await _unitOfWork.SaveChangesAsync();
+    }
+
+    public async Task<PaginationResult<IEnumerable<UserCertificateResponseDTO>>> GetMyCertificatesAsync(int pageIndex = 1, int pageSize = 50, UserCertificateStatus? status = null)
+    {
+        return await GetUserCertificatesAsync(_currentUser.UserId, pageIndex, pageSize, status);
+    }
+
+    public async Task<UserCertificateResponseDTO> GetMyCertificateAsync(Guid certificateId)
+    {
+        return await GetUserCertificateAsync(_currentUser.UserId, certificateId);
     }
 
     public async Task<UserCertificateResponseDTO> GetUserCertificateAsync(Guid userId, Guid certificateId)
