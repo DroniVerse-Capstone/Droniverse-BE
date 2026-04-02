@@ -4,6 +4,7 @@ using Droniverse.Identity.Application.RabbitMQ;
 using Droniverse.Identity.Application.Services;
 using Droniverse.Shared.Messages;
 using Droniverse.Shared.Messages.User;
+using Droniverse.Shared.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Droniverse.Identity.Application;
@@ -15,6 +16,7 @@ public static class DependencyInjection
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IRoleService, RoleService>();
         services.AddScoped<IPermissionService, PermissionService>();
+        services.AddScoped<IEmailService, EmailService>();
         services.AddAutoMapper(typeof(AccountMappingProfile).Assembly);
         services.AddAutoMapper(typeof(PermissionMappingProfile).Assembly);
 
