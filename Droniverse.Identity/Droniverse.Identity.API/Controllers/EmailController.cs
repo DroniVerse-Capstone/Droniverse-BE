@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Droniverse.Identity.API.Controllers;
 
-[Route("api/emails")]
+[Route("identity/emails")]
 [ApiController]
 public class EmailController : ControllerBase
 {
