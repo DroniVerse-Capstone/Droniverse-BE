@@ -9,6 +9,7 @@
 	<ItemGroup>
 		<ProjectReference Include="..\Droniverse.Academy.Application\Droniverse.Academy.Application.csproj" />
 		<ProjectReference Include="..\Droniverse.Academy.Application\Droniverse.Academy.Application.csproj" />
+		<ProjectReference Include="..\Droniverse.Academy.Domain\Droniverse.Academy.Domain.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -226,7 +226,7 @@ namespace Droniverse.Community.API.Controllers
         /// | **SUSPENDED (2)** | ADMIN, SYSTEM_MANAGER | Đình chỉ club do vi phạm |
         /// | **INACTIVE (0)** | CLUB_MANAGER (owner) | Tạm ngừng hoạt động |
         /// | **ARCHIVED (3)** | ADMIN, SYSTEM_MANAGER, CLUB_MANAGER (owner) | Đóng hẳn club |
-        /// | **ACTIVE (1)** | ADMIN, SYSTEM_MANAGER | Khôi phục club |
+        /// | **ACTIVE (1)** | ADMIN, SYSTEM_MANAGER,CLUB_MANAGER (owner) | Khôi phục club |
         /// 
         /// ### Lưu ý:
         /// - **SUSPENDED** và **ARCHIVED** bắt buộc phải có `Reason`

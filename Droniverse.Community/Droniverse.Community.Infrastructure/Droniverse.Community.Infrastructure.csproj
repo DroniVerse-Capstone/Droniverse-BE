@@ -8,6 +8,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\Droniverse.Community.Application\Droniverse.Community.Application.csproj" />
+		<ProjectReference Include="..\Droniverse.Community.Domain\Droniverse.Community.Domain.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -405,5 +405,13 @@ namespace Droniverse.Community.API.Controllers
                 "Xóa certificates khỏi cuộc thi thành công!"
             );
         }
+
+        [HttpGet("{competitionID}/current-round")]
+        public async Task<ApiResponse> GetCurrentRoundByCompetitionID(Guid competitionID)
+        {
+            var result = await _competitionService.GetCurrentRoundByCompetitionID(competitionID);
+
+            throw new NotImplementedException();
+        } 
     }
 }

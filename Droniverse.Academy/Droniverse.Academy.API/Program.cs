@@ -216,7 +216,7 @@ builder.Services.AddHangfireServer(config =>
 // ======================
 
 var app = builder.Build();
-
+Console.Title = "Academy Service";
 using (var scope = app.Services.CreateScope())
 {
     var logger = scope.ServiceProvider
@@ -228,7 +228,7 @@ using (var scope = app.Services.CreateScope())
         var db = scope.ServiceProvider.GetRequiredService<MySqlDbContext>();
         db.Database.Migrate();
         logger.LogInformation("Academy DB migrated successfully.");
-    }
+    }   
     catch (Exception ex)
     {
         logger.LogError(ex, "Academy DB migration failed.");
