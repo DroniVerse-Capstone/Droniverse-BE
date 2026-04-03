@@ -45,13 +45,13 @@ namespace Droniverse.Community.API.Controllers
         /// 200 OK - Trả về danh sách ClubResponseDto
         /// </returns>
         [HttpGet]
-        [ProducesResponseType(typeof(SuccessResponse<IEnumerable<ClubResponseDto>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<ClubResponseDto>>>), StatusCodes.Status200OK)]
         [Authorize(Roles = Roles.SystemRoles)]
-        public async Task<ApiResponse> GetAllCLubs()
+        public async Task<ApiResponse> GetAllCLubs([FromQuery] GetAllClubsSearchRequest request)
         {
 
-            IEnumerable<ClubResponseDto> clubs = await _clubService.GetAllClubs();
-            return SuccessResponse<IEnumerable<ClubResponseDto>>
+            PaginationResult<IEnumerable<ClubResponseDto>> clubs = await _clubService.GetAllClubs(request);
+            return SuccessResponse<PaginationResult<IEnumerable<ClubResponseDto>>>
                 .Create(clubs, "Lấy danh sách câu lạc bộ thành công!");
         }
 

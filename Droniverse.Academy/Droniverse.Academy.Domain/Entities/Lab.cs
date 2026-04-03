@@ -13,6 +13,7 @@ public class Lab
     public string NameEN { get; set; } //nvarchar(255)
     public string DescriptionVN { get; set; } //text
     public string DescriptionEN { get; set; } //text
+    public int EstimatedTime { get; set; }
     public Guid CreateBy { get; private set; } // reference to UserID
     public Guid UpdateBy { get; private set; }
     public DateTime CreateAt { get; private set;}

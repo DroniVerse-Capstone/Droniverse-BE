@@ -219,16 +219,21 @@ builder.Services.AddHangfireServer(config =>
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        //c.SwaggerEndpoint("/swagger/v1/swagger.json", "Droniverse Community API v1");
-        c.DocExpansion(DocExpansion.None); //Đóng các api lại cho gọn
+//if (app.Environment.IsDevelopment())
+//{
+//    app.UseSwagger();
+//    app.UseSwaggerUI(c =>
+//    {
+//        //c.SwaggerEndpoint("/swagger/v1/swagger.json", "Droniverse Community API v1");
+//        c.DocExpansion(DocExpansion.None); //Đóng các api lại cho gọn
 
-    });
-}
+//    });
+//}
+
+app.UseSwagger();
+app.UseSwaggerUI(c => c.DocExpansion(DocExpansion.None)); //Đóng các api lại cho gọn);
+
+
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 
 //app.UseHttpsRedirection();

@@ -156,17 +156,26 @@ builder.Services.AddHangfireServer();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseStaticFiles(); // sử dụng static files
+//if (app.Environment.IsDevelopment())
+//{
+//    app.UseStaticFiles(); // sử dụng static files
 
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.DocExpansion(DocExpansion.None); //Đóng các api lại cho gọn
-        c.InjectJavascript("/swagger-custom.js"); // nhúm static file vào swagger cho ô Authorize
-    });
-}
+//    app.UseSwagger();
+//    app.UseSwaggerUI(c =>
+//    {
+//        c.DocExpansion(DocExpansion.None); //Đóng các api lại cho gọn
+//        c.InjectJavascript("/swagger-custom.js"); // nhúm static file vào swagger cho ô Authorize
+//    });
+//}
+
+app.UseStaticFiles(); // sử dụng static files
+
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.DocExpansion(DocExpansion.None); //Đóng các api lại cho gọn
+    c.InjectJavascript("/swagger-custom.js"); // nhúm static file vào swagger cho ô Authorize
+});
 
 //app.UseHttpsRedirection();
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();

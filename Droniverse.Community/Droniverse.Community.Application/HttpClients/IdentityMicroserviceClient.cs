@@ -1,6 +1,7 @@
 ﻿using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Exceptions;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -16,15 +17,18 @@ public class IdentityMicroserviceClient
     private readonly HttpClient _httpClient;
     private readonly ILogger<IdentityMicroserviceClient> _logger;
     private readonly IDistributedCache _distributedCache; //Redis Cache
+    private readonly IHostEnvironment _environment;
     public IdentityMicroserviceClient(
         HttpClient httpClient,
         ILogger<IdentityMicroserviceClient> logger,
-        IDistributedCache distributedCache
+        IDistributedCache distributedCache,
+        IHostEnvironment environment
         )
     {
         _httpClient = httpClient;
         _logger = logger;
         _distributedCache = distributedCache;
+        _environment = environment;
     }
 
     public async Task<UserResponse?> GetUserByUserID(Guid userId)
@@ -42,7 +46,7 @@ public class IdentityMicroserviceClient
             return userFromCache ?? throw new NotFoundException($"User with ID {userId} not found in cache.");
         }
 
-        HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/api/identity/users/{userId}");
+        HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync(BuildIdentityPath($"users/{userId}"));
         //HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/identity/users/{userId}");
 
         if (!httpResponseMsg.IsSuccessStatusCode)
@@ -99,6 +103,7 @@ public class IdentityMicroserviceClient
         {
             var cacheKey = $"user:{id}";
             var cacheValue = await _distributedCache.GetStringAsync(cacheKey);
+            _logger.LogInformation($"User with id [{id}] found in cache.");
             return (Id: id, CacheValue: cacheValue);
         });
 
@@ -134,7 +139,7 @@ public class IdentityMicroserviceClient
             try
             {
                 var response = await _httpClient.PostAsJsonAsync(
-                    "/api/identity/users/bulk",
+                    BuildIdentityPath("users/bulk"),
                     //"/identity/users/bulk",
                     missingIds
                 );
@@ -188,6 +193,18 @@ public class IdentityMicroserviceClient
         return distinctIds
             .Where(id => userDict.ContainsKey(id))
             .Select(id => userDict[id]);
+    }
+
+    private string BuildIdentityPath(string relativePath)
+    {
+        return $"{GetEndpoint().TrimEnd('/')}/{relativePath.TrimStart('/')}";
+    }
+
+    private string GetEndpoint()
+    {
+        return _environment.IsDevelopment()
+            ? "/identity"
+            : "/api/identity";
     }
 }
 

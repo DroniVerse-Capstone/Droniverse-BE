@@ -4,6 +4,7 @@ namespace Droniverse.Academy.Application.DTO.Request;
 
 public class GetLabsQueryDTO
 {
+    public LabType? Type { get; set; }
     public LabStatus? Status { get; set; }
     public string? SearchTerm { get; set; }
     public int PageIndex { get; set; } = 1;

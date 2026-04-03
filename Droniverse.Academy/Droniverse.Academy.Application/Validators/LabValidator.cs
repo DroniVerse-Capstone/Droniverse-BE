@@ -4,8 +4,11 @@ namespace Droniverse.Academy.Application.Validators;
 
 public static class LabValidator
 {
-    public static void ValidateLabData(string nameVN, string nameEN, string descriptionVN, string descriptionEN)
+    public static void ValidateLabData(int estimatedTime, string nameVN, string nameEN, string descriptionVN, string descriptionEN)
     {
+        if (estimatedTime <= 0)
+            throw new ValidationException("Thời lượng ước tính của lab phải lớn hơn 0.");
+
         if (string.IsNullOrWhiteSpace(nameVN))
             throw new ValidationException("Tên lab tiếng Việt là bắt buộc.");
 
