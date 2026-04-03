@@ -1,14 +1,14 @@
 ﻿using Droniverse.Community.Domain.Enums;
 
-using Droniverse.Community.Domain.Enums;
-
-namespace Droniverse.Community.Application.DTO.Response
+namespace Droniverse.Community.Infrastructure.QueryModels
 {
-    public class RoundResponseDto
+    public class RoundQueryModel
     {
         public Guid RoundID { get; set; }
-        public required SimpleCompetitionResponse Competition { get; set; }
-        public required SimpleLabResponse Lab { get; set; }
+        public Guid CompetitionID { get; set; }
+        public string NameVN { get; set; } = null!;
+        public string NameEN { get; set; } = null!;
+        public Guid LabID { get; set; }
         public int RoundNumber { get; set; }
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }

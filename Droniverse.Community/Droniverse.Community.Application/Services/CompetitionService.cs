@@ -389,6 +389,12 @@ namespace Droniverse.Community.Application.Services
             }
         }
 
+        public async Task<RoundResponseDto> GetCurrentRoundByCompetitionID(Guid competitionID)
+        {
+            throw new Exception();
+        }
+
+
         private async Task<List<HotCompetitionCacheItem>> GetOrBuildHotCompetitionCache(Guid clubId)
         {
             var cacheKey = GetHotCompetitionCacheKey(clubId);

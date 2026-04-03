@@ -230,6 +230,7 @@ var app = builder.Build();
 //    });
 //}
 
+
 app.UseSwagger();
 app.UseSwaggerUI(c => c.DocExpansion(DocExpansion.None)); //Đóng các api lại cho gọn);
 
@@ -249,15 +250,19 @@ app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.UseHangfireDashboard("/hangfire", new DashboardOptions
-{
-    Authorization = [],
-    DisplayStorageConnectionString = true,
-});
+//app.UseHangfireDashboard("/hangfire", new DashboardOptions
+//{
+//    Authorization = [],
+//    DisplayStorageConnectionString = true,
+//});
+
+Console.Title = "Community Service";
 
 app.Lifetime.ApplicationStarted.Register(() =>
 {
-    RecurringJobScheduler.ScheduleJobs();
+    Console.WriteLine($"Is Development : {app.Environment.IsDevelopment()}");
+    Console.WriteLine("Background job is not running !");
+    //RecurringJobScheduler.ScheduleJobs();
 });
 
 app.Lifetime.ApplicationStopping.Register(() => Console.WriteLine("App is stopping..."));
