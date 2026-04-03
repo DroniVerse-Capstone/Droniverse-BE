@@ -2,6 +2,7 @@
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.API.Examples;
+using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
@@ -96,6 +97,44 @@ public class LabController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Lấy chi tiết lab thất bại.");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// API nội bộ giữa các service để kiểm tra lab có tồn tại hay không.
+    /// </summary>
+    [HttpHead("{labId:guid}/exist")]
+    [Authorize(Roles = Roles.AllRoles)]
+    public async Task<IActionResult> IsLabExist(Guid labId)
+    {
+        try
+        {
+            var isExist = await _labService.IsLabExistAsync(labId);
+            return isExist ? Ok() : NotFound();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Kiểm tra tồn tại lab thất bại.");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// API nội bộ giữa các service để lấy thông tin rút gọn của nhiều lab.
+    /// </summary>
+    [HttpPost("bulk")]
+    [Authorize(Roles = Roles.AllRoles)]
+    public async Task<IActionResult> GetLabsBulk([FromBody] IEnumerable<Guid> labIds)
+    {
+        try
+        {
+            var labs = await _labService.GetLabsBulkAsync(labIds);
+            return Ok(SuccessResponse<IEnumerable<SimpleLabResponse>>.Create(labs, "Lấy danh sách lab rút gọn thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lấy danh sách lab rút gọn thất bại.");
             throw;
         }
     }

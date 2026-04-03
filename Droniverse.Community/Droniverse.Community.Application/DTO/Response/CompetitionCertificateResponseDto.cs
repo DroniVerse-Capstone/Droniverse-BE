@@ -1,4 +1,4 @@
-namespace Droniverse.Community.Application.DTO.Response
+﻿namespace Droniverse.Community.Application.DTO.Response
 {
     public class CompetitionCertificateResponseDto
     {

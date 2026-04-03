@@ -168,6 +168,7 @@ public class AcademyMicroserviceClient
             return [];
         }
     }
+
     public async Task<FeedbackResponseDto> GetFeedbackById(Guid feedbackId)
     {
         HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync(
@@ -200,58 +201,22 @@ public class AcademyMicroserviceClient
         }
         return feedback;
     }
+
     public async Task<bool> IsLabExist(Guid labId)
     {
         try
         {
-            HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync(
-                BuildAcademyPath($"labs/{labId}"));
+            var request = new HttpRequestMessage(
+                HttpMethod.Head,
+                BuildAcademyPath($"labs/{labId}/exist"));
 
-            if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                _logger.LogWarning("Lab with ID {LabId} not found in Academy Microservice.", labId);
-                return false;
-            }
+            var response = await _httpClient.SendAsync(request);
 
-            if (!httpResponseMsg.IsSuccessStatusCode)
-            {
-                _logger.LogWarning("Academy service error when checking lab {LabId}: {StatusCode}", labId, httpResponseMsg.StatusCode);
-                return false;
-            }
-
-            return true;
+            return response.IsSuccessStatusCode;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking lab existence with ID {LabId} from Academy service.", labId);
-            return false;
-        }
-    }
-
-    public async Task<bool> IsCertificateExist(Guid certificateId)
-    {
-        try
-        {
-            HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync(
-                BuildAcademyPath($"certificates/{certificateId}"));
-
-            if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                _logger.LogWarning("Certificate with ID [{CertificateId}] not found in Academy Microservice.", certificateId);
-                return false;
-            }
-
-            if (!httpResponseMsg.IsSuccessStatusCode)
-            {
-                _logger.LogWarning("Academy service error when checking certificate {CertificateId}: {StatusCode}", certificateId, httpResponseMsg.StatusCode);
-                return false;
-            }
-
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error checking certificate existence with ID {CertificateId} from Academy service.", certificateId);
+            _logger.LogError(ex, "Error checking lab existence with ID {LabId}", labId);
             return false;
         }
     }
@@ -285,50 +250,55 @@ public class AcademyMicroserviceClient
         }
     }
 
-    public async Task<IEnumerable<CertificateDetailResponse>> GetCertificatesBulk(IEnumerable<Guid> certificateIds)
+    public async Task<IEnumerable<SimpleCertificateResponse>> GetCertificatesBulk(
+      IEnumerable<Guid> certificateIds,
+      CancellationToken cancellationToken = default)
     {
-        if (certificateIds == null || !certificateIds.Any())
-            return Enumerable.Empty<CertificateDetailResponse>();
+        if (certificateIds == null)
+            return [];
 
         var distinctIds = certificateIds
             .Where(x => x != Guid.Empty)
             .Distinct()
             .ToList();
 
+        if (!distinctIds.Any())
+            return [];
+
         try
         {
             var response = await _httpClient.PostAsJsonAsync(
                 BuildAcademyPath("certificates/bulk"),
-                distinctIds
-            );
+                distinctIds,
+                cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
-                if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
-                {
-                    _logger.LogError("Academy service unavailable (certificates bulk request).");
-                    return Enumerable.Empty<CertificateDetailResponse>();
-                }
+                _logger.LogError(
+                    "Academy bulk API failed. StatusCode: {StatusCode}, Count: {Count}",
+                    response.StatusCode,
+                    distinctIds.Count);
 
-                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
-                {
-                    _logger.LogError("Bad request when calling Academy certificates bulk API.");
-                    return Enumerable.Empty<CertificateDetailResponse>();
-                }
-
-                _logger.LogError("Academy certificates bulk API error: {StatusCode}", response.StatusCode);
-                return Enumerable.Empty<CertificateDetailResponse>();
+                return [];
             }
 
-            var certificates = await response.Content
-                                      .ReadFromJsonAsync<IEnumerable<CertificateDetailResponse>>();
+            var certificates = await response.Content.ReadFromJsonAsync<
+                IEnumerable<SimpleCertificateResponse>>(cancellationToken);
 
-            return certificates ?? Enumerable.Empty<CertificateDetailResponse>();
+            return certificates ?? [];
+        }
+        catch (TaskCanceledException)
+        {
+            _logger.LogError("Academy bulk API timeout. Count: {Count}", distinctIds.Count);
+            return [];
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error calling Academy certificates bulk API");
-            return Enumerable.Empty<CertificateDetailResponse>();
+            _logger.LogError(ex,
+                "Error calling Academy certificates bulk API. Count: {Count}",
+                distinctIds.Count);
+
+            return [];
         }
     }
 

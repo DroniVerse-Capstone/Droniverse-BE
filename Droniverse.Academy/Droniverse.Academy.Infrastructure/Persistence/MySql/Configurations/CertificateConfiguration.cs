@@ -25,9 +25,11 @@ public class CertificateConfiguration : IEntityTypeConfiguration<Certificate>
             .HasColumnType("char(36)")
             .IsRequired();
         builder.Property(c => c.UpdateBy)
-            .HasColumnType("char(36)")
+            .HasColumnType("char(36)");
+        builder.Property(c => c.CertificateNameVN)
+            .HasMaxLength(100)
             .IsRequired();
-        builder.Property(c => c.CertificateName)
+        builder.Property(c => c.CertificateNameEN)
             .HasMaxLength(100)
             .IsRequired();
         builder.Property(c => c.ImageUrl)

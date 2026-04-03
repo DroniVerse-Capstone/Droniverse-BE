@@ -1,5 +1,6 @@
-using Droniverse.Academy.Application.DTO.Request;
+﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
+using Droniverse.Shared.DTOs;
 
 namespace Droniverse.Academy.Application.IService;
 
@@ -16,4 +17,6 @@ public interface ICertificateService
     Task<CertificateResponseDTO> GetCertificateByIdAsync(Guid certificateId);
 
     Task<IEnumerable<CertificateResponseDTO>> GetCertificatesByIdsAsync(IEnumerable<Guid> certificateIds);
+
+    Task<IEnumerable<SimpleCertificateResponse>> GetCertificatesBulkAsync(IEnumerable<Guid> certificateIds, CancellationToken cancellationToken = default);
 }

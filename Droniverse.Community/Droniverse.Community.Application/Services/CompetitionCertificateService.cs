@@ -4,6 +4,7 @@ using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.IRepository;
+using Droniverse.Shared.DTOs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -25,10 +26,21 @@ namespace Droniverse.Community.Application.Services
             _logger = logger;
         }
 
-        public async Task<CompetitionCertificatesBulkResponseDto> AddCertificateToCompetition(
+        public async Task<CompetitionCertificateAdditionResponse> AddCertificateToCompetition(
             Guid competitionId,
             CompetitionCertificateAddDto request)
         {
+            if (request == null || request.CertificateIDs == null || request.CertificateIDs.Count == 0)
+                throw new ArgumentException("Danh sách chứng chỉ không được để trống.");
+
+            var requestedCertificateIds = request.CertificateIDs
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (requestedCertificateIds.Count == 0)
+                throw new ArgumentException("Danh sách chứng chỉ không hợp lệ.");
+
             var competition = await _unitOfWork.Competitions.GetByCondition(
                 c => c.CompetitionID == competitionId,
                 q => q.Include(c => c.CompetitionCertificates)
@@ -37,86 +49,79 @@ namespace Droniverse.Community.Application.Services
             if (competition == null)
                 throw new KeyNotFoundException($"Không tìm thấy cuộc thi với ID [{competitionId}].");
 
-            // Validate tất cả certificates tồn tại trong Academy system
-            //var validationTasks = request.CertificateIDs.Select(certId => 
-            //    _academyMicroserviceClient.IsCertificateExist(certId));
-            //var validationResults = await Task.WhenAll(validationTasks);
+            var certificatesFromAcademy = (await _academyMicroserviceClient.GetCertificatesBulk(requestedCertificateIds))
+                .ToList();
 
-            //var invalidCertificates = request.CertificateIDs
-            //    .Where((certId, index) => !validationResults[index])
-            //    .ToList();
+            var academyCertificateDict = certificatesFromAcademy
+                .GroupBy(x => x.CertificateID)
+                .ToDictionary(g => g.Key, g => g.First());
 
-            //if (invalidCertificates.Any())
-            //{
-            //    var invalidIds = string.Join(", ", invalidCertificates);
-            //    throw new KeyNotFoundException($"Không tìm thấy các certificate với ID: {invalidIds} trong hệ thống Academy.");
-            //}
+            var notFoundCertificateIds = requestedCertificateIds
+                .Where(id => !academyCertificateDict.ContainsKey(id))
+                .ToList();
 
-            // Add tất cả certificates
-            var addedCertificates = new List<CompetitionCertificate>();
-            var skippedCertificates = new List<Guid>();
-
-            foreach (var certificateId in request.CertificateIDs)
+            if (notFoundCertificateIds.Count > 0)
             {
-                try
-                {
-                    var competitionCertificate = competition.AddCertificate(certificateId);
-                    addedCertificates.Add(competitionCertificate);
-                }
-                catch (InvalidOperationException)
-                {
-                    // Certificate đã tồn tại - skip và tiếp tục
-                    skippedCertificates.Add(certificateId);
-                }
+                var invalidIds = string.Join(", ", notFoundCertificateIds.Select(x => $"[{x}]"));
+                throw new KeyNotFoundException($"Không tìm thấy chứng chỉ trong hệ thống với ID: {invalidIds}.");
             }
 
-            if (!addedCertificates.Any())
-                throw new InvalidOperationException("Tất cả certificates đã được thêm vào cuộc thi trước đó rồi.");
+            var existingCertificateIds = competition.CompetitionCertificates
+                .Select(x => x.CertificateID)
+                .ToHashSet();
+
+            var certificateIdsToAdd = requestedCertificateIds
+                .Where(id => !existingCertificateIds.Contains(id))
+                .ToList();
+
+            if (certificateIdsToAdd.Count == 0)
+                throw new InvalidOperationException("Tất cả chứng chỉ đã được thêm vào cuộc thi trước đó.");
+
+            foreach (var certificateId in certificateIdsToAdd)
+            {
+                competition.AddCertificate(certificateId);
+            }
 
             await _unitOfWork.SaveChangeAsync();
 
-            // Lấy thông tin chi tiết của tất cả certificates đã thêm (bulk API)
-            var certificateIds = addedCertificates.Select(ac => ac.CertificateID).ToList();
-            var certificateDetails = await _academyMicroserviceClient.GetCertificatesBulk(certificateIds.AsEnumerable());
-            //var certificateDict = certificateDetails.ToDictionary(c => c.CertificateID);
-            var certificateDict = new Dictionary<Guid, CertificateDetailDto>();
+            var certificates = certificateIdsToAdd
+                .Select(id => academyCertificateDict[id])
+                .ToList();
 
-            // Map sang response DTOs
-            var certificateResponseList = addedCertificates.Select(ac =>
-            {
-                certificateDict.TryGetValue(ac.CertificateID, out var detail);
-
-                return new CompetitionCertificateResponseDto
-                {
-                    CompetitionID = ac.CompetitionID,
-                    CertificateID = ac.CertificateID,
-                    CertificateDetail = detail != null ? new CertificateDetailDto
-                    {
-                        CertificateID = detail.CertificateID,
-                        CourseVersionID = detail.CourseVersionID,
-                        CertificateName = detail.CertificateName,
-                        ImageUrl = detail.ImageUrl,
-                        LogoCertificate = detail.LogoCertificate,
-                        Description = detail.Description,
-                        Signature = detail.Signature,
-                        AuthorName = detail.AuthorName,
-                        CreateAt = detail.CreateAt,
-                        CreateBy = detail.CreateBy,
-                        UpdateBy = detail.UpdateBy,
-                        UpdateAt = detail.UpdateAt
-                    } : null
-                };
-            }).ToList();
-
-            return new CompetitionCertificatesBulkResponseDto
+            return new CompetitionCertificateAdditionResponse
             {
                 CompetitionID = competitionId,
-                TotalAdded = addedCertificates.Count,
-                Certificates = certificateResponseList
+                AddedTotal = certificates.Count,
+                Certificates = certificates
             };
         }
 
-        public async Task<IEnumerable<CompetitionCertificateResponseDto>> GetCertificatesByCompetition(Guid competitionId)
+        public async Task<SimpleCertificateResponse> AddSingleCertificateToCompetition(
+            Guid competitionId,
+            CompetitionCertificateAddDto request)
+        {
+            if (request == null || request.CertificateIDs == null || request.CertificateIDs.Count == 0)
+                throw new ArgumentException("Danh sách chứng chỉ không được để trống.");
+
+            var distinctCertificateIds = request.CertificateIDs
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (distinctCertificateIds.Count != 1)
+                throw new ArgumentException("Yêu cầu này chỉ hỗ trợ thêm 1 chứng chỉ.");
+
+            var addResult = await AddCertificateToCompetition(
+                competitionId,
+                new CompetitionCertificateAddDto
+                {
+                    CertificateIDs = distinctCertificateIds
+                });
+
+            return addResult.Certificates[0];
+        }
+
+        public async Task<IEnumerable<SimpleCertificateResponse>> GetCertificatesByCompetition(Guid competitionId)
         {
             var competition = await _unitOfWork.Competitions.GetByCondition(
                 c => c.CompetitionID == competitionId,
@@ -127,54 +132,45 @@ namespace Droniverse.Community.Application.Services
                 throw new KeyNotFoundException($"Không tìm thấy cuộc thi với ID [{competitionId}].");
 
             if (!competition.CompetitionCertificates.Any())
-                return Enumerable.Empty<CompetitionCertificateResponseDto>();
+                return [];
 
-            // Lấy danh sách CertificateID
             var certificateIds = competition.CompetitionCertificates
                 .Select(cc => cc.CertificateID)
+                .Where(id => id != Guid.Empty)
+                .Distinct()
                 .ToList();
 
-            // Gọi API bulk để lấy thông tin chi tiết certificate
-            //var certificateDetails = await _academyMicroserviceClient.GetCertificatesBulk(certificateIds);
-            //var certificateDict = certificateDetails.ToDictionary(c => c.CertificateID);
+            if (certificateIds.Count == 0)
+                return [];
 
-            var certificateDict = new Dictionary<Guid, CertificateDetailDto>();
+            var certificates = (await _academyMicroserviceClient.GetCertificatesBulk(certificateIds))
+                .ToList();
 
+            if (certificates.Count == 0)
+                return [];
 
-            return competition.CompetitionCertificates.Select(cc =>
-            {
-                certificateDict.TryGetValue(cc.CertificateID, out var detail);
+            var certificateDict = certificates
+                .GroupBy(c => c.CertificateID)
+                .ToDictionary(g => g.Key, g => g.First());
 
-                return new CompetitionCertificateResponseDto
-                {
-                    CompetitionID = cc.CompetitionID,
-                    CertificateID = cc.CertificateID,
-                    CertificateDetail = detail != null ? new CertificateDetailDto
-                    {
-                        CertificateID = detail.CertificateID,
-                        CourseVersionID = detail.CourseVersionID,
-                        CertificateName = detail.CertificateName,
-                        ImageUrl = detail.ImageUrl,
-                        LogoCertificate = detail.LogoCertificate,
-                        Description = detail.Description,
-                        Signature = detail.Signature,
-                        AuthorName = detail.AuthorName,
-                        CreateAt = detail.CreateAt,
-                        CreateBy = detail.CreateBy,
-                        UpdateBy = detail.UpdateBy,
-                        UpdateAt = detail.UpdateAt
-                    } : null
-                };
-            });
+            return certificateIds
+                .Where(certificateDict.ContainsKey)
+                .Select(id => certificateDict[id])
+                .ToList();
         }
 
-        public async Task<bool> RemoveCertificatesFromCompetition(Guid competitionId, CompetitionCertificateRemoveDto request)
+        public async Task<CompetitionCertificateDeletionResponse> RemoveCertificatesFromCompetition(Guid competitionId, CompetitionCertificateRemoveDto request)
         {
-            var certificateIds = request.CertificateIDs.Distinct().ToList();
-            //_logger.LogInformation(
-            //    "Start removing certificates from competition. CompetitionId: {CompetitionId}, RequestedCount: {RequestedCount}",
-            //    competitionId,
-            //    certificateIds.Count);
+            if (request == null || request.CertificateIDs == null || request.CertificateIDs.Count == 0)
+                throw new ArgumentException("Danh sách chứng chỉ cần xóa không được để trống.");
+
+            var certificateIds = request.CertificateIDs
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (certificateIds.Count == 0)
+                throw new ArgumentException("Danh sách chứng chỉ cần xóa không hợp lệ.");
 
             var competition = await _unitOfWork.Competitions.GetByCondition(
                 c => c.CompetitionID == competitionId,
@@ -187,41 +183,51 @@ namespace Droniverse.Community.Application.Services
                 throw new KeyNotFoundException($"Không tìm thấy cuộc thi với ID [{competitionId}].");
             }
 
-            var removedCount = 0;
+            var existingCertificateIds = competition.CompetitionCertificates
+                .Select(x => x.CertificateID)
+                .ToHashSet();
 
-            foreach (var certificateId in certificateIds)
-            {
-                try
-                {
-                    competition.RemoveCertificate(certificateId);
-                    removedCount++;
-                }
-                catch (KeyNotFoundException)
-                {
-                    _logger.LogDebug(
-                        "Skip removing certificate because it does not exist in competition. CompetitionId: {CompetitionId}, CertificateId: {CertificateId}",
-                        competitionId,
-                        certificateId);
-                }
-            }
+            var removableIds = certificateIds
+                .Where(existingCertificateIds.Contains)
+                .ToList();
 
-            if (removedCount == 0)
+            if (removableIds.Count == 0)
             {
                 _logger.LogWarning(
                     "No certificates were removed from competition. CompetitionId: {CompetitionId}, RequestedCount: {RequestedCount}",
                     competitionId,
                     certificateIds.Count);
-                throw new KeyNotFoundException("Không có certificate nào tồn tại trong cuộc thi để xóa.");
+                throw new KeyNotFoundException("Không có chứng chỉ tồn tại trong cuộc thi để xóa.");
+            }
+
+            foreach (var certificateId in removableIds)
+            {
+                competition.RemoveCertificate(certificateId);
             }
 
             await _unitOfWork.SaveChangeAsync();
 
+            var remainingCertificateIds = competition.CompetitionCertificates
+                .Select(x => x.CertificateID)
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            var remainingCertificates = remainingCertificateIds.Count == 0
+                ? []
+                : (await _academyMicroserviceClient.GetCertificatesBulk(remainingCertificateIds)).ToList();
+
             _logger.LogInformation(
                 "Removed certificates from competition successfully. CompetitionId: {CompetitionId}, RemovedCount: {RemovedCount}",
                 competitionId,
-                removedCount);
+                removableIds.Count);
 
-            return true;
+            return new CompetitionCertificateDeletionResponse
+            {
+                CompetitionID = competitionId,
+                DeletedTotal = removableIds.Count,
+                RemainingCertificates = remainingCertificates
+            };
         }
     }
 }

@@ -8,8 +8,8 @@ using Droniverse.Academy.Application.Validators;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
+using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Shared.DTOs;
-using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Services;
 using System.Linq.Expressions;
@@ -226,6 +226,19 @@ public class LabService : ILabService
         await _unitOfWork.SaveChangesAsync();
 
         await _labContentService.DeleteByLabIdAsync(labId);
+    }
+
+    public async Task<bool> IsLabExistAsync(Guid labId)
+    {
+        if (labId == Guid.Empty)
+            return false;
+
+        return await _unitOfWork.Labs.IsExistAsync(labId);
+    }
+
+    public async Task<IEnumerable<SimpleLabResponse>> GetLabsBulkAsync(IEnumerable<Guid> labIds)
+    {
+        return await _unitOfWork.Labs.GetSimpleLabsByIdsAsync(labIds);
     }
 
     private async Task<int> GetNextOrderIndexAsync(Guid moduleId)
