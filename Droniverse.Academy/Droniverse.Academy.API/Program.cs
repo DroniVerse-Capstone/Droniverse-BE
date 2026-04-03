@@ -255,6 +255,10 @@ app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
     c.DocExpansion(DocExpansion.None);
+    c.DocumentTitle = "Academy API Docs";
+    c.DisplayRequestDuration();
+    c.EnableFilter();
+    c.ConfigObject.AdditionalItems["persistAuthorization"] = true;
 });
 
 // app.UseHttpsRedirection();

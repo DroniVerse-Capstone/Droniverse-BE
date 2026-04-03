@@ -232,7 +232,14 @@ var app = builder.Build();
 
 
 app.UseSwagger();
-app.UseSwaggerUI(c => c.DocExpansion(DocExpansion.None)); //Đóng các api lại cho gọn);
+app.UseSwaggerUI(c => 
+{ 
+    c.DocExpansion(DocExpansion.None);
+    c.DocumentTitle = "Community API Docs";
+    c.DisplayRequestDuration();
+    c.EnableFilter();
+    c.ConfigObject.AdditionalItems["persistAuthorization"] = true;
+}); 
 
 
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
