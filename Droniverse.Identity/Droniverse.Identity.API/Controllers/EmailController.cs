@@ -1,4 +1,5 @@
-﻿using Droniverse.Shared.Services;
+﻿using Droniverse.Shared.DTOs.Request;
+using Droniverse.Shared.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Droniverse.Identity.API.Controllers;
@@ -17,10 +18,10 @@ public class EmailController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> SendTestEmail([FromBody] string email)
+    public async Task<IActionResult> SendTestEmail([FromBody] SendEmailRequest request)
     {
         await _emailService.SendRegistrationEmailAsync(
-            email,
+            request.Email,
             "Tuyn1",
             DateTime.UtcNow.AddHours(7).ToString(),
             "abc");
