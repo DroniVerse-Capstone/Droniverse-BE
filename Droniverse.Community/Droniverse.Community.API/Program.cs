@@ -186,36 +186,36 @@ builder.Logging.SetMinimumLevel(LogLevel.Debug);
 // HANGFIRE
 // ======================
 
-var hangfireConnectionString = builder.Configuration.GetConnectionString("HangfireMySqlConnection")
-    ?? throw new InvalidOperationException("Missing connection string 'HangfireMySqlConnection'.");
+//var hangfireConnectionString = builder.Configuration.GetConnectionString("HangfireMySqlConnection")
+//    ?? throw new InvalidOperationException("Missing connection string 'HangfireMySqlConnection'.");
 
-builder.Services.AddHangfire(config =>
-{
-    config.UseSimpleAssemblyNameTypeSerializer();
-    config.UseRecommendedSerializerSettings();
-    config.UseStorage(new MySqlStorage(
-        hangfireConnectionString,
-        new MySqlStorageOptions
-        {
-            TablesPrefix = "Hangfire",
-            PrepareSchemaIfNecessary = true,
-            QueuePollInterval = TimeSpan.FromSeconds(15),
-            TransactionTimeout = TimeSpan.FromSeconds(30),
-            TransactionIsolationLevel = IsolationLevel.ReadCommitted,
-            JobExpirationCheckInterval = TimeSpan.FromMinutes(10),
-        }
-    ));
-});
+//builder.Services.AddHangfire(config =>
+//{
+//    config.UseSimpleAssemblyNameTypeSerializer();
+//    config.UseRecommendedSerializerSettings();
+//    config.UseStorage(new MySqlStorage(
+//        hangfireConnectionString,
+//        new MySqlStorageOptions
+//        {
+//            TablesPrefix = "Hangfire",
+//            PrepareSchemaIfNecessary = true,
+//            QueuePollInterval = TimeSpan.FromSeconds(15),
+//            TransactionTimeout = TimeSpan.FromSeconds(30),
+//            TransactionIsolationLevel = IsolationLevel.ReadCommitted,
+//            JobExpirationCheckInterval = TimeSpan.FromMinutes(10),
+//        }
+//    ));
+//});
 
-builder.Services.AddHangfireServer(config =>
-{
-    config.WorkerCount = 3;
-    config.Queues = ["critical", "default", "low"];
-    config.SchedulePollingInterval = TimeSpan.FromSeconds(10);
-    config.HeartbeatInterval = TimeSpan.FromSeconds(30);
-    config.ServerCheckInterval = TimeSpan.FromMinutes(1);
-    config.CancellationCheckInterval = TimeSpan.FromSeconds(15);
-});
+//builder.Services.AddHangfireServer(config =>
+//{
+//    config.WorkerCount = 3;
+//    config.Queues = ["critical", "default", "low"];
+//    config.SchedulePollingInterval = TimeSpan.FromSeconds(10);
+//    config.HeartbeatInterval = TimeSpan.FromSeconds(30);
+//    config.ServerCheckInterval = TimeSpan.FromMinutes(1);
+//    config.CancellationCheckInterval = TimeSpan.FromSeconds(15);
+//});
 
 var app = builder.Build();
 
