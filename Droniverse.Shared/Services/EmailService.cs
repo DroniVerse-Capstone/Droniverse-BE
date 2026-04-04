@@ -1,5 +1,5 @@
 ﻿using Droniverse.Shared.Settings;
-using MailKit.Net.Smtp; //dung package nay moi dung
+using MailKit.Net.Smtp;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -13,9 +13,10 @@ public class EmailService : IEmailService
 {
     private readonly IConfiguration _configuration;
     private readonly ILogger<EmailService> _logger;
-    private readonly string _template;
     private readonly IWebHostEnvironment _env;
     private readonly IOptions<EmailSettings> _emailSettings;
+    private const int MaxRetries = 3;
+    private const int BaseDelayMs = 2000;
 
     public EmailService(
         IConfiguration configuration,
@@ -26,7 +27,6 @@ public class EmailService : IEmailService
         _configuration = configuration;
         _env = environment;
         _logger = logger;
-        _template = Path.Combine(_env.ContentRootPath, "Templates", "RegisterTemplate.html");
         _emailSettings = emailSettings;
     }
 
@@ -57,34 +57,65 @@ public class EmailService : IEmailService
 
     public async Task SendEmailAsync(string email, string subject, string message)
     {
-        var emailSettings = _configuration.GetSection("EmailSettings"); // sua code lai cho nay
-        var emailMessage = new MimeMessage();
-        emailMessage.From.Add(new MailboxAddress(emailSettings["DisplayName"], emailSettings["Mail"]));
-        emailMessage.To.Add(new MailboxAddress("", email));
-        emailMessage.Subject = subject;
-        emailMessage.Body = new TextPart("html")
-        {
-            Text = message
-        };
+        var emailSettings = _configuration.GetSection("EmailSettings");
 
-        using (var client = new SmtpClient())
+        for (int attempt = 1; attempt <= MaxRetries; attempt++)
         {
             try
             {
-                client.Timeout = 15000;
-                await client.ConnectAsync(emailSettings["Host"], int.Parse(emailSettings["Port"]), MailKit.Security.SecureSocketOptions.StartTls);
-                await client.AuthenticateAsync(emailSettings["Mail"], emailSettings["Password"]);
-                await client.SendAsync(emailMessage);
-                await client.DisconnectAsync(true);
+                await SendEmailInternalAsync(email, subject, message, emailSettings);
+                _logger.LogInformation($"Email gửi thành công tới {email} (attempt {attempt})");
+                return;
+            }
+            catch (TimeoutException ex)
+            {
+                _logger.LogWarning($"Timeout lần {attempt}/{MaxRetries} khi gửi email tới {email}: {ex.Message}");
 
-                _logger.LogTrace($"Email gửi thành công tới {email}");
+                if (attempt < MaxRetries)
+                {
+                    int delayMs = BaseDelayMs * attempt; // Exponential backoff: 2s, 4s, 6s
+                    _logger.LogInformation($"Retry sau {delayMs}ms...");
+                    await Task.Delay(delayMs);
+                }
+                else
+                {
+                    _logger.LogError($"Gửi email thất bại sau {MaxRetries} lần retry tới {email}");
+                    throw;
+                }
             }
             catch (Exception ex)
             {
                 _logger.LogError($"Lỗi khi gửi email tới {email}: {ex.Message}");
                 throw;
             }
+        }
+    }
 
+    private async Task SendEmailInternalAsync(
+        string email, 
+        string subject, 
+        string message,
+        IConfigurationSection emailSettings)
+    {
+        var emailMessage = new MimeMessage();
+        emailMessage.From.Add(new MailboxAddress(emailSettings["DisplayName"], emailSettings["Mail"]));
+        emailMessage.To.Add(new MailboxAddress("", email));
+        emailMessage.Subject = subject;
+        emailMessage.Body = new TextPart("html") { Text = message };
+
+        using (var client = new SmtpClient())
+        {
+            // Timeout: connect 15s, send 30s
+            client.Timeout = 30000;
+
+            await client.ConnectAsync(
+                emailSettings["Host"], 
+                int.Parse(emailSettings["Port"]), 
+                MailKit.Security.SecureSocketOptions.StartTls);
+
+            await client.AuthenticateAsync(emailSettings["Mail"], emailSettings["Password"]);
+            await client.SendAsync(emailMessage);
+            await client.DisconnectAsync(true);
         }
     }
 
@@ -96,17 +127,12 @@ public class EmailService : IEmailService
         using (var stream = assembly.GetManifestResourceStream(resourceName))
         {
             if (stream == null)
-            {
                 throw new FileNotFoundException($"Template không tìm thấy: {resourceName}");
-            }
 
             using (var reader = new StreamReader(stream))
-            {
                 return await reader.ReadToEndAsync();
-            }
         }
     }
-
 }
 
 
