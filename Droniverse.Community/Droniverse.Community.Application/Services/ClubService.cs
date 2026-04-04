@@ -422,7 +422,10 @@ internal class ClubService : IClubService
                 break;
 
             case Domain.Enums.ClubStatus.SUSPENDED:
-                club.Suspend(_clock.Now);
+                if (string.IsNullOrWhiteSpace(dto.Reason))
+                    throw new ArgumentException("Lý do đình chỉ không được để trống.");
+
+                club.Suspend(_clock.Now, dto.Reason.Trim());
                 break;
 
             case Domain.Enums.ClubStatus.ARCHIVED:

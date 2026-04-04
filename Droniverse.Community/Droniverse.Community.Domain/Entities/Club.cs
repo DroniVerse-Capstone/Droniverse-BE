@@ -32,6 +32,7 @@ public class Club
     public int LimitClubManagers { get; set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
+    public string? SuspendedReason { get; private set; }
 
     // ===== Parameterless Constructor for EF Core =====
     private Club()
@@ -103,7 +104,7 @@ public class Club
         UpdatedAt = now;
     }
 
-    public void Suspend(DateTime now)
+    public void Suspend(DateTime now, string reason)
     {
         if (Status == ClubStatus.SUSPENDED)
             throw new InvalidOperationException("Club is already suspended.");
@@ -112,6 +113,7 @@ public class Club
             throw new InvalidOperationException("Archived club cannot be suspended.");
 
         Status = ClubStatus.SUSPENDED;
+        SuspendedReason = reason;
         UpdatedAt = now;
     }
 

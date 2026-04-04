@@ -36,6 +36,10 @@ public class RoundConfiguration : IEntityTypeConfiguration<Round>
             .HasColumnType("datetime")
             .IsRequired();
 
+        builder.Property(r => r.TimeLimit)
+          .HasColumnType("time")
+          .IsRequired();
+
         builder.Property(r => r.Status)
             .HasColumnType("tinyint")
             .IsRequired();

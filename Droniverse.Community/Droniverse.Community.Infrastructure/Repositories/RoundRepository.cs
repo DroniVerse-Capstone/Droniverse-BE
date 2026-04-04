@@ -1,5 +1,6 @@
 ﻿using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.Entities;
+using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Community.Infrastructure.Persistence.MySql;
 using Droniverse.Community.Infrastructure.QueryModels;
@@ -71,6 +72,28 @@ internal class RoundRepository : MySqlRepository<Round>, IRoundRepository
                 TotalParticipants = r.UserRounds.Count()
             })
             .ToListAsync();
+    }
+
+    public async Task<RoundQueryModel?> GetCurrentRoundByCompetitionID(Guid competitionID)
+    {
+        return await _context.Rounds
+            .AsNoTracking()
+            .Where(r => r.CompetitionID == competitionID && r.Status == RoundStatus.Ongoing)
+            .OrderBy(r => r.RoundNumber)
+            .Select(r => new RoundQueryModel
+            {
+                RoundID = r.RoundID,
+                CompetitionID = r.CompetitionID,
+                NameVN = r.Competition.NameVN,
+                NameEN = r.Competition.NameEN,
+                LabID = r.LabID,
+                RoundNumber = r.RoundNumber,
+                StartTime = r.StartTime,
+                EndTime = r.EndTime,
+                Status = r.Status,
+                TotalParticipants = r.UserRounds.Count()
+            })
+            .FirstOrDefaultAsync();
     }
 }
 

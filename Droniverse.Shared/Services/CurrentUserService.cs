@@ -44,4 +44,9 @@ public class CurrentUserService : ICurrentUserService
     public bool IsAuthenticated => _httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated ?? false;
 
     public ClaimsPrincipal User => _httpContextAccessor.HttpContext?.User ?? new ClaimsPrincipal();
+
+    public string GetCurrentUserId ()
+    {
+        return UserID ?? throw new UnauthorizedAccessException("Người dùng chưa được xác thực.");
+    }
 }
