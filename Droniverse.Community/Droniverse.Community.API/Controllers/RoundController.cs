@@ -160,6 +160,12 @@ namespace Droniverse.Community.API.Controllers
         /// Lấy bảng xếp hạng của vòng thi
         /// </summary>
         /// <param name="id">ID của vòng thi</param>
+        /// <remarks>
+        /// Rule sắp xếp bảng xếp hạng:
+        /// 1. Sắp xếp theo Point (điểm) giảm dần.
+        /// 2. Nếu điểm bằng nhau, ưu tiên ExecutionTime nhỏ hơn (thời gian thực hiện ít hơn).
+        /// 3. Nếu cả điểm và thời gian bằng nhau, ưu tiên SubmittedAt sớm hơn (nộp sớm hơn).
+        /// </remarks>
         /// <returns>200 OK - Trả về bảng xếp hạng</returns>
         [HttpGet("{id}/leaderboard")]
         [ProducesResponseType(typeof(SuccessResponse<PaginationResult<RoundLeaderBoardResponse>>), StatusCodes.Status200OK)]
@@ -172,5 +178,23 @@ namespace Droniverse.Community.API.Controllers
                 "Lấy bảng xếp hạng vòng thi thành công!"
             );
         }
+
+        /// <summary>
+        /// Tham gia vòng thi
+        /// </summary>
+        /// <param name="id">ID của vòng thi</param>
+        /// <param name="request">Thông tin đăng ký tham gia</param>
+        /// <returns>200 OK - Tham gia thành công</returns>
+        //[HttpPost("{id}/join")]
+        //[ProducesResponseType(typeof(SuccessResponse<string>), StatusCodes.Status200OK)]
+        //[ProducesResponseType(StatusCodes.Status400BadRequest)]
+        //[ProducesResponseType(StatusCodes.Status404NotFound)]
+        //public async Task<ApiResponse> JoinRound(Guid id)
+        //{
+        //    await _roundService.JoinRound(id, request);
+        //    return SuccessResponse<string>.Create(
+        //        "Tham gia vòng thi thành công!"
+        //    );
+        //}
     }
 }

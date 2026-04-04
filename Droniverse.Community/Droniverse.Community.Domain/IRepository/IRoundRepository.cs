@@ -9,5 +9,7 @@ public interface IRoundRepository : IRepository<Round>
     Task<RoundQueryModel?> GetRoundByRoundID(Guid roundID);
 
     Task<IEnumerable<RoundQueryModel>> GetRoundsByCompetitionID(Guid competitionID);
+
+    Task<RoundQueryModel?> GetCurrentRoundByCompetitionID(Guid competitionID);
 }
 

@@ -1,16 +1,24 @@
-﻿using Droniverse.Shared.DTOs;
+﻿using Droniverse.Community.Domain.Enums;
+using Droniverse.Shared.DTOs;
 
 namespace Droniverse.Community.Application.DTO.Response
 {
     public class RoundLeaderboardEntryDto
     {
         public SimpleUserReponse User { get; set; }
+
+        // Ranking metrics
         public decimal Point { get; set; }
-        public double ExecutionTime { get; set; }
+        public TimeSpan ExecutionTime { get; set; }
         public int NumberOfSteps { get; set; }
         public double PathLength { get; set; }
-        public bool IsCompleted { get; set; }
+        public bool IsSequentialCheckpoints { get; private set; }
+
+        public bool IsPassed { get; set; }
+        public UserRoundStatus Status { get; set; }
         public DateTime? SubmittedAt { get; set; }
         public int Rank { get; set; }
+
+        public bool IsCurrentUser { get; set; }
     }
 }

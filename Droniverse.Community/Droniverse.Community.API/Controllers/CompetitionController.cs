@@ -475,12 +475,22 @@ namespace Droniverse.Community.API.Controllers
             );
         }
 
+        /// <summary>
+        /// Lấy vòng thi hiện tại của cuộc thi (vòng có trạng thái ONGOING).
+        /// </summary>
+        /// <param name="competitionID">ID của cuộc thi</param>
+        /// <returns>200 OK - Trả về vòng thi đang diễn ra</returns>
         [HttpGet("{competitionID}/current-round")]
+        [ProducesResponseType(typeof(SuccessResponse<RoundResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ApiResponse> GetCurrentRoundByCompetitionID(Guid competitionID)
         {
             var result = await _competitionService.GetCurrentRoundByCompetitionID(competitionID);
 
-            throw new NotImplementedException();
-        } 
+            return SuccessResponse<RoundResponseDto>.Create(
+                result,
+                "Lấy vòng thi đang diễn ra thành công!"
+            );
+        }
     }
 }

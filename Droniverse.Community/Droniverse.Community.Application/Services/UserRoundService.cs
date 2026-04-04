@@ -1,10 +1,11 @@
 ﻿using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
+using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Entities;
+using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Shared.Services;
-using Microsoft.EntityFrameworkCore;
 
 namespace Droniverse.Community.Application.Services
 {
@@ -38,31 +39,16 @@ namespace Droniverse.Community.Application.Services
 
             if (userRound == null)
             {
-                userRound = new UserRound(currentUserId, roundId);
+                userRound = new UserRound(currentUserId, roundId, _clock.Now);
                 await _unitOfWork.UserRounds.Add(userRound);
             }
 
-            userRound.SubmitSolution(request.Solution);
+            userRound.SubmitSolution(request.Solution, _clock.Now);
 
             await _unitOfWork.UserRounds.Update(userRound);
             await _unitOfWork.SaveChangeAsync();
 
-            return new UserRoundResponseDto
-            {
-                UserRoundID = userRound.UserRoundID,
-                UserID = userRound.UserID,
-                RoundID = userRound.RoundID,
-                Solution = userRound.Solution,
-                IsCompleted = userRound.IsCompleted,
-                ExecutionTime = userRound.ExecutionTime,
-                NumberOfSteps = userRound.NumberOfSteps,
-                PathLength = userRound.PathLength,
-                FeedbackVN = userRound.FeedbackVN,
-                FeedbackEN = userRound.FeedbackEN,
-                Rating = userRound.Rating,
-                Point = userRound.Point,
-                SubmittedAt = userRound.SubmittedAt
-            };
+            return MapToUserRoundResponse(userRound);
         }
 
         public async Task<UserRoundResponseDto> GetUserRoundResult(Guid roundId)
@@ -76,22 +62,7 @@ namespace Droniverse.Community.Application.Services
             if (userRound == null)
                 throw new KeyNotFoundException("User has not participated in this round.");
 
-            return new UserRoundResponseDto
-            {
-                UserRoundID = userRound.UserRoundID,
-                UserID = userRound.UserID,
-                RoundID = userRound.RoundID,
-                Solution = userRound.Solution,
-                IsCompleted = userRound.IsCompleted,
-                ExecutionTime = userRound.ExecutionTime,
-                NumberOfSteps = userRound.NumberOfSteps,
-                PathLength = userRound.PathLength,
-                FeedbackVN = userRound.FeedbackVN,
-                FeedbackEN = userRound.FeedbackEN,
-                Rating = userRound.Rating,
-                Point = userRound.Point,
-                SubmittedAt = userRound.SubmittedAt
-            };
+            return MapToUserRoundResponse(userRound);
         }
 
         public async Task<IEnumerable<UserRoundResponseDto>> GetAllRoundResults(Guid roundId)
@@ -110,16 +81,36 @@ namespace Droniverse.Community.Application.Services
                 UserID = ur.UserID,
                 RoundID = ur.RoundID,
                 Solution = ur.Solution,
-                IsCompleted = ur.IsCompleted,
-                ExecutionTime = ur.ExecutionTime,
-                NumberOfSteps = ur.NumberOfSteps,
-                PathLength = ur.PathLength,
+                IsCompleted = ur.Status == UserRoundStatus.Completed,
+                ExecutionTime = ur.ExecutionTime?.TotalSeconds ?? 0,
+                NumberOfSteps = ur.NumberOfSteps ?? 0,
+                PathLength = ur.PathLength ?? 0,
                 FeedbackVN = ur.FeedbackVN,
                 FeedbackEN = ur.FeedbackEN,
-                Rating = ur.Rating,
-                Point = ur.Point,
+                Rating = ur.Rating ?? 0,
+                Point = ur.Point ?? 0,
                 SubmittedAt = ur.SubmittedAt
             });
+        }
+
+        private static UserRoundResponseDto MapToUserRoundResponse(UserRound userRound)
+        {
+            return new UserRoundResponseDto
+            {
+                UserRoundID = userRound.UserRoundID,
+                UserID = userRound.UserID,
+                RoundID = userRound.RoundID,
+                Solution = userRound.Solution,
+                IsCompleted = userRound.Status == UserRoundStatus.Completed,
+                ExecutionTime = userRound.ExecutionTime?.TotalSeconds ?? 0,
+                NumberOfSteps = userRound.NumberOfSteps ?? 0,
+                PathLength = userRound.PathLength ?? 0,
+                FeedbackVN = userRound.FeedbackVN,
+                FeedbackEN = userRound.FeedbackEN,
+                Rating = userRound.Rating ?? 0,
+                Point = userRound.Point ?? 0,
+                SubmittedAt = userRound.SubmittedAt
+            };
         }
     }
 }

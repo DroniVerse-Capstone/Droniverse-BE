@@ -32,6 +32,7 @@ namespace Droniverse.Community.Application.Services
         private readonly ICurrentUserService _currentUserService;
         private readonly IClock _clock;
         private readonly IdentityMicroserviceClient _identityMicroserviceClient;
+        private readonly AcademyMicroserviceClient _academyMicroserviceClient;
         private readonly IDistributedCache _distributedCache;
         private readonly ILogger<CompetitionService> _logger;
 
@@ -40,6 +41,7 @@ namespace Droniverse.Community.Application.Services
             ICurrentUserService currentUserService,
             IClock clock,
             IdentityMicroserviceClient identityMicroserviceClient,
+            AcademyMicroserviceClient academyMicroserviceClient,
             IDistributedCache distributedCache,
             ILogger<CompetitionService> logger)
         {
@@ -47,6 +49,7 @@ namespace Droniverse.Community.Application.Services
             _currentUserService = currentUserService;
             _clock = clock;
             _identityMicroserviceClient = identityMicroserviceClient;
+            _academyMicroserviceClient = academyMicroserviceClient;
             _distributedCache = distributedCache;
             _logger = logger;
         }
@@ -391,9 +394,40 @@ namespace Droniverse.Community.Application.Services
 
         public async Task<RoundResponseDto> GetCurrentRoundByCompetitionID(Guid competitionID)
         {
-            throw new Exception();
-        }
+            var currentRound = await _unitOfWork.Rounds.GetCurrentRoundByCompetitionID(competitionID);
 
+            if (currentRound == null)
+            {
+                var competition = await _unitOfWork.Competitions.GetByCondition(
+                    c => c.CompetitionID == competitionID,
+                    q => q.AsNoTracking());
+
+                if (competition == null)
+                    throw new KeyNotFoundException($"Không tìm thấy cuộc thi với ID [{competitionID}].");
+
+                throw new KeyNotFoundException("Cuộc thi hiện không có vòng thi đang diễn ra.");
+            }
+
+            var labs = await _academyMicroserviceClient.GetLabsByIds([currentRound.LabID]);
+            var labById = labs.ToDictionary(x => x.LabID, x => x);
+
+            return new RoundResponseDto
+            {
+                RoundID = currentRound.RoundID,
+                Competition = new SimpleCompetitionResponse
+                {
+                    CompetitionID = currentRound.CompetitionID,
+                    NameVN = currentRound.NameVN,
+                    NameEN = currentRound.NameEN
+                },
+                Lab = BuildSimpleLabResponse(currentRound.LabID, labById),
+                RoundNumber = currentRound.RoundNumber,
+                StartTime = currentRound.StartTime,
+                EndTime = currentRound.EndTime,
+                Status = currentRound.Status,
+                TotalParticipants = currentRound.TotalParticipants
+            };
+        }
 
         private async Task<List<HotCompetitionCacheItem>> GetOrBuildHotCompetitionCache(Guid clubId)
         {
@@ -754,6 +788,19 @@ namespace Droniverse.Community.Application.Services
                 Console.WriteLine("Không lấy được thông tin user từ identity service.");
                 return [];
             }
+        }
+
+        private static SimpleLabResponse BuildSimpleLabResponse(Guid labId, IReadOnlyDictionary<Guid, SimpleLabResponse> labById)
+        {
+            if (labById.TryGetValue(labId, out var lab))
+                return lab;
+
+            return new SimpleLabResponse
+            {
+                LabID = labId,
+                LabNameVN = "Unknown Lab",
+                LabNameEN = "Unknown Lab"
+            };
         }
 
         private class HotCompetitionCacheItem

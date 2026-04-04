@@ -1,6 +1,5 @@
 ﻿using Droniverse.Community.Application.DTO.Extensions;
 using Droniverse.Community.Application.DTO.Request;
-using Droniverse.Community.Application.DTO.Extensions;
 using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
@@ -19,18 +18,21 @@ namespace Droniverse.Community.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IdentityMicroserviceClient _identityMicroserviceClient;
         private readonly AcademyMicroserviceClient _academyMicroserviceClient;
+        private readonly ICurrentUserService _currentUserService;
         private readonly IClock _clock;
 
         public RoundService(
             IUnitOfWork unitOfWork,
             IdentityMicroserviceClient identityMicroserviceClient,
             AcademyMicroserviceClient academyMicroserviceClient,
-            IClock clock)
+            IClock clock ,
+            ICurrentUserService currentUserService)
         {
             _unitOfWork = unitOfWork;
             _identityMicroserviceClient = identityMicroserviceClient;
             _academyMicroserviceClient = academyMicroserviceClient;
             _clock = clock;
+            _currentUserService = currentUserService;
         }
 
         public async Task<RoundResponseDto> CreateRound(RoundCreateDto request)
@@ -46,7 +48,8 @@ namespace Droniverse.Community.Application.Services
                 request.LabID,
                 request.RoundNumber,
                 request.StartTime,
-                request.EndTime
+                request.EndTime,
+                request.LimitTime
             );
 
             await _unitOfWork.Rounds.Add(round);
@@ -153,11 +156,13 @@ namespace Droniverse.Community.Application.Services
             if (round == null)
                 throw new KeyNotFoundException($"Không tìm thấy vòng thi với ID [{roundId}].");
 
+            Guid.TryParse(_currentUserService.UserID, out var currentUserId);
+
             int currentPage = request.CurrentPage <= 0 ? 1 : request.CurrentPage;
             int pageSize = request.PageSize <= 0 ? 5 : request.PageSize;
 
             var userRounds = (await _unitOfWork.UserRounds.GetManyByCondition(
-                ur => ur.RoundID == roundId && ur.IsCompleted,
+                ur => ur.RoundID == roundId && ur.Status == Domain.Enums.UserRoundStatus.Completed,
                 q => q.OrderByDescending(ur => ur.Point)
                       .ThenBy(ur => ur.ExecutionTime)
                       .ThenBy(ur => ur.SubmittedAt)
@@ -209,13 +214,15 @@ namespace Droniverse.Community.Application.Services
                         return new RoundLeaderboardEntryDto
                         {
                             User = user,
-                            Point = x.UserRound.Point,
-                            ExecutionTime = x.UserRound.ExecutionTime,
-                            NumberOfSteps = x.UserRound.NumberOfSteps,
-                            PathLength = x.UserRound.PathLength,
-                            IsCompleted = x.UserRound.IsCompleted,
+                            Point = x.UserRound.Point ?? 0,
+                            ExecutionTime = x.UserRound.ExecutionTime ?? TimeSpan.Zero,
+                            NumberOfSteps = x.UserRound.NumberOfSteps ?? 0,
+                            PathLength = x.UserRound.PathLength ?? 0,
+                            IsPassed = x.UserRound.IsPassed ?? false,
+                            Status = x.UserRound.Status,
                             SubmittedAt = x.UserRound.SubmittedAt,
-                            Rank = x.Rank
+                            Rank = x.Rank,
+                            IsCurrentUser = currentUserId != Guid.Empty && x.UserRound.UserID == currentUserId
                         };
                     })
                     .ToList();
@@ -272,13 +279,15 @@ namespace Droniverse.Community.Application.Services
                             FullName = fullName,
                             Email = user?.Email ?? string.Empty
                         },
-                        Point = x.UserRound.Point,
-                        ExecutionTime = x.UserRound.ExecutionTime,
-                        NumberOfSteps = x.UserRound.NumberOfSteps,
-                        PathLength = x.UserRound.PathLength,
-                        IsCompleted = x.UserRound.IsCompleted,
+                        Point = x.UserRound.Point ?? 0,
+                        ExecutionTime = x.UserRound.ExecutionTime ?? TimeSpan.Zero,
+                        NumberOfSteps = x.UserRound.NumberOfSteps ?? 0,
+                        PathLength = x.UserRound.PathLength ?? 0,
+                        IsPassed = x.UserRound.IsPassed ?? false,
+                        Status = x.UserRound.Status,
                         SubmittedAt = x.UserRound.SubmittedAt,
-                        Rank = x.Rank
+                        Rank = x.Rank,
+                        IsCurrentUser = currentUserId != Guid.Empty && x.UserRound.UserID == currentUserId
                     };
                 })
                 .ToList();
