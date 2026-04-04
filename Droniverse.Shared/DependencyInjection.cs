@@ -16,6 +16,10 @@ public static class DependencyInjection
             configuration.GetSection(JwtSettings.SectionName)
         );
 
+        // Email Service
+        services.Configure<EmailSettings>(configuration.GetSection("EmailSettings"));
+        services.AddScoped<IEmailService, EmailService>();
+
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddSingleton<IClock, ClockService>();

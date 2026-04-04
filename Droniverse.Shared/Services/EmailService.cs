@@ -1,26 +1,25 @@
 ﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System.Net;
 using System.Net.Mail;
 using System.Reflection;
+using Droniverse.Shared.Settings;
 
 namespace Droniverse.Shared.Services;
 
 public class EmailService : IEmailService
 {
-    private readonly IConfiguration _configuration;
+    private readonly EmailSettings _emailSettings;
     private readonly ILogger<EmailService> _logger;
-    private readonly IWebHostEnvironment _env;
 
     public EmailService(
-        IConfiguration configuration,
-        ILogger<EmailService> logger,
-        IWebHostEnvironment environment)
+        IOptions<EmailSettings> emailSettings,
+        ILogger<EmailService> logger)
     {
-        _configuration = configuration;
+        _emailSettings = emailSettings.Value;
         _logger = logger;
-        _env = environment;
     }
 
     public async Task SendRegistrationEmailAsync(
@@ -50,13 +49,9 @@ public class EmailService : IEmailService
 
     public async Task SendEmailAsync(string email, string subject, string message)
     {
-        var emailSettings = _configuration.GetSection("EmailSettings");
-
         var mail = new MailMessage
         {
-            From = new MailAddress(
-                emailSettings["Mail"],
-                emailSettings["DisplayName"]),
+            From = new MailAddress(_emailSettings.Mail, _emailSettings.DisplayName),
             Subject = subject,
             Body = message,
             IsBodyHtml = true
@@ -65,14 +60,13 @@ public class EmailService : IEmailService
         mail.To.Add(email);
 
         using var smtp = new SmtpClient(
-            emailSettings["Host"],
-            int.Parse(emailSettings["Port"]))
+            _emailSettings.Host,
+            _emailSettings.Port)
         {
             Credentials = new NetworkCredential(
-                emailSettings["Mail"],
-                emailSettings["Password"]),
-            EnableSsl = true,
-            Timeout = 30000  // 30 giây
+                _emailSettings.Mail,
+                _emailSettings.Password),
+            EnableSsl = _emailSettings.EnableSsl
         };
 
         try
