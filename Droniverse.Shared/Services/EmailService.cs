@@ -71,6 +71,7 @@ public class EmailService : IEmailService
         {
             try
             {
+                client.Timeout = 15000;
                 await client.ConnectAsync(emailSettings["Host"], int.Parse(emailSettings["Port"]), MailKit.Security.SecureSocketOptions.StartTls);
                 await client.AuthenticateAsync(emailSettings["Mail"], emailSettings["Password"]);
                 await client.SendAsync(emailMessage);
