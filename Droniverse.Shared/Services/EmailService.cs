@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Hosting;
+﻿using SendGrid;
+using SendGrid.Helpers.Mail;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -11,86 +13,59 @@ namespace Droniverse.Shared.Services;
 
 public class EmailService : IEmailService
 {
-    private readonly EmailSettings _emailSettings;
+    private readonly SendGridSettings _settings;
     private readonly ILogger<EmailService> _logger;
 
     public EmailService(
-        IOptions<EmailSettings> emailSettings,
+        IOptions<SendGridSettings> settings,
         ILogger<EmailService> logger)
     {
-        _emailSettings = emailSettings.Value;
+        _settings = settings.Value;
         _logger = logger;
     }
 
     public async Task SendRegistrationEmailAsync(
-        string email,
-        string fullName,
-        string registrationDate,
-        string confirmationUrl)
+        string email, string fullName, string registrationDate, string confirmationUrl)
     {
         try
         {
             string htmlContent = await LoadTemplateAsync("RegisterTemplate.html");
-
             htmlContent = htmlContent
                 .Replace("{Email}", email)
                 .Replace("{FullName}", fullName)
                 .Replace("{RegistrationDate}", registrationDate)
                 .Replace("{ConfirmationUrl}", confirmationUrl);
-
             await SendEmailAsync(email, "Chào mừng bạn đến với Droniverse!", htmlContent);
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Lỗi khi gửi email đăng ký tới {email}: {ex.Message}");
+            _logger.LogError($"Lỗi: {ex.Message}");
             throw;
         }
     }
 
     public async Task SendEmailAsync(string email, string subject, string message)
     {
-        var mail = new MailMessage
+        var client = new SendGridClient(_settings.ApiKey);
+        var msg = new SendGridMessage
         {
-            From = new MailAddress(_emailSettings.Mail, _emailSettings.DisplayName),
+            From = new EmailAddress(_settings.FromEmail, _settings.FromName),
             Subject = subject,
-            Body = message,
-            IsBodyHtml = true
+            HtmlContent = message
         };
+        msg.AddTo(email);
 
-        mail.To.Add(email);
-
-        using var smtp = new SmtpClient(
-            _emailSettings.Host,
-            _emailSettings.Port)
-        {
-            Credentials = new NetworkCredential(
-                _emailSettings.Mail,
-                _emailSettings.Password),
-            EnableSsl = _emailSettings.EnableSsl
-        };
-
-        try
-        {
-            await smtp.SendMailAsync(mail);
-            _logger.LogInformation($"Email gửi thành công tới {email}");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError($"Lỗi khi gửi email tới {email}: {ex.Message}");
-            throw;
-        }
+        await client.SendEmailAsync(msg);
+        _logger.LogInformation($"Email sent to {email}");
     }
 
     private async Task<string> LoadTemplateAsync(string templateName)
     {
         var assembly = Assembly.GetExecutingAssembly();
         var resourceName = $"Droniverse.Shared.Templates.{templateName}";
-
         using (var stream = assembly.GetManifestResourceStream(resourceName))
         {
-            if (stream == null)
-                throw new FileNotFoundException($"Template không tìm thấy: {resourceName}");
-
+            if (stream == null) throw new FileNotFoundException($"Template không tìm thấy: {resourceName}");
             using (var reader = new StreamReader(stream))
                 return await reader.ReadToEndAsync();
         }

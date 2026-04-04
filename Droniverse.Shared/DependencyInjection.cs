@@ -17,7 +17,7 @@ public static class DependencyInjection
         );
 
         // Email Service
-        services.Configure<EmailSettings>(configuration.GetSection("EmailSettings"));
+        services.Configure<SendGridSettings>(configuration.GetSection("SendGrid"));
         services.AddScoped<IEmailService, EmailService>();
 
         services.AddHttpContextAccessor();
