@@ -1,9 +1,13 @@
 ﻿using AutoMapper;
+using Droniverse.Identity.Application.DTO.Extension;
 using Droniverse.Identity.Application.DTO.Request;
 using Droniverse.Identity.Application.IService;
 using Droniverse.Identity.Domain.Entities;
 using Droniverse.Identity.Domain.Interfaces;
+using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Response;
+using Droniverse.Shared.Enums;
+using Droniverse.Shared.Helpers;
 using Droniverse.Shared.Messages.User;
 using Droniverse.Shared.Services;
 using Microsoft.AspNetCore.Http;
@@ -18,7 +22,7 @@ internal class UserService : IUserService
     private readonly ICloudinaryService _cloudinaryService;
     public UserService(
         IUnitOfWork unitOfWork,
-        IMapper mapper, 
+        IMapper mapper,
         IUserPublisher publisher,
         ICloudinaryService cloudinaryService)
     {
@@ -120,7 +124,7 @@ internal class UserService : IUserService
             bool isDelete = await _unitOfWork.Accounts.Delete(account);
             await _unitOfWork.SaveChangeAsync();
             if (isDelete)
-            { 
+            {
                 Dictionary<string, object> headers = new Dictionary<string, object>()
                 {
                     {"event", "user.delete" },
@@ -152,5 +156,19 @@ internal class UserService : IUserService
             return [];
 
         return await _unitOfWork.Accounts.GetUsersByIdsAsync(userIds);
+    }
+
+    public async Task<IEnumerable<SimpleUserReponse>> GetUsersByUserInfo(UserInfoSearchRequest request)
+    {
+        var currentPage = request?.CurrentPage > 0 ? request.CurrentPage : 1;
+        var pageSize = request?.PageSize > 0 ? request.PageSize : 5;
+        var sortDirection = request?.SortDirection ?? SortDirection.Asc;
+        var users = await _unitOfWork.Accounts.GetUsersByUserInfoAsync(
+            request?.SearchName,
+            sortDirection,
+            currentPage,
+            pageSize);
+
+        return users;
     }
 }

@@ -1,5 +1,8 @@
 ﻿using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Exceptions;
+using Droniverse.Community.Application.DTO.Extensions;
+using Droniverse.Shared.DTOs;
+using Droniverse.Shared.Enums;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -193,6 +196,73 @@ public class IdentityMicroserviceClient
         return distinctIds
             .Where(id => userDict.ContainsKey(id))
             .Select(id => userDict[id]);
+    }
+
+    public async Task<IEnumerable<SimpleUserReponse>> GetUsersByUserInfo(UserInfoSearchRequest request)
+    {
+        int currentPage = request.CurrentPage <= 0 ? 1 : request.CurrentPage;
+        int pageSize = request.PageSize <= 0 ? 5 : request.PageSize;
+        SortDirection sortDirection = request.SortDirection ?? SortDirection.Asc;
+        string searchName = request.SearchName?.Trim() ?? string.Empty;
+
+        string cacheKey = $"users:search:{searchName.ToLowerInvariant()}:{sortDirection}:{currentPage}:{pageSize}";
+        string? cachedUsers = await _distributedCache.GetStringAsync(cacheKey);
+
+        if (!string.IsNullOrWhiteSpace(cachedUsers))
+        {
+            try
+            {
+                var usersFromCache = JsonSerializer.Deserialize<IEnumerable<SimpleUserReponse>>(cachedUsers);
+                if (usersFromCache != null)
+                {
+                    _logger.LogInformation("Danh sách người dùng tìm kiếm lấy từ cache.");
+                    return usersFromCache;
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        var query =
+            $"users/search?SearchName={Uri.EscapeDataString(searchName)}" +
+            $"&SortDirection={sortDirection}" +
+            $"&CurrentPage={currentPage}" +
+            $"&PageSize={pageSize}";
+
+        HttpResponseMessage response = await _httpClient.GetAsync(BuildIdentityPath(query));
+
+        if (!response.IsSuccessStatusCode)
+        {
+            if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+            {
+                _logger.LogError("Identity service unavailable (search user info request).");
+                throw new HttpRequestException(
+                    "Identity service unavailable",
+                    null,
+                    System.Net.HttpStatusCode.ServiceUnavailable);
+            }
+
+            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            {
+                throw new HttpRequestException(
+                    "Bad request when calling Identity search user info API",
+                    null,
+                    System.Net.HttpStatusCode.BadRequest);
+            }
+
+            throw new HttpRequestException(
+                $"Identity search user info API error: {response.StatusCode}",
+                null,
+                response.StatusCode);
+        }
+
+        var users = await response.Content.ReadFromJsonAsync<IEnumerable<SimpleUserReponse>>() ?? [];
+
+        string cacheValue = JsonSerializer.Serialize(users);
+        await _distributedCache.SetStringAsync(cacheKey, cacheValue, UserCacheOptions);
+
+        return users;
     }
 
     private string BuildIdentityPath(string relativePath)

@@ -241,7 +241,6 @@ app.UseSwaggerUI(c =>
     c.ConfigObject.AdditionalItems["persistAuthorization"] = true;
 }); 
 
-
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 
 //app.UseHttpsRedirection();

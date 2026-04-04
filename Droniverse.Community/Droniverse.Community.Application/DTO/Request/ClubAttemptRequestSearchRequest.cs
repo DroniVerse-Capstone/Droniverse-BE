@@ -1,6 +1,7 @@
 ﻿using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.Enums.SeachRequest;
 using Droniverse.Shared.DTOs;
+using Droniverse.Shared.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace Droniverse.Community.Application.DTO.Request;

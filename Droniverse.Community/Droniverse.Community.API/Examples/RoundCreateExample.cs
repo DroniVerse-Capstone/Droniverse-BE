@@ -9,6 +9,8 @@ namespace Droniverse.Community.API.Examples
     {
         private static readonly Guid QuickTestCompetitionId = Guid.Parse("11111111-1111-1111-1111-111111111111");
         private static readonly Guid RealisticCompetitionId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+        private static readonly string LabId1 = "f4852f0c-309a-4ea6-8bbb-0a8fb1c0dc45";
+        private static readonly string LabId2 = "495c3bba-9348-4d5d-a68e-a5f39d5300ec";
 
         public IEnumerable<SwaggerExample<RoundCreateDto>> GetExamples()
         {
@@ -18,21 +20,21 @@ namespace Droniverse.Community.API.Examples
             // VisibleAt +2m -> RegStart +4m -> RegEnd +6m -> Start +8m -> End +10m
             // Round times should be inside [Start, End].
             yield return SwaggerExample.Create(
-                "01. Quick Test - Round 1 (Valid)",
                 "Use with a competition created by Quick Test timeline.",
-                CreateQuickRound(now, 1, 8, 9, "a1b2c3d4-e5f6-4789-a012-111111111111")
+                "01. Quick Test - Round 1 (Valid)",
+                CreateQuickRound(now, 1, 8, 9, LabId1)
             );
 
             yield return SwaggerExample.Create(
-                "02. Quick Test - Round 2 (Valid)",
                 "Use with a competition created by Quick Test timeline.",
-                CreateQuickRound(now, 2, 9, 10, "a1b2c3d4-e5f6-4789-a012-222222222222")
+                "02. Quick Test - Round 2 (Valid)",
+                CreateQuickRound(now, 2, 9, 10, LabId2)
             );
 
             yield return SwaggerExample.Create(
                 "03. Quick Test - Error (Outside Competition Period)",
                 "Round starts after Quick Test EndDate (+10m), should fail validation.",
-                CreateQuickRound(now, 3, 11, 12, "a1b2c3d4-e5f6-4789-a012-333333333333")
+                CreateQuickRound(now, 3, 11, 12, LabId1)
             );
 
             // REALISTIC competition timeline (from CompetitionCreationRequestExample):
@@ -40,19 +42,19 @@ namespace Droniverse.Community.API.Examples
             yield return SwaggerExample.Create(
                 "04. Realistic Timeline - Round 1 (Valid)",
                 "Use with a competition created by Realistic Timeline example.",
-                CreateRealisticRound(now, 1, 60, 75, "b1b2c3d4-e5f6-4789-a012-111111111111")
+                CreateRealisticRound(now, 1, 60, 75, LabId1)
             );
 
             yield return SwaggerExample.Create(
                 "05. Realistic Timeline - Round 2 (Valid)",
                 "Use with a competition created by Realistic Timeline example.",
-                CreateRealisticRound(now, 2, 90, 105, "b1b2c3d4-e5f6-4789-a012-222222222222")
+                CreateRealisticRound(now, 2, 90, 105, LabId2)
             );
 
             yield return SwaggerExample.Create(
                 "06. Realistic Timeline - Error (Outside Competition Period)",
                 "Round ends after Realistic EndDate (+2h), should fail validation.",
-                CreateRealisticRound(now, 3, 115, 130, "b1b2c3d4-e5f6-4789-a012-333333333333")
+                CreateRealisticRound(now, 3, 115, 130, LabId1)
             );
         }
 
