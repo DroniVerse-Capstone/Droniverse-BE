@@ -1,4 +1,5 @@
 ﻿using Droniverse.Community.API.Examples;
+using Droniverse.Community.Application.DTO.Extensions;
 using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.IService;
@@ -120,23 +121,6 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
-        /// Lấy danh sách vòng thi của cuộc thi
-        /// </summary>
-        /// <param name="competitionId">ID của cuộc thi</param>
-        /// <returns>200 OK - Trả về danh sách vòng thi</returns>
-        [HttpGet("competition/{competitionId}")]
-        [ProducesResponseType(typeof(SuccessResponse<IEnumerable<RoundResponseDto>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ApiResponse> GetRoundsByCompetition(Guid competitionId)
-        {
-            var rounds = await _roundService.GetRoundsByCompetition(competitionId);
-            return SuccessResponse<IEnumerable<RoundResponseDto>>.Create(
-                rounds,
-                "Lấy danh sách vòng thi thành công!"
-            );
-        }
-
-        /// <summary>
         /// Bắt đầu vòng thi
         /// </summary>
         /// <param name="id">ID của vòng thi</param>
@@ -178,12 +162,12 @@ namespace Droniverse.Community.API.Controllers
         /// <param name="id">ID của vòng thi</param>
         /// <returns>200 OK - Trả về bảng xếp hạng</returns>
         [HttpGet("{id}/leaderboard")]
-        [ProducesResponseType(typeof(SuccessResponse<IEnumerable<RoundLeaderboardEntryDto>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(SuccessResponse<PaginationResult<RoundLeaderBoardResponse>>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ApiResponse> GetRoundLeaderboard(Guid id)
+        public async Task<ApiResponse> GetRoundLeaderboard(Guid id, [FromQuery] RoundLeaderboardSearchRequest request)
         {
-            var leaderboard = await _roundService.GetRoundLeaderboard(id);
-            return SuccessResponse<IEnumerable<RoundLeaderboardEntryDto>>.Create(
+            var leaderboard = await _roundService.GetRoundLeaderboard(id, request);
+            return SuccessResponse<PaginationResult<RoundLeaderBoardResponse>>.Create(
                 leaderboard,
                 "Lấy bảng xếp hạng vòng thi thành công!"
             );

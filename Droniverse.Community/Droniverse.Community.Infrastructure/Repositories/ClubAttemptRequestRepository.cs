@@ -4,6 +4,7 @@ using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.Enums.SeachRequest;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Community.Infrastructure.Persistence.MySql;
+using Droniverse.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace Droniverse.Community.Infrastructure.Repositories;

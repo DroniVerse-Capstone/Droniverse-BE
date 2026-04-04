@@ -2,7 +2,9 @@
 using Droniverse.Identity.Domain.Entities;
 using Droniverse.Identity.Domain.Interfaces;
 using Droniverse.Identity.Infrastructure.Persistence;
+using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Response;
+using Droniverse.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
@@ -28,7 +30,7 @@ public class UserRepository : Repository<Account>, IUserRepository
             .Include(a => a.Role)
             .Where(expression)
             .FirstOrDefaultAsync();
-    }   
+    }
 
     public new async Task<IEnumerable<Account>> GetManyByCondition(Expression<Func<Account, bool>> expression)
     {
@@ -61,6 +63,60 @@ public class UserRepository : Repository<Account>, IUserRepository
                 FirstName = a.UserInfo.FirstName,
                 LastName = a.UserInfo.LastName,
                 DateOfBirth = a.UserInfo.DateOfBirth
+            })
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<SimpleUserReponse>> GetUsersByUserInfoAsync(
+    string? searchName,
+    SortDirection sortDirection,
+    int currentPage,
+    int pageSize)
+    {
+        IQueryable<Account> query = _dbSet
+            .AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(searchName))
+        {
+            var terms = searchName
+                .Trim()
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            if (terms.Length == 1)
+            {
+                var term = terms[0];
+                var pattern = $"%{term}%";
+                query = query.Where(a =>
+                    EF.Functions.Like(a.UserInfo.FirstName, pattern) ||
+                    EF.Functions.Like(a.UserInfo.LastName, pattern));
+            }
+            else
+            {
+                var first = terms[0];
+                var last = terms[^1];
+                var firstPattern = $"%{first}%";
+                var lastPattern = $"%{last}%";
+
+                query = query.Where(a =>
+                    (EF.Functions.Like(a.UserInfo.FirstName, firstPattern) && EF.Functions.Like(a.UserInfo.LastName, lastPattern)) ||
+                    (EF.Functions.Like(a.UserInfo.FirstName, lastPattern) && EF.Functions.Like(a.UserInfo.LastName, firstPattern)));
+            }
+        }
+
+        var skip = (currentPage - 1) * pageSize;
+
+        query = sortDirection == SortDirection.Desc
+            ? query.OrderByDescending(a => a.UserInfo.FirstName).ThenByDescending(a => a.UserInfo.LastName)
+            : query.OrderBy(a => a.UserInfo.FirstName).ThenBy(a => a.UserInfo.LastName);
+
+        return await query
+            .Skip(skip)
+            .Take(pageSize)
+            .Select(a => new SimpleUserReponse
+            {
+                UserId = a.UserID,
+                Email = a.Email,
+                FullName = a.UserInfo.FirstName + " " + a.UserInfo.LastName
             })
             .ToListAsync();
     }

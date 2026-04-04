@@ -132,22 +132,17 @@ public class AcademyMicroserviceClient
                 if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 {
                     _logger.LogWarning("Không tìm thấy lab trong Academy Microservice khi gọi API bulk.");
-                    return [];
+                    return Array.Empty<SimpleLabResponse>();
                 }
 
                 _logger.LogWarning("Academy service lỗi khi gọi labs/bulk: {StatusCode}", response.StatusCode);
-                return [];
+                return Array.Empty<SimpleLabResponse>();
             }
 
             var payload = await response.Content.ReadAsStringAsync();
 
-            var wrapped = JsonSerializer.Deserialize<SuccessResponse<IEnumerable<AcademyLabDto>>>(payload, _jsonOptions);
-            var labs = wrapped?.Data;
-
-            if (labs == null)
-            {
-                labs = JsonSerializer.Deserialize<IEnumerable<AcademyLabDto>>(payload, _jsonOptions);
-            }
+            // Deserialize trực tiếp thẳng vào IEnumerable<SimpleLabResponse>
+            var labs = JsonSerializer.Deserialize<IEnumerable<SimpleLabResponse>>(payload, _jsonOptions);
 
             if (labs == null)
                 return [];
@@ -157,15 +152,15 @@ public class AcademyMicroserviceClient
                 .Select(x => new SimpleLabResponse
                 {
                     LabID = x.LabID,
-                    LabNameVN = x.NameVN,
-                    LabNameEN = x.NameEN
+                    LabNameVN = x.LabNameVN,
+                    LabNameEN = x.LabNameEN
                 })
                 .ToList();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Lỗi khi gọi Academy API labs/bulk.");
-            return [];
+            return Array.Empty<SimpleLabResponse>();
         }
     }
 

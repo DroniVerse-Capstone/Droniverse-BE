@@ -84,22 +84,5 @@ namespace Droniverse.Community.API.Controllers
                 "Xóa giải thưởng thành công!"
             );
         }
-
-        /// <summary>
-        /// Lấy danh sách giải thưởng theo cuộc thi
-        /// </summary>
-        /// <param name="competitionId">ID của cuộc thi</param>
-        /// <returns>200 OK - Trả về danh sách giải thưởng</returns>
-        [HttpGet("competition/{competitionId}")]
-        [ProducesResponseType(typeof(SuccessResponse<IEnumerable<CompetitionPrizeResponseDto>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ApiResponse> GetPrizesByCompetition(Guid competitionId)
-        {
-            var prizes = await _competitionPrizeService.GetPrizesByCompetition(competitionId);
-            return SuccessResponse<IEnumerable<CompetitionPrizeResponseDto>>.Create(
-                prizes,
-                "Lấy danh sách giải thưởng thành công!"
-            );
-        }
     }
 }

@@ -4,6 +4,7 @@ using Droniverse.Community.Application.DTO.Extensions;
 using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.IService;
+using Droniverse.Community.Application.Services;
 using Droniverse.Community.Domain.Enums;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
@@ -27,13 +28,18 @@ namespace Droniverse.Community.API.Controllers
     {
         private readonly ICompetitionService _competitionService;
         private readonly ICompetitionCertificateService _competitionCertificateService;
-
+        private readonly IRoundService _roundService;
+        private readonly ICompetitionPrizeService _competitionPrizeService;
         public CompetitionController(
             ICompetitionService competitionService,
-            ICompetitionCertificateService competitionCertificateService)
+            ICompetitionCertificateService competitionCertificateService,
+            IRoundService roundService,
+            ICompetitionPrizeService competitionPrizeService)
         {
             _competitionService = competitionService;
             _competitionCertificateService = competitionCertificateService;
+            _roundService = roundService;
+            _competitionPrizeService = competitionPrizeService;
         }
 
         /// <summary>
@@ -328,6 +334,23 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
+        /// Lấy danh sách vòng thi của cuộc thi
+        /// </summary>
+        /// <param name="competitionId">ID của cuộc thi</param>
+        /// <returns>200 OK - Trả về danh sách vòng thi</returns>
+        [HttpGet("{competitionId}/rounds")]
+        [ProducesResponseType(typeof(SuccessResponse<IEnumerable<RoundResponseDto>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ApiResponse> GetRoundsByCompetition(Guid competitionId)
+        {
+            var rounds = await _roundService.GetRoundsByCompetition(competitionId);
+            return SuccessResponse<IEnumerable<RoundResponseDto>>.Create(
+                rounds,
+                "Lấy danh sách vòng thi thành công!"
+            );
+        }
+
+        /// <summary>
         /// Thêm certificate vào cuộc thi.
         /// </summary>
         /// <param name="competitionId">ID của cuộc thi</param>
@@ -432,6 +455,23 @@ namespace Droniverse.Community.API.Controllers
             return SuccessResponse<CompetitionCertificateDeletionResponse>.Create(
                 result,
                 $"Xóa {result.DeletedTotal} chứng chỉ khỏi cuộc thi thành công!"
+            );
+        }
+
+        /// <summary>
+        /// Lấy danh sách giải thưởng theo cuộc thi
+        /// </summary>
+        /// <param name="competitionId">ID của cuộc thi</param>
+        /// <returns>200 OK - Trả về danh sách giải thưởng</returns>
+        [HttpGet("{competitionId}/prizes")]
+        [ProducesResponseType(typeof(SuccessResponse<IEnumerable<CompetitionPrizeResponseDto>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ApiResponse> GetPrizesByCompetition(Guid competitionId)
+        {
+            var prizes = await _competitionPrizeService.GetPrizesByCompetition(competitionId);
+            return SuccessResponse<IEnumerable<CompetitionPrizeResponseDto>>.Create(
+                prizes,
+                "Lấy danh sách giải thưởng thành công!"
             );
         }
 

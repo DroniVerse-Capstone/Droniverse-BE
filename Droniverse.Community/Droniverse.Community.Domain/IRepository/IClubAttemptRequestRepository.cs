@@ -20,7 +20,7 @@ public interface IClubAttemptRequestRepository : IRepository<ClubAttemptRequest>
      DateTime? processedFrom,
      DateTime? processedTo,
      ClubAttemptRequestSortBy sortBy,
-     Enums.SeachRequest.SortDirection sortDirection,
+     Shared.Enums.SortDirection sortDirection,
      int skip,
      int take);
 }

@@ -1,4 +1,6 @@
-﻿using Droniverse.Identity.Application.DTO.Request;
+﻿using Droniverse.Identity.Application.DTO.Extension;
+using Droniverse.Identity.Application.DTO.Extension;
+using Droniverse.Identity.Application.DTO.Request;
 using Droniverse.Identity.Application.DTO.Response;
 using Droniverse.Identity.Application.IService;
 using Droniverse.Identity.Domain.Entities;
@@ -86,14 +88,35 @@ namespace Droniverse.Identity.API.Controllers
         /// <param name="userIds">List of user IDs to retrieve</param>
         /// <returns>List of UserResponse objects for the requested user IDs</returns>
         [HttpPost("bulk")]
-        public async Task<IActionResult> GetUsersByIds([FromBody] IEnumerable<Guid> userIds)
+        public async Task<IActionResult> GetUsersByIds(
+            [FromBody] IEnumerable<Guid> userIds)
         {
             var vietnamTime = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(
                 DateTime.UtcNow,
                 "SE Asia Standard Time"
             );
 
-            Console.WriteLine(vietnamTime.ToString("dddd:MM:yyyy:ss")); var users = await _userService.GetUsersByIds(userIds);
+            Console.WriteLine(vietnamTime.ToString("dddd:MM:yyyy:ss"));
+            var users = await _userService.GetUsersByIds(userIds);
+            return Ok(users);
+        }
+
+        /// <summary>
+        /// Tìm kiếm người dùng theo thông tin hồ sơ (tên)
+        /// </summary>
+        /// <param name="request">Thông tin tìm kiếm và phân trang</param>
+        /// <returns>Danh sách người dùng rút gọn theo điều kiện tìm kiếm</returns>
+        [HttpGet("search")]
+        public async Task<IActionResult> GetUsersByUserInfo(
+            [FromQuery] UserInfoSearchRequest request)
+        {
+            var vietnamTime = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(
+                DateTime.UtcNow,
+                "SE Asia Standard Time"
+            );
+
+            Console.WriteLine(vietnamTime.ToString("dddd:MM:yyyy:ss"));
+            var users = await _userService.GetUsersByUserInfo(request);
             return Ok(users);
         }
     }

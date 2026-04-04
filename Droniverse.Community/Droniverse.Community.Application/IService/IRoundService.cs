@@ -1,3 +1,4 @@
+﻿using Droniverse.Community.Application.DTO.Extensions;
 using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
 
@@ -11,6 +12,6 @@ namespace Droniverse.Community.Application.IService
         Task<IEnumerable<RoundResponseDto>> GetRoundsByCompetition(Guid competitionId);
         Task<RoundResponseDto> StartRound(Guid id);
         Task<RoundResponseDto> FinishRound(Guid id);
-        Task<IEnumerable<RoundLeaderboardEntryDto>> GetRoundLeaderboard(Guid roundId);
+        Task<PaginationResult<RoundLeaderBoardResponse>> GetRoundLeaderboard(Guid roundId, RoundLeaderboardSearchRequest request);
     }
 }
