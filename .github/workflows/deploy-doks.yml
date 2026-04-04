@@ -212,11 +212,34 @@ jobs:
         if: env.DEPLOY_IDENTITY == 'true'
         run: kubectl -n "$K8S_NAMESPACE" rollout status deployment/$IDENTITY_DEPLOYMENT
 
-      - name: Verify gateway routes exist in ocelot.json
+      - name: Verify gateway config
         if: env.DEPLOY_GATEWAY == 'true'
         run: |
-          kubectl -n "$K8S_NAMESPACE" exec deploy/$GATEWAY_DEPLOYMENT -- \
-            grep -E "theories|quizzes|drones|drone-types|academy/users|academy/certificates" /app/ocelot.json
+          kubectl -n "$K8S_NAMESPACE" exec deploy/$GATEWAY_DEPLOYMENT -- sh -c "
+            echo 'Checking ocelot.json...'
+      
+            if [ ! -f /app/ocelot.json ]; then
+              echo 'ocelot.json not found'
+              exit 1
+            fi
+      
+            if ! grep -q 'academy-microservice' /app/ocelot.json; then
+              echo 'Academy route missing'
+              exit 1
+            fi
+      
+            if ! grep -q 'community-microservice' /app/ocelot.json; then
+              echo 'Community route missing'
+              exit 1
+            fi
+      
+            if ! grep -q 'identity-microservice' /app/ocelot.json; then
+              echo 'Identity route missing'
+              exit 1
+            fi
+      
+            echo 'Gateway config OK'
+          "
 
       - name: No deployment required
         if: env.DEPLOY_GATEWAY != 'true' && env.DEPLOY_ACADEMY != 'true' && env.DEPLOY_COMMUNITY != 'true' && env.DEPLOY_IDENTITY != 'true'

@@ -4,7 +4,8 @@ public class Certificate
 {
     public Guid CertificateID { get; set; }          // PK
     public Guid CourseVersionID { get; set; }        // FK -> CourseVersion
-    public string CertificateName { get; set; }      // varchar(100)
+    public required string CertificateNameVN { get; set; }
+    public required string CertificateNameEN { get; set; }
     public string ImageUrl { get; set; }              // text
     public string LogoCertificate { get; set; }       // text
     public string Description { get; set; }           // text

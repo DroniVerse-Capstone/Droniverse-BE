@@ -20,6 +20,7 @@ namespace Droniverse.Community.Application.IService
         Task<IEnumerable<UserCompetitionResponseDto>> GetCompetitionParticipants(Guid competitionId);
         Task<PaginationResult<IEnumerable<LeaderboardEntryDto>>> GetCompetitionLeaderboard(CompetitionLeaderboardSearchRequest request, Guid competitionId);
         Task<CompetitionResponse> UpdateCompetitionStatus(Guid competitionId, CompetitionUpdateStatusDto request);
+        Task<RoundResponseDto> GetCurrentRoundByCompetitionID(Guid competitionID);
         Task RefreshHotCompetitionsCacheAsync();
 
         //Task UpdateCompetitionStatusesAsync();

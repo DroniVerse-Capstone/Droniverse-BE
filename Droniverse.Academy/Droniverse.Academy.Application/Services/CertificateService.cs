@@ -132,6 +132,11 @@ public class CertificateService : ICertificateService
             .ToList();
     }
 
+    public async Task<IEnumerable<SimpleCertificateResponse>> GetCertificatesBulkAsync(IEnumerable<Guid> certificateIds, CancellationToken cancellationToken = default)
+    {
+        return await _unitOfWork.Certificates.GetSimpleCertificatesByIdsAsync(certificateIds, cancellationToken);
+    }
+
     private async Task PopulateUsersAsync(CertificateResponseDTO certificate, Guid createBy, Guid updateBy)
     {
         var (creator, updater) = await _userDisplayNameService.ResolveCreatorUpdaterAsync(createBy, updateBy);

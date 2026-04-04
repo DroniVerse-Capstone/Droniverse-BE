@@ -186,36 +186,36 @@ builder.Logging.SetMinimumLevel(LogLevel.Debug);
 // HANGFIRE
 // ======================
 
-var hangfireConnectionString = builder.Configuration.GetConnectionString("HangfireMySqlConnection")
-    ?? throw new InvalidOperationException("Missing connection string 'HangfireMySqlConnection'.");
+//var hangfireConnectionString = builder.Configuration.GetConnectionString("HangfireMySqlConnection")
+//    ?? throw new InvalidOperationException("Missing connection string 'HangfireMySqlConnection'.");
 
-builder.Services.AddHangfire(config =>
-{
-    config.UseSimpleAssemblyNameTypeSerializer();
-    config.UseRecommendedSerializerSettings();
-    config.UseStorage(new MySqlStorage(
-        hangfireConnectionString,
-        new MySqlStorageOptions
-        {
-            TablesPrefix = "Hangfire",
-            PrepareSchemaIfNecessary = true,
-            QueuePollInterval = TimeSpan.FromSeconds(15),
-            TransactionTimeout = TimeSpan.FromSeconds(30),
-            TransactionIsolationLevel = IsolationLevel.ReadCommitted,
-            JobExpirationCheckInterval = TimeSpan.FromMinutes(10),
-        }
-    ));
-});
+//builder.Services.AddHangfire(config =>
+//{
+//    config.UseSimpleAssemblyNameTypeSerializer();
+//    config.UseRecommendedSerializerSettings();
+//    config.UseStorage(new MySqlStorage(
+//        hangfireConnectionString,
+//        new MySqlStorageOptions
+//        {
+//            TablesPrefix = "Hangfire",
+//            PrepareSchemaIfNecessary = true,
+//            QueuePollInterval = TimeSpan.FromSeconds(15),
+//            TransactionTimeout = TimeSpan.FromSeconds(30),
+//            TransactionIsolationLevel = IsolationLevel.ReadCommitted,
+//            JobExpirationCheckInterval = TimeSpan.FromMinutes(10),
+//        }
+//    ));
+//});
 
-builder.Services.AddHangfireServer(config =>
-{
-    config.WorkerCount = 3;
-    config.Queues = ["critical", "default", "low"];
-    config.SchedulePollingInterval = TimeSpan.FromSeconds(10);
-    config.HeartbeatInterval = TimeSpan.FromSeconds(30);
-    config.ServerCheckInterval = TimeSpan.FromMinutes(1);
-    config.CancellationCheckInterval = TimeSpan.FromSeconds(15);
-});
+//builder.Services.AddHangfireServer(config =>
+//{
+//    config.WorkerCount = 3;
+//    config.Queues = ["critical", "default", "low"];
+//    config.SchedulePollingInterval = TimeSpan.FromSeconds(10);
+//    config.HeartbeatInterval = TimeSpan.FromSeconds(30);
+//    config.ServerCheckInterval = TimeSpan.FromMinutes(1);
+//    config.CancellationCheckInterval = TimeSpan.FromSeconds(15);
+//});
 
 var app = builder.Build();
 
@@ -229,6 +229,7 @@ var app = builder.Build();
 
 //    });
 //}
+
 
 app.UseSwagger();
 app.UseSwaggerUI(c => c.DocExpansion(DocExpansion.None)); //Đóng các api lại cho gọn);
@@ -249,15 +250,19 @@ app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.UseHangfireDashboard("/hangfire", new DashboardOptions
-{
-    Authorization = [],
-    DisplayStorageConnectionString = true,
-});
+//app.UseHangfireDashboard("/hangfire", new DashboardOptions
+//{
+//    Authorization = [],
+//    DisplayStorageConnectionString = true,
+//});
+
+Console.Title = "Community Service";
 
 app.Lifetime.ApplicationStarted.Register(() =>
 {
-    RecurringJobScheduler.ScheduleJobs();
+    Console.WriteLine($"Is Development : {app.Environment.IsDevelopment()}");
+    Console.WriteLine("Background job is not running !");
+    //RecurringJobScheduler.ScheduleJobs();
 });
 
 app.Lifetime.ApplicationStopping.Register(() => Console.WriteLine("App is stopping..."));

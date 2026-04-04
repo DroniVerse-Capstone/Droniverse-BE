@@ -1,5 +1,6 @@
 ﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
+using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Shared.DTOs.Response;
 
 namespace Droniverse.Academy.Application.IService;
@@ -13,4 +14,6 @@ public interface ILabService
     Task<LabDetailResponseDTO> UpdateLabAsync(Guid labId, UpdateLabRequestDTO request);
     Task<LabContentResponseDTO> UpdateLabContentAsync(Guid labId, UpdateLabContentRequestDTO request);
     Task DeleteLabAsync(Guid labId);
+    Task<bool> IsLabExistAsync(Guid labId);
+    Task<IEnumerable<SimpleLabResponse>> GetLabsBulkAsync(IEnumerable<Guid> labIds);
 }

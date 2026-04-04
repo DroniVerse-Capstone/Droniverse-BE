@@ -7,16 +7,11 @@ public class Round
     public Guid RoundID { get; private set; }
 
     public Guid CompetitionID { get; private set; }
-    public Competition? Competition { get; private set; }
-
+    public Competition Competition { get; private set; }
     public Guid LabID { get; private set; }
-
     public int RoundNumber { get; private set; }
-
     public DateTime StartTime { get; private set; }
-
     public DateTime EndTime { get; private set; }
-
     public RoundStatus Status { get; private set; }
 
     public ICollection<UserRound> UserRounds { get; private set; } = new List<UserRound>();

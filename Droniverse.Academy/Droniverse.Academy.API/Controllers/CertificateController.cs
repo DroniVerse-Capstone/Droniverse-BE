@@ -155,4 +155,24 @@ public class CertificateController : ControllerBase
             throw;
         }
     }
+
+    /// <summary>
+    /// API nội bộ giữa các service để lấy danh sách chứng chỉ rút gọn theo danh sách ID.
+    /// </summary>
+    [HttpPost("certificates/bulk")]
+    [HttpPost("certificates/bulk/exist")]
+    [Authorize(Roles = Roles.AllRoles)]
+    public async Task<IActionResult> GetCertificatesBulk([FromBody] IEnumerable<Guid> certificateIds, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var certs = await _service.GetCertificatesBulkAsync(certificateIds, cancellationToken);
+            return Ok(certs);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lấy danh sách chứng chỉ rút gọn thất bại.");
+            throw;
+        }
+    }
 }
