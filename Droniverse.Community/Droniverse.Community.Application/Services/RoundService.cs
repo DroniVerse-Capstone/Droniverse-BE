@@ -1,10 +1,15 @@
-﻿using Droniverse.Community.Application.DTO.Request;
+﻿using Droniverse.Community.Application.DTO.Extensions;
+using Droniverse.Community.Application.DTO.Request;
+using Droniverse.Community.Application.DTO.Extensions;
 using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Community.Infrastructure.QueryModels;
+using Droniverse.Shared.DTOs;
+using Droniverse.Shared.DTOs.Response;
+using Droniverse.Shared.Helpers;
 using Droniverse.Shared.Services;
 
 namespace Droniverse.Community.Application.Services
@@ -12,12 +17,18 @@ namespace Droniverse.Community.Application.Services
     public class RoundService : IRoundService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IdentityMicroserviceClient _identityMicroserviceClient;
         private readonly AcademyMicroserviceClient _academyMicroserviceClient;
         private readonly IClock _clock;
 
-        public RoundService(IUnitOfWork unitOfWork, AcademyMicroserviceClient academyMicroserviceClient, IClock clock)
+        public RoundService(
+            IUnitOfWork unitOfWork,
+            IdentityMicroserviceClient identityMicroserviceClient,
+            AcademyMicroserviceClient academyMicroserviceClient,
+            IClock clock)
         {
             _unitOfWork = unitOfWork;
+            _identityMicroserviceClient = identityMicroserviceClient;
             _academyMicroserviceClient = academyMicroserviceClient;
             _clock = clock;
         }
@@ -39,7 +50,7 @@ namespace Droniverse.Community.Application.Services
             );
 
             await _unitOfWork.Rounds.Add(round);
-            await _unitOfWork.SaveChangeAsync();
+            await _unitOfWork.SaveChangeAsync();    
 
             return await GetRoundResponseByRoundId(round.RoundID);
         }
@@ -136,30 +147,151 @@ namespace Droniverse.Community.Application.Services
             return await GetRoundResponseByRoundId(round.RoundID);
         }
 
-        public async Task<IEnumerable<RoundLeaderboardEntryDto>> GetRoundLeaderboard(Guid roundId)
+        public async Task<PaginationResult<RoundLeaderBoardResponse>> GetRoundLeaderboard(Guid roundId, RoundLeaderboardSearchRequest request)
         {
             var round = await _unitOfWork.Rounds.GetByCondition(r => r.RoundID == roundId);
             if (round == null)
                 throw new KeyNotFoundException($"Không tìm thấy vòng thi với ID [{roundId}].");
 
-            var userRounds = await _unitOfWork.UserRounds.GetManyByCondition(
+            int currentPage = request.CurrentPage <= 0 ? 1 : request.CurrentPage;
+            int pageSize = request.PageSize <= 0 ? 5 : request.PageSize;
+
+            var userRounds = (await _unitOfWork.UserRounds.GetManyByCondition(
                 ur => ur.RoundID == roundId && ur.IsCompleted,
                 q => q.OrderByDescending(ur => ur.Point)
                       .ThenBy(ur => ur.ExecutionTime)
                       .ThenBy(ur => ur.SubmittedAt)
-            );
+            )).ToList();
 
-            return userRounds.Select((ur, index) => new RoundLeaderboardEntryDto
+            if (userRounds.Count == 0)
             {
-                UserID = ur.UserID,
-                Point = ur.Point,
-                ExecutionTime = ur.ExecutionTime,
-                NumberOfSteps = ur.NumberOfSteps,
-                PathLength = ur.PathLength,
-                IsCompleted = ur.IsCompleted,
-                SubmittedAt = ur.SubmittedAt,
-                Rank = index + 1
-            });
+                return new PaginationResult<RoundLeaderBoardResponse>(
+                    new RoundLeaderBoardResponse
+                    {
+                        RoundID = roundId,
+                        roundEntries = []
+                    },
+                    0,
+                    currentPage,
+                    pageSize);
+            }
+
+            var rankedUserRounds = userRounds
+                .Select((ur, index) => new { UserRound = ur, Rank = index + 1 })
+                .ToList();
+
+            if (!string.IsNullOrWhiteSpace(request.SearchName))
+            {
+                IEnumerable<SimpleUserReponse> searchedUsers;
+                try
+                {
+                    searchedUsers = await _identityMicroserviceClient.GetUsersByUserInfo(new UserInfoSearchRequest
+                    {
+                        SearchName = request.SearchName,
+                        CurrentPage = currentPage,
+                        PageSize = pageSize
+                    });
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException("Không thể tìm kiếm thông tin người dùng trong hệ thống.", ex);
+                }
+
+                var searchedUsersById = searchedUsers
+                    .GroupBy(x => x.UserId)
+                    .ToDictionary(x => x.Key, x => x.First());
+
+                var searchedEntries = rankedUserRounds
+                    .Where(x => searchedUsersById.ContainsKey(x.UserRound.UserID))
+                    .Select(x =>
+                    {
+                        var user = searchedUsersById[x.UserRound.UserID];
+                        return new RoundLeaderboardEntryDto
+                        {
+                            User = user,
+                            Point = x.UserRound.Point,
+                            ExecutionTime = x.UserRound.ExecutionTime,
+                            NumberOfSteps = x.UserRound.NumberOfSteps,
+                            PathLength = x.UserRound.PathLength,
+                            IsCompleted = x.UserRound.IsCompleted,
+                            SubmittedAt = x.UserRound.SubmittedAt,
+                            Rank = x.Rank
+                        };
+                    })
+                    .ToList();
+
+                return new PaginationResult<RoundLeaderBoardResponse>(
+                    new RoundLeaderBoardResponse
+                    {
+                        RoundID = roundId,
+                        roundEntries = searchedEntries
+                    },
+                    searchedEntries.Count,
+                    currentPage,
+                    pageSize);
+            }
+
+            int totalRecords = rankedUserRounds.Count;
+            var pagedUserRounds = rankedUserRounds
+                .Skip((currentPage - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            var pagedUserIds = pagedUserRounds
+                .Select(x => x.UserRound.UserID)
+                .Where(id => id != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            Dictionary<Guid, UserResponse> usersById = [];
+            if (pagedUserIds.Count > 0)
+            {
+                try
+                {
+                    usersById = (await _identityMicroserviceClient.GetUsersBulk(pagedUserIds))
+                        .GroupBy(u => u.UserId)
+                        .ToDictionary(g => g.Key, g => g.First());
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException("Không thể lấy thông tin người dùng từ hệ thống định danh.", ex);
+                }
+            }
+
+            var pagedEntries = pagedUserRounds
+                .Select(x =>
+                {
+                    usersById.TryGetValue(x.UserRound.UserID, out var user);
+                    var fullName = AppHelper.GetFullName(user) ?? user?.Username ?? "Không xác định";
+
+                    return new RoundLeaderboardEntryDto
+                    {
+                        User = new SimpleUserReponse
+                        {
+                            UserId = x.UserRound.UserID,
+                            FullName = fullName,
+                            Email = user?.Email ?? string.Empty
+                        },
+                        Point = x.UserRound.Point,
+                        ExecutionTime = x.UserRound.ExecutionTime,
+                        NumberOfSteps = x.UserRound.NumberOfSteps,
+                        PathLength = x.UserRound.PathLength,
+                        IsCompleted = x.UserRound.IsCompleted,
+                        SubmittedAt = x.UserRound.SubmittedAt,
+                        Rank = x.Rank
+                    };
+                })
+                .ToList();
+
+            return new PaginationResult<RoundLeaderBoardResponse>(
+                new RoundLeaderBoardResponse
+                {
+                    RoundID = roundId,
+                    roundEntries = pagedEntries
+                },
+                totalRecords,
+                currentPage,
+                pageSize);
         }
 
         private async Task ValidateRoundData(

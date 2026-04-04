@@ -1,5 +1,6 @@
 ﻿using Droniverse.Community.Domain.Enums;
 using Droniverse.Shared.DTOs;
+using Droniverse.Shared.Enums;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -45,6 +46,19 @@ namespace Droniverse.Community.Application.DTO.Extensions
         // số người học
         // các course mà club sở hữu
     }
+
+    public class RoundLeaderboardSearchRequest : SearchRequest
+    {
+        public string? SearchName { get; set; }
+        public SortDirection? SortDirection { get; set; }
+    }
+
+    public class UserInfoSearchRequest : SearchRequest
+    {
+        public string? SearchName { get; set; }
+        public SortDirection? SortDirection { get; set; } = Shared.Enums.SortDirection.Asc;
+    }
+
     public class GetAllClubsSearchRequest : SearchRequest
     {
         public string? ClubName { get; set; }

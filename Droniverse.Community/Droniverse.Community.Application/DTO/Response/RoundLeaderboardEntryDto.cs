@@ -1,8 +1,10 @@
+﻿using Droniverse.Shared.DTOs;
+
 namespace Droniverse.Community.Application.DTO.Response
 {
     public class RoundLeaderboardEntryDto
     {
-        public Guid UserID { get; set; }
+        public SimpleUserReponse User { get; set; }
         public decimal Point { get; set; }
         public double ExecutionTime { get; set; }
         public int NumberOfSteps { get; set; }

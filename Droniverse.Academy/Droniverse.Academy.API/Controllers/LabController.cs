@@ -130,7 +130,7 @@ public class LabController : ControllerBase
         try
         {
             var labs = await _labService.GetLabsBulkAsync(labIds);
-            return Ok(SuccessResponse<IEnumerable<SimpleLabResponse>>.Create(labs, "Lấy danh sách lab rút gọn thành công."));
+            return Ok(labs);
         }
         catch (Exception ex)
         {

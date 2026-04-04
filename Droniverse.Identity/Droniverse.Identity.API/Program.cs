@@ -175,6 +175,10 @@ app.UseSwaggerUI(c =>
 {
     c.DocExpansion(DocExpansion.None); //Đóng các api lại cho gọn
     c.InjectJavascript("/swagger-custom.js"); // nhúm static file vào swagger cho ô Authorize
+    c.DocumentTitle = "Identity API Docs";
+    c.DisplayRequestDuration();
+    c.EnableFilter();
+    c.ConfigObject.AdditionalItems["persistAuthorization"] = true;
 });
 
 //app.UseHttpsRedirection();

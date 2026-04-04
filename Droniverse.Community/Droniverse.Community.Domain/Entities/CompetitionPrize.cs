@@ -4,10 +4,8 @@ using Droniverse.Community.Domain.Enums;
 public class CompetitionPrize
 {
     public Guid CompetitionPrizeID { get; private set; }
-
     public Guid CompetitionID { get; private set; }
     public Competition Competition { get; private set; }
-
     public string TitleVN { get; private set; }
     public string TitleEN { get; private set; }
     public string? DescriptionVN { get; private set; }
