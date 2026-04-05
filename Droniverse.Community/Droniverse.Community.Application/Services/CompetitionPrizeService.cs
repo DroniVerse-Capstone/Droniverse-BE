@@ -1,4 +1,4 @@
-using Droniverse.Community.Application.DTO.Request;
+﻿using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Entities;
@@ -19,18 +19,18 @@ namespace Droniverse.Community.Application.Services
             _currentUserService = currentUserService;
         }
 
-        public async Task<CompetitionPrizeResponseDto> CreatePrize(CompetitionPrizeCreateDto request)
+        public async Task<CompetitionPrizeResponseDto> CreatePrize(Guid competitionId, CompetitionPrizeCreateDto request)
         {
-            var currentUserId = Guid.Parse(_currentUserService.UserID 
+            var currentUserId = Guid.Parse(_currentUserService.UserID
                 ?? throw new UnauthorizedAccessException("User is not authenticated."));
 
             var competition = await _unitOfWork.Competitions.GetByCondition(
-                c => c.CompetitionID == request.CompetitionID,
+                c => c.CompetitionID == competitionId,
                 q => q.Include(c => c.CompetitionPrizes)
-            );  
+            );
 
             if (competition == null)
-                throw new KeyNotFoundException($"Competition with ID [{request.CompetitionID}] not found.");
+                throw new KeyNotFoundException($"Competition with ID [{competitionId}] not found.");
 
             var prize = competition.AddPrize(
                 request.TitleVN,
@@ -69,14 +69,14 @@ namespace Droniverse.Community.Application.Services
             };
         }
 
-        public async Task<CompetitionPrizeResponseDto> UpdatePrize(Guid id, CompetitionPrizeUpdateDto request)
+        public async Task<CompetitionPrizeResponseDto> UpdatePrize(Guid competitionPrizeId, CompetitionPrizeUpdateDto request)
         {
-            var currentUserId = Guid.Parse(_currentUserService.UserID 
+            var currentUserId = Guid.Parse(_currentUserService.UserID
                 ?? throw new UnauthorizedAccessException("User is not authenticated."));
 
-            var prize = await _unitOfWork.CompetitionPrizes.GetByCondition(p => p.CompetitionPrizeID == id);
+            var prize = await _unitOfWork.CompetitionPrizes.GetByCondition(p => p.CompetitionPrizeID == competitionPrizeId);
             if (prize == null)
-                throw new KeyNotFoundException($"Prize with ID {id} not found.");
+                throw new KeyNotFoundException($"Prize with ID {competitionPrizeId} not found.");
 
             prize.UpdateFullInformation(
                 request.TitleVN,
@@ -114,16 +114,45 @@ namespace Droniverse.Community.Application.Services
             };
         }
 
-        public async Task<bool> DeletePrize(Guid id)
+        public async Task<DeletePrizeResponse> DeletePrize(Guid competitionPrizeId)
         {
-            var prize = await _unitOfWork.CompetitionPrizes.GetByCondition(p => p.CompetitionPrizeID == id);
+            var prize = await _unitOfWork.CompetitionPrizes.GetByCondition(p => p.CompetitionPrizeID == competitionPrizeId);
             if (prize == null)
-                throw new KeyNotFoundException($"Prize with ID {id} not found.");
+                throw new KeyNotFoundException($"Không tìm thấy giải thưởng với ID [{competitionPrizeId}].");
+
+            var competitionId = prize.CompetitionID;
 
             await _unitOfWork.CompetitionPrizes.Delete(prize);
             await _unitOfWork.SaveChangeAsync();
 
-            return true;
+            var remainingPrizes = await _unitOfWork.CompetitionPrizes.GetManyByCondition(
+                p => p.CompetitionID == competitionId,
+                q => q.OrderBy(p => p.RankFrom).AsNoTracking()
+            );
+
+            var remainingPrizeResponses = remainingPrizes.Select(p => new CompetitionPrizeResponseDto
+            {
+                CompetitionPrizeID = p.CompetitionPrizeID,
+                CompetitionID = p.CompetitionID,
+                TitleVN = p.TitleVN,
+                TitleEN = p.TitleEN,
+                DescriptionVN = p.DescriptionVN,
+                DescriptionEN = p.DescriptionEN,
+                RewardType = p.RewardType,
+                RewardValueMoney = p.RewardValueMoney,
+                RewardValueGiftVN = p.RewardValueGiftVN,
+                RewardValueGiftEN = p.RewardValueGiftEN,
+                RankFrom = p.RankFrom,
+                RankTo = p.RankTo,
+                CreatedAt = p.CreatedAt,
+                UpdatedAt = p.UpdatedAt
+            });
+
+            return new DeletePrizeResponse
+            {
+                TotalDeleted = 1,
+                RemainingPrizes = remainingPrizeResponses
+            };
         }
 
         public async Task<IEnumerable<CompetitionPrizeResponseDto>> GetPrizesByCompetition(Guid competitionId)

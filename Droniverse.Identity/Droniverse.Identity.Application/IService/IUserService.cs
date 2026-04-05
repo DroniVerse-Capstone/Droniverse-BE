@@ -15,6 +15,6 @@ public interface IUserService
     Task<UserResponse> GetUserById(Guid id);
     Task<bool> DeleteUser(Guid id);
     Task<IEnumerable<UserResponse>> GetUsersByIds(IEnumerable<Guid> userIds);
-    Task<IEnumerable<SimpleUserReponse>> GetUsersByUserInfo(UserInfoSearchRequest request);
+    Task<IEnumerable<Guid>> GetUsersByUserInfo(UserInfoSearchRequest request);
 }
 

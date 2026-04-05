@@ -14,20 +14,16 @@ public class Competition
     public string NameEN { get; private set; }
     public string? DescriptionVN { get; private set; }
     public string? DescriptionEN { get; private set; }
-
     public string RuleContent { get; private set; }
-
     public int? MaxParticipants { get; private set; }
     public DateTime VisibleAt { get; private set; }
-
     public DateTime RegistrationStartDate { get; private set; }
     public DateTime RegistrationEndDate { get; private set; }
-
     public DateTime StartDate { get; private set; }
     public DateTime EndDate { get; private set; }
-
     public CompetitionStatus Status { get; private set; }
     public DateTime? ResultPublishedAt { get; private set; }
+    public bool IsSummarized { get; private set; }
     public CompetitionInvalidReason? InvalidReason { get; private set; }
     public DateTime? InvalidAt { get; private set; }
     public Guid CreatedBy { get; private set; }
@@ -84,7 +80,7 @@ public class Competition
         MaxParticipants = maxParticipants;
 
         Status = CompetitionStatus.DRAFT;
-
+        IsSummarized = false;
         CreatedBy = createdBy;
         CreatedAt = now;
 

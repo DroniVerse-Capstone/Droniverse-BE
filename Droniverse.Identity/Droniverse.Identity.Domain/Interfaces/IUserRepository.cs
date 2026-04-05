@@ -7,10 +7,8 @@ namespace Droniverse.Identity.Domain.Interfaces;
 public interface IUserRepository : IRepository<Account>
 {
     Task<IEnumerable<UserResponse>> GetUsersByIdsAsync(IEnumerable<Guid> userIds);
-    Task<IEnumerable<SimpleUserReponse>> GetUsersByUserInfoAsync(
+    Task<IEnumerable<Guid>> GetUsersByUserInfoAsync(
         string? searchName,
-        SortDirection sortDirection,
-        int currentPage,
-        int pageSize);
+        SortDirection sortDirection);
 }
 

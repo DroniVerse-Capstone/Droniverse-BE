@@ -77,4 +77,36 @@ document.addEventListener('click', function (e) {
     }
 });
 
+window.addEventListener("load", function () {
+    const interval = setInterval(() => {
+        if (!window.ui) return;
+
+        clearInterval(interval);
+
+        const config = window.ui.getConfigs();
+
+        // Collapse tất cả endpoint
+        config.docExpansion = "none";
+
+        // Bật ô search/filter
+        config.filter = true;
+
+        // Hiện thời gian request
+        config.displayRequestDuration = true;
+
+        // Giữ token khi reload trang
+        config.persistAuthorization = true;
+
+        // Re-render lại Swagger UI với config mới
+        const oldSpec = config.spec;
+        const oldUrl = config.url;
+
+        window.ui = SwaggerUIBundle({
+            ...config,
+            spec: oldSpec,
+            url: oldUrl
+        });
+    }, 200);
+});
+
 console.log('swagger-custom.js đã được load!');

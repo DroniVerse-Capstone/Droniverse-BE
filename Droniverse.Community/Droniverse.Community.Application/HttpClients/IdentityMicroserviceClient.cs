@@ -198,37 +198,34 @@ public class IdentityMicroserviceClient
             .Select(id => userDict[id]);
     }
 
-    public async Task<IEnumerable<SimpleUserReponse>> GetUsersByUserInfo(UserInfoSearchRequest request)
+    public async Task<IEnumerable<Guid>> GetUserIdsBySearchName(UserInfoSearchRequest request)
     {
-        int currentPage = request.CurrentPage <= 0 ? 1 : request.CurrentPage;
-        int pageSize = request.PageSize <= 0 ? 5 : request.PageSize;
-        SortDirection sortDirection = request.SortDirection ?? SortDirection.Asc;
-        string searchName = request.SearchName?.Trim() ?? string.Empty;
+        string normalizedSearch = request.SearchName?.Trim().ToLowerInvariant() ?? string.Empty;
+        var sortDirection = request.SortDirection ?? SortDirection.Asc;
 
-        string cacheKey = $"users:search:{searchName.ToLowerInvariant()}:{sortDirection}:{currentPage}:{pageSize}";
-        string? cachedUsers = await _distributedCache.GetStringAsync(cacheKey);
+        string cacheKey = $"users:searchIds:{normalizedSearch}:{sortDirection}";
+        string? cachedData = await _distributedCache.GetStringAsync(cacheKey);
 
-        if (!string.IsNullOrWhiteSpace(cachedUsers))
+        if (!string.IsNullOrWhiteSpace(cachedData))
         {
             try
             {
-                var usersFromCache = JsonSerializer.Deserialize<IEnumerable<SimpleUserReponse>>(cachedUsers);
-                if (usersFromCache != null)
+                var idsFromCache = JsonSerializer.Deserialize<IEnumerable<Guid>>(cachedData);
+                if (idsFromCache != null)
                 {
-                    _logger.LogInformation("Danh sách người dùng tìm kiếm lấy từ cache.");
-                    return usersFromCache;
+                    _logger.LogInformation("Danh sách UserIds lấy từ cache.");
+                    return idsFromCache;
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogWarning(ex, "Cache deserialize failed (UserIds).");
             }
         }
 
         var query =
-            $"users/search?SearchName={Uri.EscapeDataString(searchName)}" +
-            $"&SortDirection={sortDirection}" +
-            $"&CurrentPage={currentPage}" +
-            $"&PageSize={pageSize}";
+            $"users/search-ids?SearchName={Uri.EscapeDataString(normalizedSearch)}" +
+            $"&SortDirection={sortDirection}";
 
         HttpResponseMessage response = await _httpClient.GetAsync(BuildIdentityPath(query));
 
@@ -236,7 +233,7 @@ public class IdentityMicroserviceClient
         {
             if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
             {
-                _logger.LogError("Identity service unavailable (search user info request).");
+                _logger.LogError("Identity service unavailable (search userIds).");
                 throw new HttpRequestException(
                     "Identity service unavailable",
                     null,
@@ -246,23 +243,30 @@ public class IdentityMicroserviceClient
             if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
             {
                 throw new HttpRequestException(
-                    "Bad request when calling Identity search user info API",
+                    "Bad request when calling Identity search userIds API",
                     null,
                     System.Net.HttpStatusCode.BadRequest);
             }
 
             throw new HttpRequestException(
-                $"Identity search user info API error: {response.StatusCode}",
+                $"Identity search userIds API error: {response.StatusCode}",
                 null,
                 response.StatusCode);
         }
 
-        var users = await response.Content.ReadFromJsonAsync<IEnumerable<SimpleUserReponse>>() ?? [];
+        var userIds = await response.Content.ReadFromJsonAsync<IEnumerable<Guid>>() ?? [];
 
-        string cacheValue = JsonSerializer.Serialize(users);
-        await _distributedCache.SetStringAsync(cacheKey, cacheValue, UserCacheOptions);
+        try
+        {
+            string cacheValue = JsonSerializer.Serialize(userIds);
+            await _distributedCache.SetStringAsync(cacheKey, cacheValue, UserCacheOptions);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Cache set failed (UserIds).");
+        }
 
-        return users;
+        return userIds;
     }
 
     private string BuildIdentityPath(string relativePath)

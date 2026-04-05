@@ -104,20 +104,14 @@ namespace Droniverse.Identity.API.Controllers
         /// <summary>
         /// Tìm kiếm người dùng theo thông tin hồ sơ (tên)
         /// </summary>
-        /// <param name="request">Thông tin tìm kiếm và phân trang</param>
-        /// <returns>Danh sách người dùng rút gọn theo điều kiện tìm kiếm</returns>
+        /// <param name="request">Thông tin tìm kiếm</param>
+        /// <returns>Danh sách UserID theo điều kiện tìm kiếm</returns>
         [HttpGet("search")]
         public async Task<IActionResult> GetUsersByUserInfo(
             [FromQuery] UserInfoSearchRequest request)
         {
-            var vietnamTime = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(
-                DateTime.UtcNow,
-                "SE Asia Standard Time"
-            );
-
-            Console.WriteLine(vietnamTime.ToString("dddd:MM:yyyy:ss"));
-            var users = await _userService.GetUsersByUserInfo(request);
-            return Ok(users);
+            var userIds = await _userService.GetUsersByUserInfo(request);
+            return Ok(userIds);
         }
     }
 }

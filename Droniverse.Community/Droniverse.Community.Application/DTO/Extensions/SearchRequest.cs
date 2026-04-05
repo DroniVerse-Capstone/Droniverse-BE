@@ -1,12 +1,9 @@
 ﻿using Droniverse.Community.Domain.Enums;
+using Droniverse.Community.Domain.Enums.SeachRequest;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.Enums;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 
 namespace Droniverse.Community.Application.DTO.Extensions
 {
@@ -17,7 +14,7 @@ namespace Droniverse.Community.Application.DTO.Extensions
     }
 
     public class CompetitionSearchRequest : SearchRequest
-    {   
+    {
         public string? CompetitionName { get; set; }
         public DateTime? RegistrationStartDate { get; set; }
         public DateTime? RegistrationEndDate { get; set; }
@@ -33,8 +30,25 @@ namespace Droniverse.Community.Application.DTO.Extensions
 
     public class CompetitionLeaderboardSearchRequest : SearchRequest
     {
-
     }
+
+    public class RoundParticipantsSearchRequest : SearchRequest
+    {
+        public string? SearchName { get; set; }
+        public SortDirection? SortDirection { get; set; } = Shared.Enums.SortDirection.Asc;
+        public string? SeachUserName
+        {
+            get => SearchName;
+            set => SearchName = value;
+        }
+        public DateTime? ParticipantStartedFrom { get; set; }
+        public DateTime? ParticipantStartedEnd { get; set; }
+        public DateTime? ParticipationSubmittedFrom { get; set; }
+        public DateTime? ParticipationSubmittedEnd { get; set; }
+        public UserRoundStatus? ParticipantStatus { get; set; }
+        public bool? IsPassed { get; set; }
+    }
+
 
     public class ClubCreationRequestSearchRequest : SearchRequest
     {
@@ -64,4 +78,25 @@ namespace Droniverse.Community.Application.DTO.Extensions
         public string? ClubName { get; set; }
         public ClubStatus? ClubStatus { get; set; }
     }
+
+    public class RoundResultAllParicipations : SearchRequest
+    {
+        public UserRoundStatus? Status { get; set; }
+        public RoundResultAllSortBy SortBy { get; set; } = RoundResultAllSortBy.StartedAt;
+        public SortDirection SortDirection { get; set; } = SortDirection.Asc;
+    }
+
+    public class MyRoundSearchRequest : SearchRequest
+    {
+        public UserRoundStatus? UserRoundStatus { get; set; }
+        public RoundStatus? RoundStatus { get; set; }
+        public bool? IsPassed { get; set; }
+    }
+
+    public class CompetitionParticipantsSearchRequest : SearchRequest
+    {
+        public UserCompetitionStatus Status { get; set; }
+        public DateTime? JoinFrom { get; set; }
+    }
+
 }

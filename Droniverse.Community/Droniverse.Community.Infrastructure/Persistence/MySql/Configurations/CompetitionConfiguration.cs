@@ -28,6 +28,10 @@ public class CompetitionConfiguration : IEntityTypeConfiguration<Competition>
             .HasColumnType("char(36)")
             .IsRequired();
 
+        builder.Property(c => c.IsSummarized)
+           .HasColumnType("tinyint(1)")
+           .IsRequired();
+
         builder.Property(c => c.UpdatedBy)
             .HasColumnType("char(36)");
 

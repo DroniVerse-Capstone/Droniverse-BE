@@ -516,9 +516,9 @@ internal class ClubService : IClubService
 
             case Domain.Enums.ClubStatus.ARCHIVED:
                 // ADMIN, SYSTEM_MANAGER, or CLUB_MANAGER (owner) can ARCHIVE
-                if (!isAdmin && !isSystemManager && !(isClubManager && isClubOwner))
+                if (!(isClubManager && isClubOwner))
                     throw new Droniverse.Shared.Exceptions.ForbiddenException(
-                        "Only ADMIN, SYSTEM_MANAGER, or CLUB_MANAGER (owner) can archive a club.");
+                        "Only CLUB_MANAGER (owner) can archive a club.");
                 break;
 
             case Domain.Enums.ClubStatus.ACTIVE:
