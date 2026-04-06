@@ -77,13 +77,7 @@ public class EnrollmentService : IEnrollmentService
 
     public async Task<EnrollmentResponseDTO> GetMyEnrollmentByIdAsync(Guid enrollmentId)
     {
-        var userId = _currentUser.UserId;
-
-        var enrollment = await _unitOfWork.Enrollments.GetByConditionAsync(
-            x => x.EnrollmentID == enrollmentId && x.UserID == userId);
-
-        if (enrollment == null)
-            throw new BaseException("Không tìm thấy enrollment.", "NOT_FOUND");
+        var enrollment = await GetMyEnrollmentEntityOrThrowAsync(enrollmentId);
 
         return _mapper.Map<EnrollmentResponseDTO>(enrollment);
     }
@@ -93,18 +87,17 @@ public class EnrollmentService : IEnrollmentService
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
-        if (request.Progress is < 0 or > 100)
+        if (!request.Progress.HasValue && !request.LastAccessDate.HasValue && !request.ExpireDate.HasValue && !request.Status.HasValue)
+            throw new ValidationException("Cần ít nhất một trường để cập nhật enrollment.");
+
+        if (request.Progress.HasValue && request.Progress is < 0 or > 100)
             throw new ValidationException("Progress phải nằm trong khoảng từ 0 đến 100.");
 
-        var userId = _currentUser.UserId;
+        var enrollment = await GetMyEnrollmentEntityOrThrowAsync(enrollmentId);
 
-        var enrollment = await _unitOfWork.Enrollments.GetByConditionAsync(
-            x => x.EnrollmentID == enrollmentId && x.UserID == userId);
+        if (request.Progress.HasValue)
+            enrollment.Progress = request.Progress.Value;
 
-        if (enrollment == null)
-            throw new BaseException("Không tìm thấy enrollment.", "NOT_FOUND");
-
-        enrollment.Progress = request.Progress;
         enrollment.LastAccessDate = request.LastAccessDate ?? _clock.Now;
 
         if (request.ExpireDate.HasValue)
@@ -119,7 +112,52 @@ public class EnrollmentService : IEnrollmentService
         return _mapper.Map<EnrollmentResponseDTO>(enrollment);
     }
 
+    public async Task<EnrollmentLearningPathResponseDTO> GetMyLearningPathAsync(Guid enrollmentId)
+    {
+        var enrollment = await GetMyEnrollmentEntityOrThrowAsync(enrollmentId);
+
+        var modules = await GetModules(enrollment.CourseVersionID);
+
+        if (!modules.Any())
+            return BuildEmptyResponse(enrollment);
+
+        var lessons = await GetLessons(modules);
+        var userLessons = await GetUserLessons(enrollment.UserID, lessons);
+
+        return BuildLearningPathResponse(enrollment, modules, lessons, userLessons);
+    }
+
+    public async Task<EnrollmentNextLessonResponseDTO?> GetMyNextLessonAsync(Guid enrollmentId)
+    {
+        var learningPath = await GetMyLearningPathAsync(enrollmentId);
+
+        var nextLesson = learningPath.Modules
+            .OrderBy(x => x.ModuleNumber)
+            .SelectMany(x => x.Lessons.OrderBy(y => y.OrderIndex), (module, lesson) => new { module, lesson })
+            .FirstOrDefault(x => x.lesson.Status != UserLessonStatus.COMPLETED && (x.lesson.Progress ?? 0) < 100);
+
+        if (nextLesson == null)
+            return null;
+
+        var response = _mapper.Map<EnrollmentNextLessonResponseDTO>(nextLesson.lesson);
+        response.EnrollmentID = learningPath.EnrollmentID;
+        response.CourseID = learningPath.CourseID;
+        response.CourseVersionID = learningPath.CourseVersionID;
+        response.ModuleID = nextLesson.module.ModuleID;
+        response.ModuleNumber = nextLesson.module.ModuleNumber;
+
+        return response;
+    }
+
     public async Task DeleteMyEnrollmentAsync(Guid enrollmentId)
+    {
+        var enrollment = await GetMyEnrollmentEntityOrThrowAsync(enrollmentId);
+
+        await _unitOfWork.Enrollments.DeleteAsync(enrollment);
+        await _unitOfWork.SaveChangesAsync();
+    }
+
+    private async Task<Enrollment> GetMyEnrollmentEntityOrThrowAsync(Guid enrollmentId)
     {
         var userId = _currentUser.UserId;
 
@@ -129,7 +167,94 @@ public class EnrollmentService : IEnrollmentService
         if (enrollment == null)
             throw new BaseException("Không tìm thấy enrollment.", "NOT_FOUND");
 
-        await _unitOfWork.Enrollments.DeleteAsync(enrollment);
-        await _unitOfWork.SaveChangesAsync();
+        return enrollment;
+    }
+
+    private async Task<List<Module>> GetModules(Guid courseVersionId)
+    {
+        var modulesResult = await _unitOfWork.Modules.GetAllAsync(
+            filter: x => x.CourseVersionID == courseVersionId,
+            orderBy: q => q.OrderBy(x => x.ModuleNumber),
+            pageIndex: 1,
+            pageSize: 10000);
+
+        return modulesResult.Data.ToList();
+    }
+
+    private async Task<List<Lesson>> GetLessons(IEnumerable<Module> modules)
+    {
+        var moduleIds = modules.Select(x => x.ModuleID).Distinct().ToList();
+
+        var lessonsResult = await _unitOfWork.Lessons.GetAllAsync(
+            filter: x => moduleIds.Contains(x.ModuleID),
+            orderBy: q => q.OrderBy(x => x.ModuleID).ThenBy(x => x.OrderIndex),
+            pageIndex: 1,
+            pageSize: 10000);
+
+        return lessonsResult.Data.ToList();
+    }
+
+    private async Task<Dictionary<Guid, UserLesson>> GetUserLessons(Guid userId, IEnumerable<Lesson> lessons)
+    {
+        var lessonIds = lessons.Select(x => x.LessonID).Distinct().ToList();
+        if (lessonIds.Count == 0)
+            return [];
+
+        var userLessonsResult = await _unitOfWork.UserLessons.GetAllAsync(
+            filter: x => x.UserID == userId && lessonIds.Contains(x.LessonID),
+            orderBy: q => q.OrderByDescending(x => x.LastAccessDate),
+            pageIndex: 1,
+            pageSize: 10000);
+
+        return userLessonsResult.Data
+            .GroupBy(x => x.LessonID)
+            .ToDictionary(x => x.Key, x => x.OrderByDescending(y => y.LastAccessDate).First());
+    }
+
+    private EnrollmentLearningPathResponseDTO BuildEmptyResponse(Enrollment enrollment)
+    {
+        var response = _mapper.Map<EnrollmentLearningPathResponseDTO>(enrollment);
+        response.Modules = [];
+        return response;
+    }
+
+    private EnrollmentLearningPathResponseDTO BuildLearningPathResponse(
+        Enrollment enrollment,
+        IEnumerable<Module> modules,
+        IEnumerable<Lesson> lessons,
+        IReadOnlyDictionary<Guid, UserLesson> userLessons)
+    {
+        var lessonsByModule = lessons
+            .GroupBy(x => x.ModuleID)
+            .ToDictionary(x => x.Key, x => x.OrderBy(y => y.OrderIndex).ToList());
+
+        var responseModules = modules
+            .Select(module =>
+            {
+                var moduleLessons = lessonsByModule.TryGetValue(module.ModuleID, out var list)
+                    ? list
+                    : [];
+
+                var lessonDtos = moduleLessons
+                    .Select(lesson =>
+                    {
+                        var dto = _mapper.Map<EnrollmentLearningPathLessonDTO>(lesson);
+                        userLessons.TryGetValue(lesson.LessonID, out var userLesson);
+                        dto.Status = userLesson?.Status;
+                        dto.Progress = userLesson?.Progress;
+                        dto.LastAccessDate = userLesson?.LastAccessDate;
+                        return dto;
+                    })
+                    .ToList();
+
+                var moduleDto = _mapper.Map<EnrollmentLearningPathModuleDTO>(module);
+                moduleDto.Lessons = lessonDtos;
+                return moduleDto;
+            })
+            .ToList();
+
+        var response = _mapper.Map<EnrollmentLearningPathResponseDTO>(enrollment);
+        response.Modules = responseModules;
+        return response;
     }
 }

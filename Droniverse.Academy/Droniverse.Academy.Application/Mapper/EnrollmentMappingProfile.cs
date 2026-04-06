@@ -20,6 +20,24 @@ public class EnrollmentMappingProfile : Profile
 
         CreateMap<Enrollment, EnrollmentResponseDTO>();
 
+        CreateMap<Enrollment, EnrollmentLearningPathResponseDTO>()
+            .ForMember(dest => dest.Modules, opt => opt.Ignore());
+
+        CreateMap<Module, EnrollmentLearningPathModuleDTO>()
+            .ForMember(dest => dest.Lessons, opt => opt.Ignore());
+
+        CreateMap<Lesson, EnrollmentLearningPathLessonDTO>()
+            .ForMember(dest => dest.Status, opt => opt.Ignore())
+            .ForMember(dest => dest.Progress, opt => opt.Ignore())
+            .ForMember(dest => dest.LastAccessDate, opt => opt.Ignore());
+
+        CreateMap<EnrollmentLearningPathLessonDTO, EnrollmentNextLessonResponseDTO>()
+            .ForMember(dest => dest.EnrollmentID, opt => opt.Ignore())
+            .ForMember(dest => dest.CourseID, opt => opt.Ignore())
+            .ForMember(dest => dest.CourseVersionID, opt => opt.Ignore())
+            .ForMember(dest => dest.ModuleID, opt => opt.Ignore())
+            .ForMember(dest => dest.ModuleNumber, opt => opt.Ignore());
+
         CreateMap<AdminUpdateEnrollmentRequestDTO, Enrollment>()
             .ForMember(dest => dest.EnrollmentID, opt => opt.Ignore())
             .ForMember(dest => dest.CourseID, opt => opt.Ignore())

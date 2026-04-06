@@ -95,7 +95,7 @@ public class UserEnrollmentController : ControllerBase
     /// </summary>
     /// <param name="enrollmentId">Mã enrollment.</param>
     /// <param name="request">Thông tin enrollment cần cập nhật.</param>
-    [HttpPut("{enrollmentId:guid}")]
+    [HttpPatch("{enrollmentId:guid}")]
     [SwaggerRequestExample(typeof(UpdateEnrollmentRequestDTO), typeof(UpdateEnrollmentRequestExample))]
     public async Task<IActionResult> UpdateMyEnrollment(Guid enrollmentId, [FromBody] UpdateEnrollmentRequestDTO request)
     {
@@ -107,6 +107,44 @@ public class UserEnrollmentController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Cập nhật enrollment thất bại.");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Lấy learning path của enrollment hiện tại.
+    /// </summary>
+    /// <param name="enrollmentId">Mã enrollment.</param>
+    [HttpGet("{enrollmentId:guid}/learning-path")]
+    public async Task<IActionResult> GetMyLearningPath(Guid enrollmentId)
+    {
+        try
+        {
+            var result = await _service.GetMyLearningPathAsync(enrollmentId);
+            return Ok(SuccessResponse<EnrollmentLearningPathResponseDTO>.Create(result, "Lấy learning path thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lấy learning path thất bại.");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Lấy bài học tiếp theo của enrollment hiện tại.
+    /// </summary>
+    /// <param name="enrollmentId">Mã enrollment.</param>
+    [HttpGet("{enrollmentId:guid}/next")]
+    public async Task<IActionResult> GetMyNextLesson(Guid enrollmentId)
+    {
+        try
+        {
+            var result = await _service.GetMyNextLessonAsync(enrollmentId);
+            return Ok(SuccessResponse<EnrollmentNextLessonResponseDTO?>.Create(result, "Lấy bài học tiếp theo thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lấy bài học tiếp theo thất bại.");
             throw;
         }
     }
