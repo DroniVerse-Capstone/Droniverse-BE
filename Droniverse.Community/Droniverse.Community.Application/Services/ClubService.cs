@@ -342,10 +342,45 @@ internal class ClubService : IClubService
         if (courseIds.Count == 0)
             return Enumerable.Empty<CourseBulkResponseDTO>().ToPaginationResult(searchRequest);
 
-        var course = await _academyMicroserviceClient.GetCourseById(courseIds, searchRequest);
+        var pagedCourse = await _academyMicroserviceClient.GetCourseById(courseIds, searchRequest);
 
+        return new PaginationResult<IEnumerable<CourseBulkResponseDTO>>(pagedCourse.Items, pagedCourse.TotalItems, searchRequest.CurrentPage, searchRequest.PageSize);
+    }
 
-        return course.ToPaginationResult(searchRequest);
+    /// <summary>
+    /// Lấy danh sách khóa học hot của một câu lạc bộ theo phân trang.
+    /// </summary>
+    public async Task<PaginationResult<IEnumerable<CourseBulkResponseDTO>>> GetHotCoursesByClub(Guid clubId, HotCoursesSearchRequest searchRequest)
+    {
+        searchRequest ??= new HotCoursesSearchRequest();
+
+        Club? club = await _unitOfWork.Clubs.GetByCondition(
+            c => c.ClubID == clubId,
+            query => query.AsNoTracking());
+
+        if (club == null)
+            throw new KeyNotFoundException($"Không tìm thấy câu lạc bộ với ID [{clubId}].");
+
+        var clubCourses = await _unitOfWork.ClubCourses.GetManyByCondition(
+            c => c.ClubID == clubId,
+            query => query.AsNoTracking());
+
+        var courseIds = clubCourses?
+            .Select(c => c.CourseID)
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList() ?? [];
+
+        if (courseIds.Count == 0)
+            return new PaginationResult<IEnumerable<CourseBulkResponseDTO>>([], 0, searchRequest.CurrentPage, searchRequest.PageSize);
+
+        var pagedHotCourse = await _academyMicroserviceClient.GetHotCoursesByIds(courseIds, searchRequest);
+
+        return new PaginationResult<IEnumerable<CourseBulkResponseDTO>>(
+            pagedHotCourse.Items,
+            pagedHotCourse.TotalItems,
+            searchRequest.CurrentPage,
+            searchRequest.PageSize);
     }
 
     public async Task<IEnumerable<ClubResponseDto>> GetClubsByCurrentUsersID(ClubStatus? status = null)

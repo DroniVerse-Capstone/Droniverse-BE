@@ -1,5 +1,6 @@
 ﻿using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Domain.Enums;
+using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.DTOs.Response;
 
@@ -24,8 +25,12 @@ public interface ICourseService
 
     Task DeleteCourseAsync(Guid courseId);
 
-    Task<IEnumerable<CourseBulkResponseDTO>> GetCoursesByIdsAsync(
+    Task<PagedCourseBulkResponse> GetCoursesByIdsAsync(
         CourseBulkSearchRequest searchRequest,
+        IEnumerable<Guid> courseIds);
+
+    Task<PagedCourseBulkResponse> GetHotCoursesByIdsAsync(
+        HotCoursesSearchRequest searchRequest,
         IEnumerable<Guid> courseIds);
 }
 

@@ -149,14 +149,15 @@ public class CourseService : ICourseService
         await _unitOfWork.SaveChangesAsync();
     }
 
-    public async Task<IEnumerable<CourseBulkResponseDTO>> GetCoursesByIdsAsync(
+    public async Task<PagedCourseBulkResponse> GetCoursesByIdsAsync(
     CourseBulkSearchRequest searchRequest,
     IEnumerable<Guid> courseIds)
     {
         searchRequest ??= new CourseBulkSearchRequest();
 
         var pageIndex = searchRequest.CurrentPage < 1 ? 1 : searchRequest.CurrentPage;
-        var pageSize = searchRequest.PageSize < 5 ? 5 : (searchRequest.PageSize > 20 ? 20 : searchRequest.PageSize);
+        var pageSize = searchRequest.PageSize < 1 ? 5 : searchRequest.PageSize;
+        var normalizedCourseName = searchRequest.CourseName?.Trim();
 
         var ids = courseIds?
             .Where(x => x != Guid.Empty)
@@ -164,7 +165,11 @@ public class CourseService : ICourseService
             .ToList() ?? [];
 
         if (ids.Count == 0)
-            return [];
+            return new PagedCourseBulkResponse
+            {
+                TotalItems = 0,
+                Items = []
+            };
 
         Expression<Func<Course, bool>> filter = c =>
             ids.Contains(c.CourseID) &&
@@ -172,9 +177,9 @@ public class CourseService : ICourseService
             (!searchRequest.Level.HasValue || c.CurrentVersion.Level == searchRequest.Level.Value) &&
             (searchRequest.CourseOwner != CourseOwnerFilter.Owned || c.CreateBy == _currentUser.UserId) &&
             (
-                string.IsNullOrWhiteSpace(searchRequest.CourseName) ||
-                (c.CurrentVersion.TitleEN != null && c.CurrentVersion.TitleEN.Contains(searchRequest.CourseName)) ||
-                (c.CurrentVersion.TitleVN != null && c.CurrentVersion.TitleVN.Contains(searchRequest.CourseName))
+                string.IsNullOrWhiteSpace(normalizedCourseName) ||
+                (c.CurrentVersion.TitleEN != null && c.CurrentVersion.TitleEN.Contains(normalizedCourseName)) ||
+                (c.CurrentVersion.TitleVN != null && c.CurrentVersion.TitleVN.Contains(normalizedCourseName))
             );
 
         var courseResult = await _unitOfWork.Courses.GetAllWithCurrentVersionAsync(
@@ -186,18 +191,21 @@ public class CourseService : ICourseService
         var courses = courseResult.Data.ToList();
 
         if (courses.Count == 0)
-            return [];
+            return new PagedCourseBulkResponse
+            {
+                TotalItems = courseResult.TotalRecords,
+                Items = []
+            };
 
         var courseVersionIds = courses
             .Select(c => c.CurrentVersion!.CourseVersionID)
             .Distinct()
             .ToList();
 
-        var participantCountByVersionId =
-            await _unitOfWork.Enrollments.GetActiveOrCompletedParticipantCountsByCourseVersionIdsAsync(courseVersionIds);
-
-        var ratingByVersionId =
-            await _unitOfWork.Feedbacks.GetAverageRatingsByCourseVersionIdsAsync(courseVersionIds);
+        var participantCountByVersionId = await _unitOfWork.Enrollments
+            .GetActiveOrCompletedParticipantCountsByCourseVersionIdsAsync(courseVersionIds);
+        var ratingByVersionId = await _unitOfWork.Feedbacks
+            .GetAverageRatingsByCourseVersionIdsAsync(courseVersionIds);
 
         var idOrder = ids
             .Select((id, index) => new { id, index })
@@ -242,7 +250,50 @@ public class CourseService : ICourseService
             _ => data.OrderBy(x => idOrder[x.CourseId])
         };
 
-        return orderedData.ToList();
+        return new PagedCourseBulkResponse
+        {
+            TotalItems = courseResult.TotalRecords,
+            Items = orderedData.ToList()
+        };
+    }
+
+    public async Task<PagedCourseBulkResponse> GetHotCoursesByIdsAsync(
+        HotCoursesSearchRequest searchRequest,
+        IEnumerable<Guid> courseIds)
+    {
+        searchRequest ??= new HotCoursesSearchRequest();
+
+        var pageIndex = searchRequest.CurrentPage < 1 ? 1 : searchRequest.CurrentPage;
+        var pageSize = searchRequest.PageSize < 1 ? 5 : searchRequest.PageSize;
+
+        var ids = courseIds?
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToList() ?? [];
+
+        if (ids.Count == 0)
+        {
+            return new PagedCourseBulkResponse
+            {
+                TotalItems = 0,
+                Items = []
+            };
+        }
+
+        var courseResult = await _unitOfWork.Courses.GetHotCoursesByIdsWithCurrentVersionAsync(
+            courseIds: ids,
+            currentUserId: _currentUser.UserId,
+            level: null,
+            ownedOnly: false,
+            courseName: null,
+            pageIndex: pageIndex,
+            pageSize: pageSize);
+
+        return new PagedCourseBulkResponse
+        {
+            TotalItems = courseResult.TotalRecords,
+            Items = courseResult.Data
+        };
     }
 
     private async Task PopulateCreatorAsync(CourseResponseDTO course, Guid createBy)

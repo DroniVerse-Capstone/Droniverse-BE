@@ -6,6 +6,8 @@ using Droniverse.Shared.DTOs.Response;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Security.Cryptography;
+using System.Text;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -40,6 +42,10 @@ public class AcademyMicroserviceClient
     new DistributedCacheEntryOptions()
         .SetAbsoluteExpiration(TimeSpan.FromMinutes(10))
         .SetSlidingExpiration(TimeSpan.FromMinutes(5));
+    private static readonly DistributedCacheEntryOptions HotCourseCacheOptions =
+    new DistributedCacheEntryOptions()
+        .SetAbsoluteExpiration(TimeSpan.FromMinutes(3))
+        .SetSlidingExpiration(TimeSpan.FromMinutes(1));
     private static readonly JsonSerializerOptions _jsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -297,7 +303,7 @@ public class AcademyMicroserviceClient
         }
     }
 
-    public async Task<IEnumerable<CourseBulkResponseDTO>> GetCourseById(
+    public async Task<PagedCourseBulkResponse> GetCourseById(
         IEnumerable<Guid> courseIds,
         CourseBulkSearchRequest searchRequest)
     {
@@ -309,7 +315,7 @@ public class AcademyMicroserviceClient
             .ToList() ?? [];
 
         if (ids.Count == 0)
-            return [];
+            return CreatePagedCourseResponse([], 0);
 
         string queryString = BuildCourseBulkSearchQuery(searchRequest);
 
@@ -357,12 +363,14 @@ public class AcademyMicroserviceClient
                 if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
                 {
                     _logger.LogError("Academy service unavailable.");
-                    return ids.Where(courseById.ContainsKey).Select(id => courseById[id]).ToList();
+                    var fallbackItems = ids.Where(courseById.ContainsKey).Select(id => courseById[id]).ToList();
+                    return CreatePagedCourseResponse(fallbackItems, fallbackItems.Count);
                 }
                 else if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.NotFound)
                 {
                     _logger.LogWarning("Courses not found in Academy Microservice.");
-                    return ids.Where(courseById.ContainsKey).Select(id => courseById[id]).ToList();
+                    var fallbackItems = ids.Where(courseById.ContainsKey).Select(id => courseById[id]).ToList();
+                    return CreatePagedCourseResponse(fallbackItems, fallbackItems.Count);
                 }
                 else if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.BadRequest)
                 {
@@ -377,9 +385,9 @@ public class AcademyMicroserviceClient
                 }
             }
 
-            var courses = await httpResponseMsg.Content.ReadFromJsonAsync<IEnumerable<CourseBulkResponseDTO>>(_jsonOptions) ?? [];
+            var pagedCourses = await httpResponseMsg.Content.ReadFromJsonAsync<PagedCourseBulkResponse>(_jsonOptions);
 
-            foreach (var course in courses)
+            foreach (var course in pagedCourses?.Items ?? [])
             {
                 courseById[course.CourseId] = course;
 
@@ -390,15 +398,108 @@ public class AcademyMicroserviceClient
         }
 
         // 3) Return in requested order
-        return ids
+        var orderedItems = ids
             .Where(courseById.ContainsKey)
             .Select(id => courseById[id])
             .ToList();
+
+        return CreatePagedCourseResponse(orderedItems, orderedItems.Count);
+    }
+
+    /// <summary>
+    /// Lấy danh sách khóa học HOT theo danh sách ID (có phân trang) từ Academy Microservice.
+    /// Dữ liệu được cache theo tập ID + tham số phân trang để giảm số lần gọi mạng.
+    /// </summary>
+    /// <param name="courseIds">Danh sách ID khóa học cần lấy.</param>
+    /// <param name="searchRequest">Thông tin phân trang cho dữ liệu khóa học hot.</param>
+    /// <returns>Kết quả danh sách khóa học hot theo trang hiện tại.</returns>
+    public async Task<PagedCourseBulkResponse> GetHotCoursesByIds(
+        IEnumerable<Guid> courseIds,
+        HotCoursesSearchRequest searchRequest)
+    {
+        searchRequest ??= new HotCoursesSearchRequest();
+
+        var ids = courseIds?
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToList() ?? [];
+
+        if (ids.Count == 0)
+            return CreatePagedCourseResponse([], 0);
+
+        var queryString = BuildHotCoursesSearchQuery(searchRequest);
+        var cacheKey = BuildHotBulkCoursesCacheKey(ids, queryString);
+
+        var cachedValue = await _distributedCache.GetStringAsync(cacheKey);
+        if (!string.IsNullOrWhiteSpace(cachedValue))
+        {
+            try
+            {
+                var cachedResponse = JsonSerializer.Deserialize<PagedCourseBulkResponse>(cachedValue, _jsonOptions);
+                if (cachedResponse?.Items != null)
+                    return cachedResponse;
+            }
+            catch
+            {
+                // Bỏ qua cache lỗi định dạng và gọi API thật
+            }
+        }
+
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync(
+                $"{BuildAcademyPath("courses/by-ids/hot")}?{queryString}",
+                new GetCoursesByIdsRequestDTO { CourseIds = ids });
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning(
+                    "Gọi Academy API lấy khóa học hot thất bại. StatusCode: {StatusCode}, Số lượng CourseId: {Count}",
+                    response.StatusCode,
+                    ids.Count);
+
+                return CreatePagedCourseResponse([], 0);
+            }
+
+            var payload = await response.Content.ReadFromJsonAsync<PagedCourseBulkResponse>(_jsonOptions);
+            var hotCourses = payload?.Items?
+                .Where(x => x != null && x.CourseId != Guid.Empty)
+                .ToList() ?? [];
+
+            var result = CreatePagedCourseResponse(hotCourses, payload?.TotalItems ?? hotCourses.Count);
+
+            var cacheString = JsonSerializer.Serialize(result);
+            await _distributedCache.SetStringAsync(cacheKey, cacheString, HotCourseCacheOptions);
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Lỗi khi gọi Academy API lấy danh sách khóa học hot. Số lượng CourseId: {Count}",
+                ids.Count);
+
+            return CreatePagedCourseResponse([], 0);
+        }
     }
 
     private static string BuildBulkCourseCacheKey(Guid courseId, string queryString)
     {
         return $"course:bulk:{courseId}:{queryString}";
+    }
+
+    private static string BuildHotBulkCoursesCacheKey(IEnumerable<Guid> courseIds, string queryString)
+    {
+        var sortedIds = courseIds
+            .OrderBy(x => x)
+            .Select(x => x.ToString())
+            .ToList();
+
+        var raw = $"{string.Join(',', sortedIds)}|{queryString}";
+        var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(raw));
+        var hash = Convert.ToHexString(hashBytes);
+
+        return $"course:bulk:hot:{hash}";
     }
 
     private static string BuildLabCacheKey(Guid labId)
@@ -431,6 +532,20 @@ public class AcademyMicroserviceClient
         }
 
         return string.Join("&", queryParts);
+    }
+
+    private static string BuildHotCoursesSearchQuery(HotCoursesSearchRequest searchRequest)
+    {
+        return $"CurrentPage={searchRequest.CurrentPage}&PageSize={searchRequest.PageSize}";
+    }
+
+    private static PagedCourseBulkResponse CreatePagedCourseResponse(IEnumerable<CourseBulkResponseDTO> items, int totalItems)
+    {
+        return new PagedCourseBulkResponse
+        {
+            TotalItems = totalItems < 0 ? 0 : totalItems,
+            Items = items
+        };
     }
 
     private string BuildAcademyPath(string relativePath)

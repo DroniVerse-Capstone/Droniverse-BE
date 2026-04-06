@@ -129,6 +129,26 @@ namespace Droniverse.Community.API.Controllers
                 .Create(courses, "Lấy danh khóa học của câu lạc bộ thành công!");
         }
 
+        /// <summary>
+        /// Lấy danh sách khóa học HOT của một câu lạc bộ theo phân trang.
+        /// </summary>
+        /// <param name="clubId">ID của câu lạc bộ</param>
+        /// <param name="searchRequest">Thông tin phân trang</param>
+        /// <returns>
+        /// 200 OK - Trả về danh sách khóa học HOT theo <see cref="PaginationResult{T}"/>
+        /// 404 NotFound - Nếu không tồn tại câu lạc bộ
+        /// </returns>
+        [HttpGet("{clubId}/courses/hot")]
+        [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<CourseBulkResponseDTO>>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ApiResponse> GetHotCoursesByClub(Guid clubId, [FromQuery] HotCoursesSearchRequest searchRequest)
+        {
+            var courses = await _clubService.GetHotCoursesByClub(clubId, searchRequest);
+            return SuccessResponse<PaginationResult<IEnumerable<CourseBulkResponseDTO>>>.Create(
+                courses,
+                "Lấy danh sách khóa học HOT của câu lạc bộ thành công!");
+        }
+
         [HttpPost("upload-temp-image")]
         [Authorize(Roles = Roles.AllRoles)]
         public async Task<IActionResult> UploadTempImage([FromForm] FileUploadDto file)

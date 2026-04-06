@@ -14,8 +14,8 @@
     {
         Data = data;
         TotalRecords = totalRecords;
-        PageIndex = pageIndex;
-        PageSize = pageSize;
+        PageIndex = pageIndex < 1 ? 1 : pageIndex;
+        PageSize = pageSize < 1 ? 5 : pageSize;
         TotalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);
     }
 }

@@ -1,6 +1,8 @@
 ﻿using Droniverse.Academy.Domain.Entities;
+using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
 using Droniverse.Academy.Infrastructure.Persistence.MySql;
+using Droniverse.Academy.Infrastructure.Persistence.MySql.ReadModels;
 using Droniverse.Shared.DTOs.Response;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
@@ -11,7 +13,7 @@ internal class CourseRepository : MySqlRepository<Course>, ICourseRepository
 {
     public CourseRepository(MySqlDbContext context) : base(context)
     {
-        
+
     }
 
     public async Task<Course?> GetByIdWithCurrentVersionAsync(
@@ -116,6 +118,93 @@ internal class CourseRepository : MySqlRepository<Course>, ICourseRepository
             query = orderBy(query);
 
         return await query.ToListAsync(cancellationToken);
+    }
+
+    public async Task<PaginationResult<IEnumerable<CourseBulkResponseDTO>>> GetHotCoursesByIdsWithCurrentVersionAsync(
+        IEnumerable<Guid> courseIds,
+        Guid currentUserId,
+        CourseLevel? level,
+        bool ownedOnly,
+        string? courseName,
+        int pageIndex,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = courseIds?
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToList() ?? [];
+
+        if (ids.Count == 0)
+        {
+            return new PaginationResult<IEnumerable<CourseBulkResponseDTO>>([], 0, pageIndex, pageSize);
+        }
+
+        var keyword = courseName?.Trim();
+        var normalizedPageIndex = pageIndex < 1 ? 1 : pageIndex;
+        var normalizedPageSize = pageSize < 1 ? 5 : pageSize;
+
+        var statsQuery = _context.Set<CourseStatsView>()
+            .AsNoTracking()
+            .Where(x => ids.Contains(x.CourseID));
+
+        if (level.HasValue)
+        {
+            statsQuery = statsQuery.Where(x => x.Level == level.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            statsQuery = statsQuery.Where(x =>
+                x.TitleEN.Contains(keyword) ||
+                x.TitleVN.Contains(keyword));
+        }
+
+        //if (ownedOnly)
+        //{
+        //    statsQuery =
+        //        from stats in statsQuery
+        //        join course in _dbSet.AsNoTracking() on stats.CourseID equals course.CourseID
+        //        where course.CreateBy == currentUserId
+        //        select stats;
+        //}
+
+        var rankedQuery = statsQuery.Select(x => new
+        {
+            Course = x,
+            HotScore =
+                (x.ParticipantCount * 0.6m) +
+                ((x.AverageRating ?? 0m) * 10m * 0.35m) +
+                (x.UpdateAt.HasValue ? 1.5m : 0m)
+        });
+
+        var totalCount = await rankedQuery.CountAsync(cancellationToken);
+
+        var items = await rankedQuery
+            .OrderByDescending(x => x.HotScore)
+            .ThenByDescending(x => x.Course.ParticipantCount)
+            .ThenByDescending(x => x.Course.AverageRating)
+            .ThenByDescending(x => x.Course.UpdateAt)
+            .ThenBy(x => x.Course.CourseID)
+            .Skip((normalizedPageIndex - 1) * normalizedPageSize)
+            .Take(normalizedPageSize)
+            .Select(x => new CourseBulkResponseDTO
+            {
+                CourseId = x.Course.CourseID,
+                CourseVersionId = x.Course.CourseVersionID,
+                TitleVN = x.Course.TitleVN,
+                TitleEN = x.Course.TitleEN,
+                Level = x.Course.Level,
+                EstimatedDuration = x.Course.EstimatedDuration,
+                Price = null,
+                RemainingCode = 0,
+                Rating = x.Course.AverageRating ?? 0m,
+                NumberOfParticipants = x.Course.ParticipantCount,
+                ImageUrl = x.Course.ImageUrl
+            })
+            .ToListAsync(cancellationToken);
+
+        return new PaginationResult<IEnumerable<CourseBulkResponseDTO>>(items, totalCount, normalizedPageIndex, normalizedPageSize);
     }
 }
 

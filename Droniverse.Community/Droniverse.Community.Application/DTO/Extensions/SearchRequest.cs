@@ -99,4 +99,6 @@ namespace Droniverse.Community.Application.DTO.Extensions
         public DateTime? JoinFrom { get; set; }
     }
 
+
+
 }
