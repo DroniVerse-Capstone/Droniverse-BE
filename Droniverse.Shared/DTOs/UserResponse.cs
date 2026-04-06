@@ -16,6 +16,4 @@ public record UserResponse(
     public UserResponse() : this(Guid.Empty, string.Empty, string.Empty, string.Empty, string.Empty, null, string.Empty, string.Empty, default)
     {
     }
-
-    public DateTime? JoinDate { get; init; }
 }
