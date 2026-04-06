@@ -9,7 +9,7 @@ public class ClubCourseConfiguration : IEntityTypeConfiguration<ClubCourse>
     {
         builder.ToTable("ClubCourse");
 
-        builder.HasKey(c => new { c.ClubID , c.CourseID });
+        builder.HasKey(c => new { c.ClubID, c.CourseID });
         builder.Property(c => c.ClubID).HasColumnType("char(36)");
         builder.HasOne(cp => cp.Club)
             .WithMany(c => c.ClubCourses)

@@ -245,15 +245,13 @@ internal class ClubService : IClubService
         return response;
     }
 
-    public async Task<PaginationResult<IEnumerable<UserResponse>>> GetClubParcitipations(Guid clubID, ParticipationSearchRequest searchRequest)
+    public async Task<PaginationResult<IEnumerable<GetParticipantsResponse>>> GetClubParcitipations(Guid clubID, ParticipationSearchRequest searchRequest)
     {
         searchRequest ??= new ParticipationSearchRequest();
 
         Club? club = await _unitOfWork.Clubs.GetByCondition(c => c.ClubID == clubID, query => query.AsNoTracking());
         if (club == null)
-        {
             throw new KeyNotFoundException($"Không tìm thấy câu lạc bộ với ID {clubID}.");
-        }
 
         int currentPage = searchRequest.CurrentPage <= 0 ? 1 : searchRequest.CurrentPage;
         int pageSize = searchRequest.PageSize <= 0 ? 5 : searchRequest.PageSize;
@@ -268,13 +266,13 @@ internal class ClubService : IClubService
         {
             var activeUserIds = await _unitOfWork.Participations.GetActiveParticipantUserIdsByClubAsync(clubID);
             if (activeUserIds.Count == 0)
-                return new PaginationResult<IEnumerable<UserResponse>>([], 0, currentPage, pageSize);
+                return new PaginationResult<IEnumerable<GetParticipantsResponse>>([], 0, currentPage, pageSize);
 
             var users = (await GetUsersByIds(activeUserIds)).ToList();
             var filteredUsers = ApplyParticipationUserFilters(users, searchRequest).ToList();
 
             if (filteredUsers.Count == 0)
-                return new PaginationResult<IEnumerable<UserResponse>>([], 0, currentPage, pageSize);
+                return new PaginationResult<IEnumerable<GetParticipantsResponse>>([], 0, currentPage, pageSize);
 
             filteredUserIds = filteredUsers
                 .Select(x => x.UserId)
@@ -292,7 +290,7 @@ internal class ClubService : IClubService
             filteredUserIds);
 
         if (totalRecords == 0)
-            return new PaginationResult<IEnumerable<UserResponse>>([], 0, currentPage, pageSize);
+            return new PaginationResult<IEnumerable<GetParticipantsResponse>>([], 0, currentPage, pageSize);
 
         var participationList = participations.ToList();
         var pageUserIds = participationList
@@ -328,12 +326,23 @@ internal class ClubService : IClubService
                     ImageUrl = string.Empty
                 };
 
-                return user with { JoinDate = p.JoinDate };
+                return new GetParticipantsResponse
+                {
+                    UserId = user.UserId,
+                    Username = user.Username,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    Email = user.Email,
+                    DateOfBirth = user.DateOfBirth,
+                    ImageUrl = user.ImageUrl,
+                    Gender = user.Gender,
+                    JoinDate = p.JoinDate
+                };
             })
             .OrderByDescending(u => u.JoinDate)
             .ToList();
 
-        return new PaginationResult<IEnumerable<UserResponse>>(data, totalRecords, currentPage, pageSize);
+        return new PaginationResult<IEnumerable<GetParticipantsResponse>>(data, totalRecords, currentPage, pageSize);
     }
 
     private async Task<IEnumerable<UserResponse>> GetUsersByIds(IEnumerable<Guid> userIds)
