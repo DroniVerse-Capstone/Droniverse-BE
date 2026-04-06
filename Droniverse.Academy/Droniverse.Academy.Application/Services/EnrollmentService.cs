@@ -31,7 +31,8 @@ public class EnrollmentService : IEnrollmentService
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
-        if (await _unitOfWork.CourseVersions.GetByIdAsync(request.CourseVersionID) == null)
+        var courseVersion = await _unitOfWork.CourseVersions.GetByIdAsync(request.CourseVersionID);
+        if (courseVersion == null)
             throw new BaseException("Không tìm thấy phiên bản khóa học.", "NOT_FOUND");
 
         var userId = _currentUser.UserId;
@@ -44,6 +45,7 @@ public class EnrollmentService : IEnrollmentService
 
         var enrollment = _mapper.Map<Enrollment>(request);
         enrollment.EnrollmentID = Guid.NewGuid();
+        enrollment.CourseID = courseVersion.CourseID;
         enrollment.UserID = userId;
         enrollment.EnrollDate = _clock.Now;
         enrollment.LastAccessDate = _clock.Now;

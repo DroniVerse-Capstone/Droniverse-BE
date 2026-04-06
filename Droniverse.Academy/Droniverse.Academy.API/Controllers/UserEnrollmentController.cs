@@ -1,10 +1,12 @@
 ﻿using Droniverse.Academy.API.Enums;
 using Droniverse.Academy.API.Examples;
 using Droniverse.Academy.Application.DTO.Request;
+using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
+using Droniverse.Shared.DTOs.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Filters;
@@ -36,7 +38,7 @@ public class UserEnrollmentController : ControllerBase
         try
         {
             var created = await _service.CreateEnrollmentAsync(request);
-            return StatusCode(201, SuccessResponse<object>.Create(created, "Tạo enrollment thành công."));
+            return StatusCode(201, SuccessResponse<EnrollmentResponseDTO>.Create(created, "Tạo enrollment thành công."));
         }
         catch (Exception ex)
         {
@@ -60,7 +62,7 @@ public class UserEnrollmentController : ControllerBase
         try
         {
             var result = await _service.GetMyEnrollmentsAsync(pageIndex, pageSize, MapEnrollmentStatus(status));
-            return Ok(SuccessResponse<object>.Create(result, "Lấy danh sách enrollment thành công."));
+            return Ok(SuccessResponse<PaginationResult<IEnumerable<EnrollmentResponseDTO>>>.Create(result, "Lấy danh sách enrollment thành công."));
         }
         catch (Exception ex)
         {
@@ -79,7 +81,7 @@ public class UserEnrollmentController : ControllerBase
         try
         {
             var result = await _service.GetMyEnrollmentByIdAsync(enrollmentId);
-            return Ok(SuccessResponse<object>.Create(result, "Lấy chi tiết enrollment thành công."));
+            return Ok(SuccessResponse<EnrollmentResponseDTO>.Create(result, "Lấy chi tiết enrollment thành công."));
         }
         catch (Exception ex)
         {
@@ -100,7 +102,7 @@ public class UserEnrollmentController : ControllerBase
         try
         {
             var updated = await _service.UpdateMyEnrollmentAsync(enrollmentId, request);
-            return Ok(SuccessResponse<object>.Create(updated, "Cập nhật enrollment thành công."));
+            return Ok(SuccessResponse<EnrollmentResponseDTO>.Create(updated, "Cập nhật enrollment thành công."));
         }
         catch (Exception ex)
         {
