@@ -2,6 +2,7 @@
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Domain.Entities;
+using Droniverse.Academy.Domain.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -45,6 +46,9 @@ namespace Droniverse.Academy.Application.Mapper
                 .ForMember(dest => dest.RequiredDrones, opt => opt.Ignore())
                 .ForMember(dest => dest.Enrollments, opt => opt.Ignore())
                 .ForMember(dest => dest.Certificate, opt => opt.Ignore());
+
+            CreateMap<CourseOverviewData, CourseOverviewResponseDTO>()
+                .ForMember(dest => dest.Price, opt => opt.MapFrom(_ => (decimal?)null));
         }
     }
 }
