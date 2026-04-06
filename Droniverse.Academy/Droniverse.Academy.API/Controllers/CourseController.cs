@@ -2,11 +2,13 @@
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.API.Enums;
+using Droniverse.Academy.API.Examples;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.DTOs.Request;
+using Swashbuckle.AspNetCore.Filters;
 
 namespace Droniverse.Academy.API.Controllers
 {
@@ -29,14 +31,17 @@ namespace Droniverse.Academy.API.Controllers
         /// <returns>Thông tin khóa học vừa được tạo.</returns>
         // POST academy/courses
         [HttpPost]
-        [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(SuccessResponse<CourseDetailResponseDTO>), StatusCodes.Status201Created)]
         public async Task<IActionResult> CreateCourse()
         {
             // Vì yêu cầu chỉ cần tạo mới khóa học với trạng thái mặc định là DRAFT và không cần input gì thêm, nên API này sẽ không nhận body nào cả.
             try
             {
                 var created = await _courseService.CreateCourseAsync();
-                return CreatedAtAction(nameof(GetCourseById), new { courseId = created.CourseID }, SuccessResponse<object>.Create(created, "Tạo course thành công."));
+                return CreatedAtAction(
+                    nameof(GetCourseById),
+                    new { courseId = created.CourseID },
+                    SuccessResponse<CourseDetailResponseDTO>.Create(created, "Tạo course thành công."));
             }
             catch (Exception ex)
             {
@@ -53,8 +58,9 @@ namespace Droniverse.Academy.API.Controllers
         /// <returns>Danh sách khóa học tương ứng với các ID được gửi lên.</returns>
         // POST academy/courses/by-ids
         [HttpPost("by-ids")]
-        //[SwaggerRequestExample(typeof(GetCoursesByIdsRequestDTO), typeof(GetCoursesByIdsExample))]
-        [ProducesResponseType(typeof(IEnumerable<CourseBulkResponseDTO>), StatusCodes.Status200OK)]
+        [SwaggerRequestExample(typeof(GetCoursesByIdsRequestDTO), typeof(GetCoursesByIdsExample))]
+        [SwaggerResponseExample(StatusCodes.Status200OK, typeof(CoursesByIdsSuccessResponseExample))]
+        [ProducesResponseType(typeof(SuccessResponse<PagedCourseBulkResponse>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetCoursesByIds(
             [FromQuery] CourseBulkSearchRequest searchRequest,
             [FromBody] GetCoursesByIdsRequestDTO request)
@@ -62,7 +68,7 @@ namespace Droniverse.Academy.API.Controllers
             try
             {
                 var result = await _courseService.GetCoursesByIdsAsync(searchRequest, request.CourseIds);
-                return Ok(result);
+                return Ok(SuccessResponse<PagedCourseBulkResponse>.Create(result, "Lấy danh sách course theo id thành công."));
             }
             catch (Exception ex)
             {
@@ -79,8 +85,8 @@ namespace Droniverse.Academy.API.Controllers
         /// <returns>Danh sách khóa học hot theo trang hiện tại.</returns>
         // POST academy/courses/by-ids/hot
         [HttpPost("by-ids/hot")]
-        //[SwaggerRequestExample(typeof(GetCoursesByIdsRequestDTO), typeof(GetCoursesByIdsExample))]
-        [ProducesResponseType(typeof(PagedCourseBulkResponse), StatusCodes.Status200OK)]
+        [SwaggerRequestExample(typeof(GetCoursesByIdsRequestDTO), typeof(GetCoursesByIdsExample))]
+        [ProducesResponseType(typeof(SuccessResponse<PagedCourseBulkResponse>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetHotCoursesByIds(
             [FromQuery] HotCoursesSearchRequest searchRequest,
             [FromBody] GetCoursesByIdsRequestDTO request)
@@ -88,7 +94,7 @@ namespace Droniverse.Academy.API.Controllers
             try
             {
                 var result = await _courseService.GetHotCoursesByIdsAsync(searchRequest, request.CourseIds);
-                return Ok(result);
+                return Ok(SuccessResponse<PagedCourseBulkResponse>.Create(result, "Lấy danh sách khóa học hot theo id thành công."));
             }
             catch (Exception ex)
             {
@@ -102,12 +108,14 @@ namespace Droniverse.Academy.API.Controllers
         /// </summary>
         // GET academy/courses/{courseId}
         [HttpGet("{courseId:guid}")]
+        [SwaggerResponseExample(StatusCodes.Status200OK, typeof(CourseDetailSuccessResponseExample))]
+        [ProducesResponseType(typeof(SuccessResponse<CourseResponseDTO>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetCourseById(Guid courseId)
         {
             try
             {
                 var course = await _courseService.GetCourseByIdAsync(courseId);
-                return Ok(SuccessResponse<object>.Create(course, "Lấy chi tiết course thành công."));
+                return Ok(SuccessResponse<CourseResponseDTO>.Create(course, "Lấy chi tiết course thành công."));
             }
             catch (Exception ex)
             {
@@ -121,13 +129,14 @@ namespace Droniverse.Academy.API.Controllers
         /// </summary>
         // GET academy/courses/{courseVersionId}/overview
         [HttpGet("{courseVersionId:guid}/overview")]
-        [ProducesResponseType(typeof(CourseOverviewResponseDTO), StatusCodes.Status200OK)]
+        [SwaggerResponseExample(StatusCodes.Status200OK, typeof(CourseOverviewSuccessResponseExample))]
+        [ProducesResponseType(typeof(SuccessResponse<CourseOverviewResponseDTO>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetCourseOverview(Guid courseVersionId, CancellationToken cancellationToken)
         {
             try
             {
                 var overview = await _courseService.GetCourseOverviewAsync(courseVersionId, cancellationToken);
-                return Ok(overview);
+                return Ok(SuccessResponse<CourseOverviewResponseDTO>.Create(overview, "Lấy tổng quan khóa học thành công."));
             }
             catch (Exception ex)
             {
@@ -141,12 +150,13 @@ namespace Droniverse.Academy.API.Controllers
         /// </summary>
         // GET academy/courses?pageIndex=1&pageSize=10&search=...&status=All|Draft|Publish|Unpublish|Archived
         [HttpGet]
+        [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<CourseResponseDTO>>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAllCourses([FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 10, [FromQuery] string? search = null, [FromQuery] CourseStatusFilter status = CourseStatusFilter.All)
         {
             try
             {
                 var result = await _courseService.GetAllCoursesAsync(pageIndex, pageSize, search, MapToCourseStatus(status));
-                return Ok(SuccessResponse<object>.Create(result, "Lấy danh sách course thành công."));
+                return Ok(SuccessResponse<PaginationResult<IEnumerable<CourseResponseDTO>>>.Create(result, "Lấy danh sách course thành công."));
             }
             catch (Exception ex)
             {
@@ -161,13 +171,13 @@ namespace Droniverse.Academy.API.Controllers
         /// <param name="courseId">Mã khóa học cần xuất bản.</param>
         // POST academy/courses/{courseId}/publish
         [HttpPost("{courseId}/publish")]
-        [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(SuccessResponse<string>), StatusCodes.Status200OK)]
         public async Task<IActionResult> PublishCourse(Guid courseId)
         {
             try
             {
                 await _courseService.PublishCourseAsync(courseId);
-                return Ok(SuccessResponse<object>.Create(null!, "Xuất bản khóa học thành công."));
+                return Ok(SuccessResponse<string>.Create(string.Empty, "Xuất bản khóa học thành công."));
             }
             catch (Exception ex)
             {
@@ -182,13 +192,13 @@ namespace Droniverse.Academy.API.Controllers
         /// <param name="courseId">Mã khóa học cần hủy xuất bản.</param>
         // POST academy/courses/{courseId}/unpublish
         [HttpPost("{courseId}/unpublish")]
-        [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(SuccessResponse<string>), StatusCodes.Status200OK)]
         public async Task<IActionResult> UnpublishCourse(Guid courseId)
         {
             try
             {
                 await _courseService.UnpublishCourseAsync(courseId);
-                return Ok(SuccessResponse<object>.Create(null!, "Hủy xuất bản khóa học thành công."));
+                return Ok(SuccessResponse<string>.Create(string.Empty, "Hủy xuất bản khóa học thành công."));
             }
             catch (Exception ex)
             {
@@ -202,12 +212,13 @@ namespace Droniverse.Academy.API.Controllers
         /// </summary>
         // DELETE academy/courses/{courseId}
         [HttpDelete("{courseId}")]
+        [ProducesResponseType(typeof(SuccessResponse<string>), StatusCodes.Status200OK)]
         public async Task<IActionResult> DeleteCourse(Guid courseId)
         {
             try
             {
                 await _courseService.DeleteCourseAsync(courseId);
-                return Ok(SuccessResponse<object>.Create(null!, "Xóa course thành công."));
+                return Ok(SuccessResponse<string>.Create(string.Empty, "Xóa course thành công."));
             }
             catch (Exception ex)
             {

@@ -16,6 +16,9 @@ public class EnrollmentConfiguration : IEntityTypeConfiguration<Enrollment>
             .HasColumnType("char(36)");
 
         // Foreign Keys
+        builder.Property(e => e.CourseID)
+            .HasColumnType("char(36)")
+            .IsRequired();
         builder.Property(e => e.CourseVersionID)
             .HasColumnType("char(36)")
             .IsRequired();
@@ -42,6 +45,11 @@ public class EnrollmentConfiguration : IEntityTypeConfiguration<Enrollment>
             .IsRequired();
 
         // Relationships
+        builder.HasOne(e => e.Course)
+            .WithMany()
+            .HasForeignKey(e => e.CourseID)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasOne(e => e.CourseVersion)
             .WithMany(cv => cv.Enrollments)
             .HasForeignKey(e => e.CourseVersionID)

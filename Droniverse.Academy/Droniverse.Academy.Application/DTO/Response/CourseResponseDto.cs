@@ -10,4 +10,5 @@ public class CourseResponseDTO
     public DateTime CreateAt { get; set; }
     public CourseStatus Status { get; set; }
     public CourseVersionResponseDTO? CurrentVersion { get; set; }
+    public ProductMiniResponseDTO? MiniProduct { get; set; }
 }

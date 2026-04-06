@@ -6,6 +6,7 @@ using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
+using Droniverse.Shared.DTOs.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Filters;
@@ -48,7 +49,7 @@ public class AdminEnrollmentController : ControllerBase
         try
         {
             var result = await _service.GetEnrollmentsAsync(pageIndex, pageSize, userId, courseVersionId, MapEnrollmentStatus(status));
-            return Ok(SuccessResponse<object>.Create(result, "Lấy danh sách enrollment thành công."));
+            return Ok(SuccessResponse<PaginationResult<IEnumerable<EnrollmentResponseDTO>>>.Create(result, "Lấy danh sách enrollment thành công."));
         }
         catch (Exception ex)
         {

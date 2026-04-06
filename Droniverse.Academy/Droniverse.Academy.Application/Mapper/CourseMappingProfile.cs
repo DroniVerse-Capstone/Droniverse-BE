@@ -8,6 +8,7 @@ public class CourseMappingProfile : Profile
 {
     public CourseMappingProfile()
     {
+        CreateMap<ProductMiniResponseDTO, ProductMiniResponseDTO>();
 
         CreateMap<Course, CourseResponseDTO>()
             .ForMember(dest => dest.CurrentVersion,

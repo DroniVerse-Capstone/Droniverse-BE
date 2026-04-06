@@ -1,10 +1,12 @@
 ﻿using Droniverse.Academy.API.Enums;
 using Droniverse.Academy.API.Examples;
 using Droniverse.Academy.Application.DTO.Request;
+using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
+using Droniverse.Shared.DTOs.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Filters;
@@ -36,7 +38,7 @@ public class UserEnrollmentController : ControllerBase
         try
         {
             var created = await _service.CreateEnrollmentAsync(request);
-            return StatusCode(201, SuccessResponse<object>.Create(created, "Tạo enrollment thành công."));
+            return StatusCode(201, SuccessResponse<EnrollmentResponseDTO>.Create(created, "Tạo enrollment thành công."));
         }
         catch (Exception ex)
         {
@@ -60,7 +62,7 @@ public class UserEnrollmentController : ControllerBase
         try
         {
             var result = await _service.GetMyEnrollmentsAsync(pageIndex, pageSize, MapEnrollmentStatus(status));
-            return Ok(SuccessResponse<object>.Create(result, "Lấy danh sách enrollment thành công."));
+            return Ok(SuccessResponse<PaginationResult<IEnumerable<EnrollmentResponseDTO>>>.Create(result, "Lấy danh sách enrollment thành công."));
         }
         catch (Exception ex)
         {
@@ -79,7 +81,7 @@ public class UserEnrollmentController : ControllerBase
         try
         {
             var result = await _service.GetMyEnrollmentByIdAsync(enrollmentId);
-            return Ok(SuccessResponse<object>.Create(result, "Lấy chi tiết enrollment thành công."));
+            return Ok(SuccessResponse<EnrollmentResponseDTO>.Create(result, "Lấy chi tiết enrollment thành công."));
         }
         catch (Exception ex)
         {
@@ -93,18 +95,56 @@ public class UserEnrollmentController : ControllerBase
     /// </summary>
     /// <param name="enrollmentId">Mã enrollment.</param>
     /// <param name="request">Thông tin enrollment cần cập nhật.</param>
-    [HttpPut("{enrollmentId:guid}")]
+    [HttpPatch("{enrollmentId:guid}")]
     [SwaggerRequestExample(typeof(UpdateEnrollmentRequestDTO), typeof(UpdateEnrollmentRequestExample))]
     public async Task<IActionResult> UpdateMyEnrollment(Guid enrollmentId, [FromBody] UpdateEnrollmentRequestDTO request)
     {
         try
         {
             var updated = await _service.UpdateMyEnrollmentAsync(enrollmentId, request);
-            return Ok(SuccessResponse<object>.Create(updated, "Cập nhật enrollment thành công."));
+            return Ok(SuccessResponse<EnrollmentResponseDTO>.Create(updated, "Cập nhật enrollment thành công."));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Cập nhật enrollment thất bại.");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Lấy learning path của enrollment hiện tại.
+    /// </summary>
+    /// <param name="enrollmentId">Mã enrollment.</param>
+    [HttpGet("{enrollmentId:guid}/learning-path")]
+    public async Task<IActionResult> GetMyLearningPath(Guid enrollmentId)
+    {
+        try
+        {
+            var result = await _service.GetMyLearningPathAsync(enrollmentId);
+            return Ok(SuccessResponse<EnrollmentLearningPathResponseDTO>.Create(result, "Lấy learning path thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lấy learning path thất bại.");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Lấy bài học tiếp theo của enrollment hiện tại.
+    /// </summary>
+    /// <param name="enrollmentId">Mã enrollment.</param>
+    [HttpGet("{enrollmentId:guid}/next")]
+    public async Task<IActionResult> GetMyNextLesson(Guid enrollmentId)
+    {
+        try
+        {
+            var result = await _service.GetMyNextLessonAsync(enrollmentId);
+            return Ok(SuccessResponse<EnrollmentNextLessonResponseDTO?>.Create(result, "Lấy bài học tiếp theo thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lấy bài học tiếp theo thất bại.");
             throw;
         }
     }

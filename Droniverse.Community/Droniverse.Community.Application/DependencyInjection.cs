@@ -33,6 +33,7 @@ public static class DependencyInjection
         services.AddScoped<IProductService, ProductService>();
         services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<IPaymentService, PaymentService>();
+        services.AddScoped<IClubCourseService, ClubCourseService>();
         services.AddScoped<IProductCategoryService, ProductCategoryService>();
         services.AddScoped<ICompetitionState, DraftState>();
         services.AddScoped<ICompetitionState, PublishedState>();
