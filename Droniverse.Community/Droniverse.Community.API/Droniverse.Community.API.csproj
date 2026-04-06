@@ -22,7 +22,7 @@
 		</PackageReference>
 		<PackageReference Include="Swashbuckle.AspNetCore.Filters" Version="7.0.5" />
 		<ProjectReference Include="..\..\Droniverse.Shared\Droniverse.Shared.csproj" />
-		
+
 		<ProjectReference Include="..\Droniverse.Community.Application\Droniverse.Community.Application.csproj" />
 		<ProjectReference Include="..\Droniverse.Community.Infrastructure\Droniverse.Community.Infrastructure.csproj" />
 	</ItemGroup>

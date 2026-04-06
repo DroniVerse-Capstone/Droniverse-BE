@@ -83,7 +83,6 @@ public class IdentityMicroserviceClient
         if (user == null)
         {
             throw new ArgumentException("Invalid userID");
-
         }
 
         //Write to cache
@@ -105,7 +104,7 @@ public class IdentityMicroserviceClient
             .Distinct()
             .ToList();
 
-        if (!distinctIds.Any()) 
+        if (!distinctIds.Any())
             return [];
 
         var userDict = new Dictionary<Guid, UserResponse>();
@@ -154,7 +153,7 @@ public class IdentityMicroserviceClient
                     BuildIdentityPath("users/bulk"),
                     //"/identity/users/bulk",
                     missingIds
-                ); 
+                );
 
                 if (!response.IsSuccessStatusCode)
                 {

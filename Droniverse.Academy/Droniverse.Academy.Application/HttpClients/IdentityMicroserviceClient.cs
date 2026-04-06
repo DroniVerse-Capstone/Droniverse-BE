@@ -14,6 +14,7 @@ namespace Droniverse.Academy.Application.HttpClients
         private readonly HttpClient _httpClient;
         private readonly ILogger<IdentityMicroserviceClient> _logger;
         private readonly IDistributedCache _distributedCache; //Redis Cache
+
         public IdentityMicroserviceClient(
             HttpClient httpClient,
             ILogger<IdentityMicroserviceClient> logger,
