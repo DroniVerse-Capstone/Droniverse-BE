@@ -64,14 +64,10 @@ public class CodeService : ICodeService
         {
             await _unitOfWork.Codes.AddAsync(code);
         }
-
-        //Code addedCode = await _unitOfWork.Codes.AddAsync(code);
         await _unitOfWork.SaveChangesAsync();
 
-        //CodeResponseDTO response = _mapper.Map<CodeResponseDTO>(addedCode);
         IEnumerable<string> listCodeIds = codes.Select(c => c.CodeID).ToList();
         return listCodeIds;
-
     }
 
     private string GenerateCodeId(string courseName)
