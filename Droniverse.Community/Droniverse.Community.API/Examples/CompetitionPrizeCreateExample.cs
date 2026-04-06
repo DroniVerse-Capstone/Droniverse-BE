@@ -12,7 +12,6 @@ namespace Droniverse.Community.API.Examples
                 "First Prize - Money",
                 new CompetitionPrizeCreateDto
                 {
-                    CompetitionID = Guid.Parse("34a07e1f-b6b9-445b-8ff5-1237c29acd88"),
                     TitleVN = "Giải Nhất",
                     TitleEN = "First Prize",
                     DescriptionVN = "Giải thưởng dành cho thí sinh đạt hạng 1 với phần thưởng tiền mặt.",
@@ -28,7 +27,6 @@ namespace Droniverse.Community.API.Examples
                 "Second Prize - Gift",
                 new CompetitionPrizeCreateDto
                 {
-                    CompetitionID = Guid.Parse("34a07e1f-b6b9-445b-8ff5-1237c29acd88"),
                     TitleVN = "Giải Nhì",
                     TitleEN = "Second Prize",
                     DescriptionVN = "Giải thưởng dành cho thí sinh đạt hạng 2 với phần quà là laptop.",

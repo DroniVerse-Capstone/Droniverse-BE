@@ -26,38 +26,19 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
-        /// Tạo giải thưởng cho cuộc thi
-        /// </summary>
-        /// <param name="request">Thông tin giải thưởng</param>
-        /// <returns>201 Created - Tạo giải thưởng thành công</returns>
-        [HttpPost]
-        [ProducesResponseType(typeof(SuccessResponse<CompetitionPrizeResponseDto>), StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [SwaggerRequestExample(typeof(CompetitionPrizeCreateDto), typeof(CompetitionPrizeCreateExample))]
-        [Authorize(Roles = Roles.AdminOrManagerRoles)]
-        public async Task<ApiResponse> CreatePrize([FromBody] CompetitionPrizeCreateDto request)
-        {
-            var prize = await _competitionPrizeService.CreatePrize(request);
-            return SuccessResponse<CompetitionPrizeResponseDto>.Create(
-                prize,
-                "Tạo giải thưởng thành công!"
-            );
-        }
-
-        /// <summary>
         /// Cập nhật thông tin giải thưởng
         /// </summary>
-        /// <param name="id">ID của giải thưởng</param>
+        /// <param name="competitionPrizeId">ID của giải thưởng</param>
         /// <param name="request">Thông tin cập nhật</param>
         /// <returns>200 OK - Cập nhật thành công</returns>
-        [HttpPut("{id}")]
+        [HttpPut("{competitionPrizeId}")]
         [ProducesResponseType(typeof(SuccessResponse<CompetitionPrizeResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [SwaggerRequestExample(typeof(CompetitionPrizeUpdateDto), typeof(CompetitionPrizeUpdateExample))]
         [Authorize(Roles = Roles.AdminOrManagerRoles)]
-        public async Task<ApiResponse> UpdatePrize(Guid id, [FromBody] CompetitionPrizeUpdateDto request)
+        public async Task<ApiResponse> UpdatePrize(Guid competitionPrizeId, [FromBody] CompetitionPrizeUpdateDto request)
         {
-            var prize = await _competitionPrizeService.UpdatePrize(id, request);
+            var prize = await _competitionPrizeService.UpdatePrize(competitionPrizeId, request);
             return SuccessResponse<CompetitionPrizeResponseDto>.Create(
                 prize,
                 "Cập nhật giải thưởng thành công!"
@@ -67,20 +48,18 @@ namespace Droniverse.Community.API.Controllers
         /// <summary>
         /// Xóa giải thưởng
         /// </summary>
-        /// <param name="id">ID của giải thưởng</param>
+        /// <param name="competitionPrizeId">ID của giải thưởng</param>
         /// <returns>200 OK - Xóa thành công</returns>
-        [HttpDelete("{id}")]
-        [ProducesResponseType(typeof(SuccessResponse<string>), StatusCodes.Status200OK)]
+        [HttpDelete("{competitionPrizeId}")]
+        [ProducesResponseType(typeof(SuccessResponse<DeletePrizeResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [Authorize(Roles = Roles.AdminOrManagerRoles)]
-        public async Task<ApiResponse> DeletePrize(Guid id)
+        public async Task<ApiResponse> DeletePrize(Guid competitionPrizeId)
         {
-            var result = await _competitionPrizeService.DeletePrize(id);
-            if (!result)
-                return ErrorResponse.Create("Xóa giải thưởng thất bại!", "ERR_PRIZE_DELETE");
+            var result = await _competitionPrizeService.DeletePrize(competitionPrizeId);
 
-            return SuccessResponse<string>.Create(
-                null,
+            return SuccessResponse<DeletePrizeResponse>.Create(
+                result,
                 "Xóa giải thưởng thành công!"
             );
         }

@@ -20,13 +20,13 @@ public class CurrentUserService : ICurrentUserService
         get
         {
             if (!IsAuthenticated)
-                throw new UnauthorizedAccessException("User is not authenticated");
+                throw new UnauthorizedAccessException("Người dùng chưa được xác thực");
 
             if (string.IsNullOrWhiteSpace(UserID))
-                throw new UnauthorizedAccessException("UserID claim not found");
+                throw new UnauthorizedAccessException("Không tìm thấy thông tin UserID trong token");
 
             if (!Guid.TryParse(UserID, out var userId))
-                throw new UnauthorizedAccessException("Invalid UserID claim format");
+                throw new UnauthorizedAccessException("Định dạng UserID không hợp lệ");
 
             return userId;
         }
@@ -44,9 +44,4 @@ public class CurrentUserService : ICurrentUserService
     public bool IsAuthenticated => _httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated ?? false;
 
     public ClaimsPrincipal User => _httpContextAccessor.HttpContext?.User ?? new ClaimsPrincipal();
-
-    public string GetCurrentUserId ()
-    {
-        return UserID ?? throw new UnauthorizedAccessException("Người dùng chưa được xác thực.");
-    }
 }

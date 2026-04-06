@@ -1,11 +1,5 @@
 ﻿using Droniverse.Community.Domain.Entities;
-using Droniverse.Community.Domain.Entities;
-using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.Enums;
-using Droniverse.Community.Domain.Enums;
-using Droniverse.Community.Domain.Enums;
-using MongoDB.Driver.Linq;
-
 public class UserRound
 {
     public Guid UserRoundID { get; private set; }
@@ -27,8 +21,14 @@ public class UserRound
     public UserRoundStatus Status { get; private set; }
     public DateTime? SubmittedAt { get; private set; }
     public DateTime StartedAt { get; private set; }
+    public int? Rank { get; private set; }
     private UserRound() { }
     public DateTime GetDeadline(TimeSpan duration) => StartedAt + duration;
+    public int GetRemainingSeconds(TimeSpan t, DateTime now)
+    {
+        var remaining = (GetDeadline(t) - now).TotalSeconds;
+        return remaining > 0 ? (int)remaining : 0;
+    }
     /// <summary>
     /// Khởi tạo record user tham gia vòng thi
     /// </summary>
@@ -48,6 +48,37 @@ public class UserRound
         ValidateSubmit();
         Solution = solution;
         SubmittedAt = now;
+    }
+
+    public DateTime GetEffectiveSubmittedAt(TimeSpan t, DateTime now)
+    {
+        var deadline = GetDeadline(t);
+        return now > deadline ? deadline : now;
+    }
+
+    public void Complete(
+        string solution,
+        TimeSpan executionTime,
+        int steps,
+        decimal point,
+        bool isPassed,
+        bool isSequentialCheckpoints,
+        TimeSpan t,
+        DateTime now,
+        string? feedbackVN = null,
+        string? feedbackEN = null)
+    {
+        ValidateComplete();
+        Solution = solution;
+        ExecutionTime = executionTime;
+        NumberOfSteps = steps;
+        Point = point;
+        IsPassed = isPassed;
+        IsSequentialCheckpoints = isSequentialCheckpoints;
+        FeedbackVN = feedbackVN;
+        FeedbackEN = feedbackEN;
+        Status = UserRoundStatus.Completed;
+        SubmittedAt = GetEffectiveSubmittedAt(t, now);
     }
 
     public void Complete(
@@ -75,6 +106,14 @@ public class UserRound
         ValidateDisqualify();
         Status = UserRoundStatus.Disqualified;
         SubmittedAt = now;
+    }
+
+    public void SetRank(int rank)
+    {
+        if (rank <= 0)
+            throw new InvalidOperationException("Thứ hạng phải lớn hơn 0.");
+
+        Rank = rank;
     }
 
     #endregion

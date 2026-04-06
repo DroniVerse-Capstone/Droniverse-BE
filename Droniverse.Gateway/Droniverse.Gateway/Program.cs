@@ -130,6 +130,8 @@ if (app.Environment.IsDevelopment())
         }
     });
 
+
+
     app.UseSwaggerForOcelotUI(opt =>
     {
         opt.PathToSwaggerGenerator = "/swagger/docs";

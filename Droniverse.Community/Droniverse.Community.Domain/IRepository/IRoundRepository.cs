@@ -11,5 +11,9 @@ public interface IRoundRepository : IRepository<Round>
     Task<IEnumerable<RoundQueryModel>> GetRoundsByCompetitionID(Guid competitionID);
 
     Task<RoundQueryModel?> GetCurrentRoundByCompetitionID(Guid competitionID);
+
+    Task<Round?> GetRoundForJoinById(Guid roundID);
+
+    Task<Round?> GetPreviousRoundByCompetition(Guid competitionID, int currentRoundNumber);
 }
 

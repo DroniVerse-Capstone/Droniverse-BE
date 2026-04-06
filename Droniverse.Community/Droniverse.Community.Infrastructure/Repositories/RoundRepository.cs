@@ -95,5 +95,25 @@ internal class RoundRepository : MySqlRepository<Round>, IRoundRepository
             })
             .FirstOrDefaultAsync();
     }
+
+    public async Task<Round?> GetRoundForJoinById(Guid roundID)
+    {
+        return await _context.Rounds
+            .AsNoTracking()
+            .Include(r => r.Competition)
+            .FirstOrDefaultAsync(r => r.RoundID == roundID);
+    }
+
+    public async Task<Round?> GetPreviousRoundByCompetition(Guid competitionID, int currentRoundNumber)
+    {
+        if (currentRoundNumber <= 1)
+            return null;
+
+        var previousRoundNumber = currentRoundNumber - 1;
+
+        return await _context.Rounds
+            .AsNoTracking()
+            .FirstOrDefaultAsync(r => r.CompetitionID == competitionID && r.RoundNumber == previousRoundNumber);
+    }
 }
 

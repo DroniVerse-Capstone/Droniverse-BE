@@ -158,17 +158,13 @@ internal class UserService : IUserService
         return await _unitOfWork.Accounts.GetUsersByIdsAsync(userIds);
     }
 
-    public async Task<IEnumerable<SimpleUserReponse>> GetUsersByUserInfo(UserInfoSearchRequest request)
+    public async Task<IEnumerable<Guid>> GetUsersByUserInfo(UserInfoSearchRequest request)
     {
-        var currentPage = request?.CurrentPage > 0 ? request.CurrentPage : 1;
-        var pageSize = request?.PageSize > 0 ? request.PageSize : 5;
         var sortDirection = request?.SortDirection ?? SortDirection.Asc;
-        var users = await _unitOfWork.Accounts.GetUsersByUserInfoAsync(
+        var userIds = await _unitOfWork.Accounts.GetUsersByUserInfoAsync(
             request?.SearchName,
-            sortDirection,
-            currentPage,
-            pageSize);
+            sortDirection);
 
-        return users;
+        return userIds;
     }
 }

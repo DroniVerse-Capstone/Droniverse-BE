@@ -47,6 +47,8 @@ public class UserRoundConfiguration : IEntityTypeConfiguration<UserRound>
         builder.Property(ur => ur.Rating)
             .HasColumnType("int");
 
+        builder.Property(ur => ur.Rank).HasColumnType("int");
+
         builder.Property(ur => ur.Point)
             .HasColumnType("decimal(18,2)");
 

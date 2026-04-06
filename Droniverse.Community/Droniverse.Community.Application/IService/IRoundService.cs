@@ -12,6 +12,12 @@ namespace Droniverse.Community.Application.IService
         Task<IEnumerable<RoundResponseDto>> GetRoundsByCompetition(Guid competitionId);
         Task<RoundResponseDto> StartRound(Guid id);
         Task<RoundResponseDto> FinishRound(Guid id);
+        Task<RoundJoinResponse> JoinRound(Guid id);
+        /// <summary>
+        /// Lấy danh sách người tham gia của vòng thi theo điều kiện tìm kiếm và phân trang.
+        /// </summary>
+        Task<PaginationResult<RoundParticipantsResponse>> GetRoundParticipants(Guid roundId, RoundParticipantsSearchRequest request);
         Task<PaginationResult<RoundLeaderBoardResponse>> GetRoundLeaderboard(Guid roundId, RoundLeaderboardSearchRequest request);
+        Task<RoundLeaderBoardResponse> CalculateRoundLeaderboard(Guid roundId);
     }
 }

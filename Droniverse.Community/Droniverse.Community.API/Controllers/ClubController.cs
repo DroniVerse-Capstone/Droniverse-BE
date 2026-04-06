@@ -3,16 +3,18 @@ using Droniverse.Community.Application.DTO.Extensions;
 using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.IService;
+using Droniverse.Community.Application.Services;
+using Droniverse.Community.Domain.Enums;
+using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
+using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Extensions;
 using Droniverse.Shared.Services;
-using Droniverse.Shared.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Filters;
 using System.ComponentModel;
-using Droniverse.Shared.DTOs.Request;
 
 namespace Droniverse.Community.API.Controllers
 {
@@ -28,11 +30,13 @@ namespace Droniverse.Community.API.Controllers
     {
         private readonly IClubService _clubService;
         private readonly ICloudinaryService _cloudinaryService;
+        private readonly ICompetitionService _competitionService;
 
-        public ClubController(IClubService clubService, ICloudinaryService cloudinaryService)
+        public ClubController(IClubService clubService, ICloudinaryService cloudinaryService, ICompetitionService competitionService)
         {
             _clubService = clubService;
             _cloudinaryService = cloudinaryService;
+            _competitionService = competitionService;
         }
 
         /// <summary>
@@ -123,6 +127,26 @@ namespace Droniverse.Community.API.Controllers
             var courses = await _clubService.GetClubCourses(id, searchRequest);
             return SuccessResponse<PaginationResult<IEnumerable<CourseBulkResponseDTO>>>
                 .Create(courses, "Lấy danh khóa học của câu lạc bộ thành công!");
+        }
+
+        /// <summary>
+        /// Lấy danh sách khóa học HOT của một câu lạc bộ theo phân trang.
+        /// </summary>
+        /// <param name="clubId">ID của câu lạc bộ</param>
+        /// <param name="searchRequest">Thông tin phân trang</param>
+        /// <returns>
+        /// 200 OK - Trả về danh sách khóa học HOT theo <see cref="PaginationResult{T}"/>
+        /// 404 NotFound - Nếu không tồn tại câu lạc bộ
+        /// </returns>
+        [HttpGet("{clubId}/courses/hot")]
+        [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<CourseBulkResponseDTO>>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ApiResponse> GetHotCoursesByClub(Guid clubId, [FromQuery] HotCoursesSearchRequest searchRequest)
+        {
+            var courses = await _clubService.GetHotCoursesByClub(clubId, searchRequest);
+            return SuccessResponse<PaginationResult<IEnumerable<CourseBulkResponseDTO>>>.Create(
+                courses,
+                "Lấy danh sách khóa học HOT của câu lạc bộ thành công!");
         }
 
         [HttpPost("upload-temp-image")]
@@ -225,7 +249,7 @@ namespace Droniverse.Community.API.Controllers
         /// |--------|---------------|-------|
         /// | **SUSPENDED (2)** | ADMIN, SYSTEM_MANAGER | Đình chỉ club do vi phạm |
         /// | **INACTIVE (0)** | CLUB_MANAGER (owner) | Tạm ngừng hoạt động |
-        /// | **ARCHIVED (3)** | ADMIN, SYSTEM_MANAGER, CLUB_MANAGER (owner) | Đóng hẳn club |
+        /// | **ARCHIVED (3)** | CLUB_MANAGER (owner) | Đóng hẳn club |
         /// | **ACTIVE (1)** | ADMIN, SYSTEM_MANAGER,CLUB_MANAGER (owner) | Khôi phục club |
         /// 
         /// ### Lưu ý:
@@ -342,90 +366,58 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
-        /// Đình chỉ câu lạc bộ (SUSPENDED) - Deprecated
+        /// Lấy danh sách cuộc thi của một club.
         /// </summary>
-        //[HttpPut("{id}/suspend")]
-        //[ProducesResponseType(typeof(SuccessResponse<ClubResponseDto>), StatusCodes.Status200OK)]
-        //[ProducesResponseType(StatusCodes.Status404NotFound)]
-        //[ProducesResponseType(StatusCodes.Status403Forbidden)]
-        //[Authorize(Roles = Roles.AdminOrSystemManager)]
-        //[Obsolete("Deprecated: Use PUT /clubs/{id}/status instead")]
-        //public async Task<ApiResponse> SuspendClub(Guid id, [FromBody] string? reason)
-        //{
-        //    var club = await _clubService.SuspendClub(id, reason);
-        //    return SuccessResponse<ClubResponseDto>
-        //        .Create(club, $"Đình chỉ câu lạc bộ với ID [{id}] thành công!");
-        //}
+        /// <param name="clubId">ID của club</param>
+        /// <param name="status">
+        /// Trạng thái cuộc thi. Để null để lấy tất cả.
+        /// Giá trị hợp lệ:
+        /// 0-DRAFT,
+        /// 1-PUBLISHED,
+        /// 2-REGISTRATION_OPEN,
+        /// 3-REGISTRATION_CLOSED,
+        /// 4-ONGOING,
+        /// 5-FINISHED,
+        /// 6-RESULT_PUBLISHED,
+        /// 7-CANCELLED,
+        /// 8-INVALID.
+        /// </param>
+        /// <returns>200 OK - Trả về danh sách cuộc thi</returns>
+        [HttpGet("{clubId}/competitions")]
+        [ProducesResponseType(typeof(SuccessResponse<IEnumerable<CompetitionResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ApiResponse> GetCompetitionsByClub(Guid clubId, [FromQuery] CompetitionStatus? status = null)
+        {
+            var competitions = await _competitionService.GetCompetitionsByClub(clubId, status);
+            return SuccessResponse<IEnumerable<CompetitionResponse>>.Create(
+                competitions,
+                "Lấy danh sách cuộc thi của club thành công!"
+            );
+        }
 
         /// <summary>
-        /// Đánh dấu club là INACTIVE - Deprecated
+        /// Lấy danh sách cuộc thi HOT của một club.
         /// </summary>
-        //[HttpPut("{id}/deactivate")]
-        //[ProducesResponseType(typeof(SuccessResponse<ClubResponseDto>), StatusCodes.Status200OK)]
-        //[ProducesResponseType(StatusCodes.Status404NotFound)]
-        //[Authorize(Roles = Roles.ClubManager)]
-        //[Obsolete("Deprecated: Use PUT /clubs/{id}/status instead")]
-        //public async Task<ApiResponse> DeactivateClub(Guid id)
-        //{
-        //    var club = await _clubService.DeactivateClub(id);
-        //    return SuccessResponse<ClubResponseDto>
-        //        .Create(club, $"Tạm ngừng hoạt động câu lạc bộ với ID [{id}] thành công!");
-        //}
+        /// <param name="clubId">ID của club</param>
+        /// <param name="searchRequest">Thông tin phân trang</param>
+        /// <remarks>
+        /// Quy tắc HOT đơn giản:
+        /// - Ưu tiên competition đang hoạt động (`PUBLISHED`, `REGISTRATION_OPEN`, `REGISTRATION_CLOSED`, `ONGOING`)
+        /// - Tính điểm từ độ phổ biến (participants), độ gần thời gian hiện tại (recency), trạng thái và activity gần đây
+        /// - Sắp xếp theo điểm HOT giảm dần
+        /// </remarks>
+        /// <returns>200 OK - Trả về danh sách competition HOT có phân trang</returns>
+        [HttpGet("{clubId}/competitions/hot")]
+        [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<CompetitionResponse>>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ApiResponse> GetHotCompetitionsByClub(Guid clubId, [FromQuery] HotCompetitionSearchRequest searchRequest)
+        {
+            var competitions = await _competitionService.GetHotCompetitionsByClub(clubId, searchRequest);
+            return SuccessResponse<PaginationResult<IEnumerable<CompetitionResponse>>>.Create(
+                competitions,
+                "Lấy danh sách cuộc thi HOT của club thành công!"
+            );
+        }
 
-        /// <summary>
-        /// Đóng hẳn câu lạc bộ (ARCHIVED) - Deprecated
-        /// </summary>
-        //[HttpPut("{id}/archive")]
-        //[ProducesResponseType(typeof(SuccessResponse<ClubResponseDto>), StatusCodes.Status200OK)]
-        //[ProducesResponseType(StatusCodes.Status404NotFound)]
-        //[ProducesResponseType(StatusCodes.Status403Forbidden)]
-        //[Authorize(Roles = Roles.AdminOrManagerRoles)]
-        //[Obsolete("Deprecated: Use PUT /clubs/{id}/status 대신"]
-        //public async Task<ApiResponse> ArchiveClub(Guid id, [FromBody] string? reason)
-        //{
-        //    var club = await _clubService.ArchiveClub(id, reason);
-        //    return SuccessResponse<ClubResponseDto>
-        //        .Create(club, $"Đóng câu lạc bộ với ID [{id}] thành công!");
-        //}
-
-        ///// <summary>
-        ///// Khôi phục câu lạc bộ về trạng thái ACTIVE - Deprecated
-        ///// </summary>
-        //[HttpPut("{id}/restore")]
-        //[ProducesResponseType(typeof(SuccessResponse<ClubResponseDto>), StatusCodes.Status200OK)]
-        //[ProducesResponseType(StatusCodes.Status404NotFound)]
-        //[ProducesResponseType(StatusCodes.Status400BadRequest)]
-        //[Authorize(Roles = Roles.AdminOrSystemManager)]
-        //public async Task<ApiResponse> RestoreClub(Guid id)
-        //{
-        //    var club = await _clubService.RestoreClub(id);
-        //    return SuccessResponse<ClubResponseDto>
-        //        .Create(club, $"Khôi phục câu lạc bộ với ID [{id}] thành công!");
-        //}
-
-        /// <summary>
-        /// Xóa câu lạc bộ theo ID (Deprecated - Nên dùng Archive thay thế)
-        /// </summary>
-        /// <param name="id">GUID của câu lạc bộ cần xóa</param>
-        /// <returns>
-        /// 204 NoContent - Xóa thành công
-        /// 500 InternalServerError - Nếu có lỗi xảy ra khi xóa
-        /// </returns>
-        //[HttpDelete("{id}")]
-        //[ProducesResponseType(typeof(SuccessResponse<string>), StatusCodes.Status200OK)]
-        //[ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        //[Authorize(Roles = Roles.Admin)]
-        //[Obsolete("Deprecated: Nên sử dụng PUT /clubs/{id}/archive thay thế")]
-        //public async Task<ApiResponse> DeleteClub(Guid id)
-        //{
-        //    bool isDeleted = await _clubService.DeleteClub(id);
-
-        //    if (!isDeleted)
-        //    {
-        //        return ErrorResponse.Create("Xóa câu lạc bộ thất bại!", "Err91");
-        //    }
-
-        //    return SuccessResponse<string>.Create(null, $"Xóa câu lạc bộ với ID [{id}] thành công!");
-        //}
     }
 }

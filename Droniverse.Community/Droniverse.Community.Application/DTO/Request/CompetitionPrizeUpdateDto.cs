@@ -1,4 +1,4 @@
-using Droniverse.Community.Domain.Enums;
+﻿using Droniverse.Community.Domain.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace Droniverse.Community.Application.DTO.Request

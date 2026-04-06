@@ -67,11 +67,9 @@ public class UserRepository : Repository<Account>, IUserRepository
             .ToListAsync();
     }
 
-    public async Task<IEnumerable<SimpleUserReponse>> GetUsersByUserInfoAsync(
+    public async Task<IEnumerable<Guid>> GetUsersByUserInfoAsync(
     string? searchName,
-    SortDirection sortDirection,
-    int currentPage,
-    int pageSize)
+    SortDirection sortDirection)
     {
         IQueryable<Account> query = _dbSet
             .AsNoTracking();
@@ -103,21 +101,12 @@ public class UserRepository : Repository<Account>, IUserRepository
             }
         }
 
-        var skip = (currentPage - 1) * pageSize;
-
         query = sortDirection == SortDirection.Desc
             ? query.OrderByDescending(a => a.UserInfo.FirstName).ThenByDescending(a => a.UserInfo.LastName)
             : query.OrderBy(a => a.UserInfo.FirstName).ThenBy(a => a.UserInfo.LastName);
 
         return await query
-            .Skip(skip)
-            .Take(pageSize)
-            .Select(a => new SimpleUserReponse
-            {
-                UserId = a.UserID,
-                Email = a.Email,
-                FullName = a.UserInfo.FirstName + " " + a.UserInfo.LastName
-            })
+            .Select(a => a.UserID)
             .ToListAsync();
     }
 }

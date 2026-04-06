@@ -295,21 +295,80 @@ namespace Droniverse.Community.Application.Services
             return await MapToUserCompetitionResponse(userCompetition, competition);
         }
 
-        public async Task<IEnumerable<UserCompetitionResponseDto>> GetCompetitionParticipants(Guid competitionId)
+        /// <summary>
+        /// Lấy danh sách thí sinh tham gia cuộc thi theo điều kiện lọc và phân trang.
+        /// </summary>
+        public async Task<CompetitionParticipantsResponse> GetCompetitionParticipants(Guid competitionId, CompetitionParticipantsSearchRequest request)
         {
             var competition = await _unitOfWork.Competitions.GetByCondition(c => c.CompetitionID == competitionId);
             if (competition == null)
-                throw new KeyNotFoundException($"Competition with ID {competitionId} not found.");
+                throw new KeyNotFoundException($"Không tìm thấy cuộc thi với ID [{competitionId}].");
 
-            var participants = await _unitOfWork.UserCompetitions.GetManyByCondition(
-                uc => uc.CompetitionID == competitionId && uc.Status == UserCompetitionStatus.ACTIVE
-            );
+            int currentPage = Math.Max(1, request.CurrentPage);
+            int pageSize = Math.Max(1, request.PageSize);
+            int skip = (currentPage - 1) * pageSize;
 
-            return await MapToUserCompetitionResponses(participants, competition);
+            var (totalRecords, participantRowsEnumerable) = await _unitOfWork.UserCompetitions.GetCompetitionParticipants(
+                competitionId,
+                request.Status,
+                request.JoinFrom,
+                skip,
+                pageSize);
+
+            if (totalRecords == 0)
+            {
+                return new CompetitionParticipantsResponse
+                {
+                    Competition = ToSimpleCompetitionResponse(competition),
+                    CompetitionStatus = request.Status,
+                    participations = new PaginationResult<IEnumerable<CompetitionParticipantEntry>>([], 0, currentPage, pageSize)
+                };
+            }
+
+            var participantRows = participantRowsEnumerable.ToList();
+
+            var userIds = participantRows
+                .Select(x => x.UserId)
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            var users = await GetUsersBulkSafe(userIds);
+            var userDict = users.ToDictionary(x => x.UserId, x => x);
+
+            var entries = participantRows
+                .Select(x =>
+                {
+                    userDict.TryGetValue(x.UserId, out var user);
+
+                    return new CompetitionParticipantEntry
+                    {
+                        User = ToSimpleUserResponse(x.UserId, user),
+                        Score = x.Score,
+                        Rank = x.Rank,
+                        PrizeID = x.PrizeId,
+                        CreatedAt = x.CreatedAt,
+                        UpdatedAt = x.UpdatedAt
+                    };
+                })
+                .ToList();
+
+            return new CompetitionParticipantsResponse
+            {
+                Competition = ToSimpleCompetitionResponse(competition),
+                CompetitionStatus = request.Status,
+                participations = new PaginationResult<IEnumerable<CompetitionParticipantEntry>>(
+                    entries,
+                    totalRecords,
+                    currentPage,
+                    pageSize)
+            };
         }
 
         public async Task<PaginationResult<IEnumerable<LeaderboardEntryDto>>> GetCompetitionLeaderboard(CompetitionLeaderboardSearchRequest request, Guid competitionId)
         {
+            var currentUserId = _currentUserService.UserId;
+
             var competition = await _unitOfWork.Competitions.GetByCondition(
                 c => c.CompetitionID == competitionId,
                 query => query.AsNoTracking());
@@ -317,33 +376,43 @@ namespace Droniverse.Community.Application.Services
             if (competition == null)
                 throw new KeyNotFoundException($"Không tìm thấy cuộc thi với ID [{competitionId}].");
 
-            var participants = await _unitOfWork.UserCompetitions.GetManyByCondition(
-                uc => uc.CompetitionID == competitionId && uc.Status == UserCompetitionStatus.ACTIVE,
-                q => q.OrderByDescending(uc => uc.Score).ThenBy(uc => uc.UpdatedAt)
-            );
+            int currentPage = Math.Max(1, request.CurrentPage);
+            int pageSize = Math.Max(1, request.PageSize);
+            int skip = (currentPage - 1) * pageSize;
 
-            var participantList = participants.ToList();
-            if (participantList.Count == 0)
-                return Enumerable.Empty<LeaderboardEntryDto>().ToPaginationResult(request);
+            var (totalRecords, pageEntries) = await _unitOfWork.UserCompetitions.GetCompetitionLeaderboard(
+                competitionId,
+                skip,
+                pageSize);
 
-            var userIds = participantList.Select(uc => uc.UserID).Distinct().ToList();
+            if (totalRecords == 0)
+                return new PaginationResult<IEnumerable<LeaderboardEntryDto>>([], 0, currentPage, pageSize);
+
+            var entries = pageEntries.ToList();
+
+            var userIds = entries.Select(uc => uc.UserId).Distinct().ToList();
             var users = await GetUsersBulkSafe(userIds);
             var userDict = users.ToDictionary(u => u.UserId, u => u);
 
-            var leaderboard = participantList.Select((uc, index) =>
+            var leaderboard = entries.Select((uc, index) =>
             {
-                userDict.TryGetValue(uc.UserID, out var user);
+                userDict.TryGetValue(uc.UserId, out var user);
 
                 return new LeaderboardEntryDto
                 {
-                    User = ToSimpleUserResponse(uc.UserID, user),
+                    User = ToSimpleUserResponse(uc.UserId, user),
                     Score = uc.Score,
-                    Rank = uc.Rank ?? (index + 1),
-                    Status = uc.Status
+                    Rank = uc.Rank ?? (skip + index + 1),
+                    Status = uc.Status,
+                    IsCurrentUser = uc.UserId == currentUserId
                 };
-            });
+            }).ToList();
 
-            return leaderboard.ToPaginationResult(request);
+            return new PaginationResult<IEnumerable<LeaderboardEntryDto>>(
+                leaderboard,
+                totalRecords,
+                currentPage,
+                pageSize);
         }
 
         public async Task<CompetitionResponse> UpdateCompetitionStatus(Guid competitionId, CompetitionUpdateStatusDto request)
@@ -841,6 +910,18 @@ namespace Droniverse.Community.Application.Services
                 PrizeID = userCompetition.PrizeID,
                 CreatedAt = userCompetition.CreatedAt,
                 UpdatedAt = userCompetition.UpdatedAt
+            };
+        }
+        private SimpleCompetitionResponse ToSimpleCompetitionResponse(Competition competition)
+        {
+            if (competition == null)
+                return null!; // hoặc throw tùy cách bạn muốn xử lý
+
+            return new SimpleCompetitionResponse
+            {
+                CompetitionID = competition.CompetitionID,
+                NameVN = competition.NameVN,
+                NameEN = competition.NameEN
             };
         }
 

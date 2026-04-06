@@ -17,7 +17,7 @@ namespace Droniverse.Community.Application.IService
         Task<PaginationResult<IEnumerable<CompetitionResponse>>> GetHotCompetitionsByClub(Guid clubId, HotCompetitionSearchRequest searchRequest);
         Task<UserCompetitionResponseDto> RegisterForCompetition(Guid competitionId);
         Task<UserCompetitionResponseDto> WithdrawFromCompetition(Guid competitionId);
-        Task<IEnumerable<UserCompetitionResponseDto>> GetCompetitionParticipants(Guid competitionId);
+        Task<CompetitionParticipantsResponse> GetCompetitionParticipants(Guid competitionId, CompetitionParticipantsSearchRequest request);
         Task<PaginationResult<IEnumerable<LeaderboardEntryDto>>> GetCompetitionLeaderboard(CompetitionLeaderboardSearchRequest request, Guid competitionId);
         Task<CompetitionResponse> UpdateCompetitionStatus(Guid competitionId, CompetitionUpdateStatusDto request);
         Task<RoundResponseDto> GetCurrentRoundByCompetitionID(Guid competitionID);
