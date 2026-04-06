@@ -4,6 +4,8 @@ using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Helpers;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Droniverse.Academy.Application.HttpClients
 {
@@ -14,7 +16,14 @@ namespace Droniverse.Academy.Application.HttpClients
         private readonly ICacheService _cacheService;
         private const int UserCacheAbsoluteExpirationSeconds = 300;
         private const int UserCacheSlidingExpirationSeconds = 100;
-
+        private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters =
+             {
+                  new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) // parse string -> enum
+             }
+        };
         public IdentityMicroserviceClient(
             HttpClient httpClient,
             ILogger<IdentityMicroserviceClient> logger,
@@ -65,7 +74,7 @@ namespace Droniverse.Academy.Application.HttpClients
                     throw new HttpRequestException($"Identity service error: {httpResponseMsg.StatusCode}", null, httpResponseMsg.StatusCode);
                 }
             }
-            UserResponse? user = await httpResponseMsg.Content.ReadFromJsonAsync<UserResponse>();
+            UserResponse? user = await httpResponseMsg.Content.ReadFromJsonAsync<UserResponse>(JsonOptions);
             if (user == null)
             {
                 throw new ArgumentException("Invalid userID");
@@ -150,7 +159,7 @@ namespace Droniverse.Academy.Application.HttpClients
                             response.StatusCode);
                     }
 
-                    var usersFromApi = await response.Content.ReadFromJsonAsync<IEnumerable<UserResponse>>() ?? [];
+                    var usersFromApi = await response.Content.ReadFromJsonAsync<IEnumerable<UserResponse>>(JsonOptions) ?? [];
 
                     foreach (var user in usersFromApi)
                     {
