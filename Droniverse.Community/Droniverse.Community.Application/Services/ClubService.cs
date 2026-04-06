@@ -247,30 +247,93 @@ internal class ClubService : IClubService
 
     public async Task<PaginationResult<IEnumerable<UserResponse>>> GetClubParcitipations(Guid clubID, ParticipationSearchRequest searchRequest)
     {
+        searchRequest ??= new ParticipationSearchRequest();
+
         Club? club = await _unitOfWork.Clubs.GetByCondition(c => c.ClubID == clubID, query => query.AsNoTracking());
         if (club == null)
         {
-            throw new KeyNotFoundException($"Club with ID {clubID} not found.");
+            throw new KeyNotFoundException($"Không tìm thấy câu lạc bộ với ID {clubID}.");
         }
 
-        var participations = await _unitOfWork.Participations.GetManyByCondition(
-            p => p.ClubID == clubID && p.Status == Domain.Enums.ParticipationStatus.ACTIVE
-        );
+        int currentPage = searchRequest.CurrentPage <= 0 ? 1 : searchRequest.CurrentPage;
+        int pageSize = searchRequest.PageSize <= 0 ? 5 : searchRequest.PageSize;
+        int skip = (currentPage - 1) * pageSize;
 
-        var userIds = participations
+        var hasUserFilters = HasParticipationUserFilters(searchRequest);
+
+        IEnumerable<Guid>? filteredUserIds = null;
+        Dictionary<Guid, UserResponse>? preFilteredUserMap = null;
+
+        if (hasUserFilters)
+        {
+            var activeUserIds = await _unitOfWork.Participations.GetActiveParticipantUserIdsByClubAsync(clubID);
+            if (activeUserIds.Count == 0)
+                return new PaginationResult<IEnumerable<UserResponse>>([], 0, currentPage, pageSize);
+
+            var users = (await GetUsersByIds(activeUserIds)).ToList();
+            var filteredUsers = ApplyParticipationUserFilters(users, searchRequest).ToList();
+
+            if (filteredUsers.Count == 0)
+                return new PaginationResult<IEnumerable<UserResponse>>([], 0, currentPage, pageSize);
+
+            filteredUserIds = filteredUsers
+                .Select(x => x.UserId)
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            preFilteredUserMap = filteredUsers.ToDictionary(x => x.UserId, x => x);
+        }
+
+        var (totalRecords, participations) = await _unitOfWork.Participations.GetActiveParticipationsByClubAsync(
+            clubID,
+            skip,
+            pageSize,
+            filteredUserIds);
+
+        if (totalRecords == 0)
+            return new PaginationResult<IEnumerable<UserResponse>>([], 0, currentPage, pageSize);
+
+        var participationList = participations.ToList();
+        var pageUserIds = participationList
             .Select(p => p.UserID)
+            .Where(x => x != Guid.Empty)
             .Distinct()
             .ToList();
 
-        if (!userIds.Any())
+        Dictionary<Guid, UserResponse> userMap;
+        if (preFilteredUserMap != null)
         {
-            return Enumerable.Empty<UserResponse>().ToPaginationResult(searchRequest);
+            userMap = preFilteredUserMap;
+        }
+        else
+        {
+            var pageUsers = await GetUsersByIds(pageUserIds);
+            userMap = pageUsers.ToDictionary(x => x.UserId, x => x);
         }
 
-        var users = await GetUsersByIds(userIds);
-        var filteredUsers = ApplyParticipationUserFilters(users, searchRequest);
+        var data = participationList
+            .Select(p =>
+            {
+                userMap.TryGetValue(p.UserID, out var user);
 
-        return filteredUsers.ToPaginationResult(searchRequest);
+                user ??= new UserResponse
+                {
+                    UserId = p.UserID,
+                    Username = string.Empty,
+                    FirstName = string.Empty,
+                    LastName = string.Empty,
+                    Email = string.Empty,
+                    RoleName = string.Empty,
+                    ImageUrl = string.Empty
+                };
+
+                return user with { JoinDate = p.JoinDate };
+            })
+            .OrderByDescending(u => u.JoinDate)
+            .ToList();
+
+        return new PaginationResult<IEnumerable<UserResponse>>(data, totalRecords, currentPage, pageSize);
     }
 
     private async Task<IEnumerable<UserResponse>> GetUsersByIds(IEnumerable<Guid> userIds)
@@ -300,14 +363,10 @@ internal class ClubService : IClubService
     {
         IEnumerable<UserResponse> query = users;
 
-        if (!string.IsNullOrWhiteSpace(searchRequest.ParicipationName))
+        if (!string.IsNullOrWhiteSpace(searchRequest.ParticipantName))
         {
-            var keyword = searchRequest.ParicipationName.Trim();
-            query = query.Where(u =>
-                ($"{u.FirstName} {u.LastName}").Contains(keyword, StringComparison.OrdinalIgnoreCase)
-                || u.FirstName.Contains(keyword, StringComparison.OrdinalIgnoreCase)
-                || u.LastName.Contains(keyword, StringComparison.OrdinalIgnoreCase)
-                || u.Username.Contains(keyword, StringComparison.OrdinalIgnoreCase));
+            var keyword = searchRequest.ParticipantName.Trim();
+            query = query.Where(u => IsParticipationNameMatch(u, keyword));
         }
 
         if (searchRequest.DateOfBirth.HasValue)
@@ -318,6 +377,41 @@ internal class ClubService : IClubService
         }
 
         return query;
+    }
+
+    private static bool HasParticipationUserFilters(ParticipationSearchRequest searchRequest)
+    {
+        return !string.IsNullOrWhiteSpace(searchRequest.ParticipantName)
+               || searchRequest.DateOfBirth.HasValue;
+    }
+
+    private static bool IsParticipationNameMatch(UserResponse user, string keyword)
+    {
+        var normalizedKeyword = keyword.Trim();
+        if (string.IsNullOrWhiteSpace(normalizedKeyword))
+            return true;
+
+        var fullName = $"{user.FirstName} {user.LastName}".Trim();
+
+        if (fullName.Contains(normalizedKeyword, StringComparison.OrdinalIgnoreCase)
+            || user.FirstName.Contains(normalizedKeyword, StringComparison.OrdinalIgnoreCase)
+            || user.LastName.Contains(normalizedKeyword, StringComparison.OrdinalIgnoreCase)
+            || user.Username.Contains(normalizedKeyword, StringComparison.OrdinalIgnoreCase)
+            || user.Email.Contains(normalizedKeyword, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        var tokens = normalizedKeyword
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        if (tokens.Length == 0)
+            return true;
+
+        return tokens.All(token =>
+            fullName.Contains(token, StringComparison.OrdinalIgnoreCase)
+            || user.Username.Contains(token, StringComparison.OrdinalIgnoreCase)
+            || user.Email.Contains(token, StringComparison.OrdinalIgnoreCase));
     }
 
     public async Task<PaginationResult<IEnumerable<CourseBulkResponseDTO>>> GetClubCourses(Guid clubId, CourseBulkSearchRequest searchRequest)

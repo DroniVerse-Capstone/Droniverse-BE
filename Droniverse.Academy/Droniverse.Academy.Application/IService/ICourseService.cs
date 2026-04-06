@@ -17,6 +17,10 @@ public interface ICourseService
             string? search = null,
             CourseStatus? status = null);
 
+    Task<CourseOverviewResponseDTO> GetCourseOverviewAsync(
+        Guid courseVersionId,
+        CancellationToken cancellationToken = default);
+
     Task<CourseDetailResponseDTO> CreateCourseAsync();
 
     Task PublishCourseAsync(Guid courseId);

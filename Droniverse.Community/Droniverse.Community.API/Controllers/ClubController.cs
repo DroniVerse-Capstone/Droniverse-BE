@@ -299,14 +299,13 @@ namespace Droniverse.Community.API.Controllers
         /// <returns>
         /// 200 OK - Trả về danh sách thành viên có phân trang
         /// </returns>
-        [HttpGet("{id}/participations")]
+        [HttpGet("{id}/participants")]
         [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<UserResponse>>>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ApiResponse> GetClubParticipations(Guid id, [FromQuery] ParticipationSearchRequest searchRequest)
         {
             var participations = await _clubService.GetClubParcitipations(id, searchRequest);
-            return SuccessResponse<PaginationResult<IEnumerable<UserResponse>>>
-                .Create(participations, "Lấy danh sách thành viên câu lạc bộ thành công!");
+            return SuccessResponse<PaginationResult<IEnumerable<UserResponse>>>.Create(participations, "Lấy danh sách thành viên câu lạc bộ thành công!");
         }
 
         /// <summary>

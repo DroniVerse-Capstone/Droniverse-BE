@@ -110,6 +110,41 @@ public class CourseService : ICourseService
         return courseResponse;
     }
 
+    public async Task<CourseOverviewResponseDTO> GetCourseOverviewAsync(
+        Guid courseVersionId,
+        CancellationToken cancellationToken = default)
+    {
+        var overviewData = await _unitOfWork.CourseVersions
+            .GetCourseOverviewDataAsync(courseVersionId, _currentUser.UserId, cancellationToken);
+
+        if (overviewData == null)
+            throw new NotFoundException($"Không tìm thấy phiên bản khóa học với id {courseVersionId}.");
+
+        var response = _mapper.Map<CourseOverviewResponseDTO>(overviewData);
+
+        var userIds = new List<Guid> { overviewData.AuthorId };
+        if (overviewData.LastUpdatedById.HasValue && overviewData.LastUpdatedById.Value != Guid.Empty)
+        {
+            userIds.Add(overviewData.LastUpdatedById.Value);
+        }
+
+        var userLookup = await _userDisplayNameService.ResolveUsersDisplayNameAsync(userIds.Distinct());
+
+        if (userLookup.TryGetValue(overviewData.AuthorId, out var author))
+        {
+            response.Author = author;
+        }
+
+        if (overviewData.LastUpdatedById.HasValue
+            && userLookup.TryGetValue(overviewData.LastUpdatedById.Value, out var lastUpdatedBy))
+        {
+            response.LastUpdatedBy = lastUpdatedBy;
+        }
+
+        response.LastUpdatedAt = overviewData.LastUpdatedAt;
+        return response;
+    }
+
     public async Task PublishCourseAsync(Guid courseId)
     {
         var course = await _unitOfWork.Courses.GetByIdWithAllVersionsAsync(courseId);

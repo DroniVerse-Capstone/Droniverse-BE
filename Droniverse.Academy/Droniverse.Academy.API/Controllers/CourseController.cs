@@ -1,5 +1,6 @@
 ﻿using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Application.DTO.Request;
+using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.API.Enums;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Shared.DTOs;
@@ -111,6 +112,26 @@ namespace Droniverse.Academy.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lấy chi tiết khóa học thất bại.");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Lấy tổng quan của một phiên bản khóa học.
+        /// </summary>
+        // GET academy/courses/{courseVersionId}/overview
+        [HttpGet("{courseVersionId:guid}/overview")]
+        [ProducesResponseType(typeof(CourseOverviewResponseDTO), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetCourseOverview(Guid courseVersionId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var overview = await _courseService.GetCourseOverviewAsync(courseVersionId, cancellationToken);
+                return Ok(overview);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lấy tổng quan khóa học thất bại.");
                 throw;
             }
         }
