@@ -32,5 +32,5 @@ public class CourseOverviewResponseDTO
     public SimpleUserReponse? LastUpdatedBy { get; set; }
     public DateTime? LastUpdatedAt { get; set; }
 
-    public decimal? Price { get; set; }
+    public ProductMiniResponseDTO? MiniProduct { get; set; }
 }

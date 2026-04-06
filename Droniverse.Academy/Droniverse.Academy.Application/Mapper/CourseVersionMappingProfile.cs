@@ -48,7 +48,7 @@ namespace Droniverse.Academy.Application.Mapper
                 .ForMember(dest => dest.Certificate, opt => opt.Ignore());
 
             CreateMap<CourseOverviewData, CourseOverviewResponseDTO>()
-                .ForMember(dest => dest.Price, opt => opt.MapFrom(_ => (decimal?)null));
+                .ForMember(dest => dest.MiniProduct, opt => opt.MapFrom(_ => (ProductMiniResponseDTO?)null));
         }
     }
 }

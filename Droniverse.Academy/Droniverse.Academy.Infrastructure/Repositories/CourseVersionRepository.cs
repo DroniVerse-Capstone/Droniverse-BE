@@ -24,11 +24,14 @@ internal class CourseVersionRepository : MySqlRepository<CourseVersion>, ICourse
             .Select(cv => new CourseOverviewData
             {
                 AuthorId = cv.Course.CreateBy,
+                CourseID = cv.CourseID,
                 CourseVersionID = cv.CourseVersionID,
                 TitleVN = cv.TitleVN,
                 TitleEN = cv.TitleEN,
                 DescriptionVN = cv.DescriptionVN,
                 DescriptionEN = cv.DescriptionEN,
+                ContextVN = cv.ContextVN,
+                ContextEN = cv.ContextEN,
                 ImageUrl = cv.ImageUrl,
                 Level = cv.Level,
                 EstimatedDuration = cv.EstimatedDuration,

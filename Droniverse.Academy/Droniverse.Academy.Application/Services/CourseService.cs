@@ -173,8 +173,10 @@ public class CourseService : ICourseService
         }
 
         response.LastUpdatedAt = overviewData.LastUpdatedAt;
-        var product = await _communityMicroserviceClient.GetProductByReferenceIdAsync(courseVersionId, cancellationToken);
-        response.Price = product?.Price;
+        var product = await _communityMicroserviceClient.GetProductByReferenceIdAsync(overviewData.CourseID, cancellationToken);
+        response.MiniProduct = product == null
+            ? null
+            : _mapper.Map<ProductMiniResponseDTO>(product);
         return response;
     }
 

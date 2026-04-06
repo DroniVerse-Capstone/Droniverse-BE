@@ -60,6 +60,8 @@ public class CourseOverviewSuccessResponseExample : IExamplesProvider<SuccessRes
                 TitleEN = "Drone Programming Basics",
                 DescriptionVN = "Tổng quan khóa học.",
                 DescriptionEN = "Course overview.",
+                ContextVN = "Bối cảnh ứng dụng drone trong thực tế.",
+                ContextEN = "Real-world context for drone applications.",
                 ImageUrl = "https://cdn.example.com/course.jpg",
                 Level = CourseLevel.EASY,
                 EstimatedDuration = 120,
@@ -72,7 +74,14 @@ public class CourseOverviewSuccessResponseExample : IExamplesProvider<SuccessRes
                 TotalLab = 4,
                 CertificateImageUrl = "https://cdn.example.com/certificate.jpg",
                 IsUnlock = true,
-                Price = 499000,
+                MiniProduct = new ProductMiniResponseDTO
+                {
+                    ProductId = Guid.Parse("5f534d31-88ee-4d86-9d79-bad8f402378e"),
+                    ReferenceId = Guid.Parse("9f5b91ea-b6ca-46db-a2da-18f8a6f5af13"),
+                    Price = 499000,
+                    Currency = CurrencyType.VND,
+                    Status = ProductStatus.Active
+                },
                 Author = new SimpleUserReponse
                 {
                     UserId = Guid.Parse("d92a8a97-4fd2-4dcf-b9fb-950f3f6a8ec8"),
