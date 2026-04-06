@@ -20,10 +20,12 @@ namespace Droniverse.Community.API.Controllers
     public class RoundController : ControllerBase
     {
         private readonly IRoundService _roundService;
+        private readonly IUserRoundService _userRoundService;
 
-        public RoundController(IRoundService roundService)
+        public RoundController(IRoundService roundService, IUserRoundService userRoundService)
         {
             _roundService = roundService;
+            _userRoundService = userRoundService;
         }
 
         /// <summary>
@@ -72,7 +74,7 @@ namespace Droniverse.Community.API.Controllers
         /// <summary>
         /// Cập nhật thông tin vòng thi
         /// </summary>
-        /// <param name="id">ID của vòng thi</param>
+        /// <param name="roundId">ID của vòng thi</param>
         /// <param name="request">Thông tin cập nhật</param>
         /// <remarks>
         /// **Validation Rules:**
@@ -88,15 +90,15 @@ namespace Droniverse.Community.API.Controllers
         ///    - Lab tồn tại (chỉ check nếu LabID thay đổi)
         /// </remarks>
         /// <returns>200 OK - Cập nhật thành công</returns>
-        [HttpPut("{id}")]
+        [HttpPut("{roundId}")]
         [ProducesResponseType(typeof(SuccessResponse<RoundResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [SwaggerRequestExample(typeof(RoundUpdateDto), typeof(RoundUpdateExample))]
         [Authorize(Roles = Roles.AdminOrManagerRoles)]
-        public async Task<ApiResponse> UpdateRound(Guid id, [FromBody] RoundUpdateDto request)
+        public async Task<ApiResponse> UpdateRound(Guid roundId, [FromBody] RoundUpdateDto request)
         {
-            var round = await _roundService.UpdateRound(id, request);
+            var round = await _roundService.UpdateRound(roundId, request);
             return SuccessResponse<RoundResponseDto>.Create(
                 round,
                 "Cập nhật vòng thi thành công!"
@@ -106,14 +108,14 @@ namespace Droniverse.Community.API.Controllers
         /// <summary>
         /// Lấy thông tin vòng thi theo ID
         /// </summary>
-        /// <param name="id">ID của vòng thi</param>
+        /// <param name="roundId">ID của vòng thi</param>
         /// <returns>200 OK - Trả về thông tin vòng thi</returns>
-        [HttpGet("{id}")]
+        [HttpGet("{roundId}")]
         [ProducesResponseType(typeof(SuccessResponse<RoundResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ApiResponse> GetRoundById(Guid id)
+        public async Task<ApiResponse> GetRoundById(Guid roundId)
         {
-            var round = await _roundService.GetRoundById(id);
+            var round = await _roundService.GetRoundById(roundId);
             return SuccessResponse<RoundResponseDto>.Create(
                 round,
                 "Lấy thông tin vòng thi thành công!"
@@ -123,15 +125,15 @@ namespace Droniverse.Community.API.Controllers
         /// <summary>
         /// Bắt đầu vòng thi
         /// </summary>
-        /// <param name="id">ID của vòng thi</param>
+        /// <param name="roundId">ID của vòng thi</param>
         /// <returns>200 OK - Bắt đầu vòng thi thành công</returns>
-        [HttpPut("{id}/start")]
+        [HttpPut("{roundId}/start")]
         [ProducesResponseType(typeof(SuccessResponse<RoundResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [Authorize(Roles = Roles.AdminOrManagerRoles)]
-        public async Task<ApiResponse> StartRound(Guid id)
+        public async Task<ApiResponse> StartRound(Guid roundId)
         {
-            var round = await _roundService.StartRound(id);
+            var round = await _roundService.StartRound(roundId);
             return SuccessResponse<RoundResponseDto>.Create(
                 round,
                 "Bắt đầu vòng thi thành công!"
@@ -141,15 +143,15 @@ namespace Droniverse.Community.API.Controllers
         /// <summary>
         /// Kết thúc vòng thi
         /// </summary>
-        /// <param name="id">ID của vòng thi</param>
+        /// <param name="roundId">ID của vòng thi</param>
         /// <returns>200 OK - Kết thúc vòng thi thành công</returns>
-        [HttpPut("{id}/finish")]
+        [HttpPut("{roundId}/finish")]
         [ProducesResponseType(typeof(SuccessResponse<RoundResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [Authorize(Roles = Roles.AdminOrManagerRoles)]
-        public async Task<ApiResponse> FinishRound(Guid id)
+        public async Task<ApiResponse> FinishRound(Guid roundId)
         {
-            var round = await _roundService.FinishRound(id);
+            var round = await _roundService.FinishRound(roundId);
             return SuccessResponse<RoundResponseDto>.Create(
                 round,
                 "Kết thúc vòng thi thành công!"
@@ -159,17 +161,119 @@ namespace Droniverse.Community.API.Controllers
         /// <summary>
         /// Lấy bảng xếp hạng của vòng thi
         /// </summary>
-        /// <param name="id">ID của vòng thi</param>
+        /// <param name="roundId">ID của vòng thi</param>
+        /// <remarks>
+        /// Rule sắp xếp bảng xếp hạng:
+        /// 1. Sắp xếp theo Point (điểm) giảm dần.
+        /// 2. Nếu điểm bằng nhau, ưu tiên ExecutionTime nhỏ hơn (thời gian thực hiện ít hơn).
+        /// 3. Nếu cả điểm và thời gian bằng nhau, ưu tiên SubmittedAt sớm hơn (nộp sớm hơn).
+        /// </remarks>
         /// <returns>200 OK - Trả về bảng xếp hạng</returns>
-        [HttpGet("{id}/leaderboard")]
+        [HttpGet("{roundId}/leaderboard")]
         [ProducesResponseType(typeof(SuccessResponse<PaginationResult<RoundLeaderBoardResponse>>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ApiResponse> GetRoundLeaderboard(Guid id, [FromQuery] RoundLeaderboardSearchRequest request)
+        public async Task<ApiResponse> GetRoundLeaderboard(Guid roundId, [FromQuery] RoundLeaderboardSearchRequest request)
         {
-            var leaderboard = await _roundService.GetRoundLeaderboard(id, request);
+            var leaderboard = await _roundService.GetRoundLeaderboard(roundId, request);
             return SuccessResponse<PaginationResult<RoundLeaderBoardResponse>>.Create(
                 leaderboard,
                 "Lấy bảng xếp hạng vòng thi thành công!"
+            );
+        }
+
+        /// <summary>
+        /// Tham gia vòng thi cho người dùng hiện tại.
+        /// </summary>
+        /// <remarks>
+        /// - Chỉ cho phép tham gia khi vòng đang diễn ra, người dùng chưa tham gia trước đó,
+        /// - và nếu không phải vòng đầu tiên thì phải vượt qua vòng trước (`IsPassed = true`).
+        /// </remarks>
+        /// <param name="roundId">ID của vòng thi</param>
+        /// <returns>200 OK - Tham gia thành công</returns>
+        [HttpPost("{roundId}/join")]
+        [ProducesResponseType(typeof(SuccessResponse<RoundJoinResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Authorize(Roles = Roles.ClubMember)]
+        public async Task<ApiResponse> JoinRound(Guid roundId)
+        {
+            var result = await _roundService.JoinRound(roundId);
+            return SuccessResponse<RoundJoinResponse>.Create(
+                result,
+                "Tham gia vòng thi thành công!"
+            );
+        }
+
+        /// <summary>
+        /// Tính tổng số thí sinh trong bảng xếp hạng của vòng thi.
+        /// </summary>
+        /// <param name="roundId">ID của vòng thi</param>
+        /// <remarks>
+        /// API này dùng để trigger tổng hợp leaderboard (nếu cần) và chỉ trả về tổng số lượng thí sinh
+        /// có trong bảng xếp hạng, không trả danh sách chi tiết.
+        /// </remarks>
+        /// <returns>200 OK - Tính tổng số lượng thành công</returns>
+        [HttpPost("{roundId}/leaderboard/aggregate")]
+        [ProducesResponseType(typeof(SuccessResponse<RoundLeaderboardTotalResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize(Roles = Roles.AdminOrManagerRoles)]
+        public async Task<ApiResponse> CalculateRoundLeaderboard(Guid roundId)
+        {
+            var leaderboard = await _roundService.CalculateRoundLeaderboard(roundId);
+
+            var response = new RoundLeaderboardTotalResponse
+            {
+                TotalParticipants = leaderboard.roundEntries.Count
+            };
+
+            return SuccessResponse<RoundLeaderboardTotalResponse>.Create(
+                response,
+                "Tính tổng số lượng bảng xếp hạng thành công!"
+            );
+        }
+
+        /// <summary>
+        /// Lấy danh sách người tham gia vòng thi theo điều kiện lọc và phân trang.
+        /// </summary>
+        /// <param name="roundId">ID của vòng thi</param>
+        /// <param name="request">Thông tin lọc theo người dùng, thời gian tham gia, thời gian nộp bài và trạng thái</param>
+        /// <returns>200 - OK: Trả về danh sách người tham gia theo phân trang</returns>
+        [HttpGet("{roundId}/participants")]
+        [ProducesResponseType(typeof(SuccessResponse<PaginationResult<RoundParticipantsResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize(Roles = Roles.AdminOrManagerRoles)]
+        public async Task<ApiResponse> GetRoundParticipants(Guid roundId, [FromQuery] RoundParticipantsSearchRequest request)
+        {
+            var result = await _roundService.GetRoundParticipants(roundId, request);
+            return SuccessResponse<PaginationResult<RoundParticipantsResponse>>.Create(result, "Lấy danh sách tham gia của vòng thi thành công !");
+        }
+
+        /// <summary>
+        /// Nộp bài cho vòng thi của người dùng hiện tại
+        /// </summary>
+        /// <remarks>
+        /// Rule:
+        /// - Người dùng phải đã tham gia vòng thi trước đó.
+        /// - Chỉ nộp khi vòng thi đang diễn ra hợp lệ.
+        /// - Khi nộp thành công, trạng thái `UserRound` được cập nhật thành `Completed`.
+        /// - Nếu thời điểm nộp lớn hơn deadline của người dùng, `SubmittedAt` sẽ được gán bằng deadline.
+        /// </remarks>
+        /// <param name="roundId">ID của vòng thi</param>
+        /// <param name="request">Giải pháp</param>
+        /// <returns>200 OK - Submit thành công</returns>
+        [HttpPost("{roundId}/submissions")]
+        [ProducesResponseType(typeof(SuccessResponse<SubmitSolutionResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [SwaggerRequestExample(typeof(UserRoundSubmitDto), typeof(UserRoundSubmitExample))]
+        [Authorize(Roles = Roles.ClubMember)]
+        public async Task<ApiResponse> SubmitSolution(Guid roundId, [FromBody] UserRoundSubmitDto request)
+        {
+            var result = await _userRoundService.SubmitSolution(roundId, request);
+            return SuccessResponse<SubmitSolutionResponse>.Create(
+                result,
+                "Submit giải pháp thành công!"
             );
         }
     }

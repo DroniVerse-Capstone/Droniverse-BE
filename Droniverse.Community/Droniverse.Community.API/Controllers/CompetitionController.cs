@@ -1,14 +1,11 @@
-﻿using CloudinaryDotNet.Actions;
-using Droniverse.Community.API.Examples;
+﻿using Droniverse.Community.API.Examples;
 using Droniverse.Community.Application.DTO.Extensions;
 using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.IService;
-using Droniverse.Community.Application.Services;
 using Droniverse.Community.Domain.Enums;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
-using Droniverse.Shared.DTOs.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Filters;
@@ -64,7 +61,7 @@ namespace Droniverse.Community.API.Controllers
         /// <summary>
         /// Cập nhật thông tin cuộc thi.
         /// </summary>
-        /// <param name="id">ID của cuộc thi</param>
+        /// <param name="competitionId">ID của cuộc thi</param>
         /// <param name="request">Thông tin cập nhật</param>
         /// <remarks>
         /// **Quy tắc cập nhật theo domain:**
@@ -83,15 +80,15 @@ namespace Droniverse.Community.API.Controllers
         ///    - Không được cập nhật bằng luồng này.
         /// </remarks>
         /// <returns>200 OK - Cập nhật thành công</returns>
-        [HttpPut("{id}")]
+        [HttpPut("{competitionId}")]
         [ProducesResponseType(typeof(SuccessResponse<CompetitionResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [SwaggerRequestExample(typeof(CompetitionUpdateDto), typeof(CompetitionUpdateExample))]
         [Authorize(Roles = Roles.AdminOrManagerRoles)]
-        public async Task<ApiResponse> UpdateCompetition(Guid id, [FromBody] CompetitionUpdateDto request)
+        public async Task<ApiResponse> UpdateCompetition(Guid competitionId, [FromBody] CompetitionUpdateDto request)
         {
-            var competition = await _competitionService.UpdateCompetition(id, request);
+            var competition = await _competitionService.UpdateCompetition(competitionId, request);
             return SuccessResponse<CompetitionResponse>.Create(
                 competition,
                 "Cập nhật cuộc thi thành công!"
@@ -101,7 +98,7 @@ namespace Droniverse.Community.API.Controllers
         /// <summary>
         /// Xóa cuộc thi.
         /// </summary>
-        /// <param name="id">ID của cuộc thi</param>
+        /// <param name="competitionId">ID của cuộc thi</param>
         /// <remarks>
         /// **Quy tắc xóa:**
         ///
@@ -109,14 +106,14 @@ namespace Droniverse.Community.API.Controllers
         /// - Không thể xóa cuộc thi đã đi vào các giai đoạn vận hành/đã có dữ liệu phát sinh
         /// </remarks>
         /// <returns>200 OK - Xóa thành công</returns>
-        [HttpDelete("{id}")]
+        [HttpDelete("{competitionId}")]
         [ProducesResponseType(typeof(SuccessResponse<string>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [Authorize(Roles = Roles.AdminOrManagerRoles)]
-        public async Task<ApiResponse> DeleteCompetition(Guid id)
+        public async Task<ApiResponse> DeleteCompetition(Guid competitionId)
         {
-            var result = await _competitionService.DeleteCompetition(id);
+            var result = await _competitionService.DeleteCompetition(competitionId);
             if (!result)
                 return ErrorResponse.Create("Xóa cuộc thi thất bại!", "ERR_DELETE_FAILED");
 
@@ -129,14 +126,14 @@ namespace Droniverse.Community.API.Controllers
         /// <summary>
         /// Lấy thông tin chi tiết cuộc thi theo ID.
         /// </summary>
-        /// <param name="id">ID của cuộc thi</param>
+        /// <param name="competitionId">ID của cuộc thi</param>
         /// <returns>200 OK - Trả về thông tin cuộc thi</returns>
-        [HttpGet("{id}")]
+        [HttpGet("{competitionId}")]
         [ProducesResponseType(typeof(SuccessResponse<CompetitionResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ApiResponse> GetCompetitionById(Guid id)
+        public async Task<ApiResponse> GetCompetitionById(Guid competitionId)
         {
-            var competition = await _competitionService.GetCompetitionById(id);
+            var competition = await _competitionService.GetCompetitionById(competitionId);
             return SuccessResponse<CompetitionResponse>.Create(
                 competition,
                 "Lấy thông tin cuộc thi thành công!"
@@ -160,60 +157,6 @@ namespace Droniverse.Community.API.Controllers
             return SuccessResponse<PaginationResult<IEnumerable<CompetitionResponse>>>.Create(
                 competitions,
                 "Lấy danh sách cuộc thi thành công!"
-            );
-        }
-
-        /// <summary>
-        /// Lấy danh sách cuộc thi của một club.
-        /// </summary>
-        /// <param name="clubId">ID của club</param>
-        /// <param name="status">
-        /// Trạng thái cuộc thi. Để null để lấy tất cả.
-        /// Giá trị hợp lệ:
-        /// 0-DRAFT,
-        /// 1-PUBLISHED,
-        /// 2-REGISTRATION_OPEN,
-        /// 3-REGISTRATION_CLOSED,
-        /// 4-ONGOING,
-        /// 5-FINISHED,
-        /// 6-RESULT_PUBLISHED,
-        /// 7-CANCELLED,
-        /// 8-INVALID.
-        /// </param>
-        /// <returns>200 OK - Trả về danh sách cuộc thi</returns>
-        [HttpGet("club/{clubId}")]
-        [ProducesResponseType(typeof(SuccessResponse<IEnumerable<CompetitionResponse>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ApiResponse> GetCompetitionsByClub(Guid clubId, [FromQuery] CompetitionStatus? status = null)
-        {
-            var competitions = await _competitionService.GetCompetitionsByClub(clubId, status);
-            return SuccessResponse<IEnumerable<CompetitionResponse>>.Create(
-                competitions,
-                "Lấy danh sách cuộc thi của club thành công!"
-            );
-        }
-
-        /// <summary>
-        /// Lấy danh sách cuộc thi HOT của một club.
-        /// </summary>
-        /// <param name="clubId">ID của club</param>
-        /// <param name="searchRequest">Thông tin phân trang</param>
-        /// <remarks>
-        /// Quy tắc HOT đơn giản:
-        /// - Ưu tiên competition đang hoạt động (`PUBLISHED`, `REGISTRATION_OPEN`, `REGISTRATION_CLOSED`, `ONGOING`)
-        /// - Tính điểm từ độ phổ biến (participants), độ gần thời gian hiện tại (recency), trạng thái và activity gần đây
-        /// - Sắp xếp theo điểm HOT giảm dần
-        /// </remarks>
-        /// <returns>200 OK - Trả về danh sách competition HOT có phân trang</returns>
-        [HttpGet("club/{clubId}/hot")]
-        [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<CompetitionResponse>>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ApiResponse> GetHotCompetitionsByClub(Guid clubId, [FromQuery] HotCompetitionSearchRequest searchRequest)
-        {
-            var competitions = await _competitionService.GetHotCompetitionsByClub(clubId, searchRequest);
-            return SuccessResponse<PaginationResult<IEnumerable<CompetitionResponse>>>.Create(
-                competitions,
-                "Lấy danh sách cuộc thi HOT của club thành công!"
             );
         }
 
@@ -257,17 +200,18 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
-        /// Lấy danh sách thí sinh tham gia cuộc thi.
+        /// Lấy danh sách thí sinh tham gia cuộc thi theo điều kiện lọc và phân trang.
         /// </summary>
         /// <param name="competitionId">ID của cuộc thi</param>
+        /// <param name="request">Điều kiện lọc trạng thái tham gia, ngày tham gia và phân trang</param>
         /// <returns>200 OK - Trả về danh sách thí sinh</returns>
         [HttpGet("{competitionId}/participants")]
-        [ProducesResponseType(typeof(SuccessResponse<IEnumerable<UserCompetitionResponseDto>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(SuccessResponse<CompetitionParticipantsResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ApiResponse> GetCompetitionParticipants(Guid competitionId)
+        public async Task<ApiResponse> GetCompetitionParticipants(Guid competitionId, [FromQuery] CompetitionParticipantsSearchRequest request)
         {
-            var participants = await _competitionService.GetCompetitionParticipants(competitionId);
-            return SuccessResponse<IEnumerable<UserCompetitionResponseDto>>.Create(
+            var participants = await _competitionService.GetCompetitionParticipants(competitionId, request);
+            return SuccessResponse<CompetitionParticipantsResponse>.Create(
                 participants,
                 "Lấy danh sách thí sinh thành công!"
             );
@@ -277,6 +221,7 @@ namespace Droniverse.Community.API.Controllers
         /// Lấy bảng xếp hạng cuộc thi.
         /// </summary>
         /// <param name="competitionId">ID của cuộc thi</param>
+        /// <param name="request">Bộ lọc</param>
         /// <returns>200 OK - Trả về bảng xếp hạng</returns>
         [HttpGet("{competitionId}/leaderboard")]
         [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<LeaderboardEntryDto>>>), StatusCodes.Status200OK)]
@@ -475,12 +420,42 @@ namespace Droniverse.Community.API.Controllers
             );
         }
 
-        [HttpGet("{competitionID}/current-round")]
-        public async Task<ApiResponse> GetCurrentRoundByCompetitionID(Guid competitionID)
+        /// <summary>
+        /// Lấy vòng thi hiện tại của cuộc thi (vòng có trạng thái ONGOING).
+        /// </summary>
+        /// <param name="competitionId">ID của cuộc thi</param>
+        /// <returns>200 OK - Trả về vòng thi đang diễn ra</returns>
+        [HttpGet("{competitionId}/rounds/current")]
+        [ProducesResponseType(typeof(SuccessResponse<RoundResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ApiResponse> GetCurrentRoundByCompetitionID(Guid competitionId)
         {
-            var result = await _competitionService.GetCurrentRoundByCompetitionID(competitionID);
+            var result = await _competitionService.GetCurrentRoundByCompetitionID(competitionId);
 
-            throw new NotImplementedException();
-        } 
+            return SuccessResponse<RoundResponseDto>.Create(
+                result,
+                "Lấy vòng thi đang diễn ra thành công!"
+            );
+        }
+
+        /// <summary>
+        /// Tạo giải thưởng cho cuộc thi
+        /// </summary>
+        /// <param name="request">Thông tin giải thưởng</param>
+        /// <param name="competitionId">Id cuộc thi</param>
+        /// <returns>201 Created - Tạo giải thưởng thành công</returns>
+        [HttpPost("{competitionId}")]
+        [ProducesResponseType(typeof(SuccessResponse<CompetitionPrizeResponseDto>), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [SwaggerRequestExample(typeof(CompetitionPrizeCreateDto), typeof(CompetitionPrizeCreateExample))]
+        [Authorize(Roles = Roles.AdminOrManagerRoles)]
+        public async Task<ApiResponse> CreatePrize(Guid competitionId, [FromBody] CompetitionPrizeCreateDto request)
+        {
+            var prize = await _competitionPrizeService.CreatePrize(competitionId, request);
+            return SuccessResponse<CompetitionPrizeResponseDto>.Create(
+                prize,
+                "Tạo giải thưởng thành công!"
+            );
+        }
     }
 }

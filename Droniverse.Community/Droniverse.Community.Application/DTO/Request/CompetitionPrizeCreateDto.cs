@@ -1,13 +1,10 @@
-using Droniverse.Community.Domain.Enums;
+﻿using Droniverse.Community.Domain.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace Droniverse.Community.Application.DTO.Request
 {
     public class CompetitionPrizeCreateDto
     {
-        [Required]
-        public Guid CompetitionID { get; set; }
-
         [Required]
         [StringLength(255)]
         public string TitleVN { get; set; }

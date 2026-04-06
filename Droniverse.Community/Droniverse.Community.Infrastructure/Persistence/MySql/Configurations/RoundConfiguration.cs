@@ -36,9 +36,32 @@ public class RoundConfiguration : IEntityTypeConfiguration<Round>
             .HasColumnType("datetime")
             .IsRequired();
 
+        builder.Property(r => r.TimeLimit)
+          .HasColumnType("time")
+          .IsRequired();
+
         builder.Property(r => r.Status)
             .HasColumnType("tinyint")
             .IsRequired();
+
+        builder.Property(r => r.IsSummarized)
+            .HasColumnType("tinyint(1)")
+            .HasDefaultValue(false)
+            .IsRequired();
+
+        builder.Property(r => r.CreatedAt)
+            .HasColumnType("datetime")
+            .IsRequired();
+
+        builder.Property(r => r.CreatedBy)
+            .HasColumnType("char(36)")
+            .IsRequired();
+
+        builder.Property(r => r.UpdatedAt)
+            .HasColumnType("datetime");
+
+        builder.Property(r => r.UpdatedBy)
+            .HasColumnType("char(36)");
 
         builder.HasOne(r => r.Competition)
             .WithMany(c => c.Rounds)

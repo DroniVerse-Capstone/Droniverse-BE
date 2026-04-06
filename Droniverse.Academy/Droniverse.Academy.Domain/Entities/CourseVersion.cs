@@ -23,15 +23,10 @@ public class CourseVersion
         = CourseVersionStatus.DRAFT;
 
     public int Version { get; set; }
-
     public string? ImageUrl { get; set; }
-
     public CourseLevel Level { get; set; }
-
     public int? EstimatedDuration { get; set; }
-
     public string? ChangeLog { get; set; }
-
     public Guid? UpdateBy { get; private set; }
     public DateTime? UpdateAt { get; private set; }
 

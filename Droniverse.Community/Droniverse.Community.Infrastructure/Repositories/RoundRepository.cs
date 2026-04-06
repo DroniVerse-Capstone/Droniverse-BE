@@ -1,5 +1,6 @@
 ﻿using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.Entities;
+using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Community.Infrastructure.Persistence.MySql;
 using Droniverse.Community.Infrastructure.QueryModels;
@@ -71,6 +72,48 @@ internal class RoundRepository : MySqlRepository<Round>, IRoundRepository
                 TotalParticipants = r.UserRounds.Count()
             })
             .ToListAsync();
+    }
+
+    public async Task<RoundQueryModel?> GetCurrentRoundByCompetitionID(Guid competitionID)
+    {
+        return await _context.Rounds
+            .AsNoTracking()
+            .Where(r => r.CompetitionID == competitionID && r.Status == RoundStatus.Ongoing)
+            .OrderBy(r => r.RoundNumber)
+            .Select(r => new RoundQueryModel
+            {
+                RoundID = r.RoundID,
+                CompetitionID = r.CompetitionID,
+                NameVN = r.Competition.NameVN,
+                NameEN = r.Competition.NameEN,
+                LabID = r.LabID,
+                RoundNumber = r.RoundNumber,
+                StartTime = r.StartTime,
+                EndTime = r.EndTime,
+                Status = r.Status,
+                TotalParticipants = r.UserRounds.Count()
+            })
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task<Round?> GetRoundForJoinById(Guid roundID)
+    {
+        return await _context.Rounds
+            .AsNoTracking()
+            .Include(r => r.Competition)
+            .FirstOrDefaultAsync(r => r.RoundID == roundID);
+    }
+
+    public async Task<Round?> GetPreviousRoundByCompetition(Guid competitionID, int currentRoundNumber)
+    {
+        if (currentRoundNumber <= 1)
+            return null;
+
+        var previousRoundNumber = currentRoundNumber - 1;
+
+        return await _context.Rounds
+            .AsNoTracking()
+            .FirstOrDefaultAsync(r => r.CompetitionID == competitionID && r.RoundNumber == previousRoundNumber);
     }
 }
 

@@ -1,4 +1,5 @@
 ﻿using Droniverse.Academy.Domain.Entities;
+using Droniverse.Academy.Domain.Enums;
 using Droniverse.Shared.DTOs.Response;
 using System.Linq.Expressions;
 
@@ -50,5 +51,15 @@ public interface ICourseRepository : IRepository<Course>
                   Expression<Func<Course, bool>>? filter = null,
                   Func<IQueryable<Course>, IOrderedQueryable<Course>>? orderBy = null,
                   CancellationToken cancellationToken = default);
+
+    Task<PaginationResult<IEnumerable<CourseBulkResponseDTO>>> GetHotCoursesByIdsWithCurrentVersionAsync(
+        IEnumerable<Guid> courseIds,
+        Guid currentUserId,
+        CourseLevel? level,
+        bool ownedOnly,
+        string? courseName,
+        int pageIndex,
+        int pageSize,
+        CancellationToken cancellationToken = default);
 }
 
