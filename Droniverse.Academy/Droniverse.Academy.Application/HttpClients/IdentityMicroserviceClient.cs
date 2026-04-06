@@ -1,11 +1,9 @@
-﻿using Droniverse.Shared.DTOs;
+﻿using Droniverse.Academy.Application.Common.Caching;
+using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Response;
-using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Helpers;
-using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
-using System.Text.Json;
 
 namespace Droniverse.Academy.Application.HttpClients
 {
@@ -13,21 +11,24 @@ namespace Droniverse.Academy.Application.HttpClients
     {
         private readonly HttpClient _httpClient;
         private readonly ILogger<IdentityMicroserviceClient> _logger;
-        private readonly IDistributedCache _distributedCache; //Redis Cache
+        private readonly ICacheService _cacheService;
+        private const int UserCacheAbsoluteExpirationSeconds = 300;
+        private const int UserCacheSlidingExpirationSeconds = 100;
+
         public IdentityMicroserviceClient(
             HttpClient httpClient,
             ILogger<IdentityMicroserviceClient> logger,
-            IDistributedCache distributedCache
+            ICacheService cacheService
             )
         {
             _httpClient = httpClient;
             _logger = logger;
-            _distributedCache = distributedCache;
+            _cacheService = cacheService;
         }
 
         public async Task<SimpleUserReponse?> GetUserByUserID(Guid userId)
         {
-            var userFromCache = await TryGetUserFromCacheAsync(userId);
+            var userFromCache = await _cacheService.GetAsync<UserResponse>(GetUserCacheKey(userId));
             if (userFromCache != null)
             {
                 _logger.LogInformation($"User with id {userId} found in cache.");
@@ -71,7 +72,11 @@ namespace Droniverse.Academy.Application.HttpClients
 
             }
 
-            await CacheUserAsync(user);
+            await _cacheService.SetAsync(
+                GetUserCacheKey(user.UserId),
+                user,
+                UserCacheAbsoluteExpirationSeconds,
+                UserCacheSlidingExpirationSeconds);
 
             return new SimpleUserReponse
             {
@@ -102,7 +107,7 @@ namespace Droniverse.Academy.Application.HttpClients
 
                 foreach (var id in distinctIds)
                 {
-                    var cached = await TryGetUserFromCacheAsync(id);
+                    var cached = await _cacheService.GetAsync<UserResponse>(GetUserCacheKey(id));
                     if (cached != null)
                     {
                         usersById[id] = cached;
@@ -150,7 +155,11 @@ namespace Droniverse.Academy.Application.HttpClients
                     foreach (var user in usersFromApi)
                     {
                         usersById[user.UserId] = user;
-                        await CacheUserAsync(user);
+                        await _cacheService.SetAsync(
+                            GetUserCacheKey(user.UserId),
+                            user,
+                            UserCacheAbsoluteExpirationSeconds,
+                            UserCacheSlidingExpirationSeconds);
                     }
                 }
 
@@ -164,29 +173,6 @@ namespace Droniverse.Academy.Application.HttpClients
                 _logger.LogError(ex, "Error calling Identity bulk API");
                 throw;
             }
-        }
-
-        private async Task<UserResponse?> TryGetUserFromCacheAsync(Guid userId)
-        {
-            var cacheUser = await _distributedCache.GetStringAsync(GetUserCacheKey(userId));
-            if (cacheUser == null)
-                return null;
-
-            var user = JsonSerializer.Deserialize<UserResponse>(cacheUser);
-            if (user == null)
-                throw new NotFoundException($"User with ID {userId} not found in cache.");
-
-            return user;
-        }
-
-        private async Task CacheUserAsync(UserResponse user)
-        {
-            var userCacheString = JsonSerializer.Serialize(user);
-            var options = new DistributedCacheEntryOptions()
-                .SetAbsoluteExpiration(TimeSpan.FromSeconds(300))
-                .SetSlidingExpiration(TimeSpan.FromSeconds(100));
-
-            await _distributedCache.SetStringAsync(GetUserCacheKey(user.UserId), userCacheString, options);
         }
 
         private static string GetUserCacheKey(Guid userId) => $"user:{userId}";

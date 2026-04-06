@@ -9,13 +9,21 @@ public class UpdateEnrollmentRequestExample : IMultipleExamplesProvider<UpdateEn
     public IEnumerable<SwaggerExample<UpdateEnrollmentRequestDTO>> GetExamples()
     {
         yield return SwaggerExample.Create(
-            "Ví dụ cập nhật enrollment",
+            "Ví dụ cập nhật enrollment (đầy đủ)",
             new UpdateEnrollmentRequestDTO
             {
                 Progress = 45.5f,
                 LastAccessDate = DateTime.UtcNow,
                 ExpireDate = DateTime.UtcNow.AddMonths(6),
                 Status = EnrollStatus.ACTIVE
+            }
+        );
+
+        yield return SwaggerExample.Create(
+            "Ví dụ cập nhật enrollment (PATCH một phần)",
+            new UpdateEnrollmentRequestDTO
+            {
+                Progress = 60f
             }
         );
     }

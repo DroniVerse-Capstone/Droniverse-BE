@@ -2,11 +2,13 @@
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.API.Enums;
+using Droniverse.Academy.API.Examples;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.DTOs.Request;
+using Swashbuckle.AspNetCore.Filters;
 
 namespace Droniverse.Academy.API.Controllers
 {
@@ -53,8 +55,8 @@ namespace Droniverse.Academy.API.Controllers
         /// <returns>Danh sách khóa học tương ứng với các ID được gửi lên.</returns>
         // POST academy/courses/by-ids
         [HttpPost("by-ids")]
-        //[SwaggerRequestExample(typeof(GetCoursesByIdsRequestDTO), typeof(GetCoursesByIdsExample))]
-        [ProducesResponseType(typeof(IEnumerable<CourseBulkResponseDTO>), StatusCodes.Status200OK)]
+        [SwaggerRequestExample(typeof(GetCoursesByIdsRequestDTO), typeof(GetCoursesByIdsExample))]
+        [ProducesResponseType(typeof(SuccessResponse<IEnumerable<CourseBulkResponseDTO>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetCoursesByIds(
             [FromQuery] CourseBulkSearchRequest searchRequest,
             [FromBody] GetCoursesByIdsRequestDTO request)
@@ -62,7 +64,7 @@ namespace Droniverse.Academy.API.Controllers
             try
             {
                 var result = await _courseService.GetCoursesByIdsAsync(searchRequest, request.CourseIds);
-                return Ok(result);
+                return Ok(SuccessResponse<IEnumerable<CourseBulkResponseDTO>>.Create(result, "Lấy danh sách course theo id thành công."));
             }
             catch (Exception ex)
             {
