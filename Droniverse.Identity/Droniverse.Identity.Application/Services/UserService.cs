@@ -32,11 +32,19 @@ internal class UserService : IUserService
         _cloudinaryService = cloudinaryService;
     }
 
-    public async Task<IEnumerable<UserResponse>> GetAllUsers()
+    public async Task<PaginationResult<IEnumerable<UserResponse>>> GetAllUsers(
+        UserSearchRequest userSearchRequest,
+        int pageIndex,
+        int pageSize)
     {
-        IEnumerable<Account> accountList = await _unitOfWork.Accounts.GetAll();
-        IEnumerable<UserResponse> userResponseList = _mapper.Map<IEnumerable<UserResponse>>(accountList);
-        return userResponseList;
+        // Ưu tiên dùng CurrentPage/PageSize từ request nếu có
+        var finalPageIndex = userSearchRequest?.CurrentPage ?? pageIndex;
+        var finalPageSize = userSearchRequest?.PageSize ?? pageSize;
+
+        return await _unitOfWork.Accounts.GetAllUsersAsync(
+            userSearchRequest,
+            finalPageIndex,
+            finalPageSize);
     }
 
     public async Task<UserResponse> AddUser(UserCreateDto userCreateDto)
