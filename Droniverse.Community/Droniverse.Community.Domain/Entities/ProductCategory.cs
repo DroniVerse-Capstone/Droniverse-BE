@@ -2,7 +2,6 @@
 public class ProductCategory
 {
     public Guid CategoryID { get; set; } //char(36)
-    public ICollection<Product> Products;
     public string Code { get; set; } //varchar(50)
     public string CategoryNameVN { get; set; }
     public string CategoryNameEN { get; set; }

@@ -3,6 +3,7 @@ using System;
 using Droniverse.Community.Infrastructure.Persistence.MySql;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Droniverse.Community.Infrastructure.Migrations
 {
     [DbContext(typeof(MySqlDbContext))]
-    partial class MySqlDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260406093554_Update_Price_Product_DataType")]
+    partial class Update_Price_Product_DataType
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -511,6 +514,12 @@ namespace Droniverse.Community.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
 
+                    b.Property<Guid>("CategoryID")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("CodeID")
+                        .HasColumnType("char(36)");
+
                     b.Property<DateTime>("CreateAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime");
@@ -554,6 +563,8 @@ namespace Droniverse.Community.Infrastructure.Migrations
                         .HasColumnType("datetime");
 
                     b.HasKey("ProductID");
+
+                    b.HasIndex("CategoryID");
 
                     b.ToTable("Product", null, t =>
                         {
@@ -953,6 +964,17 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     b.Navigation("Club");
                 });
 
+            modelBuilder.Entity("Droniverse.Community.Domain.Entities.Product", b =>
+                {
+                    b.HasOne("Droniverse.Community.Domain.Entities.ProductCategory", "ProductCategory")
+                        .WithMany("Products")
+                        .HasForeignKey("CategoryID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ProductCategory");
+                });
+
             modelBuilder.Entity("Droniverse.Community.Domain.Entities.Round", b =>
                 {
                     b.HasOne("Droniverse.Community.Domain.Entities.Competition", "Competition")
@@ -1067,6 +1089,11 @@ namespace Droniverse.Community.Infrastructure.Migrations
             modelBuilder.Entity("Droniverse.Community.Domain.Entities.Product", b =>
                 {
                     b.Navigation("UserProducts");
+                });
+
+            modelBuilder.Entity("Droniverse.Community.Domain.Entities.ProductCategory", b =>
+                {
+                    b.Navigation("Products");
                 });
 
             modelBuilder.Entity("Droniverse.Community.Domain.Entities.Round", b =>

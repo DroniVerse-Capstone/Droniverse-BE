@@ -15,13 +15,12 @@ public record ProductRequestDto
     string DescriptionVN,
     string DescriptionEN,
     Guid ReferenceId,
-    Guid CategoryId,
     decimal Price,
     CurrencyType Currency,
     ProductStatus Status
 )
 {
-    public ProductRequestDto() : this(string.Empty, string.Empty, string.Empty, string.Empty, Guid.Empty, Guid.Empty, 0, CurrencyType.USD, default)
+    public ProductRequestDto() : this(string.Empty, string.Empty, string.Empty, string.Empty, Guid.Empty, 0, CurrencyType.USD, default)
     {
     }
 }

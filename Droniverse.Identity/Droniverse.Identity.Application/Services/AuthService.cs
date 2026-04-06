@@ -243,5 +243,23 @@ internal class AuthService : IAuthService
         UserResponse userResponse = _mapper.Map<UserResponse>(account);
         return userResponse;
     }
+
+    public async Task<UserResponse?> UpdateProfileAsync(ProfileUpdateDto userUpdateDto)
+    {
+        Account? account = await _unitOfWork.Accounts.GetByCondition(a => a.UserID == _currentUserService.UserId);
+        if(account is null)
+        {
+            throw new UnauthorizedAccessException("Chưa xác thực. Cập nhật thông tin người dùng thất bại.");
+        }
+        account.Username = userUpdateDto.Username;
+        account.UserInfo.FirstName = userUpdateDto.FirstName;
+        account.UserInfo.LastName = userUpdateDto.LastName;
+        account.UserInfo.DateOfBirth = userUpdateDto.DateOfBirth;
+        Account? updatedAccount = await _unitOfWork.Accounts.Update(account);
+        UserInfo? updatedUserInfo = await _unitOfWork.UserInfos.Update(account.UserInfo);
+        await _unitOfWork.SaveChangeAsync();
+        UserResponse userResponse = _mapper.Map<UserResponse>(updatedAccount);
+        return userResponse;
+    }
 }
 
