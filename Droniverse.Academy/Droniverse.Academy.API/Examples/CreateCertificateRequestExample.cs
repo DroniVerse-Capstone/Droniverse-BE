@@ -11,7 +11,8 @@ public class CreateCertificateRequestExample : IMultipleExamplesProvider<CreateC
             "Ví dụ tạo chứng chỉ",
             new CreateCertificateRequestDTO
             {
-                CertificateName = "Chứng chỉ hoàn thành khóa học Drone Cơ Bản",
+                CertificateNameVN = "Chứng chỉ hoàn thành khóa học Drone Cơ Bản",
+                CertificateNameEN = "Certificate of Completion - Basic Drone Course",
                 ImageUrl = "https://cdn.droniverse.vn/certificates/template-basic.png",
                 LogoCertificate = "https://cdn.droniverse.vn/logos/droniverse-logo.png",
                 Description = "Chứng nhận học viên đã hoàn thành khóa học và đạt yêu cầu đánh giá.",

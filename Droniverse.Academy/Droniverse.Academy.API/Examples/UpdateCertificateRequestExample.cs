@@ -11,7 +11,8 @@ public class UpdateCertificateRequestExample : IMultipleExamplesProvider<UpdateC
             "Ví dụ cập nhật chứng chỉ",
             new UpdateCertificateRequestDTO
             {
-                CertificateName = "Chứng chỉ nâng cao Drone Navigation",
+                CertificateNameVN = "Chứng chỉ nâng cao Drone Navigation",
+                CertificateNameEN = "Advanced Drone Navigation Certificate",
                 ImageUrl = "https://cdn.droniverse.vn/certificates/template-advanced.png",
                 LogoCertificate = "https://cdn.droniverse.vn/logos/droniverse-logo-new.png",
                 Description = "Mẫu chứng chỉ cập nhật cho chương trình nâng cao.",
