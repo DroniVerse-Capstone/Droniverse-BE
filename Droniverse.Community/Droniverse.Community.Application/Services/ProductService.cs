@@ -61,6 +61,37 @@ public class ProductService : IProductService
         return _mapper.Map<ProductResponseDto>(product);
     }
 
+    public async Task<ProductMiniResponseDto?> GetProductByReferenceId(Guid referenceId)
+    {
+        if (referenceId == Guid.Empty)
+            return null;
+
+        Product? product = await _unitOfWork.Products.GetByCondition(p => p.ReferenceID == referenceId);
+        if (product == null)
+            return null;
+
+        return _mapper.Map<ProductMiniResponseDto>(product);
+    }
+
+    public async Task<IEnumerable<ProductMiniResponseDto>> GetProductsBulkByReferenceIds(IEnumerable<Guid> referenceIds)
+    {
+        if (referenceIds == null)
+            return [];
+
+        var distinctReferenceIds = referenceIds
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        if (!distinctReferenceIds.Any())
+            return [];
+
+        IEnumerable<Product> products = await _unitOfWork.Products
+            .GetManyByCondition(p => distinctReferenceIds.Contains(p.ReferenceID));
+
+        return _mapper.Map<IEnumerable<ProductMiniResponseDto>>(products);
+    }
+
     public async Task<ProductResponseDto> UpdateProduct(Guid productID, ProductRequestDto request)
     {
         Product? product = await _unitOfWork.Products.GetByCondition(p => p.ProductID == productID);

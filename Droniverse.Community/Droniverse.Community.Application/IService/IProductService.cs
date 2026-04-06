@@ -7,6 +7,8 @@ public interface IProductService
 {
     Task<IEnumerable<ProductResponseDto>> GetAllProducts();
     Task<ProductResponseDto> GetProductById(Guid id);
+    Task<ProductMiniResponseDto?> GetProductByReferenceId(Guid referenceId);
+    Task<IEnumerable<ProductMiniResponseDto>> GetProductsBulkByReferenceIds(IEnumerable<Guid> referenceIds);
     Task<ProductResponseDto> CreateProduct(ProductRequestDto request);
     Task<ProductResponseDto> UpdateProduct(Guid productID, ProductRequestDto request);
     Task<bool> Delete(Guid id);

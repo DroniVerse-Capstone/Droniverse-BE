@@ -1,13 +1,7 @@
 ﻿using Droniverse.Academy.Application.DTO.Response;
-using Microsoft.Extensions.Caching.Distributed;
+using Droniverse.Academy.Application.Common.Caching;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http.Json;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace Droniverse.Academy.Application.HttpClients
 {
@@ -15,13 +9,17 @@ namespace Droniverse.Academy.Application.HttpClients
     {
         private readonly HttpClient _httpClient;
         private readonly ILogger<CommunityMicroserviceClient> _logger;
-        private readonly IDistributedCache _distributedCache; //Redis Cache
+        private readonly ICacheService _cacheService;
+        private const int CategoryCacheAbsoluteExpirationSeconds = 300;
+        private const int CategoryCacheSlidingExpirationSeconds = 100;
+        private const int ProductCacheAbsoluteExpirationSeconds = 300;
+        private const int ProductCacheSlidingExpirationSeconds = 100;
 
-        public CommunityMicroserviceClient(HttpClient httpClient, ILogger<CommunityMicroserviceClient> logger, IDistributedCache distributedCache)
+        public CommunityMicroserviceClient(HttpClient httpClient, ILogger<CommunityMicroserviceClient> logger, ICacheService cacheService)
         {
             _httpClient = httpClient;
             _logger = logger;
-            _distributedCache = distributedCache;
+            _cacheService = cacheService;
         }
 
         public async Task<IEnumerable<CategoryResponseDTO>> GetCategoriesBulk(IEnumerable<Guid> ids)
@@ -103,33 +101,175 @@ namespace Droniverse.Academy.Application.HttpClients
                 throw;
             }
         }
-        private async Task<CategoryResponseDTO?> GetCategoryFromCacheAsync(Guid categoryId)
+
+        public async Task<ProductMiniResponseDto?> GetProductByReferenceIdAsync(
+            Guid referenceId,
+            CancellationToken cancellationToken = default)
         {
-            var categoryFromCache = await _distributedCache.GetStringAsync(GetCacheKeyForCategory(categoryId));
-            if (categoryFromCache == null)
+            if (referenceId == Guid.Empty)
             {
                 return null;
             }
-            var category = JsonSerializer.Deserialize<CategoryResponseDTO>(categoryFromCache);
-            if (category == null)
+
+            try
             {
-                throw new Exception($"Failed to deserialize category with ID {categoryId} from cache.");
+                var cachedProduct = await GetProductFromCacheAsync(referenceId, cancellationToken);
+                if (cachedProduct != null)
+                {
+                    return cachedProduct;
+                }
+
+                var response = await _httpClient.GetAsync($"/community/products/reference/{referenceId}", cancellationToken);
+
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    return null;
+                }
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new HttpRequestException(
+                        $"Community product API error: {response.StatusCode}",
+                        null,
+                        response.StatusCode);
+                }
+
+                var product = await response.Content.ReadFromJsonAsync<ProductMiniResponseDto>(cancellationToken);
+                if (product != null)
+                {
+                    await CacheProductAsync(referenceId, product, cancellationToken);
+                }
+
+                return product;
             }
-            return category;
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calling Community product API for referenceId {ReferenceId}", referenceId);
+                throw;
+            }
         }
+
+        public async Task<IEnumerable<ProductMiniResponseDto>> GetProductsBulkByReferenceIdsAsync(
+            IEnumerable<Guid> referenceIds,
+            CancellationToken cancellationToken = default)
+        {
+            if (referenceIds == null)
+            {
+                return [];
+            }
+
+            var distinctIds = referenceIds
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (distinctIds.Count == 0)
+            {
+                return [];
+            }
+
+            try
+            {
+                var productsByReferenceId = new Dictionary<Guid, ProductMiniResponseDto>();
+                var missingIds = new List<Guid>();
+
+                foreach (var referenceId in distinctIds)
+                {
+                    var cachedProduct = await GetProductFromCacheAsync(referenceId, cancellationToken);
+                    if (cachedProduct != null)
+                    {
+                        productsByReferenceId[referenceId] = cachedProduct;
+                    }
+                    else
+                    {
+                        missingIds.Add(referenceId);
+                    }
+                }
+
+                if (missingIds.Count == 0)
+                {
+                    return distinctIds
+                        .Where(id => productsByReferenceId.ContainsKey(id))
+                        .Select(id => productsByReferenceId[id])
+                        .ToList();
+                }
+
+                var response = await _httpClient.PostAsJsonAsync(
+                    "/community/products/reference/bulk",
+                    missingIds,
+                    cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new HttpRequestException(
+                        $"Community product bulk API error: {response.StatusCode}",
+                        null,
+                        response.StatusCode);
+                }
+
+                var productsFromApi = await response.Content.ReadFromJsonAsync<List<ProductMiniResponseDto>>(cancellationToken)
+                    ?? [];
+
+                foreach (var product in productsFromApi)
+                {
+                    if (!product.ReferenceId.HasValue || product.ReferenceId.Value == Guid.Empty)
+                    {
+                        continue;
+                    }
+
+                    productsByReferenceId[product.ReferenceId.Value] = product;
+                    await CacheProductAsync(product.ReferenceId.Value, product, cancellationToken);
+                }
+
+                return distinctIds
+                    .Where(id => productsByReferenceId.ContainsKey(id))
+                    .Select(id => productsByReferenceId[id])
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calling Community product bulk API");
+                throw;
+            }
+        }
+
+        private async Task<ProductMiniResponseDto?> GetProductFromCacheAsync(Guid referenceId, CancellationToken cancellationToken)
+        {
+            return await _cacheService.GetAsync<ProductMiniResponseDto>(GetCacheKeyForProduct(referenceId), cancellationToken);
+        }
+
+        private async Task CacheProductAsync(Guid referenceId, ProductMiniResponseDto product, CancellationToken cancellationToken)
+        {
+            await _cacheService.SetAsync(
+                GetCacheKeyForProduct(referenceId),
+                product,
+                ProductCacheAbsoluteExpirationSeconds,
+                ProductCacheSlidingExpirationSeconds,
+                cancellationToken);
+        }
+
+        private async Task<CategoryResponseDTO?> GetCategoryFromCacheAsync(Guid categoryId)
+        {
+            return await _cacheService.GetAsync<CategoryResponseDTO>(GetCacheKeyForCategory(categoryId));
+        }
+
         private async Task CacheCategory(CategoryResponseDTO category)
         {
-            var options = new DistributedCacheEntryOptions()
-                .SetAbsoluteExpiration(TimeSpan.FromSeconds(300))
-                .SetSlidingExpiration(TimeSpan.FromSeconds(100));
-            var categoryJson = JsonSerializer.Serialize(category);
-            await _distributedCache.SetStringAsync(GetCacheKeyForCategory(category.CategoryID), categoryJson, options);
-
+            await _cacheService.SetAsync(
+                GetCacheKeyForCategory(category.CategoryID),
+                category,
+                CategoryCacheAbsoluteExpirationSeconds,
+                CategoryCacheSlidingExpirationSeconds);
         }
 
         private string GetCacheKeyForCategory(Guid categoryId)
         {
             return $"category:{categoryId}";
+        }
+
+        private string GetCacheKeyForProduct(Guid referenceId)
+        {
+            return $"product:reference:{referenceId}";
         }
     } 
 }

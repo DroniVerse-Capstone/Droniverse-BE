@@ -9,6 +9,10 @@ public class ProductMappingProfile : Profile
 {
     public ProductMappingProfile()
     {
+        CreateMap<Product, ProductMiniResponseDto>()
+            .ForMember(dest => dest.ProductId, opt => opt.MapFrom(src => src.ProductID))
+            .ForMember(dest => dest.ReferenceId, opt => opt.MapFrom(src => src.ReferenceID));
+
         CreateMap<Product, ProductResponseDto>()
             .ForMember(dest => dest.ProductId, opt => opt.MapFrom(src => src.ProductID))
             .ForMember(dest => dest.CreateAt, opt => opt.Ignore())

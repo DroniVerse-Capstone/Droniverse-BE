@@ -3,6 +3,7 @@ using Droniverse.Academy.Application.Common.Extensions;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.Enums;
+using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
@@ -24,13 +25,15 @@ public class CourseService : ICourseService
     private readonly IClock _clock;
     private readonly IMapper _mapper;
     private readonly IUserDisplayNameService _userDisplayNameService;
-    public CourseService(IUnitOfWork unitOfWork, IClock clock, ICurrentUserService current, IMapper mapper, IUserDisplayNameService userDisplayNameService)
+    private readonly CommunityMicroserviceClient _communityMicroserviceClient;
+    public CourseService(IUnitOfWork unitOfWork, IClock clock, ICurrentUserService current, IMapper mapper, IUserDisplayNameService userDisplayNameService, CommunityMicroserviceClient communityMicroserviceClient)
     {
         _unitOfWork = unitOfWork;
         _clock = clock;
         _currentUser = current;
         _mapper = mapper;
         _userDisplayNameService = userDisplayNameService;
+        _communityMicroserviceClient = communityMicroserviceClient;
     }
 
     public async Task<CourseDetailResponseDTO> CreateCourseAsync()
@@ -92,6 +95,27 @@ public class CourseService : ICourseService
         var entities = result.Data.ToList();
         var mapped = entities.Select(c => _mapper.Map<CourseResponseDTO>(c)).ToList();
 
+        var referenceIds = entities
+            .Where(c => c.CurrentVersion != null)
+            .Select(c => c.CurrentVersion!.CourseVersionID)
+            .Distinct()
+            .ToList();
+
+        var products = await _communityMicroserviceClient.GetProductsBulkByReferenceIdsAsync(referenceIds);
+        var pricesByReferenceId = products
+            .Where(p => p.ReferenceId.HasValue && p.ReferenceId.Value != Guid.Empty)
+            .GroupBy(p => p.ReferenceId!.Value)
+            .ToDictionary(g => g.Key, g => g.First().Price);
+
+        foreach (var (entity, dto) in entities.Zip(mapped))
+        {
+            var referenceId = entity.CurrentVersion?.CourseVersionID;
+            if (referenceId.HasValue && pricesByReferenceId.TryGetValue(referenceId.Value, out var price))
+            {
+                dto.Price = price;
+            }
+        }
+
         var userCache = await BuildUserLookupAsync(entities);
         PopulateMappedCoursesUsers(entities, mapped, userCache);
 
@@ -106,6 +130,12 @@ public class CourseService : ICourseService
         var courseResponse = _mapper.Map<CourseResponseDTO>(course);
         await PopulateCreatorAsync(courseResponse, course.CreateBy);
         await PopulateCurrentVersionUpdaterAsync(courseResponse, course.CurrentVersion?.UpdateBy);
+
+        if (course.CurrentVersion != null)
+        {
+            var product = await _communityMicroserviceClient.GetProductByReferenceIdAsync(course.CurrentVersion.CourseVersionID);
+            courseResponse.Price = product?.Price;
+        }
 
         return courseResponse;
     }
@@ -142,6 +172,8 @@ public class CourseService : ICourseService
         }
 
         response.LastUpdatedAt = overviewData.LastUpdatedAt;
+        var product = await _communityMicroserviceClient.GetProductByReferenceIdAsync(courseVersionId, cancellationToken);
+        response.Price = product?.Price;
         return response;
     }
 

@@ -102,12 +102,13 @@ namespace Droniverse.Academy.API.Controllers
         /// </summary>
         // GET academy/courses/{courseId}
         [HttpGet("{courseId:guid}")]
+        [ProducesResponseType(typeof(CourseResponseDTO), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetCourseById(Guid courseId)
         {
             try
             {
                 var course = await _courseService.GetCourseByIdAsync(courseId);
-                return Ok(SuccessResponse<object>.Create(course, "Lấy chi tiết course thành công."));
+                return Ok(course);
             }
             catch (Exception ex)
             {
