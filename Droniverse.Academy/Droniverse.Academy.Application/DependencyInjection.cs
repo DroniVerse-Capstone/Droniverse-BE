@@ -2,6 +2,7 @@
 using Droniverse.Academy.Application.IService.Mongo;
 using Droniverse.Academy.Application.IService.Duplication;
 ﻿using Droniverse.Academy.Application.Delegate;
+using Droniverse.Academy.Application.Common.Caching;
 using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Application.Mapper;
@@ -58,6 +59,7 @@ public static class DependencyInjection
         services.AddScoped<ILabContentSyncService, LabContentSyncService>();
 
         services.AddScoped<ICodeService, CodeService>();
+        services.AddScoped<ICacheService, CacheService>();
 
         services.AddTransient<AuthorizationDelegatingHandler>();
 

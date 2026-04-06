@@ -1,8 +1,9 @@
-namespace Droniverse.Academy.Application.DTO.Request;
+﻿namespace Droniverse.Academy.Application.DTO.Request;
 
 public class CreateCertificateRequestDTO
 {
-    public string CertificateName { get; set; } = null!;
+    public string CertificateNameVN { get; set; } = null!;
+    public string CertificateNameEN { get; set; } = null!;
     public string ImageUrl { get; set; } = null!;
     public string LogoCertificate { get; set; } = null!;
     public string Description { get; set; } = null!;

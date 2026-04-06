@@ -1,4 +1,5 @@
 ﻿using Droniverse.Community.Application.DTO.Request;
+using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.IService;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -38,6 +39,25 @@ namespace Droniverse.Community.API.Controllers
                 return NotFound();
             }
             return Ok(product);
+        }
+
+        [HttpGet("reference/{referenceId}")]
+        public async Task<ActionResult<ProductMiniResponseDto>> GetProductByReferenceId(Guid referenceId)
+        {
+            var product = await _productService.GetProductByReferenceId(referenceId);
+            if (product == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(product);
+        }
+
+        [HttpPost("reference/bulk")]
+        public async Task<ActionResult<IEnumerable<ProductMiniResponseDto>>> GetProductsBulkByReferenceIds([FromBody] IEnumerable<Guid> referenceIds)
+        {
+            var products = await _productService.GetProductsBulkByReferenceIds(referenceIds);
+            return Ok(products);
         }
 
         [HttpPost]

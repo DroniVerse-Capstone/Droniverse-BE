@@ -5,6 +5,7 @@ namespace Droniverse.Academy.Domain.Entities;
 public class Enrollment
 {
     public Guid EnrollmentID { get; set; }          // PK
+    public Guid CourseID { get; set; }              // FK -> Course
     public Guid CourseVersionID { get; set; }       // FK -> CourseVersion
     public Guid UserID { get; set; }                // FK -> User
     public Guid? ClubID { get; set; }               // FK -> Club (nullable)
@@ -15,5 +16,6 @@ public class Enrollment
     public EnrollStatus Status { get; set; }        // tinyint
 
     // Navigation
+    public Course Course { get; set; }
     public CourseVersion CourseVersion { get; set; }
 }
