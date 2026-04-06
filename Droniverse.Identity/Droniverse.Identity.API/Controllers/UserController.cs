@@ -18,9 +18,11 @@ namespace Droniverse.Identity.API.Controllers
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;
-        public UserController(IUserService userService)
+        private readonly IRoleService _roleService;
+        public UserController(IUserService userService, IRoleService roleService)
         {
             _userService = userService;
+            _roleService = roleService;
         }
 
         [HttpGet("test")]
@@ -35,9 +37,14 @@ namespace Droniverse.Identity.API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAllUsers()
+        public async Task<IActionResult> GetAllUsers(
+            [FromQuery] UserSearchRequest userSearchRequest)
         {
-            var users = await _userService.GetAllUsers();
+            userSearchRequest ??= new UserSearchRequest();
+            var users = await _userService.GetAllUsers(
+                userSearchRequest,
+                userSearchRequest.CurrentPage,
+                userSearchRequest.PageSize);
             return Ok(users);
         }
 

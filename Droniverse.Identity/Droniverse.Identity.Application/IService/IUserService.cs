@@ -8,7 +8,11 @@ using Microsoft.AspNetCore.Http;
 namespace Droniverse.Identity.Application.IService;
 public interface IUserService
 {
-    Task<IEnumerable<UserResponse>> GetAllUsers();
+    Task<PaginationResult<IEnumerable<UserResponse>>> GetAllUsers(
+        UserSearchRequest userSearchRequest,
+        int pageIndex,
+        int pageSize);
+
     Task<UserResponse> AddUser(UserCreateDto userCreateDto);
     Task<string> UploadUserAvatar(Guid userId, IFormFile imageFile);
     Task<UserResponse> UpdateUser(Guid userId, UserUpdateDto userUpdateDto);
