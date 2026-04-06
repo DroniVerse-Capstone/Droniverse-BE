@@ -9,7 +9,7 @@ namespace Droniverse.Community.Application.DTO.Extensions
 {
     public class ParticipationSearchRequest : SearchRequest
     {
-        public string? ParicipationName { get; set; }
+        public string? ParticipantName { get; set; }
         public DateOnly? DateOfBirth { get; set; }
     }
 

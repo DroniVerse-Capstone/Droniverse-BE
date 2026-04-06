@@ -8,8 +8,8 @@ public class UserInfo
     [Key]
     [ForeignKey("Account")]
     public Guid UserID { get; set; }
-    public string FirstName { get; set; }
-    public string LastName { get; set; }
+    public required string FirstName { get; set; }
+    public required string LastName { get; set; }
     public string? ImageUrl { get; set; }
     public string? Phone { get; set; }
     public GenderOptions Gender { get; set; }
