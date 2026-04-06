@@ -30,8 +30,9 @@ public class ProductService : IProductService
     {
 
         Product product = _mapper.Map<Product>(request);
+        ProductCategory? category = await _unitOfWork.ProductCategories.GetByCondition(c => c.CategoryID == Guid.Parse("16993e60-b569-4a76-9d3a-3f0fdc0da64b"));
+        product.ProductCategory = category;
         Product addedProduct = await _unitOfWork.Products.Add(product);
-        //_logger.LogInformation($"ID của product: {addedProduct.ProductID}");
         await _unitOfWork.SaveChangeAsync();
         ProductResponseDto response = _mapper.Map<ProductResponseDto>(addedProduct);
 
@@ -99,10 +100,26 @@ public class ProductService : IProductService
         {
             throw new NotFoundException($"Product with id #{productID} not found");
         }
+
+        // Cập nhật tất cả fields từ request
+        product.ProductNameVN = request.ProductNameVN;
+        product.ProductNameEN = request.ProductNameEN;
+        product.DescriptionVN = request.DescriptionVN;
+        product.DescriptionEN = request.DescriptionEN;
+        product.ReferenceID = request.ReferenceId;
+        product.Price = request.Price;
+        product.Currency = request.Currency;
+        product.Status = request.Status;
+        product.UpdateAt = DateTime.UtcNow;
+
+        // Set ProductCategory
+        ProductCategory? category = await _unitOfWork.ProductCategories.GetByCondition(c => c.CategoryID == Guid.Parse("16993e60-b569-4a76-9d3a-3f0fdc0da64b"));
+        product.ProductCategory = category;
+
         Product? updatedProduct = await _unitOfWork.Products.Update(product);
+        await _unitOfWork.SaveChangeAsync();
+
         return _mapper.Map<ProductResponseDto>(updatedProduct);
-
-
     }
 }
 
