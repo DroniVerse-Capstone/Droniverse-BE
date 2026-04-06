@@ -1,13 +1,14 @@
-﻿using Droniverse.Shared.DTOs.Response;
-using Droniverse.Shared.Exceptions;
-using Droniverse.Community.Application.DTO.Extensions;
+﻿using Droniverse.Community.Application.DTO.Extensions;
 using Droniverse.Shared.DTOs;
+using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Enums;
+using Droniverse.Shared.Exceptions;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Droniverse.Community.Application.HttpClients;
 
@@ -21,6 +22,14 @@ public class IdentityMicroserviceClient
     private readonly ILogger<IdentityMicroserviceClient> _logger;
     private readonly IDistributedCache _distributedCache; //Redis Cache
     private readonly IHostEnvironment _environment;
+    private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions
+    {
+        PropertyNameCaseInsensitive = true,
+        Converters =
+        {
+            new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) // parse string -> enum
+        }
+    };
     public IdentityMicroserviceClient(
         HttpClient httpClient,
         ILogger<IdentityMicroserviceClient> logger,
@@ -70,7 +79,7 @@ public class IdentityMicroserviceClient
             else
                 throw new HttpRequestException($"Identity service error: {httpResponseMsg.StatusCode}", null, httpResponseMsg.StatusCode);
         }
-        UserResponse? user = await httpResponseMsg.Content.ReadFromJsonAsync<UserResponse>();
+        UserResponse? user = await httpResponseMsg.Content.ReadFromJsonAsync<UserResponse>(JsonOptions);
         if (user == null)
         {
             throw new ArgumentException("Invalid userID");
@@ -96,7 +105,7 @@ public class IdentityMicroserviceClient
             .Distinct()
             .ToList();
 
-        if (!distinctIds.Any())
+        if (!distinctIds.Any()) 
             return [];
 
         var userDict = new Dictionary<Guid, UserResponse>();
@@ -145,7 +154,7 @@ public class IdentityMicroserviceClient
                     BuildIdentityPath("users/bulk"),
                     //"/identity/users/bulk",
                     missingIds
-                );
+                ); 
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -172,7 +181,7 @@ public class IdentityMicroserviceClient
                         response.StatusCode);
                 }
 
-                var usersFromApi = await response.Content.ReadFromJsonAsync<IEnumerable<UserResponse>>() ?? [];
+                var usersFromApi = await response.Content.ReadFromJsonAsync<IEnumerable<UserResponse>>(JsonOptions) ?? [];
                 var cacheWriteTasks = new List<Task>();
 
                 foreach (var user in usersFromApi)
@@ -254,7 +263,7 @@ public class IdentityMicroserviceClient
                 response.StatusCode);
         }
 
-        var userIds = await response.Content.ReadFromJsonAsync<IEnumerable<Guid>>() ?? [];
+        var userIds = await response.Content.ReadFromJsonAsync<IEnumerable<Guid>>(JsonOptions) ?? [];
 
         try
         {

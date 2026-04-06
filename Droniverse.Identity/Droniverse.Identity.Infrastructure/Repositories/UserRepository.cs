@@ -62,7 +62,9 @@ public class UserRepository : Repository<Account>, IUserRepository
                 RoleName = a.Role.RoleName,
                 FirstName = a.UserInfo.FirstName,
                 LastName = a.UserInfo.LastName,
-                DateOfBirth = a.UserInfo.DateOfBirth
+                DateOfBirth = a.UserInfo.DateOfBirth,
+                ImageUrl = a.UserInfo.ImageUrl,
+                Gender = a.UserInfo.Gender,
             })
             .ToListAsync();
     }
