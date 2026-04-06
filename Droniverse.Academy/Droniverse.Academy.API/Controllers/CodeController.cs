@@ -41,7 +41,12 @@ public class CodeController : ControllerBase
     public async Task<IActionResult> CreateCode(Guid courseId, int quantity)
     {
         IEnumerable<string> listIds = await _codeService.CreateCodeAsync(courseId, quantity);
-        return Ok(SuccessResponse<IEnumerable<string>>.Create(listIds, "Tạo code thành công."));
+        CodeCreateResponseDTO responseDTO = new CodeCreateResponseDTO
+        {
+            CourseId = courseId,
+            TotalCreated = listIds.Count()
+        };
+        return Ok(SuccessResponse<CodeCreateResponseDTO>.Create(responseDTO, "Tạo code thành công."));
     }
 
     [HttpPost("enter-codes")]

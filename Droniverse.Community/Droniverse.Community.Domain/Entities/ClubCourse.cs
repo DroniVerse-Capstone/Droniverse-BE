@@ -6,7 +6,8 @@ public class ClubCourse
     public Club Club { get; set; }
     public Guid ClubID { get; set; }
     public Guid CourseID { get; set; } // Reference to Course entity (not defined here)
-
+    public int RemainingQuantity { get; set; }
+    public int TotalQuantity { get; set; }
     public ClubCourseProfit isProfit { get; set; }
 }
 
