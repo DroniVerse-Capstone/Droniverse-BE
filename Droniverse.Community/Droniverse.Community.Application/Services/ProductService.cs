@@ -28,11 +28,6 @@ public class ProductService : IProductService
 
     public async Task<ProductResponseDto> CreateProduct(ProductRequestDto request)
     {
-        ProductCategory? category = await _unitOfWork.ProductCategories.GetByCondition(pc => pc.CategoryID == request.CategoryId);
-        if(category is null)
-        {
-            throw new NotFoundException($"Không tìm thấy Category với Id: {request.CategoryId}");
-        }
 
         Product product = _mapper.Map<Product>(request);
         Product addedProduct = await _unitOfWork.Products.Add(product);
@@ -73,7 +68,6 @@ public class ProductService : IProductService
         {
             throw new NotFoundException($"Product with id #{productID} not found");
         }
-
         Product? updatedProduct = await _unitOfWork.Products.Update(product);
         return _mapper.Map<ProductResponseDto>(updatedProduct);
 

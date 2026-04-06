@@ -64,6 +64,15 @@ namespace Droniverse.Identity.API.Controllers
             return Ok(SuccessResponse<UserResponse>.Create(response, "Get current user info successfully."));
         }
 
+        [Authorize]
+        [HttpPut("me")]
+        public async Task<IActionResult> UpdateCurrentUser([FromBody] ProfileUpdateDto request)
+        {
+            UserResponse? response = await _authService.UpdateProfileAsync(request);
+            _logger.LogInformation($"Update current user info successfully.");
+            return Ok(SuccessResponse<UserResponse>.Create(response, "Update current user info successfully."));
+        }
+
         private void SetTokenCookies(string accessToken, string refreshToken)
         {
             var cookieOptions = new CookieOptions
