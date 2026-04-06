@@ -102,7 +102,7 @@ namespace Droniverse.Academy.Application.HttpClients
             }
         }
 
-        public async Task<ProductMiniResponseDto?> GetProductByReferenceIdAsync(
+        public async Task<ProductMiniResponseDTO?> GetProductByReferenceIdAsync(
             Guid referenceId,
             CancellationToken cancellationToken = default)
         {
@@ -134,7 +134,7 @@ namespace Droniverse.Academy.Application.HttpClients
                         response.StatusCode);
                 }
 
-                var product = await response.Content.ReadFromJsonAsync<ProductMiniResponseDto>(cancellationToken);
+                var product = await response.Content.ReadFromJsonAsync<ProductMiniResponseDTO>(cancellationToken);
                 if (product != null)
                 {
                     await CacheProductAsync(referenceId, product, cancellationToken);
@@ -149,7 +149,7 @@ namespace Droniverse.Academy.Application.HttpClients
             }
         }
 
-        public async Task<IEnumerable<ProductMiniResponseDto>> GetProductsBulkByReferenceIdsAsync(
+        public async Task<IEnumerable<ProductMiniResponseDTO>> GetProductsBulkByReferenceIdsAsync(
             IEnumerable<Guid> referenceIds,
             CancellationToken cancellationToken = default)
         {
@@ -170,7 +170,7 @@ namespace Droniverse.Academy.Application.HttpClients
 
             try
             {
-                var productsByReferenceId = new Dictionary<Guid, ProductMiniResponseDto>();
+                var productsByReferenceId = new Dictionary<Guid, ProductMiniResponseDTO>();
                 var missingIds = new List<Guid>();
 
                 foreach (var referenceId in distinctIds)
@@ -207,18 +207,18 @@ namespace Droniverse.Academy.Application.HttpClients
                         response.StatusCode);
                 }
 
-                var productsFromApi = await response.Content.ReadFromJsonAsync<List<ProductMiniResponseDto>>(cancellationToken)
+                var productsFromApi = await response.Content.ReadFromJsonAsync<List<ProductMiniResponseDTO>>(cancellationToken)
                     ?? [];
 
                 foreach (var product in productsFromApi)
                 {
-                    if (!product.ReferenceId.HasValue || product.ReferenceId.Value == Guid.Empty)
+                    if (product.ReferenceId == Guid.Empty)
                     {
                         continue;
                     }
 
-                    productsByReferenceId[product.ReferenceId.Value] = product;
-                    await CacheProductAsync(product.ReferenceId.Value, product, cancellationToken);
+                    productsByReferenceId[product.ReferenceId] = product;
+                    await CacheProductAsync(product.ReferenceId, product, cancellationToken);
                 }
 
                 return distinctIds
@@ -233,12 +233,12 @@ namespace Droniverse.Academy.Application.HttpClients
             }
         }
 
-        private async Task<ProductMiniResponseDto?> GetProductFromCacheAsync(Guid referenceId, CancellationToken cancellationToken)
+        private async Task<ProductMiniResponseDTO?> GetProductFromCacheAsync(Guid referenceId, CancellationToken cancellationToken)
         {
-            return await _cacheService.GetAsync<ProductMiniResponseDto>(GetCacheKeyForProduct(referenceId), cancellationToken);
+            return await _cacheService.GetAsync<ProductMiniResponseDTO>(GetCacheKeyForProduct(referenceId), cancellationToken);
         }
 
-        private async Task CacheProductAsync(Guid referenceId, ProductMiniResponseDto product, CancellationToken cancellationToken)
+        private async Task CacheProductAsync(Guid referenceId, ProductMiniResponseDTO product, CancellationToken cancellationToken)
         {
             await _cacheService.SetAsync(
                 GetCacheKeyForProduct(referenceId),

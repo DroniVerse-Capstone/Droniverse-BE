@@ -96,23 +96,22 @@ public class CourseService : ICourseService
         var mapped = entities.Select(c => _mapper.Map<CourseResponseDTO>(c)).ToList();
 
         var referenceIds = entities
-            .Where(c => c.CurrentVersion != null)
-            .Select(c => c.CurrentVersion!.CourseVersionID)
+            .Select(c => c.CourseID)
             .Distinct()
             .ToList();
 
         var products = await _communityMicroserviceClient.GetProductsBulkByReferenceIdsAsync(referenceIds);
-        var pricesByReferenceId = products
-            .Where(p => p.ReferenceId.HasValue && p.ReferenceId.Value != Guid.Empty)
-            .GroupBy(p => p.ReferenceId!.Value)
-            .ToDictionary(g => g.Key, g => g.First().Price);
+        var productsByReferenceId = products
+            .Where(p => p.ReferenceId != Guid.Empty)
+            .GroupBy(p => p.ReferenceId)
+            .ToDictionary(g => g.Key, g => g.First());
 
         foreach (var (entity, dto) in entities.Zip(mapped))
         {
-            var referenceId = entity.CurrentVersion?.CourseVersionID;
-            if (referenceId.HasValue && pricesByReferenceId.TryGetValue(referenceId.Value, out var price))
+            var referenceId = entity.CourseID;
+            if (productsByReferenceId.TryGetValue(referenceId, out var miniProduct))
             {
-                dto.Price = price;
+                dto.MiniProduct = _mapper.Map<ProductMiniResponseDTO>(miniProduct);
             }
         }
 
@@ -133,8 +132,10 @@ public class CourseService : ICourseService
 
         if (course.CurrentVersion != null)
         {
-            var product = await _communityMicroserviceClient.GetProductByReferenceIdAsync(course.CurrentVersion.CourseVersionID);
-            courseResponse.Price = product?.Price;
+            var product = await _communityMicroserviceClient.GetProductByReferenceIdAsync(course.CourseID);
+            courseResponse.MiniProduct = product == null
+                ? null
+                : _mapper.Map<ProductMiniResponseDTO>(product);
         }
 
         return courseResponse;

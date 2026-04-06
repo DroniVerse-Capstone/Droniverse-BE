@@ -22,7 +22,14 @@ public class CourseDetailSuccessResponseExample : IExamplesProvider<SuccessRespo
                 },
                 CreateAt = DateTime.UtcNow,
                 Status = CourseStatus.DRAFT,
-                Price = 499000,
+                MiniProduct = new ProductMiniResponseDTO
+                {
+                    ProductId = Guid.Parse("5f534d31-88ee-4d86-9d79-bad8f402378e"),
+                    ReferenceId = Guid.Parse("7d8aa3db-7477-4af6-a06c-783f26450484"),
+                    Price = 499000,
+                    Currency = CurrencyType.VND,
+                    Status = ProductStatus.Active
+                },
                 CurrentVersion = new CourseVersionResponseDTO
                 {
                     CourseVersionID = Guid.Parse("7d8aa3db-7477-4af6-a06c-783f26450484"),
