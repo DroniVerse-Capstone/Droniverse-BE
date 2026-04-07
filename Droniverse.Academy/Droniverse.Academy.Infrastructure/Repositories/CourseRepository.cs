@@ -197,7 +197,7 @@ internal class CourseRepository : MySqlRepository<Course>, ICourseRepository
                 Level = x.Course.Level,
                 EstimatedDuration = x.Course.EstimatedDuration,
                 Price = null,
-                RemainingCode = 0,
+                ClubCourseOwned = new ClubCourseOwnedResponse(),
                 Rating = x.Course.AverageRating ?? 0m,
                 NumberOfParticipants = x.Course.ParticipantCount,
                 ImageUrl = x.Course.ImageUrl

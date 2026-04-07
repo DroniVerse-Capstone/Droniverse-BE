@@ -7,11 +7,13 @@ using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.Enums;
+using Droniverse.Academy.Application.Enums;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Services;
 using Microsoft.EntityFrameworkCore;
+using Droniverse.Shared.Constants;
 
 namespace Droniverse.Community.Application.Services;
 internal class ClubService : IClubService
@@ -423,31 +425,150 @@ internal class ClubService : IClubService
             || user.Email.Contains(token, StringComparison.OrdinalIgnoreCase));
     }
 
-    public async Task<PaginationResult<IEnumerable<CourseBulkResponseDTO>>> GetClubCourses(Guid clubId, CourseBulkSearchRequest searchRequest)
+    public async Task<PaginationResult<IEnumerable<CourseBulkResponseDTO>>> GetClubCourses(
+     Guid clubId,
+     CourseBulkSearchRequest searchRequest)
     {
-        Club? club = await _unitOfWork.Clubs.GetByCondition(
-            c => c.ClubID == clubId,
-            query => query.AsNoTracking());
+        searchRequest ??= new CourseBulkSearchRequest();
 
-        if (club == null)
+        // 1. Xác định role
+        var isMember = _currentUserService.Roles.Contains(Roles.ClubMember);
+        var effectiveOwnerFilter = isMember
+            ? CourseOwnerFilter.Owned
+            : searchRequest.CourseOwner;
+
+        // 2. Check club tồn tại
+        var clubExists = await _unitOfWork.Clubs.GetByCondition(c => c.ClubID == clubId);
+        if (clubExists == null)
             throw new KeyNotFoundException($"Không tìm thấy câu lạc bộ với ID [{clubId}].");
 
-        var clubCourses = await _unitOfWork.ClubCourses.GetManyByCondition(
-            c => c.ClubID == clubId,
-            query => query.AsNoTracking());
+        // 3. Lấy danh sách course của club khi cần Owned/NotOwned
+        List<ClubCourse> clubCourses = [];
+        List<Guid> courseIds = [];
 
-        var courseIds = clubCourses?
-            .Select(c => c.CourseID)
+        if (effectiveOwnerFilter is CourseOwnerFilter.Owned or CourseOwnerFilter.NotOwned)
+        {
+            clubCourses = (await _unitOfWork.ClubCourses.GetManyByCondition(
+                cc => cc.ClubID == clubId,
+                q => q.AsNoTracking()))
+                ?.ToList() ?? [];
+
+            courseIds = clubCourses
+                .Select(c => c.CourseID)
+                .Where(id => id != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (effectiveOwnerFilter == CourseOwnerFilter.Owned && courseIds.Count == 0)
+            {
+                return Enumerable.Empty<CourseBulkResponseDTO>()
+                    .ToPaginationResult(searchRequest);
+            }
+        }
+
+        // 4. Build request cho academy
+        var academyRequest = new CourseBulkSearchRequest
+        {
+            CurrentPage = searchRequest.CurrentPage,
+            PageSize = searchRequest.PageSize,
+            Level = searchRequest.Level,
+            ParticipationSort = searchRequest.ParticipationSort,
+            CourseName = searchRequest.CourseName,
+            CourseOwner = effectiveOwnerFilter
+        };
+
+        // 5. Call academy
+        var pagedCourse = await _academyMicroserviceClient.GetCourseById(
+            effectiveOwnerFilter is CourseOwnerFilter.Owned or CourseOwnerFilter.NotOwned ? courseIds : [],
+            academyRequest);
+
+        var courseItems = pagedCourse.Items?.ToList() ?? [];
+
+        if (courseItems.Count == 0)
+        {
+            return new PaginationResult<IEnumerable<CourseBulkResponseDTO>>(
+                courseItems,
+                pagedCourse.TotalItems,
+                searchRequest.CurrentPage,
+                searchRequest.PageSize);
+        }
+
+        // 6. Lấy danh sách courseId trong page
+        var itemCourseIds = courseItems
+            .Select(c => c.CourseId)
             .Where(id => id != Guid.Empty)
             .Distinct()
-            .ToList() ?? [];
+            .ToList();
 
-        if (courseIds.Count == 0)
-            return Enumerable.Empty<CourseBulkResponseDTO>().ToPaginationResult(searchRequest);
+        // 7. Query product (price)
+        var products = await _unitOfWork.Products.GetManyByCondition(
+            p => itemCourseIds.Contains(p.ReferenceID) && p.Status == ProductStatus.ACTIVE,
+            q => q.AsNoTracking());
 
-        var pagedCourse = await _academyMicroserviceClient.GetCourseById(courseIds, searchRequest);
+        var priceByCourseId = products?
+            .GroupBy(p => p.ReferenceID)
+            .ToDictionary(
+                g => g.Key,
+                g => g
+                    .OrderByDescending(x => x.UpdateAt)
+                    .Select(x => (decimal?)x.Price)
+                    .FirstOrDefault()
+            ) ?? [];
 
-        return new PaginationResult<IEnumerable<CourseBulkResponseDTO>>(pagedCourse.Items, pagedCourse.TotalItems, searchRequest.CurrentPage, searchRequest.PageSize);
+        // 8. Gộp remaining + profitType vào một map duy nhất
+        Dictionary<Guid, (int Remaining, ClubCourseProfit ProfitType)> clubCourseMap = new();
+
+        IEnumerable<ClubCourse> sourceClubCourses;
+
+        if (clubCourses.Count > 0)
+        {
+            sourceClubCourses = clubCourses;
+        }
+        else
+        {
+            sourceClubCourses = await _unitOfWork.ClubCourses.GetManyByCondition(
+                cc => cc.ClubID == clubId && itemCourseIds.Contains(cc.CourseID),
+                q => q.AsNoTracking()) ?? [];
+        }
+
+        clubCourseMap = sourceClubCourses
+            .Where(cc => itemCourseIds.Contains(cc.CourseID))
+            .GroupBy(cc => cc.CourseID)
+            .ToDictionary(
+                g => g.Key,
+                g => (
+                    g.First().RemainingQuantity,
+                    g.First().ProfitType
+                )
+            );
+
+        // 9. Map dữ liệu
+        foreach (var course in courseItems)
+        {
+            course.Price = priceByCourseId.TryGetValue(course.CourseId, out var price)
+                ? price ?? 0
+                : 0;
+
+            if (clubCourseMap.TryGetValue(course.CourseId, out var clubData))
+            {
+                course.ClubCourseOwned = new ClubCourseOwnedResponse
+                {
+                    RemainingCode = clubData.Remaining,
+                    ProfitType = clubData.ProfitType
+                };
+            }
+            else
+            {
+                course.ClubCourseOwned = null;
+            }
+        }
+
+        // 10. Return
+        return new PaginationResult<IEnumerable<CourseBulkResponseDTO>>(
+            courseItems,
+            pagedCourse.TotalItems,
+            searchRequest.CurrentPage,
+            searchRequest.PageSize);
     }
 
     /// <summary>
@@ -479,8 +600,60 @@ internal class ClubService : IClubService
 
         var pagedHotCourse = await _academyMicroserviceClient.GetHotCoursesByIds(courseIds, searchRequest);
 
+        var hotCourseItems = pagedHotCourse.Items?.ToList() ?? [];
+        if (hotCourseItems.Count == 0)
+        {
+            return new PaginationResult<IEnumerable<CourseBulkResponseDTO>>(
+                hotCourseItems,
+                pagedHotCourse.TotalItems,
+                searchRequest.CurrentPage,
+                searchRequest.PageSize);
+        }
+
+        var itemCourseIds = hotCourseItems
+            .Select(c => c.CourseId)
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        var products = await _unitOfWork.Products.GetManyByCondition(
+            p => itemCourseIds.Contains(p.ReferenceID) && p.Status == ProductStatus.ACTIVE,
+            q => q.AsNoTracking());
+
+        var priceByCourseId = products?
+            .GroupBy(p => p.ReferenceID)
+            .ToDictionary(
+                g => g.Key,
+                g => g
+                    .OrderByDescending(x => x.UpdateAt)
+                    .Select(x => x.Price)
+                    .FirstOrDefault()
+            ) ?? [];
+
+        var clubCourseMap = clubCourses
+            .Where(cc => itemCourseIds.Contains(cc.CourseID))
+            .GroupBy(cc => cc.CourseID)
+            .ToDictionary(
+                g => g.Key,
+                g => new ClubCourseOwnedResponse
+                {
+                    RemainingCode = g.First().RemainingQuantity,
+                    ProfitType = g.First().ProfitType
+                });
+
+        foreach (var course in hotCourseItems)
+        {
+            course.Price = priceByCourseId.TryGetValue(course.CourseId, out var price)
+                ? price
+                : 0;
+
+            course.ClubCourseOwned = clubCourseMap.TryGetValue(course.CourseId, out var owned)
+                ? owned
+                : null;
+        }
+
         return new PaginationResult<IEnumerable<CourseBulkResponseDTO>>(
-            pagedHotCourse.Items,
+            hotCourseItems,
             pagedHotCourse.TotalItems,
             searchRequest.CurrentPage,
             searchRequest.PageSize);
