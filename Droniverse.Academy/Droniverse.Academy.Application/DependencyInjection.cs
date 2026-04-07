@@ -2,13 +2,14 @@
 using Droniverse.Academy.Application.IService.Mongo;
 using Droniverse.Academy.Application.IService.Duplication;
 ﻿using Droniverse.Academy.Application.Delegate;
-using Droniverse.Academy.Application.Common.Caching;
 using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Application.Mapper;
 using Droniverse.Academy.Application.Services;
 using Droniverse.Academy.Application.Services.Duplication;
 using Droniverse.Academy.Application.Services.Mongo;
+using Droniverse.Shared.Services;
+using Droniverse.Shared.Services.IServices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 

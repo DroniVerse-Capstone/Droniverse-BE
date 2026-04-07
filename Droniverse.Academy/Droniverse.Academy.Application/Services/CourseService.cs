@@ -12,8 +12,8 @@ using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.Exceptions;
-using Droniverse.Shared.Services;
 using System.Linq.Expressions;
+using Droniverse.Shared.Services.IServices;
 
 namespace Droniverse.Academy.Application.Services;
 

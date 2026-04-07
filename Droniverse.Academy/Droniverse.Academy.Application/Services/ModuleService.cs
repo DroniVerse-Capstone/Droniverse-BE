@@ -5,7 +5,7 @@ using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.IRepository;
 using Droniverse.Shared.Exceptions;
-using Droniverse.Shared.Services;
+using Droniverse.Shared.Services.IServices;
 
 namespace Droniverse.Academy.Application.Services;
 

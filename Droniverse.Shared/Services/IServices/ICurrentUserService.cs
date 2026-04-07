@@ -1,6 +1,6 @@
 ﻿using System.Security.Claims;
 
-namespace Droniverse.Shared.Services;
+namespace Droniverse.Shared.Services.IServices;
 
 public interface ICurrentUserService
 {

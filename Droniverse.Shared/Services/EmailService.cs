@@ -8,6 +8,7 @@ using System.Net;
 using System.Net.Mail;
 using System.Reflection;
 using Droniverse.Shared.Settings;
+using Droniverse.Shared.Services.IServices;
 
 namespace Droniverse.Shared.Services;
 
