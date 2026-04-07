@@ -1,4 +1,6 @@
-﻿namespace Droniverse.Shared.Services;
+﻿using Droniverse.Shared.Services.IServices;
+
+namespace Droniverse.Shared.Services;
 
 public class ClockService : IClock
 {

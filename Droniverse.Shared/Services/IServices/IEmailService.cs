@@ -1,4 +1,4 @@
-﻿namespace Droniverse.Shared.Services;
+﻿namespace Droniverse.Shared.Services.IServices;
 
 public interface IEmailService
 {

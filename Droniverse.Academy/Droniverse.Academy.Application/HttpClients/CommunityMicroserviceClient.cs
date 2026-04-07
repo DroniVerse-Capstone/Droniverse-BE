@@ -1,5 +1,5 @@
 ﻿using Droniverse.Academy.Application.DTO.Response;
-using Droniverse.Academy.Application.Common.Caching;
+using Droniverse.Shared.Services.IServices;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
 

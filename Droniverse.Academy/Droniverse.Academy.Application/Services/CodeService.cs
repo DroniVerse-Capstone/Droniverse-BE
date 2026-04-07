@@ -6,7 +6,7 @@ using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
 using Droniverse.Shared.Exceptions;
-using Droniverse.Shared.Services;
+using Droniverse.Shared.Services.IServices;
 using Microsoft.Extensions.Logging;
 using System.Security.Claims;
 

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Droniverse.Academy.Application.Enums
 {
-    public enum CourseParticipationFilter
+    public enum CourseParticipationSort
     {
         MostPopular = 0,
         LeastPopular = 1

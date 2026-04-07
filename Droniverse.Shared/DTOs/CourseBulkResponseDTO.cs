@@ -1,4 +1,5 @@
 ﻿using Droniverse.Academy.Domain.Enums;
+using Droniverse.Community.Domain.Enums;
 using Droniverse.Shared.Enums.Response;
 using System;
 using System.Collections.Generic;
@@ -15,11 +16,17 @@ namespace Droniverse.Shared.DTOs.Response
         public required string TitleVN { get; set; }
         public required string TitleEN { get; set; }
         public CourseLevel Level { get; set; }
+        public int NumberOfParticipants { get; set; }
+        public decimal Rating { get; set; }
+        public string? ImageUrl { get; set; }
         public int? EstimatedDuration { get; set; }
         public decimal? Price { get; set; }
+        public ClubCourseOwnedResponse? ClubCourseOwned { get; set; }
+    }
+
+    public record ClubCourseOwnedResponse
+    {
         public int RemainingCode { get; set; }
-        public decimal Rating { get; set; }
-        public int NumberOfParticipants { get; set; }
-        public string? ImageUrl { get; set; }
+        public ClubCourseProfit ProfitType { get; set; }
     }
 }

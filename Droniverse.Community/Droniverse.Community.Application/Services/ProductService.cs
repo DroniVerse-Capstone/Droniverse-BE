@@ -6,6 +6,7 @@ using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Shared.Exceptions;
+using Droniverse.Shared.Services.IServices;
 using Microsoft.AspNetCore.Components.Sections;
 using Microsoft.Extensions.Logging;
 
@@ -15,14 +16,18 @@ public class ProductService : IProductService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
+    private readonly ICacheService _cacheService;
     private readonly ILogger<ProductService> _logger;
+    private const string ProductCacheKeyPrefix = "product";
     public ProductService(
         IUnitOfWork unitOfWork,
         IMapper mapper,
+        ICacheService cacheService,
         ILogger<ProductService> logger)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
+        _cacheService = cacheService;
         _logger = logger;
     }
 
@@ -118,8 +123,19 @@ public class ProductService : IProductService
 
         Product? updatedProduct = await _unitOfWork.Products.Update(product);
         await _unitOfWork.SaveChangeAsync();
+        var cacheKey = BuildProductCacheKey(productID);
+        var cachedProduct = await _cacheService.GetAsync<ProductResponseDto>(cacheKey);
+        if (cachedProduct != null)
+        {
+            await _cacheService.RemoveAsync(cacheKey);
+        }
 
         return _mapper.Map<ProductResponseDto>(updatedProduct);
+    }
+
+    private static string BuildProductCacheKey(Guid productId)
+    {
+        return $"{ProductCacheKeyPrefix}:{productId}";
     }
 }
 

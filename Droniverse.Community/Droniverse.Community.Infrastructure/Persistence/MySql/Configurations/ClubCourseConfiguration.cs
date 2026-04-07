@@ -17,7 +17,9 @@ public class ClubCourseConfiguration : IEntityTypeConfiguration<ClubCourse>
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.Property(c => c.CourseID).HasColumnType("char(36)");
-        builder.Property(c => c.isProfit).HasConversion<byte>().IsRequired();
+        builder.Property(c => c.ProfitType)
+            .HasConversion<byte>()
+            .IsRequired();
         builder.Property(c => c.RemainingQuantity);
         builder.Property(c => c.TotalQuantity);
         //builder.HasOne(cp => cp.Course)

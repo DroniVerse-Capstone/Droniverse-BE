@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 
-namespace Droniverse.Shared.Services;
+namespace Droniverse.Shared.Services.IServices;
 
 public interface ICloudinaryService
 {
