@@ -5,6 +5,7 @@ using Droniverse.Identity.Application.Services;
 using Droniverse.Shared.Messages;
 using Droniverse.Shared.Messages.User;
 using Droniverse.Shared.Services;
+using Droniverse.Shared.Services.IServices;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Droniverse.Identity.Application;

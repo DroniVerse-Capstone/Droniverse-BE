@@ -10,6 +10,7 @@ using Droniverse.Shared.Enums;
 using Droniverse.Shared.Helpers;
 using Droniverse.Shared.Messages.User;
 using Droniverse.Shared.Services;
+using Droniverse.Shared.Services.IServices;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,16 +21,22 @@ internal class UserService : IUserService
     private readonly IMapper _mapper;
     private readonly IUserPublisher _publisher;
     private readonly ICloudinaryService _cloudinaryService;
+    private readonly ICacheService _cacheService;
+
+    private static string GetUserCacheKey(Guid userId) => $"identity:user:{userId}";
+
     public UserService(
         IUnitOfWork unitOfWork,
         IMapper mapper,
         IUserPublisher publisher,
-        ICloudinaryService cloudinaryService)
+        ICloudinaryService cloudinaryService,
+        ICacheService cacheService)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _publisher = publisher;
         _cloudinaryService = cloudinaryService;
+        _cacheService = cacheService;
     }
 
     public async Task<IEnumerable<UserResponse>> GetAllUsers()
@@ -111,6 +118,14 @@ internal class UserService : IUserService
         Account? updatedAcc = await _unitOfWork.Accounts.Update(account);
         UserInfo? updatedUserInfo = await _unitOfWork.UserInfos.Update(userInfo);
         await _unitOfWork.SaveChangeAsync();
+
+        var cacheKey = GetUserCacheKey(userId);
+        var cachedUser = await _cacheService.GetAsync<object>(cacheKey);
+        if (cachedUser is not null)
+        {
+            await _cacheService.RemoveAsync(cacheKey);
+        }
+
         //mapper
         UserResponse userResponse = _mapper.Map<UserResponse>(updatedAcc);
         return userResponse;

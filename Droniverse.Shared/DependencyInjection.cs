@@ -10,6 +10,8 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddShared(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddDistributedMemoryCache();
+
         services.Configure<CloudinarySettings>(configuration.GetSection("Cloudinary"));
         services.AddScoped<ICloudinaryService, CloudinaryService>();
 
@@ -23,6 +25,7 @@ public static class DependencyInjection
 
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddScoped<ICacheService, CacheService>();
         services.AddSingleton<IClock, ClockService>();
 
         return services;
