@@ -1,6 +1,6 @@
 ﻿using Droniverse.Identity.Application.DTO.Request;
-using Droniverse.Identity.Application.DTO.Response;
 using Droniverse.Identity.Application.IService;
+using Droniverse.Shared.DTOs.Response;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Droniverse.Identity.API.Controllers
@@ -10,15 +10,21 @@ namespace Droniverse.Identity.API.Controllers
     public class PermissionController : ControllerBase
     {
         private readonly IPermissionService _permissionService;
+
         public PermissionController(IPermissionService permissionService)
         {
             _permissionService = permissionService;
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAllPermissions()
+        public async Task<IActionResult> GetAllPermissions(
+            [FromQuery] PermissionSearchRequest permissionSearchRequest)
         {
-            var permissions = await _permissionService.GetAllPermissions();
+            permissionSearchRequest ??= new PermissionSearchRequest();
+            var permissions = await _permissionService.GetAllPermissions(
+                permissionSearchRequest,
+                permissionSearchRequest.CurrentPage,
+                permissionSearchRequest.PageSize);
             return Ok(permissions);
         }
 
@@ -47,7 +53,7 @@ namespace Droniverse.Identity.API.Controllers
         public async Task<IActionResult> DeletePermission(Guid id)
         {
             bool isDeleted = await _permissionService.DeletePermission(id);
-            if(isDeleted)
+            if (isDeleted)
                 return NoContent();
             return BadRequest("Failed to delete the permission.");
         }
