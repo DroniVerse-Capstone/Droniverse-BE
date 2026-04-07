@@ -136,5 +136,23 @@ namespace Droniverse.Community.API.Controllers
             var result = await _clubCourseService.RestoreSlot(clubId, courseId, request);
             return SuccessResponse<ClubCourseResponseDto>.Create(result, "Restore slot thành công!");
         }
+
+        /// <summary>
+        /// Lấy số lượng slot còn lại của khóa học trong câu lạc bộ.
+        /// </summary>
+        /// <param name="clubId">ID câu lạc bộ.</param>
+        /// <param name="courseId">ID khóa học.</param>
+        /// <returns>
+        /// 200 OK - Lấy số lượng slot còn lại thành công.
+        /// 404 NotFound - Không tìm thấy ClubCourse.
+        /// </returns>
+        [HttpGet("{clubId:guid}/courses/{courseId:guid}/remaining-quantity")]
+        [ProducesResponseType(typeof(SuccessResponse<ClubCourseRemainingQuantityResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ApiResponse> GetRemainingQuantity(Guid clubId, Guid courseId)
+        {
+            var result = await _clubCourseService.GetRemainingQuantity(clubId, courseId);
+            return SuccessResponse<ClubCourseRemainingQuantityResponseDto>.Create(result, "Lấy số lượng slot còn lại thành công!");
+        }
     }
 }

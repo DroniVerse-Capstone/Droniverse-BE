@@ -143,6 +143,7 @@ public class CourseService : ICourseService
     }
 
     public async Task<CourseOverviewResponseDTO> GetCourseOverviewAsync(
+        Guid clubId,
         Guid courseVersionId,
         CancellationToken cancellationToken = default)
     {
@@ -178,6 +179,10 @@ public class CourseService : ICourseService
         response.MiniProduct = product == null
             ? null
             : _mapper.Map<ProductMiniResponseDTO>(product);
+        response.RemainingCode = await _communityMicroserviceClient.GetRemainingQuantityAsync(
+            clubId,
+            overviewData.CourseID,
+            cancellationToken);
         return response;
     }
 

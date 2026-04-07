@@ -4,18 +4,22 @@ using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.IRepository;
+using Droniverse.Shared.Services.IServices;
 using Microsoft.EntityFrameworkCore;
 
 namespace Droniverse.Community.Application.Services
 {
     public class ClubCourseService : IClubCourseService
     {
+        private const string ClubCourseRemainingQuantityCacheKeyPrefix = "clubcourse:remaining";
 
         private readonly IUnitOfWork _unitOfWork;
+        private readonly ICacheService _cacheService;
 
-        public ClubCourseService(IUnitOfWork unitOfWork)
+        public ClubCourseService(IUnitOfWork unitOfWork, ICacheService cacheService)
         {
             _unitOfWork = unitOfWork;
+            _cacheService = cacheService;
         }
 
         public async Task<ClubCourseResponseDto> AddCourseToClub(Guid clubId, AddClubCourseRequest request)
@@ -64,6 +68,7 @@ namespace Droniverse.Community.Application.Services
                 clubCourse.UpdateProfitType(request.ProfitType.Value);
 
             await _unitOfWork.SaveChangeAsync();
+            await InvalidateRemainingQuantityCache(clubId, courseId);
             return ToResponse(clubCourse);
         }
 
@@ -76,6 +81,7 @@ namespace Droniverse.Community.Application.Services
             clubCourse.IncreaseCapacity(request.Quantity);
 
             await _unitOfWork.SaveChangeAsync();
+            await InvalidateRemainingQuantityCache(clubId, courseId);
             return ToResponse(clubCourse);
         }
 
@@ -87,6 +93,7 @@ namespace Droniverse.Community.Application.Services
             clubCourse.Consume(quantity);
 
             await _unitOfWork.SaveChangeAsync();
+            await InvalidateRemainingQuantityCache(clubId, courseId);
             return ToResponse(clubCourse);
         }
 
@@ -98,7 +105,28 @@ namespace Droniverse.Community.Application.Services
             clubCourse.Restore(quantity);
 
             await _unitOfWork.SaveChangeAsync();
+            await InvalidateRemainingQuantityCache(clubId, courseId);
             return ToResponse(clubCourse);
+        }
+
+        public async Task<ClubCourseRemainingQuantityResponseDto> GetRemainingQuantity(Guid clubId, Guid courseId)
+        {
+            var clubCourse = await GetExistingClubCourse(clubId, courseId);
+            return new ClubCourseRemainingQuantityResponseDto
+            {
+                RemainingQuantity = clubCourse.RemainingQuantity
+            };
+        }
+
+        private async Task InvalidateRemainingQuantityCache(Guid clubId, Guid courseId)
+        {
+            var cacheKey = BuildRemainingQuantityCacheKey(clubId, courseId);
+            await _cacheService.RemoveAsync(cacheKey);
+        }
+
+        private static string BuildRemainingQuantityCacheKey(Guid clubId, Guid courseId)
+        {
+            return $"{ClubCourseRemainingQuantityCacheKeyPrefix}:{clubId}:{courseId}";
         }
 
         private async Task<ClubCourse> GetExistingClubCourse(Guid clubId, Guid courseId)

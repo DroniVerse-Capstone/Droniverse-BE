@@ -15,5 +15,6 @@ namespace Droniverse.Community.Application.IService
         Task<ClubCourseResponseDto> IncreaseCapacity(Guid clubId, Guid courseId, IncreaseClubCourseCapacityRequest request);
         Task<ClubCourseResponseDto> ConsumeSlot(Guid clubId, Guid courseId, ChangeClubCourseSlotRequest? request);
         Task<ClubCourseResponseDto> RestoreSlot(Guid clubId, Guid courseId, ChangeClubCourseSlotRequest? request);
+        Task<ClubCourseRemainingQuantityResponseDto> GetRemainingQuantity(Guid clubId, Guid courseId);
     }
 }

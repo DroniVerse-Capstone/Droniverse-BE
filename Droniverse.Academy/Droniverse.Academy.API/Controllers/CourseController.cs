@@ -158,11 +158,14 @@ namespace Droniverse.Academy.API.Controllers
         [HttpGet("{courseVersionId:guid}/overview")]
         [SwaggerResponseExample(StatusCodes.Status200OK, typeof(CourseOverviewSuccessResponseExample))]
         [ProducesResponseType(typeof(SuccessResponse<CourseOverviewResponseDTO>), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetCourseOverview(Guid courseVersionId, CancellationToken cancellationToken)
+        public async Task<IActionResult> GetCourseOverview(
+            [FromQuery] Guid clubId,
+            Guid courseVersionId,
+            CancellationToken cancellationToken)
         {
             try
             {
-                var overview = await _courseService.GetCourseOverviewAsync(courseVersionId, cancellationToken);
+                var overview = await _courseService.GetCourseOverviewAsync(clubId, courseVersionId, cancellationToken);
                 return Ok(SuccessResponse<CourseOverviewResponseDTO>.Create(overview, "Lấy tổng quan khóa học thành công."));
             }
             catch (Exception ex)
