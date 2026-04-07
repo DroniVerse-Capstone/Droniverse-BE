@@ -406,8 +406,8 @@ public class CourseService : ICourseService
         await Task.WhenAll(productTask, remainingCodeTask);
 
         var productByCourseId = productTask.Result
-            .Where(p => p.ReferenceId.HasValue && p.ReferenceId.Value != Guid.Empty)
-            .ToDictionary(p => p.ReferenceId!.Value, p => p.Price ?? 0m);
+            .Where(p => p.ReferenceId != Guid.Empty)
+            .ToDictionary(p => p.ReferenceId, p => p.Price);
 
         var remainingCodeByCourseId = remainingCodeTask.Result.Data
             .GroupBy(c => c.CourseID)
