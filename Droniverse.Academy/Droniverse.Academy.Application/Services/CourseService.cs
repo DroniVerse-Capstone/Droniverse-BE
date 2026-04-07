@@ -1,6 +1,5 @@
 ﻿using AutoMapper;
 using Droniverse.Academy.Application.Common.Extensions;
-using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.Enums;
 using Droniverse.Academy.Application.HttpClients;

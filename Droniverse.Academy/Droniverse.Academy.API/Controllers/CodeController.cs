@@ -1,10 +1,11 @@
-﻿using Droniverse.Academy.Application.IService;
+﻿ using Droniverse.Academy.Application.IService;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.DTO.Response;
+using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Domain.Entities;
 
 namespace Droniverse.Academy.API.Controllers;
@@ -24,9 +25,9 @@ public class CodeController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAllCodes()
+    public async Task<IActionResult> GetAllCodes([FromQuery] CodeSearchRequestDTO requestDTO)
     {
-        PaginationResult<IEnumerable<CodeResponseDTO>> list = await _codeService.GetAllCodesAsync();
+        PaginationResult<IEnumerable<CodeResponseDTO>> list = await _codeService.GetAllCodesAsync(requestDTO);
         return Ok(SuccessResponse<PaginationResult<IEnumerable<CodeResponseDTO>>>.Create(list, "Lấy danh sách code thành công."));
     }
 

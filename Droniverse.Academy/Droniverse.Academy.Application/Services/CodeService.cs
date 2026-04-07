@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
@@ -113,9 +114,12 @@ public class CodeService : ICodeService
         throw new NotImplementedException();
     }
 
-    public async Task<PaginationResult<IEnumerable<CodeResponseDTO>>> GetAllCodesAsync()
+    public async Task<PaginationResult<IEnumerable<CodeResponseDTO>>> GetAllCodesAsync(CodeSearchRequestDTO requestDTO)
     {
-        PaginationResult<IEnumerable<Code>> codes = await _unitOfWork.Codes.GetAllAsync();
+        PaginationResult<IEnumerable<Code>> codes = await _unitOfWork.Codes.GetAllCodesAsync(
+            requestDTO, 
+            requestDTO.CurrentPage, 
+            requestDTO.PageSize);
         // Map IEnumerable<Code> -> IEnumerable<CodeResponseDTO>
         var mappedCodes = _mapper.Map<IEnumerable<CodeResponseDTO>>(codes.Data);
 
