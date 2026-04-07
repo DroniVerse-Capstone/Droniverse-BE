@@ -62,7 +62,7 @@ namespace Droniverse.Community.API.Controllers
         /// <summary>
         /// Lấy thông tin chi tiết của một câu lạc bộ theo ID
         /// </summary>
-        /// <param name="id">test : d1822ac3-00ac-46db-9b74-3b4df9621765</param>
+        /// <param name="clubId">test : d1822ac3-00ac-46db-9b74-3b4df9621765</param>
         /// <remarks>
         /// Nếu không tìm thấy club theo ID truyền vào, service có thể throw exception.
         /// </remarks>
@@ -70,17 +70,17 @@ namespace Droniverse.Community.API.Controllers
         /// 200 OK - Trả về thông tin chi tiết ClubResponseDto  
         /// 404 NotFound - Nếu không tồn tại club
         /// </returns>
-        [HttpGet("{id}")]
+        [HttpGet("{clubId}")]
         [ProducesResponseType(typeof(SuccessResponse<ClubResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ApiResponse> GetClubById(
             [FromRoute]
-            Guid id)
+            Guid clubId)
         {
 
-            ClubResponseDto club = await _clubService.GetClubById(id);
+            ClubResponseDto club = await _clubService.GetClubById(clubId);
             return SuccessResponse<ClubResponseDto>
-                .Create(club, $"Lấy thông tin câu lạc bộ với ID [{id}] thành công!");
+                .Create(club, $"Lấy thông tin câu lạc bộ với ID [{clubId}] thành công!");
         }
 
         /// <summary>
@@ -106,25 +106,46 @@ namespace Droniverse.Community.API.Controllers
             ClubResponseDto club = await _clubService.GetClubByClubCode(clubCode);
             return SuccessResponse<ClubResponseDto>.Create(club, $"Lấy thông tin câu lạc bộ với club code [{clubCode}] thành công!");
         }
-
         /// <summary>
-        /// Lấy danh sách khóa học thuộc một câu lạc bộ
+        /// Lấy danh sách khóa học của một câu lạc bộ theo phân trang và bộ lọc.
         /// </summary>
-        /// <param name="id">GUID của câu lạc bộ</param>
-        /// <param name="searchRequest">Filter cho course</param>
+        /// <param name="clubId">GUID của câu lạc bộ cần lấy danh sách khóa học.</param>
+        /// <param name="searchRequest">
+        /// Bộ lọc và phân trang:
+        /// - <b>CurrentPage</b>: Trang hiện tại (mặc định >= 1)
+        /// - <b>PageSize</b>: Số lượng bản ghi mỗi trang
+        /// - <b>CourseName</b>: Từ khóa tìm kiếm theo tên khóa học
+        /// - <b>Level</b>: Lọc theo cấp độ khóa học
+        /// - <b>ParticipationSort</b>: Sắp xếp theo số lượng học viên
+        /// - <b>CourseOwner</b>: 
+        ///   + <b>All</b>: Lấy tất cả khóa học
+        ///   + <b>Owned</b>: Chỉ lấy khóa học CLB đang sở hữu
+        ///   + <b>NotOwned</b>: Chỉ lấy khóa học CLB chưa sở hữu
+        /// </param>
+        /// <remarks>
+        /// Quy tắc phân quyền và dữ liệu trả về:
+        /// - Role <b>CLUB_MEMBER</b>: hệ thống tự động áp dụng <b>CourseOwner = Owned</b>.
+        /// - Role <b>CLUB_MANAGER</b>, <b>SYSTEM_MANAGER</b>, <b>ADMIN</b>: dùng theo <b>CourseOwner</b> từ query.
+        /// - Giá khóa học (<b>Price</b>) lấy từ Product đang ACTIVE của khóa học.
+        /// - Nếu CLB đã sở hữu khóa học, trường <b>ClubCourseOwned</b> sẽ có:
+        ///   + <b>RemainingCode</b>
+        ///   + <b>ProfitType</b>
+        /// - Nếu CLB chưa sở hữu, <b>ClubCourseOwned = null</b>.
+        /// </remarks>
         /// <returns>
-        /// 200 OK - Trả về danh sách khóa học  
-        /// 404 NotFound - Nếu không tồn tại câu lạc bộ  
-        /// 500 InternalServerError - Nếu xảy ra lỗi hệ thống
+        /// 200 OK - Trả về danh sách khóa học có phân trang.
+        /// 404 NotFound - Không tìm thấy câu lạc bộ.
+        /// 500 InternalServerError - Lỗi hệ thống.
         /// </returns>
-        [HttpGet("{id}/courses")]
+        [HttpGet("{clubId}/courses")]
         [ProducesResponseType(typeof(SuccessResponse<IEnumerable<Application.DTO.Response.CourseResponseDto>>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ApiResponse> GetClubCourses(Guid id, [FromQuery] CourseBulkSearchRequest searchRequest)
+        [Authorize(Roles = Roles.AllRoles)]
+        public async Task<ApiResponse> GetClubCourses(Guid clubId, [FromQuery] CourseBulkSearchRequest searchRequest)
         {
 
-            var courses = await _clubService.GetClubCourses(id, searchRequest);
+            var courses = await _clubService.GetClubCourses(clubId, searchRequest);
             return SuccessResponse<PaginationResult<IEnumerable<CourseBulkResponseDTO>>>
                 .Create(courses, "Lấy danh khóa học của câu lạc bộ thành công!");
         }
@@ -210,7 +231,7 @@ namespace Droniverse.Community.API.Controllers
         /// <summary>
         /// Cập nhật thông tin câu lạc bộ theo ID (không bao gồm status)
         /// </summary>
-        /// <param name="id">GUID của câu lạc bộ cần cập nhật</param>
+        /// <param name="clubId">GUID của câu lạc bộ cần cập nhật</param>
         /// <param name="clubRequest">Dữ liệu cập nhật</param>
         /// <remarks>
         /// API này chỉ cho phép cập nhật thông tin cơ bản: tên, mô tả, categories, giới hạn thành viên.
@@ -221,16 +242,16 @@ namespace Droniverse.Community.API.Controllers
         /// 400 BadRequest - Nếu dữ liệu không hợp lệ  
         /// 404 NotFound - Nếu không tồn tại club
         /// </returns>
-        [HttpPut("{id}")]
+        [HttpPut("{clubId}")]
         [ProducesResponseType(typeof(SuccessResponse<ClubResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [SwaggerRequestExample(typeof(ClubUpdateDto), typeof(ClubUpdateExample))]
         [Authorize(Roles = Roles.ClubManager)]
-        public async Task<ApiResponse> UpdateClub(Guid id, [FromBody] ClubUpdateDto clubRequest)
+        public async Task<ApiResponse> UpdateClub(Guid clubId, [FromBody] ClubUpdateDto clubRequest)
         {
-            ClubResponseDto updatedClub = await _clubService.UpdateClub(id, clubRequest);
+            ClubResponseDto updatedClub = await _clubService.UpdateClub(clubId, clubRequest);
             return SuccessResponse<ClubResponseDto>
-                .Create(updatedClub, $"Cập nhật câu lạc bộ với ID [{id}] thành công!");
+                .Create(updatedClub, $"Cập nhật câu lạc bộ với ID [{clubId}] thành công!");
         }
 
         // ===== Status Management Endpoints =====
@@ -238,7 +259,7 @@ namespace Droniverse.Community.API.Controllers
         /// <summary>
         /// Cập nhật trạng thái câu lạc bộ - Unified Endpoint
         /// </summary>
-        /// <param name="id">GUID của câu lạc bộ</param>
+        /// <param name="clubId">GUID của câu lạc bộ</param>
         /// <param name="request">Thông tin cập nhật trạng thái</param>
         /// <remarks>
         /// **API gộp để cập nhật mọi trạng thái của Club với phân quyền tự động**
@@ -266,17 +287,17 @@ namespace Droniverse.Community.API.Controllers
         /// ```
         /// </remarks>
         /// <returns>200 OK - Cập nhật trạng thái thành công</returns>
-        [HttpPut("{id}/status")]
+        [HttpPut("{clubId}/status")]
         [ProducesResponseType(typeof(SuccessResponse<ClubResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [Authorize(Roles = Roles.AdminOrManagerRoles)] // Require at least one of these roles
         public async Task<ApiResponse> UpdateClubStatus(
-            Guid id,
+            Guid clubId,
             [FromBody] ClubUpdateStatusDto request)
         {
-            var club = await _clubService.UpdateClubStatus(id, request);
+            var club = await _clubService.UpdateClubStatus(clubId, request);
 
             string statusMessage = request.Status switch
             {
@@ -288,25 +309,25 @@ namespace Droniverse.Community.API.Controllers
             };
 
             return SuccessResponse<ClubResponseDto>
-                .Create(club, $"Đã {statusMessage} câu lạc bộ với ID [{id}] thành công!");
+                .Create(club, $"Đã {statusMessage} câu lạc bộ với ID [{clubId}] thành công!");
         }
 
         /// <summary>
         /// Lấy danh sách thành viên của một câu lạc bộ
         /// </summary>
-        /// <param name="id">GUID của câu lạc bộ</param>
+        /// <param name="clubId">GUID của câu lạc bộ</param>
         /// <param name="searchRequest">Thông tin phân trang và lọc</param>
         /// <returns>
         /// 200 OK - Trả về danh sách thành viên có phân trang
         /// </returns>
-        [HttpGet("{id}/participants")]
+        [HttpGet("{clubId}/participants")]
         [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<GetParticipantsResponse>>>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ApiResponse> GetClubParticipations(Guid id, [FromQuery] ParticipationSearchRequest searchRequest)
+        public async Task<ApiResponse> GetClubParticipations(Guid clubId, [FromQuery] ParticipationSearchRequest searchRequest)
         {
-            var participations = await _clubService.GetClubParcitipations(id, searchRequest);
+            var participations = await _clubService.GetClubParcitipations(clubId, searchRequest);
             return SuccessResponse<PaginationResult<IEnumerable<GetParticipantsResponse>>>.Create(participations, "Lấy danh sách thành viên câu lạc bộ thành công!");
-        }   
+        }
 
         /// <summary>
         /// Lấy danh sách câu lạc bộ mà người dùng hiện tại đang tham gia hoặc quản lý

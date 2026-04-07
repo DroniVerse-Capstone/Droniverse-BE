@@ -9,8 +9,8 @@ namespace Droniverse.Community.Application.DTO.Request
 {
     public class AddClubCourseRequest
     {
-        public int TotalQuanitty { get; set; }
-        public int UsedQuantity { get; set; }
-        public ClubCourseProfit IsProfit { get; set; }
+        public Guid CourseId { get; set; }
+        public int TotalQuantity { get; set; }
+        public ClubCourseProfit ProfitType { get; set; } = ClubCourseProfit.PROFIT;
     }
 }
