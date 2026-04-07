@@ -5,8 +5,8 @@ public class Product
 {
     public Guid ProductID { get; set; }
     public Guid ReferenceID { get; set; } //Id của course hoặc drone
-    //public ProductCategory ProductCategory { get; set; }
-    //public Guid? CategoryID { get; set; }
+    public ProductCategory ProductCategory { get; set; }
+    public Guid? CategoryID { get; set; }
     public ICollection<UserProduct> UserProducts { get; set; }
 
     public string ProductNameVN { get; set; }

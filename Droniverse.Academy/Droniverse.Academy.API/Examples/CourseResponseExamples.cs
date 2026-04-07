@@ -119,7 +119,7 @@ public class CoursesByIdsSuccessResponseExample : IExamplesProvider<SuccessRespo
                         Level = CourseLevel.EASY,
                         EstimatedDuration = 120,
                         Price = 499000,
-                        RemainingCode = 0,
+                        ClubCourseOwned = new ClubCourseOwnedResponse(),
                         Rating = 4.8m,
                         NumberOfParticipants = 320,
                         ImageUrl = "https://cdn.example.com/course-1.jpg"
@@ -133,7 +133,7 @@ public class CoursesByIdsSuccessResponseExample : IExamplesProvider<SuccessRespo
                         Level = CourseLevel.MEDIUM,
                         EstimatedDuration = 180,
                         Price = 899000,
-                        RemainingCode = 0,
+                        ClubCourseOwned = new ClubCourseOwnedResponse(),
                         Rating = 4.6m,
                         NumberOfParticipants = 210,
                         ImageUrl = "https://cdn.example.com/course-2.jpg"

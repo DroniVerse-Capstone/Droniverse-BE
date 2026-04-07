@@ -12,18 +12,18 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
 
         builder.HasKey(c => c.ProductID);
         builder.Property(c => c.ProductID).HasColumnType("char(36)");
-        //builder.Property(c => c.CategoryID).HasColumnType("char(36)");
+        builder.Property(c => c.CategoryID).HasColumnType("char(36)");
         builder.Property(c => c.ReferenceID).HasColumnType("char(36)");
-        //builder.HasOne(p => p.ProductCategory)
-        //    .WithMany(pc => pc.Products)
-        //    .HasForeignKey(p => p.CategoryID)
-        //    .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(p => p.ProductCategory)
+            .WithMany(pc => pc.Products)
+            .HasForeignKey(p => p.CategoryID)
+            .OnDelete(DeleteBehavior.Restrict);
         //builder.HasOne(p => p.Code) // ReferenceID của Course
         //    .WithMany(c => c.Products)
         //    .HasForeignKey(p => p.ReferenceID)
         //    .OnDelete(DeleteBehavior.Restrict);
         //ReferenceID của Drone => bên service Simulation => K cần qhe ở đây
-        
+
         builder.Property(c => c.ProductNameVN).HasMaxLength(255).IsRequired();
         builder.Property(c => c.ProductNameEN).HasMaxLength(255).IsRequired();
         builder.Property(c => c.DescriptionEN).HasColumnType("text");

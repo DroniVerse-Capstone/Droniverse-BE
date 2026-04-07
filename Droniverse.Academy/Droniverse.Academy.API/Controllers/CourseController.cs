@@ -60,7 +60,7 @@ namespace Droniverse.Academy.API.Controllers
         [HttpPost("by-ids")]
         [SwaggerRequestExample(typeof(GetCoursesByIdsRequestDTO), typeof(GetCoursesByIdsExample))]
         [SwaggerResponseExample(StatusCodes.Status200OK, typeof(CoursesByIdsSuccessResponseExample))]
-        [ProducesResponseType(typeof(SuccessResponse<PagedCourseBulkResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(PagedCourseBulkResponse), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetCoursesByIds(
             [FromQuery] CourseBulkSearchRequest searchRequest,
             [FromBody] GetCoursesByIdsRequestDTO request)
@@ -68,7 +68,7 @@ namespace Droniverse.Academy.API.Controllers
             try
             {
                 var result = await _courseService.GetCoursesByIdsAsync(searchRequest, request.CourseIds);
-                return Ok(SuccessResponse<PagedCourseBulkResponse>.Create(result, "Lấy danh sách course theo id thành công."));
+                return Ok(result);
             }
             catch (Exception ex)
             {
@@ -76,6 +76,33 @@ namespace Droniverse.Academy.API.Controllers
                 throw;
             }
         }
+
+        ///// <summary>
+        ///// Lấy danh sách khóa học theo danh sách ID (kèm filter + pagination).
+        ///// </summary>
+        ///// <param name="request">Danh sách <c>CourseId</c> cần truy vấn.</param>
+        ///// <param name="searchRequest">Bộ lọc + phân trang.</param>
+        ///// <returns>Danh sách khóa học tương ứng với các ID được gửi lên.</returns>
+        //// POST academy/courses/by-ids
+        //[HttpPost("by-ids")]
+        //[SwaggerRequestExample(typeof(GetCoursesByIdsRequestDTO), typeof(GetCoursesByIdsExample))]
+        //[SwaggerResponseExample(StatusCodes.Status200OK, typeof(CoursesByIdsSuccessResponseExample))]
+        //[ProducesResponseType(typeof(SuccessResponse<PagedCourseBulkResponse>), StatusCodes.Status200OK)]
+        //public async Task<IActionResult> GetCoursesByIds(
+        //    [FromQuery] CourseBulkSearchRequest searchRequest,
+        //    [FromBody] GetCoursesByIdsRequestDTO request)
+        //{
+        //    try
+        //    {
+        //        var result = await _courseService.GetCoursesByIdsAsync(searchRequest, request.CourseIds);
+        //        return Ok(SuccessResponse<PagedCourseBulkResponse>.Create(result, "Lấy danh sách course theo id thành công."));
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "Lấy danh sách course theo id thất bại.");
+        //        throw;
+        //    }
+        //}
 
         /// <summary>
         /// Lấy danh sách khóa học hot theo danh sách ID (sắp xếp theo độ hot và có phân trang).
@@ -94,7 +121,7 @@ namespace Droniverse.Academy.API.Controllers
             try
             {
                 var result = await _courseService.GetHotCoursesByIdsAsync(searchRequest, request.CourseIds);
-                return Ok(SuccessResponse<PagedCourseBulkResponse>.Create(result, "Lấy danh sách khóa học hot theo id thành công."));
+                return Ok(result);
             }
             catch (Exception ex)
             {

@@ -10,5 +10,7 @@ namespace Droniverse.Community.Domain.IRepository
     public interface IClubCourseRepository : IRepository<ClubCourse>
     {
         Task<int> CountCoursesByClubIdAsync(Guid clubId);
+        Task<bool> ExistsAsync(Guid clubId, Guid courseId);
+        Task<ClubCourse?> GetByClubAndCourseAsync(Guid clubId, Guid courseId, bool asNoTracking = false);
     }
 }

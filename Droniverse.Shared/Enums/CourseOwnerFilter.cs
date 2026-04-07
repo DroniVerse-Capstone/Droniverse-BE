@@ -9,6 +9,7 @@ namespace Droniverse.Academy.Application.Enums
     public enum CourseOwnerFilter
     {
         All = 0,
-        Owned = 1
+        Owned = 1,
+        NotOwned = 2
     }
 }

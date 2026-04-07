@@ -20,5 +20,20 @@ namespace Droniverse.Community.Infrastructure.Repositories
                 .Where(cc => cc.ClubID == clubId)
                 .CountAsync();
         }
+
+        public async Task<bool> ExistsAsync(Guid clubId, Guid courseId)
+        {
+            return await _dbSet.AnyAsync(cc => cc.ClubID == clubId && cc.CourseID == courseId);
+        }
+
+        public async Task<ClubCourse?> GetByClubAndCourseAsync(Guid clubId, Guid courseId, bool asNoTracking = false)
+        {
+            IQueryable<ClubCourse> query = _dbSet;
+
+            if (asNoTracking)
+                query = query.AsNoTracking();
+
+            return await query.FirstOrDefaultAsync(cc => cc.ClubID == clubId && cc.CourseID == courseId);
+        }
     }
 }

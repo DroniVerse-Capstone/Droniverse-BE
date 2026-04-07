@@ -5,6 +5,7 @@ using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.Enums;
 using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Community.Domain.Enums;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
@@ -234,7 +235,7 @@ public class CourseService : ICourseService
             .Distinct()
             .ToList() ?? [];
 
-        if (ids.Count == 0)
+        if (searchRequest.CourseOwner == CourseOwnerFilter.Owned && ids.Count == 0)
             return new PagedCourseBulkResponse
             {
                 TotalItems = 0,
@@ -242,14 +243,18 @@ public class CourseService : ICourseService
             };
 
         Expression<Func<Course, bool>> filter = c =>
-            ids.Contains(c.CourseID) &&
             c.CurrentVersion != null &&
+            c.Status == CourseStatus.PUBLISH &&
             (!searchRequest.Level.HasValue || c.CurrentVersion.Level == searchRequest.Level.Value) &&
-            (searchRequest.CourseOwner != CourseOwnerFilter.Owned || c.CreateBy == _currentUser.UserId) &&
             (
                 string.IsNullOrWhiteSpace(normalizedCourseName) ||
                 (c.CurrentVersion.TitleEN != null && c.CurrentVersion.TitleEN.Contains(normalizedCourseName)) ||
                 (c.CurrentVersion.TitleVN != null && c.CurrentVersion.TitleVN.Contains(normalizedCourseName))
+            ) &&
+            (
+                searchRequest.CourseOwner == CourseOwnerFilter.All ||
+                (searchRequest.CourseOwner == CourseOwnerFilter.Owned && ids.Contains(c.CourseID)) ||
+                (searchRequest.CourseOwner == CourseOwnerFilter.NotOwned && !ids.Contains(c.CourseID))
             );
 
         var courseResult = await _unitOfWork.Courses.GetAllWithCurrentVersionAsync(
@@ -277,9 +282,10 @@ public class CourseService : ICourseService
         var ratingByVersionId = await _unitOfWork.Feedbacks
             .GetAverageRatingsByCourseVersionIdsAsync(courseVersionIds);
 
-        var idOrder = ids
-            .Select((id, index) => new { id, index })
-            .ToDictionary(x => x.id, x => x.index);
+        var useInputOrder = searchRequest.CourseOwner == CourseOwnerFilter.Owned && ids.Count > 0;
+        var idOrder = useInputOrder
+            ? ids.Select((id, index) => new { id, index }).ToDictionary(x => x.id, x => x.index)
+            : null;
 
         var data = courses
             .Select(c =>
@@ -299,7 +305,7 @@ public class CourseService : ICourseService
                     Level = currentVersion.Level,
                     EstimatedDuration = currentVersion.EstimatedDuration,
                     Price = null,
-                    RemainingCode = 0,
+                    ClubCourseOwned = new ClubCourseOwnedResponse(),
                     Rating = rating,
                     NumberOfParticipants = numberOfParticipants,
                     ImageUrl = currentVersion.ImageUrl
@@ -307,17 +313,27 @@ public class CourseService : ICourseService
             })
             .ToList();
 
-        var orderedData = searchRequest.NumberOfParticipation switch
+        var orderedData = searchRequest.ParticipationSort switch
         {
-            CourseParticipationFilter.MostPopular => data
+            CourseParticipationSort.MostPopular when useInputOrder => data
                 .OrderByDescending(x => x.NumberOfParticipants)
-                .ThenBy(x => idOrder[x.CourseId]),
+                .ThenBy(x => idOrder![x.CourseId]),
 
-            CourseParticipationFilter.LeastPopular => data
+            CourseParticipationSort.MostPopular => data
+                .OrderByDescending(x => x.NumberOfParticipants)
+                .ThenBy(x => x.CourseId),
+
+            CourseParticipationSort.LeastPopular when useInputOrder => data
                 .OrderBy(x => x.NumberOfParticipants)
-                .ThenBy(x => idOrder[x.CourseId]),
+                .ThenBy(x => idOrder![x.CourseId]),
 
-            _ => data.OrderBy(x => idOrder[x.CourseId])
+            CourseParticipationSort.LeastPopular => data
+                .OrderBy(x => x.NumberOfParticipants)
+                .ThenBy(x => x.CourseId),
+
+            _ when useInputOrder => data.OrderBy(x => idOrder![x.CourseId]),
+
+            _ => data.OrderBy(x => x.CourseId)
         };
 
         return new PagedCourseBulkResponse
@@ -359,10 +375,72 @@ public class CourseService : ICourseService
             pageIndex: pageIndex,
             pageSize: pageSize);
 
+        var items = courseResult.Data.ToList();
+        if (items.Count == 0)
+        {
+            return new PagedCourseBulkResponse
+            {
+                TotalItems = courseResult.TotalRecords,
+                Items = []
+            };
+        }
+
+        var itemCourseIds = items
+            .Select(x => x.CourseId)
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        var productTask = _communityMicroserviceClient
+            .GetProductsBulkByReferenceIdsAsync(itemCourseIds);
+
+        var remainingCodeTask = _unitOfWork.Codes.GetAllAsync(
+            filter: c =>
+                itemCourseIds.Contains(c.CourseID) &&
+                c.Status == CodeStatus.ACTIVE &&
+                c.ExpireDate >= _clock.Now &&
+                !c.CodeUsages.Any(),
+            pageIndex: 1,
+            pageSize: int.MaxValue);
+
+        await Task.WhenAll(productTask, remainingCodeTask);
+
+        var productByCourseId = productTask.Result
+            .Where(p => p.ReferenceId != Guid.Empty)
+            .ToDictionary(p => p.ReferenceId, p => p.Price);
+
+        var remainingCodeByCourseId = remainingCodeTask.Result.Data
+            .GroupBy(c => c.CourseID)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        var ownedCourseIdSet = ids.ToHashSet();
+
+        foreach (var item in items)
+        {
+            item.Price = productByCourseId.TryGetValue(item.CourseId, out var price)
+                ? price
+                : 0m;
+
+            if (ownedCourseIdSet.Contains(item.CourseId))
+            {
+                item.ClubCourseOwned = new ClubCourseOwnedResponse
+                {
+                    RemainingCode = remainingCodeByCourseId.TryGetValue(item.CourseId, out var remainingCode)
+                        ? remainingCode
+                        : 0,
+                    ProfitType = item.Price > 0 ? ClubCourseProfit.PROFIT : ClubCourseProfit.NONPROFIT
+                };
+            }
+            else
+            {
+                item.ClubCourseOwned = null;
+            }
+        }
+
         return new PagedCourseBulkResponse
         {
             TotalItems = courseResult.TotalRecords,
-            Items = courseResult.Data
+            Items = items
         };
     }
 
