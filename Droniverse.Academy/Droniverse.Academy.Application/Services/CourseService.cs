@@ -182,7 +182,7 @@ public class CourseService : ICourseService
             clubId,
             overviewData.CourseID,
             cancellationToken);
-        response.RemainingQuantityDataDTO = remainingQuantityData;
+        response.ClubCourseOwn = remainingQuantityData;
         return response;
     }
 

@@ -33,5 +33,5 @@ public class CourseOverviewResponseDTO
     public DateTime? LastUpdatedAt { get; set; }
 
     public ProductMiniResponseDTO? MiniProduct { get; set; }
-    public RemainingQuantityDataDTO? RemainingQuantityDataDTO { get; set; }
+    public ClubCourseOwn? ClubCourseOwn { get; set; }
 }

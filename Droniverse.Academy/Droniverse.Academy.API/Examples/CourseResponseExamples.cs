@@ -95,7 +95,7 @@ public class CourseOverviewSuccessResponseExample : IExamplesProvider<SuccessRes
                     Email = "thib@example.com"
                 },
                 LastUpdatedAt = DateTime.UtcNow,
-                RemainingQuantityDataDTO = new RemainingQuantityDataDTO
+                ClubCourseOwn = new ClubCourseOwn
                 {
                     RemainingQuantity = 25
                 }

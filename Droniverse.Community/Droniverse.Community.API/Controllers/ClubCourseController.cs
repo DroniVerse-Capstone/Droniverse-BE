@@ -147,7 +147,6 @@ namespace Droniverse.Community.API.Controllers
         /// 404 NotFound - Không tìm thấy ClubCourse.
         /// </returns>
         [HttpGet("{clubId:guid}/courses/{courseId:guid}/remaining-quantity")]
-        [ProducesResponseType(typeof(SuccessResponse<ClubCourseRemainingQuantityResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ClubCourseRemainingQuantityResponseDto> GetRemainingQuantity(Guid clubId, Guid courseId)
         {
