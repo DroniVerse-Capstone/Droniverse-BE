@@ -25,11 +25,13 @@ public class ClubCourse
         ProfitType = profitType;
     }
 
+    //Tạo ClubCourse mới với số lượng ban đầu và loại lợi nhuận (Khi ClubManager mua code)
     public static ClubCourse Create(Guid clubId, Guid courseId, int totalQuantity, ClubCourseProfit profitType)
     {
         return new ClubCourse(clubId, courseId, totalQuantity, profitType);
     }
 
+    //Khi ClubManager mua thêm code của 1 khóa học mà đã có ClubCourse, chỉ cần tăng số lượng mà không cần tạo mới
     public void IncreaseCapacity(int quantity)
     {
         if (quantity <= 0)
@@ -41,6 +43,7 @@ public class ClubCourse
         EnsureValidState();
     }
 
+    //Khi clubmember nhập mã code để tham gia khóa học, giảm số lượng còn lại đi 1 đơn vị (hoặc nhiều hơn nếu cho phép nhập nhiều code cùng lúc)
     public void Consume(int quantity = 1)
     {
         if (quantity <= 0)
@@ -53,6 +56,7 @@ public class ClubCourse
         EnsureValidState();
     }
 
+    //Khi 1 học viên hủy khóa học hoặc code bị lỗi
     public void Restore(int quantity = 1)
     {
         if (quantity <= 0)
@@ -66,8 +70,10 @@ public class ClubCourse
         EnsureValidState();
     }
 
+    //kiểm tra xem còn code để cấp không
     public bool IsAvailable() => RemainingQuantity > 0;
 
+    //thay đổi loại lợi nhuận cho clb
     public void UpdateProfitType(ClubCourseProfit profitType)
     {
         ProfitType = profitType;
@@ -85,6 +91,7 @@ public class ClubCourse
         EnsureValidState();
     }
 
+    //Kiểm tra lại nội bộ mỗi khi thay đổi số lượng để đảm bảo không rơi vào trạng thái không hợp lệ
     private void EnsureValidState()
     {
         if (RemainingQuantity < 0 || TotalQuantity < 0)

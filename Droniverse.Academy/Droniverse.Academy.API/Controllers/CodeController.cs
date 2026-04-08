@@ -1,12 +1,13 @@
-﻿ using Droniverse.Academy.Application.IService;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+﻿using Droniverse.Academy.Application.DTO.Request;
+using Droniverse.Academy.Application.DTO.Response;
+using Droniverse.Academy.Application.HttpClients;
+ using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.Domain.Entities;
+using Droniverse.Community.Domain.Enums;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
-using Droniverse.Academy.Application.HttpClients;
-using Droniverse.Academy.Application.DTO.Response;
-using Droniverse.Academy.Application.DTO.Request;
-using Droniverse.Academy.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Droniverse.Academy.API.Controllers;
 
@@ -39,9 +40,9 @@ public class CodeController : ControllerBase
     }
 
     [HttpPost("generate-codes")]
-    public async Task<IActionResult> CreateCode(Guid courseId, int quantity)
+    public async Task<IActionResult> CreateCode(Guid courseId, int quantity, ClubCourseProfit profitType)
     {
-        IEnumerable<string> listIds = await _codeService.CreateCodeAsync(courseId, quantity);
+        IEnumerable<string> listIds = await _codeService.CreateCodeAsync(courseId, quantity, profitType);
         CodeCreateResponseDTO responseDTO = new CodeCreateResponseDTO
         {
             CourseId = courseId,

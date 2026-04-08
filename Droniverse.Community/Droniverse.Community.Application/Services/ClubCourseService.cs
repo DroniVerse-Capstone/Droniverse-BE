@@ -1,8 +1,6 @@
 ﻿using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.IService;
-using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
-using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.IRepository;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,6 +16,7 @@ namespace Droniverse.Community.Application.Services
             _unitOfWork = unitOfWork;
         }
 
+        // Sau khi manager dat hang
         public async Task<ClubCourseResponseDto> AddCourseToClub(Guid clubId, AddClubCourseRequest request)
         {
             if (clubId == Guid.Empty)
@@ -79,6 +78,7 @@ namespace Droniverse.Community.Application.Services
             return ToResponse(clubCourse);
         }
 
+        //Khi member nhap ma code thi goi ham nay
         public async Task<ClubCourseResponseDto> ConsumeSlot(Guid clubId, Guid courseId, ChangeClubCourseSlotRequest? request)
         {
             var quantity = request?.Quantity ?? 1;
