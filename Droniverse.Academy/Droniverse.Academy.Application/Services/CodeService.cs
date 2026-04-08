@@ -35,7 +35,7 @@ public class CodeService : ICodeService
         _logger = logger;
         _communityMicroserviceClient = communityMicroserviceClient;
     }
-    public async Task<IEnumerable<string>> CreateCodeAsync(Guid courseId, int quantity, ClubCourseProfit profitType)
+    public async Task<IEnumerable<string>>  CreateCodeAsync(Guid courseId, int quantity, ClubCourseProfit profitType)
     {
         if(quantity<=0)
         {

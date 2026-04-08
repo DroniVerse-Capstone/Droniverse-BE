@@ -3,7 +3,9 @@ using Droniverse.Community.Application.DTO.Response.Mongo;
 using Droniverse.Community.Application.IService.Mongo;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PayOS.Models.Webhooks;
 using System.Text.Json;
 
 namespace Droniverse.Community.API.Controllers
@@ -58,24 +60,19 @@ namespace Droniverse.Community.API.Controllers
         /// <returns></returns>
         [HttpPost("webhook")]
         [HttpPut("webhook")]
+        [AllowAnonymous]
         public async Task<IActionResult> HandleWebhookAsync([FromBody] PayOSWebhookDto webhook)
         {
-            var weebhookData = JsonSerializer.Serialize(webhook.Data);
-            if (!await _paymentService.VerifyWebhookSignature(weebhookData, webhook.Signature))
+            var webhookData = JsonSerializer.Serialize(webhook.Data);
+            _logger.LogInformation("Received webhook: {Data}", webhookData);
+            if (!await _paymentService.VerifyWebhookSignature(webhookData, webhook.Signature))
             {
+                _logger.LogError("Webhook signature invalid!");
                 return Unauthorized();
             }
-            _logger.LogInformation("Verify webhook... Received webhook: {WebhookData}", weebhookData);
             bool result = await _paymentService.HandleWebhook(webhook);
-            _logger.LogInformation("Handle webhook... Result: {Result}", result);
-            if (result)
-            {
-                return Ok();
-            }
-            else
-            {
-                return BadRequest();
-            }
+            _logger.LogInformation("Handle webhook result: {Result}", result);
+            return result ? Ok() : BadRequest("Failed to process webhook");
         }
 
         /// <summary>
