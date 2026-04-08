@@ -1,9 +1,4 @@
-﻿using Droniverse.Community.Domain.Enums;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Droniverse.Shared.Enums;
 
 namespace Droniverse.Shared.DTOs;
 

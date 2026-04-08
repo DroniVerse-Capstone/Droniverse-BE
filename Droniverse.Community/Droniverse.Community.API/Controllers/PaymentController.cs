@@ -112,12 +112,14 @@ namespace Droniverse.Community.API.Controllers
         }
 
         [HttpGet("payment-success")]
+        [AllowAnonymous]
         public async Task<IActionResult> PaymentSuccess()
         {
         return Ok(new { message = "Payment successful" });
         }
 
         [HttpGet("payment-cancel")]
+        [AllowAnonymous]
         public async Task<IActionResult> PaymentCancel()
         {
         return Ok(new { message = "Payment cancelled" });
