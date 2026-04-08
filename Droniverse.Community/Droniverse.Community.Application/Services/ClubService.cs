@@ -14,6 +14,7 @@ using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 using Droniverse.Shared.Constants;
+using Droniverse.Shared.Enums;
 
 namespace Droniverse.Community.Application.Services;
 internal class ClubService : IClubService

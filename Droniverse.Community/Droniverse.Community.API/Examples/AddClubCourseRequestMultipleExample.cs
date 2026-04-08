@@ -1,5 +1,6 @@
 ﻿using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Domain.Enums;
+using Droniverse.Shared.Enums;
 using Swashbuckle.AspNetCore.Filters;
 
 namespace Droniverse.Community.API.Examples;

@@ -1,12 +1,21 @@
 ﻿using Droniverse.Academy.Application.DTO.Response;
+using Droniverse.Shared.DTOs;
 using Droniverse.Shared.Services.IServices;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Droniverse.Academy.Application.HttpClients
 {
     public class CommunityMicroserviceClient
     {
+        private static readonly JsonSerializerOptions _jsonSerializerOptions = new()
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
+
         private readonly HttpClient _httpClient;
         private readonly ILogger<CommunityMicroserviceClient> _logger;
         private readonly ICacheService _cacheService;
@@ -104,21 +113,21 @@ namespace Droniverse.Academy.Application.HttpClients
             }
         }
 
-        public async Task<int> GetRemainingQuantityAsync(
+        public async Task<RemainingQuantityDataDTO?> GetRemainingQuantityAsync(
             Guid clubId,
             Guid courseId,
             CancellationToken cancellationToken = default)
         {
             if (clubId == Guid.Empty || courseId == Guid.Empty)
             {
-                return 0;
+                return null;
             }
 
             var cacheKey = GetCacheKeyForRemainingQuantity(clubId, courseId);
-            var cachedValue = await _cacheService.GetAsync<int?>(cacheKey, cancellationToken);
-            if (cachedValue.HasValue)
+            var cachedValue = await _cacheService.GetAsync<RemainingQuantityDataDTO>(cacheKey, cancellationToken);
+            if (cachedValue != null)
             {
-                return cachedValue.Value;
+                return cachedValue;
             }
 
             var response = await _httpClient.GetAsync(
@@ -127,7 +136,10 @@ namespace Droniverse.Academy.Application.HttpClients
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
-                return 0;
+                return new RemainingQuantityDataDTO
+                {
+                    RemainingQuantity = 0
+                };
             }
 
             if (!response.IsSuccessStatusCode)
@@ -139,19 +151,22 @@ namespace Droniverse.Academy.Application.HttpClients
             }
 
             var apiResponse = await response.Content
-                .ReadFromJsonAsync<RemainingQuantityApiResponseDTO>(cancellationToken)
+                .ReadFromJsonAsync<RemainingQuantityDataDTO>(_jsonSerializerOptions, cancellationToken)
                 ?? throw new HttpRequestException("Invalid response when calling Community remaining quantity API.");
 
-            var remainingQuantity = apiResponse.Data?.RemainingQuantity ?? 0;
+            var remainingQuantityData = apiResponse ?? new RemainingQuantityDataDTO
+            {
+                RemainingQuantity = 0
+            };
 
             await _cacheService.SetAsync(
                 cacheKey,
-                remainingQuantity,
+                remainingQuantityData,
                 RemainingQuantityCacheAbsoluteExpirationSeconds,
                 RemainingQuantityCacheSlidingExpirationSeconds,
                 cancellationToken);
 
-            return remainingQuantity;
+            return remainingQuantityData;
         }
 
         public async Task<ProductMiniResponseDTO?> GetProductByReferenceIdAsync(
@@ -329,15 +344,6 @@ namespace Droniverse.Academy.Application.HttpClients
             return $"club:{clubId}:course:{courseId}:remaining-quantity";
         }
 
-        private sealed class RemainingQuantityApiResponseDTO
-        {
-            public RemainingQuantityDataDTO? Data { get; set; }
-        }
-
-        private sealed class RemainingQuantityDataDTO
-        {
-            public int RemainingQuantity { get; set; }
-        }
 
     } 
 }

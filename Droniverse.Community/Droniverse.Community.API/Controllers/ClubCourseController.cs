@@ -149,10 +149,10 @@ namespace Droniverse.Community.API.Controllers
         [HttpGet("{clubId:guid}/courses/{courseId:guid}/remaining-quantity")]
         [ProducesResponseType(typeof(SuccessResponse<ClubCourseRemainingQuantityResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ApiResponse> GetRemainingQuantity(Guid clubId, Guid courseId)
+        public async Task<ClubCourseRemainingQuantityResponseDto> GetRemainingQuantity(Guid clubId, Guid courseId)
         {
             var result = await _clubCourseService.GetRemainingQuantity(clubId, courseId);
-            return SuccessResponse<ClubCourseRemainingQuantityResponseDto>.Create(result, "Lấy số lượng slot còn lại thành công!");
+            return result;
         }
     }
 }
