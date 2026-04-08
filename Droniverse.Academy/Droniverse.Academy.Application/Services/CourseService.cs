@@ -4,7 +4,6 @@ using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.Enums;
 using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
-using Droniverse.Community.Domain.Enums;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
@@ -14,6 +13,7 @@ using Droniverse.Shared.DTOs;
 using Droniverse.Shared.Exceptions;
 using System.Linq.Expressions;
 using Droniverse.Shared.Services.IServices;
+using Droniverse.Shared.Enums;
 
 namespace Droniverse.Academy.Application.Services;
 
@@ -142,6 +142,7 @@ public class CourseService : ICourseService
     }
 
     public async Task<CourseOverviewResponseDTO> GetCourseOverviewAsync(
+        Guid clubId,
         Guid courseVersionId,
         CancellationToken cancellationToken = default)
     {
@@ -177,6 +178,11 @@ public class CourseService : ICourseService
         response.MiniProduct = product == null
             ? null
             : _mapper.Map<ProductMiniResponseDTO>(product);
+        var remainingQuantityData = await _communityMicroserviceClient.GetRemainingQuantityAsync(
+            clubId,
+            overviewData.CourseID,
+            cancellationToken);
+        response.ClubCourseOwn = remainingQuantityData;
         return response;
     }
 

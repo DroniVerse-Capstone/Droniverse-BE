@@ -12,13 +12,17 @@ namespace Droniverse.Academy.Application.HttpClients
 {
     public class CommunityMicroserviceClient
     {
+        private static readonly JsonSerializerOptions _jsonSerializerOptions = new()
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
+
         private readonly HttpClient _httpClient;
         private readonly ILogger<CommunityMicroserviceClient> _logger;
         private readonly ICacheService _cacheService;
-        private const int CategoryCacheAbsoluteExpirationSeconds = 300;
-        private const int CategoryCacheSlidingExpirationSeconds = 100;
-        private const int ProductCacheAbsoluteExpirationSeconds = 300;
-        private const int ProductCacheSlidingExpirationSeconds = 100;
+        private const int CacheAbsoluteExpirationSeconds = 300;
+        private const int CacheSlidingExpirationSeconds = 100;
 
         public CommunityMicroserviceClient(HttpClient httpClient, ILogger<CommunityMicroserviceClient> logger, ICacheService cacheService)
         {
@@ -253,6 +257,60 @@ namespace Droniverse.Academy.Application.HttpClients
             }
         }
 
+        public async Task<ClubCourseOwn?> GetRemainingQuantityAsync(
+            Guid clubId,
+            Guid courseId,
+            CancellationToken cancellationToken = default)
+        {
+            if (clubId == Guid.Empty || courseId == Guid.Empty)
+            {
+                return null;
+            }
+
+            var cacheKey = GetCacheKeyForRemainingQuantity(clubId, courseId);
+            var cachedValue = await _cacheService.GetAsync<ClubCourseOwn>(cacheKey, cancellationToken);
+            if (cachedValue != null)
+            {
+                return cachedValue;
+            }
+
+            var response = await _httpClient.GetAsync(
+                $"/community/clubs/{clubId}/courses/{courseId}/remaining-quantity",
+                cancellationToken);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return null;
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new HttpRequestException(
+                    $"Community remaining quantity API error: {response.StatusCode}",
+                    null,
+                    response.StatusCode);
+            }
+
+            var json = await response.Content.ReadAsStringAsync(cancellationToken);
+            var wrappedResponse = JsonSerializer.Deserialize<CommunitySuccessResponse<ClubCourseOwn>>(json, _jsonSerializerOptions);
+            var remainingQuantityData = wrappedResponse?.Data
+                ?? JsonSerializer.Deserialize<ClubCourseOwn>(json, _jsonSerializerOptions);
+
+            if (remainingQuantityData == null)
+            {
+                return null;
+            }
+
+            await _cacheService.SetAsync(
+                cacheKey,
+                remainingQuantityData,
+                CacheAbsoluteExpirationSeconds,
+                CacheSlidingExpirationSeconds,
+                cancellationToken);
+
+            return remainingQuantityData;
+        }
+
         public async Task<ProductMiniResponseDTO?> GetProductByReferenceIdAsync(
             Guid referenceId,
             CancellationToken cancellationToken = default)
@@ -369,7 +427,7 @@ namespace Droniverse.Academy.Application.HttpClients
                     }
 
                     productsByReferenceId[product.ReferenceId] = product;
-                    await CacheProductAsync(product.ReferenceId, product, cancellationToken);
+                    await CacheProductAsync(product.ProductId, product, cancellationToken);
                 }
 
                 return distinctIds
@@ -389,13 +447,13 @@ namespace Droniverse.Academy.Application.HttpClients
             return await _cacheService.GetAsync<ProductMiniResponseDTO>(GetCacheKeyForProduct(referenceId), cancellationToken);
         }
 
-        private async Task CacheProductAsync(Guid referenceId, ProductMiniResponseDTO product, CancellationToken cancellationToken)
+        private async Task CacheProductAsync(Guid productId, ProductMiniResponseDTO product, CancellationToken cancellationToken)
         {
             await _cacheService.SetAsync(
-                GetCacheKeyForProduct(referenceId),
+                GetCacheKeyForProduct(productId),
                 product,
-                ProductCacheAbsoluteExpirationSeconds,
-                ProductCacheSlidingExpirationSeconds,
+                CacheAbsoluteExpirationSeconds,
+                CacheSlidingExpirationSeconds,
                 cancellationToken);
         }
 
@@ -409,8 +467,8 @@ namespace Droniverse.Academy.Application.HttpClients
             await _cacheService.SetAsync(
                 GetCacheKeyForCategory(category.CategoryID),
                 category,
-                CategoryCacheAbsoluteExpirationSeconds,
-                CategoryCacheSlidingExpirationSeconds);
+                CacheAbsoluteExpirationSeconds,
+                CacheSlidingExpirationSeconds);
         }
 
         private string GetCacheKeyForCategory(Guid categoryId)
@@ -428,4 +486,16 @@ namespace Droniverse.Academy.Application.HttpClients
             return $"code:{codeId}";
         }
     }
+        private string GetCacheKeyForRemainingQuantity(Guid clubId, Guid courseId)
+        {
+            return $"club:{clubId}:course:{courseId}:remaining-quantity";
+        }
+
+        private sealed class CommunitySuccessResponse<T>
+        {
+            public T? Data { get; set; }
+        }
+
+
+    } 
 }

@@ -91,8 +91,8 @@ namespace Droniverse.Academy.Application.HttpClients
             {
                 UserId = user.UserId,
                 Email = user.Email,
-                FullName = AppHelper.GetFullName(user)
-
+                FullName = AppHelper.GetFullName(user),
+                AvatarUrl = user.ImageUrl
             };
         }
 

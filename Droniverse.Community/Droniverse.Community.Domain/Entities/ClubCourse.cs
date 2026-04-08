@@ -1,5 +1,6 @@
 ﻿using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.Enums;
+using Droniverse.Shared.Enums;
 
 public class ClubCourse
 {

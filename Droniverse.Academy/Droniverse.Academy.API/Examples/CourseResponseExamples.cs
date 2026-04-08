@@ -94,7 +94,11 @@ public class CourseOverviewSuccessResponseExample : IExamplesProvider<SuccessRes
                     FullName = "Tran Thi B",
                     Email = "thib@example.com"
                 },
-                LastUpdatedAt = DateTime.UtcNow
+                LastUpdatedAt = DateTime.UtcNow,
+                ClubCourseOwn = new ClubCourseOwn
+                {
+                    RemainingQuantity = 25
+                }
             },
             "Lấy tổng quan khóa học thành công.");
     }

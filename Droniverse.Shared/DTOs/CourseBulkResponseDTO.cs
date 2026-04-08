@@ -1,5 +1,5 @@
 ﻿using Droniverse.Academy.Domain.Enums;
-using Droniverse.Community.Domain.Enums;
+using Droniverse.Shared.Enums;
 using Droniverse.Shared.Enums.Response;
 using System;
 using System.Collections.Generic;

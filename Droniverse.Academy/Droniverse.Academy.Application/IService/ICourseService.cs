@@ -18,6 +18,7 @@ public interface ICourseService
             CourseStatus? status = null);
 
     Task<CourseOverviewResponseDTO> GetCourseOverviewAsync(
+        Guid clubId,
         Guid courseVersionId,
         CancellationToken cancellationToken = default);
 
