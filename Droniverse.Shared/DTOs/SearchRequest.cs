@@ -14,7 +14,7 @@ namespace Droniverse.Shared.DTOs
         [DefaultValue(1)]
         public int CurrentPage { get; set; } = 1;
 
-        [Range(5, 20, ErrorMessage = "Kích thước trang phải từ 5 đến 20.")]
+        [Range(4, 20, ErrorMessage = "Kích thước trang phải từ 5 đến 20.")]
         [DefaultValue(5)]
         public int PageSize { get; set; } = 5;
     }
