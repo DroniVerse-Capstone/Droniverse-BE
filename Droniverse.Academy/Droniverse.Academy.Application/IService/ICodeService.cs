@@ -1,6 +1,6 @@
 ﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
-using Droniverse.Community.Domain.Enums;
+using Droniverse.Shared.Enums;
 
 namespace Droniverse.Academy.Application.IService;
 

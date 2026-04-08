@@ -3,9 +3,9 @@ using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.HttpClients;
  using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
-using Droniverse.Community.Domain.Enums;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
+using Droniverse.Shared.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

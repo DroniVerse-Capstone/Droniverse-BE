@@ -485,7 +485,7 @@ namespace Droniverse.Academy.Application.HttpClients
         {
             return $"code:{codeId}";
         }
-    }
+    
         private string GetCacheKeyForRemainingQuantity(Guid clubId, Guid courseId)
         {
             return $"club:{clubId}:course:{courseId}:remaining-quantity";
