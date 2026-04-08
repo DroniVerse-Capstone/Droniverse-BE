@@ -18,12 +18,8 @@ namespace Droniverse.Academy.Application.HttpClients
         private readonly HttpClient _httpClient;
         private readonly ILogger<CommunityMicroserviceClient> _logger;
         private readonly ICacheService _cacheService;
-        private const int CategoryCacheAbsoluteExpirationSeconds = 300;
-        private const int CategoryCacheSlidingExpirationSeconds = 100;
-        private const int ProductCacheAbsoluteExpirationSeconds = 300;
-        private const int ProductCacheSlidingExpirationSeconds = 100;
-        private const int RemainingQuantityCacheAbsoluteExpirationSeconds = 300;
-        private const int RemainingQuantityCacheSlidingExpirationSeconds = 100;
+        private const int CacheAbsoluteExpirationSeconds = 300;
+        private const int CacheSlidingExpirationSeconds = 100;
 
         public CommunityMicroserviceClient(HttpClient httpClient, ILogger<CommunityMicroserviceClient> logger, ICacheService cacheService)
         {
@@ -159,8 +155,8 @@ namespace Droniverse.Academy.Application.HttpClients
             await _cacheService.SetAsync(
                 cacheKey,
                 remainingQuantityData,
-                RemainingQuantityCacheAbsoluteExpirationSeconds,
-                RemainingQuantityCacheSlidingExpirationSeconds,
+                CacheAbsoluteExpirationSeconds,
+                CacheSlidingExpirationSeconds,
                 cancellationToken);
 
             return remainingQuantityData;
@@ -282,7 +278,7 @@ namespace Droniverse.Academy.Application.HttpClients
                     }
 
                     productsByReferenceId[product.ReferenceId] = product;
-                    await CacheProductAsync(product.ReferenceId, product, cancellationToken);
+                    await CacheProductAsync(product.ProductId, product, cancellationToken);
                 }
 
                 return distinctIds
@@ -302,13 +298,13 @@ namespace Droniverse.Academy.Application.HttpClients
             return await _cacheService.GetAsync<ProductMiniResponseDTO>(GetCacheKeyForProduct(referenceId), cancellationToken);
         }
 
-        private async Task CacheProductAsync(Guid referenceId, ProductMiniResponseDTO product, CancellationToken cancellationToken)
+        private async Task CacheProductAsync(Guid productId, ProductMiniResponseDTO product, CancellationToken cancellationToken)
         {
             await _cacheService.SetAsync(
-                GetCacheKeyForProduct(referenceId),
+                GetCacheKeyForProduct(productId),
                 product,
-                ProductCacheAbsoluteExpirationSeconds,
-                ProductCacheSlidingExpirationSeconds,
+                CacheAbsoluteExpirationSeconds,
+                CacheSlidingExpirationSeconds,
                 cancellationToken);
         }
 
@@ -322,8 +318,8 @@ namespace Droniverse.Academy.Application.HttpClients
             await _cacheService.SetAsync(
                 GetCacheKeyForCategory(category.CategoryID),
                 category,
-                CategoryCacheAbsoluteExpirationSeconds,
-                CategoryCacheSlidingExpirationSeconds);
+                CacheAbsoluteExpirationSeconds,
+                CacheSlidingExpirationSeconds);
         }
 
         private string GetCacheKeyForCategory(Guid categoryId)
