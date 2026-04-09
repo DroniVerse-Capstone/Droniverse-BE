@@ -112,44 +112,6 @@ public class UserEnrollmentController : ControllerBase
     }
 
     /// <summary>
-    /// Lấy learning path của enrollment hiện tại.
-    /// </summary>
-    /// <param name="enrollmentId">Mã enrollment.</param>
-    [HttpGet("{enrollmentId:guid}/learning-path")]
-    public async Task<IActionResult> GetMyLearningPath(Guid enrollmentId)
-    {
-        try
-        {
-            var result = await _service.GetMyLearningPathAsync(enrollmentId);
-            return Ok(SuccessResponse<EnrollmentLearningPathResponseDTO>.Create(result, "Lấy learning path thành công."));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Lấy learning path thất bại.");
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Lấy bài học tiếp theo của enrollment hiện tại.
-    /// </summary>
-    /// <param name="enrollmentId">Mã enrollment.</param>
-    [HttpGet("{enrollmentId:guid}/next")]
-    public async Task<IActionResult> GetMyNextLesson(Guid enrollmentId)
-    {
-        try
-        {
-            var result = await _service.GetMyNextLessonAsync(enrollmentId);
-            return Ok(SuccessResponse<EnrollmentNextLessonResponseDTO?>.Create(result, "Lấy bài học tiếp theo thành công."));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Lấy bài học tiếp theo thất bại.");
-            throw;
-        }
-    }
-
-    /// <summary>
     /// Xóa enrollment của người dùng hiện tại.
     /// </summary>
     /// <param name="enrollmentId">Mã enrollment.</param>

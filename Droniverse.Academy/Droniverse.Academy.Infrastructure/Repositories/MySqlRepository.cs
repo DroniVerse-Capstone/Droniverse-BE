@@ -93,6 +93,16 @@ namespace Droniverse.Academy.Infrastructure.Repositories
             return entity;
         }
 
+        public virtual async Task<IEnumerable<T>> AddRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default)
+        {
+            var entityList = entities as IList<T> ?? entities.ToList();
+            if (entityList.Count == 0)
+                return entityList;
+
+            await _dbSet.AddRangeAsync(entityList, cancellationToken);
+            return entityList;
+        }
+
         public virtual Task<T?> UpdateAsync(T entity, CancellationToken cancellationToken = default)
         {
             _dbSet.Update(entity);

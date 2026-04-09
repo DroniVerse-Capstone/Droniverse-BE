@@ -11,7 +11,5 @@ public interface IEnrollmentService
     Task<PaginationResult<IEnumerable<EnrollmentResponseDTO>>> GetMyEnrollmentsAsync(int pageIndex = 1, int pageSize = 10, EnrollStatus? status = null);
     Task<EnrollmentResponseDTO> GetMyEnrollmentByIdAsync(Guid enrollmentId);
     Task<EnrollmentResponseDTO> UpdateMyEnrollmentAsync(Guid enrollmentId, UpdateEnrollmentRequestDTO request);
-    Task<EnrollmentLearningPathResponseDTO> GetMyLearningPathAsync(Guid enrollmentId);
-    Task<EnrollmentNextLessonResponseDTO?> GetMyNextLessonAsync(Guid enrollmentId);
     Task DeleteMyEnrollmentAsync(Guid enrollmentId);
 }
