@@ -13,6 +13,8 @@ using Droniverse.Shared.DTOs;
 using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Services.IServices;
 using System.Linq.Expressions;
+using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 namespace Droniverse.Academy.Application.Services;
 
@@ -24,8 +26,16 @@ public class LabService : ILabService
     private readonly ICurrentUserService _currentUser;
     private readonly IClock _clock;
     private readonly IUserDisplayNameService _userDisplayNameService;
+    private readonly ILogger<LabService> _logger;
 
-    public LabService(IUnitOfWork unitOfWork, ILabContentService labContentService, IMapper mapper, ICurrentUserService currentUser, IClock clock, IUserDisplayNameService userDisplayNameService)
+    public LabService(
+        IUnitOfWork unitOfWork,
+        ILabContentService labContentService,
+        IMapper mapper,
+        ICurrentUserService currentUser,
+        IClock clock,
+        IUserDisplayNameService userDisplayNameService,
+        ILogger<LabService> logger)
     {
         _unitOfWork = unitOfWork;
         _labContentService = labContentService;
@@ -33,6 +43,7 @@ public class LabService : ILabService
         _currentUser = currentUser;
         _clock = clock;
         _userDisplayNameService = userDisplayNameService;
+        _logger = logger;
     }
 
     public async Task<LabDetailResponseDTO> CreateLabAsync(CreateLabRequestDTO request)
@@ -41,6 +52,8 @@ public class LabService : ILabService
             throw new ArgumentNullException(nameof(request));
 
         LabValidator.ValidateLabData(request.EstimatedTime, request.NameVN, request.NameEN, request.DescriptionVN, request.DescriptionEN);
+        ValidateNameDifferent(request.NameVN, request.NameEN);
+        await EnsureLabNamesUniqueAsync(request.NameVN, request.NameEN);
 
         var lab = _mapper.Map<Lab>(request);
         lab.LabID = Guid.NewGuid();
@@ -58,6 +71,47 @@ public class LabService : ILabService
         {
             Lab = mappedLab,
             LabContent = labContent
+        };
+    }
+
+    public async Task<LabDetailResponseDTO> DuplicateLabAsync(Guid labId)
+    {
+        var sourceLab = await _unitOfWork.Labs.GetByIdAsync(labId);
+        if (sourceLab == null)
+            throw new BaseException("Không tìm thấy lab.", "NOT_FOUND");
+
+        var duplicatedLab = _mapper.Map<Lab>(sourceLab);
+        duplicatedLab.LabID = Guid.NewGuid();
+        duplicatedLab.Status = LabStatus.DRAFT;
+        duplicatedLab.NameVN = $"{sourceLab.NameVN} (Copy)";
+        duplicatedLab.NameEN = $"{sourceLab.NameEN} (Copy)";
+        duplicatedLab.SetAuditOnCreate(_currentUser.UserId, _clock.Now);
+
+        await _unitOfWork.Labs.AddAsync(duplicatedLab);
+        await _unitOfWork.SaveChangesAsync();
+
+        var sourceLabContent = await _labContentService.GetByLabIdAsync(sourceLab.LabID);
+        var duplicatedLabContent = await _labContentService.CreateEmptyAsync(duplicatedLab.LabID);
+
+        if (sourceLabContent != null)
+        {
+            var updateRequest = new UpdateLabContentRequestDTO
+            {
+                Environment = sourceLabContent.Environment.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null
+                    ? JsonDocument.Parse("{}").RootElement.Clone()
+                    : sourceLabContent.Environment.Clone()
+            };
+
+            duplicatedLabContent = await _labContentService.UpdateByLabIdAsync(duplicatedLab.LabID, updateRequest);
+        }
+
+        var mappedLab = _mapper.Map<LabClientViewDTO>(duplicatedLab);
+        await PopulateUsersAsync(mappedLab, duplicatedLab.CreateBy, duplicatedLab.UpdateBy);
+
+        return new LabDetailResponseDTO
+        {
+            Lab = mappedLab,
+            LabContent = duplicatedLabContent
         };
     }
 
@@ -165,10 +219,16 @@ public class LabService : ILabService
             throw new ArgumentNullException(nameof(request));
 
         LabValidator.ValidateLabData(request.EstimatedTime, request.NameVN, request.NameEN, request.DescriptionVN, request.DescriptionEN);
+        ValidateNameDifferent(request.NameVN, request.NameEN);
 
         var lab = await _unitOfWork.Labs.GetByIdAsync(labId);
         if (lab == null)
             throw new BaseException("Không tìm thấy lab.", "NOT_FOUND");
+
+        if (lab.Status != LabStatus.DRAFT)
+            throw new ValidationException("Chỉ có thể cập nhật lab ở trạng thái Draft.");
+
+        await EnsureLabNamesUniqueAsync(request.NameVN, request.NameEN, labId);
 
         _mapper.Map(request, lab);
         lab.SetAuditOnUpdate(_currentUser.UserId, _clock.Now);
@@ -187,11 +247,36 @@ public class LabService : ILabService
         };
     }
 
+    private static void ValidateNameDifferent(string nameVN, string nameEN)
+    {
+        if (string.Equals(nameVN?.Trim(), nameEN?.Trim(), StringComparison.OrdinalIgnoreCase))
+            throw new ValidationException("Tên tiếng Việt và tiếng Anh của lab phải khác nhau.");
+    }
+
+    private async Task EnsureLabNamesUniqueAsync(string nameVN, string nameEN, Guid? excludeLabId = null)
+    {
+        var normalizedVn = nameVN.Trim();
+        var normalizedEn = nameEN.Trim();
+
+        var duplicated = await _unitOfWork.Labs.GetByConditionAsync(l =>
+            (!excludeLabId.HasValue || l.LabID != excludeLabId.Value) &&
+            (l.NameVN == normalizedVn ||
+             l.NameEN == normalizedVn ||
+             l.NameVN == normalizedEn ||
+             l.NameEN == normalizedEn));
+
+        if (duplicated != null)
+            throw new ValidationException("Tên lab bị trùng. NameVN/NameEN phải khác toàn bộ NameVN/NameEN của các lab khác.");
+    }
+
     public async Task<LabContentResponseDTO> UpdateLabContentAsync(Guid labId, UpdateLabContentRequestDTO request)
     {
         var lab = await _unitOfWork.Labs.GetByIdAsync(labId);
         if (lab == null)
             throw new BaseException("Không tìm thấy lab.", "NOT_FOUND");
+
+        if (lab.Status != LabStatus.DRAFT)
+            throw new ValidationException("Chỉ có thể cập nhật nội dung lab ở trạng thái Draft.");
 
         if (request == null)
             throw new ArgumentNullException(nameof(request));
@@ -280,8 +365,16 @@ public class LabService : ILabService
             .Distinct()
             .ToList();
 
-        var lookup = await _userDisplayNameService.ResolveUsersDisplayNameAsync(userIds);
-        return lookup.ToDictionary(x => x.Key, x => x.Value);
+        try
+        {
+            var lookup = await _userDisplayNameService.ResolveUsersDisplayNameAsync(userIds);
+            return lookup.ToDictionary(x => x.Key, x => x.Value);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Không thể lấy thông tin người dùng từ Identity service. Trả về danh sách lab không kèm creator/updater.");
+            return new Dictionary<Guid, SimpleUserReponse?>();
+        }
     }
 
     private static void PopulateMappedLabsUsers(

@@ -8,6 +8,7 @@ namespace Droniverse.Academy.Application.IService;
 public interface ILabService
 {
     Task<LabDetailResponseDTO> CreateLabAsync(CreateLabRequestDTO request);
+    Task<LabDetailResponseDTO> DuplicateLabAsync(Guid labId);
     Task<LessonClientViewDTO> CreateLessonFromLabAsync(Guid labId, CreateLabLessonRequestDTO request);
     Task<PaginationResult<IEnumerable<LabClientViewDTO>>> GetLabsAsync(GetLabsQueryDTO query);
     Task<LabDetailResponseDTO> GetLabByIdAsync(Guid labId);
