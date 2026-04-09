@@ -24,5 +24,7 @@ namespace Droniverse.Community.Domain.IRepository
             DateTime? joinFrom,
             int skip,
             int take);
+
+        Task<bool> IsUserInCompetitionAsync(Guid competitionId, Guid userId);
     }
 }

@@ -1,10 +1,13 @@
 ﻿using AutoMapper;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
+using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
+using Droniverse.Shared.DTOs;
+using Droniverse.Shared.Enums;
 using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Services.IServices;
 using Microsoft.Extensions.Logging;
@@ -18,18 +21,21 @@ public class CodeService : ICodeService
     private readonly IMapper _mapper;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<CodeService> _logger;
+    private readonly CommunityMicroserviceClient _communityMicroserviceClient;
     public CodeService(
         IUnitOfWork unitOfWork, 
         IMapper mapper, 
         ICurrentUserService currentUserService,
-        ILogger<CodeService> logger)
+        ILogger<CodeService> logger,
+        CommunityMicroserviceClient communityMicroserviceClient)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _currentUserService = currentUserService;
         _logger = logger;
+        _communityMicroserviceClient = communityMicroserviceClient;
     }
-    public async Task<IEnumerable<string>> CreateCodeAsync(Guid courseId, int quantity)
+    public async Task<IEnumerable<string>>  CreateCodeAsync(Guid courseId, int quantity, ClubCourseProfit profitType)
     {
         if(quantity<=0)
         {
@@ -48,6 +54,26 @@ public class CodeService : ICodeService
             throw new NotFoundException($"Course with id {courseId} not found");
         }
 
+        //lấy ra club của user hiện tại
+        var userClubs = await _communityMicroserviceClient.GetMyClubsAsync();
+        if (!userClubs.Any())
+        {
+            throw new ValidationException("Người dùng không thuộc club nào");
+        }
+
+        var club = userClubs.First();
+
+        //thêm course vào club
+        AddClubCourseRequestDto requestDto = new AddClubCourseRequestDto
+        {
+            CourseId = courseId,
+            TotalQuantity = quantity,
+            ProfitType = profitType
+        };
+
+
+        await _communityMicroserviceClient.AddCourseToClub(club.ClubID, requestDto);
+
         List<Code> codes = new List<Code>();
         for (int i = 0; i < quantity; i++)
         {
@@ -59,6 +85,7 @@ public class CodeService : ICodeService
                 Status = CodeStatus.ACTIVE,
             };
             codes.Add(code);
+
         }
 
         foreach (var code in codes)
@@ -148,6 +175,13 @@ public class CodeService : ICodeService
         throw new NotImplementedException();
     }
 
+    /// <summary>
+    /// Club member nhập mã code của khóa học
+    /// </summary>
+    /// <param name="codeId"></param>
+    /// <returns></returns>
+    /// <exception cref="UnauthorizedAccessException"></exception>
+    /// <exception cref="ValidationException"></exception>
     public async Task<CodeUsageResponseDTO> EnterCodeAsync(string codeId)
     {
         try
@@ -179,6 +213,17 @@ public class CodeService : ICodeService
 
             CodeUsage addedCodeUsage = await _unitOfWork.CodeUsages.AddAsync(codeUsage);
             await _unitOfWork.SaveChangesAsync();
+
+            var userClubs = await _communityMicroserviceClient.GetMyClubsAsync();
+            if (!userClubs.Any())
+            {
+                throw new ValidationException("Người dùng không thuộc club nào");
+            }
+
+            var club = userClubs.First();
+
+            //Gọi qua community để gọi hàm consumeslot
+            await _communityMicroserviceClient.ConsumeSlotForCodeAsync(club.ClubID, code.CourseID, 1);
 
             return _mapper.Map<CodeUsageResponseDTO>(addedCodeUsage);
         }

@@ -26,7 +26,8 @@ public class EnrollmentConfiguration : IEntityTypeConfiguration<Enrollment>
             .HasColumnType("char(36)")
             .IsRequired();
         builder.Property(e => e.ClubID)
-            .HasColumnType("char(36)");
+            .HasColumnType("char(36)")
+            .IsRequired();
 
         // Properties
         builder.Property(e => e.EnrollDate)

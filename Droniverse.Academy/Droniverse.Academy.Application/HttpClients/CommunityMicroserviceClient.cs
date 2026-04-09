@@ -1,4 +1,7 @@
 ﻿using Droniverse.Academy.Application.DTO.Response;
+using Droniverse.Academy.Domain.Entities;
+using Droniverse.Shared.DTOs;
+using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.Services.IServices;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
@@ -26,6 +29,152 @@ namespace Droniverse.Academy.Application.HttpClients
             _httpClient = httpClient;
             _logger = logger;
             _cacheService = cacheService;
+        }
+
+        public async Task<ClubCourseResponse> AddCourseToClub(Guid clubId, AddClubCourseRequestDto request)
+        {
+            HttpResponseMessage response = await _httpClient.PostAsync($"/community/clubs/{clubId}/courses", JsonContent.Create(request));
+            if (!response.IsSuccessStatusCode)
+            {
+                if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                {
+                    _logger.LogError("Community service unavailable when add course to club.");
+                    throw new HttpRequestException(
+                        "Community service unavailable",
+                        null,
+                        System.Net.HttpStatusCode.ServiceUnavailable);
+                }
+                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    _logger.LogWarning("Bad request when when add course to club.", await response.Content.ReadAsStringAsync());
+                    throw new HttpRequestException(
+                        "Bad request when calling Community API",
+                        null,
+                        System.Net.HttpStatusCode.BadRequest);
+                }
+                _logger.LogError("Error when add course to club.", response.StatusCode, await response.Content.ReadAsStringAsync());
+                throw new HttpRequestException(
+                    $"Community API error: {response.StatusCode}",
+                    null,
+                    response.StatusCode);
+            }
+
+            ClubCourseResponse? clubCourse = await response.Content.ReadFromJsonAsync<ClubCourseResponse>();
+            return clubCourse;
+        }
+
+        public async Task<IEnumerable<ClubResponse>> GetMyClubsAsync()
+        {
+
+            //read cache from redis, if exist
+
+            HttpResponseMessage response = await _httpClient.GetAsync($"/community/clubs/myclub");
+            if (!response.IsSuccessStatusCode)
+            {
+                if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                {
+                    _logger.LogError("Community service unavailable when get user's club");
+                    throw new HttpRequestException(
+                        "Community service unavailable",
+                        null,
+                        System.Net.HttpStatusCode.ServiceUnavailable);
+                }
+                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    _logger.LogWarning("Bad request when get user's club", await response.Content.ReadAsStringAsync());
+                    throw new HttpRequestException(
+                        "Bad request when calling Community API",
+                        null,
+                        System.Net.HttpStatusCode.BadRequest);
+                }
+                _logger.LogError("Error when get user's club", response.StatusCode, await response.Content.ReadAsStringAsync());
+                throw new HttpRequestException(
+                    $"Community API error: {response.StatusCode}",
+                    null,
+                    response.StatusCode);
+            }
+
+            try
+            {
+                // Parse as JsonElement để có control tốt hơn
+                using var doc = await JsonDocument.ParseAsync(
+                    await response.Content.ReadAsStreamAsync());
+                var root = doc.RootElement;
+
+                if (!root.TryGetProperty("data", out var dataElement))
+                {
+                    _logger.LogWarning("No data property in response");
+                    return [];
+                }
+
+                // Chuyển về JSON string và deserialize với custom options
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true,
+                    Converters = { new JsonStringEnumConverter() } // ← Quan trọng: handle enum as string
+                };
+
+                var clubs = JsonSerializer.Deserialize<IEnumerable<ClubResponse>>(
+                    dataElement.GetRawText(),
+                    options);
+
+                return clubs ?? [];
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deserializing clubs response");
+                throw new HttpRequestException("Failed to deserialize club data", ex);
+            }
+
+        }
+
+        /// <summary>
+        /// Khi club_member
+        /// </summary>
+        /// <param name="clubId"></param>
+        /// <param name="courseId"></param>
+        /// <param name="request"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="HttpRequestException"></exception>
+        public async Task<bool> ConsumeSlotForCodeAsync(
+            Guid clubId,
+            Guid courseId,
+            int num,
+            CancellationToken cancellationToken = default)
+        {
+
+            HttpResponseMessage? response = await _httpClient.PostAsJsonAsync(
+                $"/community/clubs/{clubId}/courses/{courseId}/consume", new ChangeClubCourseSlotRequestDto
+                { Quantity = num },
+    cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                {
+                    _logger.LogError("Community service unavailable when consuming slot for club {ClubId} and course {CourseId}.", clubId, courseId);
+                    throw new HttpRequestException(
+                        "Community service unavailable",
+                        null,
+                        System.Net.HttpStatusCode.ServiceUnavailable);
+                }
+                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    _logger.LogWarning("Bad request when consuming slot for club {ClubId} and course {CourseId}. Response: {ResponseContent}", clubId, courseId, await response.Content.ReadAsStringAsync());
+                    throw new HttpRequestException(
+                        "Bad request when calling Community API",
+                        null,
+                        System.Net.HttpStatusCode.BadRequest);
+                }
+                _logger.LogError("Error consuming slot for club {ClubId} and course {CourseId}. Status code: {StatusCode}, Response: {ResponseContent}", clubId, courseId, response.StatusCode, await response.Content.ReadAsStringAsync());
+                throw new HttpRequestException(
+                    $"Community API error: {response.StatusCode}",
+                    null,
+                    response.StatusCode);
+            }
+            _logger.LogInformation("Đã gọi hàm consumeSlot qua bên Community. Consumed {Num} slots for club {ClubId} and course {CourseId}.", num, clubId, courseId);
+            return true;
         }
 
         public async Task<IEnumerable<CategoryResponseDTO>> GetCategoriesBulk(IEnumerable<Guid> ids)
@@ -332,6 +481,11 @@ namespace Droniverse.Academy.Application.HttpClients
             return $"product:reference:{referenceId}";
         }
 
+        private string GetCacheKeyForCode(Guid codeId)
+        {
+            return $"code:{codeId}";
+        }
+    
         private string GetCacheKeyForRemainingQuantity(Guid clubId, Guid courseId)
         {
             return $"club:{clubId}:course:{courseId}:remaining-quantity";

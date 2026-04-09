@@ -16,63 +16,36 @@ namespace Droniverse.Community.Domain.Enums
         DRAFT = 0,
 
         /// <summary>
-        /// Cuộc thi đã được publish và bắt đầu hiển thị cho người dùng (dựa vào VisibleAt).
-        /// Người dùng có thể xem thông tin cuộc thi nhưng CHƯA được đăng ký.
-        /// Dùng cho giai đoạn "coming soon" hoặc chờ mở đăng ký.
+        /// Cuộc thi đã được publish bởi admin.
+        /// Cho phép hiển thị ra hệ thống theo timeline (VisibleAt).
+        /// Bắt buộc phải có tối thiểu 1 Round đang là Pending 
+        /// Người dùng có thể xem hoặc tham gia tùy thuộc vào lifecycle (thời gian).
         /// </summary>
         PUBLISHED = 1,
 
         /// <summary>
-        /// Giai đoạn mở đăng ký.
-        /// Người dùng có thể xem và đăng ký tham gia cuộc thi.
-        /// Thường nằm trong khoảng [RegistrationStartDate, RegistrationEndDate].
-        /// </summary>
-        REGISTRATION_OPEN = 2,
-
-        /// <summary>
-        /// Đã đóng đăng ký.
-        /// Người dùng vẫn có thể xem cuộc thi nhưng KHÔNG thể đăng ký nữa.
-        /// Chuẩn bị bước sang giai đoạn thi đấu.
-        /// </summary>
-        REGISTRATION_CLOSED = 3,
-
-        /// <summary>
-        /// Cuộc thi đang diễn ra.
-        /// Các round được thực hiện, người dùng tham gia thi đấu.
-        /// Không cho phép đăng ký hoặc thay đổi thông tin quan trọng.
-        /// </summary>
-        ONGOING = 4,
-
-        /// <summary>
-        /// Cuộc thi đã kết thúc.
-        /// Tất cả round đã hoàn thành, kết quả đã được tính toán nội bộ.
-        /// Tuy nhiên CHƯA công bố kết quả cho người dùng.
-        /// Thường dùng cho giai đoạn kiểm duyệt kết quả hoặc xử lý hậu kỳ.
-        /// </summary>
-        FINISHED = 5,
-
-        /// <summary>
         /// Kết quả cuộc thi đã được công bố chính thức.
-        /// Người dùng có thể xem ranking, giải thưởng.
-        /// Không cho phép thay đổi kết quả hoặc trao thưởng thêm (trừ khi có logic đặc biệt).
+        /// Chỉ được phép khi cuộc thi đã kết thúc và hoàn tất tổng kết (IsSummarized = true).
+        /// Người dùng có thể xem bảng xếp hạng và giải thưởng.
+        /// Không cho phép thay đổi kết quả sau khi đã công bố.
         /// </summary>
-        RESULT_PUBLISHED = 6,
+        RESULT_PUBLISHED = 2,
 
         /// <summary>
         /// Cuộc thi đã bị hủy bởi admin hoặc hệ thống.
-        /// Có thể xảy ra ở bất kỳ giai đoạn nào trước khi hoàn tất (trừ khi đã FINISHED/RESULT_PUBLISHED).
-        /// Người dùng không thể tham gia hoặc tiếp tục cuộc thi.
+        /// Có thể xảy ra ở bất kỳ giai đoạn nào trước khi công bố kết quả.
+        /// Sau khi bị hủy, người dùng không thể tiếp tục tham gia hoặc tương tác.
         /// </summary>
-        CANCELLED = 7,
+        CANCELLED = 3,
 
         /// <summary>
-        /// Cuộc thi không hợp lệ.
-        /// Thường dùng cho các trường hợp:
-        /// - Không đủ số lượng người tham gia
-        /// - Dữ liệu round bị lỗi hoặc không thể tiếp tục
+        /// Cuộc thi không hợp lệ do hệ thống xác định.
+        /// Có thể xảy ra trong các trường hợp:
+        /// - Không đủ số lượng người tham gia tối thiểu
+        /// - Dữ liệu round hoặc cấu hình bị lỗi
         /// - Vi phạm rule hệ thống
-        /// Trạng thái này mang tính hệ thống (system-driven), không phải do user chủ động.
+        /// Trạng thái này được thiết lập tự động, không phải do người dùng.
         /// </summary>
-        INVALID = 8
+        INVALID = 4
     }
 }

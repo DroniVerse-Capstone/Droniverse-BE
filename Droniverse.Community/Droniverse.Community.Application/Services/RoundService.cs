@@ -3,6 +3,7 @@ using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
+using Droniverse.Community.Domain.AppHelpers;
 using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository;
@@ -11,6 +12,7 @@ using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Helpers;
 using Droniverse.Shared.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace Droniverse.Community.Application.Services
 {
@@ -45,12 +47,15 @@ namespace Droniverse.Community.Application.Services
             if (competition == null)
                 throw new KeyNotFoundException($"Không tìm thấy cuộc thi với ID [{request.CompetitionID}].");
 
-            await ValidateRoundData(request.CompetitionID, request.LabID, request.RoundNumber, request.StartTime, request.EndTime, competition, null);
+            var existingRounds = await _unitOfWork.Rounds.GetManyByCondition(r => r.CompetitionID == request.CompetitionID);
+            var nextRoundNumber = (existingRounds?.Select(r => r.RoundNumber).DefaultIfEmpty(0).Max() ?? 0) + 1;
+
+            await ValidateRoundData(request.CompetitionID, request.LabID, request.StartTime, request.EndTime, competition, null);
 
             var round = new Round(
                 request.CompetitionID,
                 request.LabID,
-                request.RoundNumber,
+                nextRoundNumber,
                 request.StartTime,
                 request.EndTime,
                 request.LimitTime,
@@ -73,29 +78,33 @@ namespace Droniverse.Community.Application.Services
             if (round == null)
                 throw new KeyNotFoundException($"Không tìm thấy vòng thi với ID [{id}].");
 
-            if (round.Status != RoundStatus.Ongoing)
-                throw new InvalidOperationException("Vòng thi hiện chưa diễn ra.");
+            var isUserInCompetition = await _unitOfWork.UserCompetitions
+      .IsUserInCompetitionAsync(round.CompetitionID, currentUserId);
 
-            if (now < round.StartTime || now > round.EndTime)
-                throw new InvalidOperationException("Thời gian tham gia vòng thi không hợp lệ.");
+            var isJoined = await _unitOfWork.UserRounds
+                .IsUserJoinedRound(currentUserId, id);
 
-            if (round.Competition.Status != CompetitionStatus.ONGOING)
-                throw new InvalidOperationException("Cuộc thi chưa diễn ra hoặc đã kết thúc.");
-
-            var isJoined = await _unitOfWork.UserRounds.IsUserJoinedRound(currentUserId, id);
-            if (isJoined)
-                throw new InvalidOperationException("Bạn đã tham gia vòng thi này rồi.");
+            bool isUserPassedPreviousRound = true;
 
             if (round.RoundNumber > 1)
             {
-                var previousRound = await _unitOfWork.Rounds.GetPreviousRoundByCompetition(round.CompetitionID, round.RoundNumber);
-                if (previousRound == null)
-                    throw new InvalidOperationException("Không tìm thấy vòng trước để kiểm tra điều kiện tham gia.");
+                var previousRound = await _unitOfWork.Rounds
+                    .GetPreviousRoundByCompetition(round.CompetitionID, round.RoundNumber);
 
-                var isPassedPreviousRound = await _unitOfWork.UserRounds.IsUserPassedRound(currentUserId, previousRound.RoundID);
-                if (!isPassedPreviousRound)
-                    throw new InvalidOperationException("Bạn chưa vượt qua vòng trước nên không đủ điều kiện tham gia.");
+                if (previousRound == null)
+                    throw new InvalidOperationException("Không tìm thấy vòng trước.");
+
+                isUserPassedPreviousRound = await _unitOfWork.UserRounds
+                    .IsUserPassedRound(currentUserId, previousRound.RoundID);
             }
+
+            // validate trước khi được tham gia
+            round.ValidateUserCanJoin(
+                now,
+                isUserInCompetition,
+                isJoined,
+                isUserPassedPreviousRound
+            );
 
             var userRound = new UserRound(currentUserId, id, now);
             await _unitOfWork.UserRounds.Add(userRound);
@@ -121,7 +130,6 @@ namespace Droniverse.Community.Application.Services
             var now = _clock.Now;
 
             var round = await _unitOfWork.Rounds.GetByCondition(r => r.RoundID == id);
-
             if (round == null)
                 throw new KeyNotFoundException($"Không tìm thấy vòng thi với ID [{id}].");
 
@@ -129,16 +137,29 @@ namespace Droniverse.Community.Application.Services
             if (competition == null)
                 throw new KeyNotFoundException($"Không tìm thấy cuộc thi với ID [{round.CompetitionID}].");
 
-            await ValidateRoundData(round.CompetitionID, request.LabID, request.RoundNumber, request.StartTime, request.EndTime, competition, id);
+            await ValidateRoundData(
+                round.CompetitionID,
+                request.LabID,
+                request.StartTime,
+                request.EndTime,
+                competition,
+                id
+            );
+
+            var wasInvalid = round.Status == RoundStatus.ScheduleInvalid;
 
             round.UpdateInfo(
                 request.LabID,
-                request.RoundNumber,
                 request.StartTime,
                 request.EndTime,
                 now,
                 currentUserId
             );
+
+            if (wasInvalid)
+            {
+                round.RestoreRound(now, currentUserId);
+            }
 
             await _unitOfWork.Rounds.Update(round);
             await _unitOfWork.SaveChangeAsync();
@@ -153,7 +174,8 @@ namespace Droniverse.Community.Application.Services
             if (round == null)
                 throw new KeyNotFoundException($"Không tìm thấy vòng thi với ID [{id}].");
 
-            return await MapToRoundResponse(round);
+            var competition = await _unitOfWork.Competitions.GetByCondition(c => c.CompetitionID == round.CompetitionID);
+            return await MapToRoundResponse(round, competition);
         }
 
         public async Task<IEnumerable<RoundResponseDto>> GetRoundsByCompetition(Guid competitionId)
@@ -168,17 +190,23 @@ namespace Droniverse.Community.Application.Services
 
             var labs = await _academyMicroserviceClient.GetLabsByIds(rounds.Select(x => x.LabID));
             var labById = labs.ToDictionary(x => x.LabID, x => x);
+            var competitionPhase = CommunityAppHelpers.GetCurrentCompetitionLifeCycle(competition, _clock.Now);
 
-            return rounds.Select(r => new RoundResponseDto
+            return rounds.Select((r, index) =>
             {
-                RoundID = r.RoundID,
-                Competition = BuildSimpleCompetitionResponse(competition),
-                Lab = BuildSimpleLabResponse(r.LabID, labById),
-                RoundNumber = r.RoundNumber,
-                StartTime = r.StartTime,
-                EndTime = r.EndTime,
-                Status = r.Status,
-                TotalParticipants = r.TotalParticipants
+                return new RoundResponseDto
+                {
+                    RoundID = r.RoundID,
+                    Competition = BuildSimpleCompetitionResponse(competition),
+                    Lab = BuildSimpleLabResponse(r.LabID, labById),
+                    RoundNumber = index + 1,
+                    StartTime = r.StartTime,
+                    EndTime = r.EndTime,
+                    TimeLimit = r.TimeLimit,
+                    RoundStatus = r.Status,
+                    RoundPhase = CommunityAppHelpers.GetCurrentRoundLifeCycle(r.Status, r.StartTime, r.EndTime, _clock.Now),
+                    TotalParticipants = r.TotalParticipants
+                };
             });
         }
 
@@ -223,7 +251,7 @@ namespace Droniverse.Community.Application.Services
             if (round == null)
                 throw new KeyNotFoundException($"Không tìm thấy vòng thi với ID [{roundId}].");
 
-            if (round.Status != RoundStatus.Ongoing)
+            if (!round.IsActive(_clock.Now))
                 throw new InvalidOperationException("Vòng thi hiện không ở trạng thái đang diễn ra.");
 
             ValidateRoundParticipantsRequest(request);
@@ -536,7 +564,7 @@ namespace Droniverse.Community.Application.Services
                 await _unitOfWork.UserRounds.Update(item.UserRound);
             }
 
-            if (round.Status == RoundStatus.Finished && !round.IsSummarized)
+            if (round.Status == RoundStatus.Valid && _clock.Now >= round.EndTime && !round.IsSummarized)
             {
                 Guid? updatedBy = _currentUserService.IsAuthenticated ? _currentUserService.UserId : null;
                 round.MarkSummarized(_clock.Now, updatedBy);
@@ -600,10 +628,25 @@ namespace Droniverse.Community.Application.Services
             };
         }
 
+        public async Task<RoundResponseDto> UpdateRoundStatus(Guid roundId)
+        {
+            var round = await _unitOfWork.Rounds.GetByCondition(r => r.RoundID == roundId);
+            if (round == null)
+                throw new KeyNotFoundException("Không tìm thấy vòng thi");
+
+            round.ValidateCanCancel(_clock.Now);
+
+            var currentUserId = _currentUserService.UserId;
+
+            round.CancelRound(_clock.Now, currentUserId);
+            await _unitOfWork.SaveChangeAsync();
+
+            return await GetRoundResponseByRoundId(round.RoundID);
+        }
+
         private async Task ValidateRoundData(
             Guid competitionId,
             Guid labId,
-            int roundNumber,
             DateTime startTime,
             DateTime endTime,
             Competition competition,
@@ -626,9 +669,9 @@ namespace Droniverse.Community.Application.Services
             );
 
             // Validate RoundNumber không trùng
-            var roundWithSameNumber = existingRounds.FirstOrDefault(r => r.RoundNumber == roundNumber);
-            if (roundWithSameNumber != null)
-                throw new InvalidOperationException($"Số thứ tự vòng thi [{roundNumber}] đã tồn tại trong cuộc thi này.");
+            //var roundWithSameNumber = existingRounds.FirstOrDefault(r => r.RoundNumber == roundNumber);
+            //if (roundWithSameNumber != null)
+            //    throw new InvalidOperationException($"Số thứ tự vòng thi [{roundNumber}] đã tồn tại trong cuộc thi này.");
 
             // Validate thời gian không trùng với các round khác
             foreach (var existingRnd in existingRounds)
@@ -647,12 +690,12 @@ namespace Droniverse.Community.Application.Services
                 throw new InvalidOperationException($"Lab này đã được chọn ở Round {roundWithSameLab.RoundNumber} rồi.");
 
             // Validate Lab tồn tại trong Academy Microservice (chỉ validate nếu là create hoặc LabID thay đổi)
-            //if (!excludeRoundId.HasValue || (excludeRoundId.HasValue && existingRounds.All(r => r.LabID != labId)))
-            //{
-            //    var labExists = await _academyMicroserviceClient.IsLabExist(labId);
-            //    if (!labExists)
-            //        throw new KeyNotFoundException($"Lab with ID {labId} not found in Academy system.");
-            //}
+            if (!excludeRoundId.HasValue || (excludeRoundId.HasValue && existingRounds.All(r => r.LabID != labId)))
+            {
+                var labExists = await _academyMicroserviceClient.IsLabExist(labId);
+                if (!labExists)
+                    throw new KeyNotFoundException($"Không tìm thấy bài lab.");
+            }
         }
 
         private SimpleCompetitionResponse BuildSimpleCompetitionResponse(Competition competition)
@@ -673,13 +716,18 @@ namespace Droniverse.Community.Application.Services
             if (round == null)
                 throw new KeyNotFoundException($"Không tìm thấy vòng thi với ID [{roundId}].");
 
-            return await MapToRoundResponse(round);
+            var competition = await _unitOfWork.Competitions.GetByCondition(c => c.CompetitionID == round.CompetitionID);
+            return await MapToRoundResponse(round, competition);
         }
 
-        private async Task<RoundResponseDto> MapToRoundResponse(RoundQueryModel round)
+        private async Task<RoundResponseDto> MapToRoundResponse(RoundQueryModel round, Competition? competition)
         {
             var labs = await _academyMicroserviceClient.GetLabsByIds([round.LabID]);
             var labById = labs.ToDictionary(x => x.LabID, x => x);
+
+            var competitionPhase = competition != null
+                ? CommunityAppHelpers.GetCurrentCompetitionLifeCycle(competition, _clock.Now)
+                : null;
 
             return new RoundResponseDto
             {
@@ -694,7 +742,9 @@ namespace Droniverse.Community.Application.Services
                 RoundNumber = round.RoundNumber,
                 StartTime = round.StartTime,
                 EndTime = round.EndTime,
-                Status = round.Status,
+                TimeLimit = round.TimeLimit,
+                RoundStatus = round.Status,
+                RoundPhase = CommunityAppHelpers.GetCurrentRoundLifeCycle(round.Status, round.StartTime, round.EndTime, _clock.Now),
                 TotalParticipants = round.TotalParticipants
             };
         }

@@ -9,5 +9,6 @@ namespace Droniverse.Community.Domain.IRepository
 {
     public interface ICompetitionPrizeRepository : IRepository<CompetitionPrize>
     {
+        Task<bool> HasCompetitionPrizes(Guid competitionId);
     }
 }

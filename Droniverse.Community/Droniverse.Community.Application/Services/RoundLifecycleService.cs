@@ -32,8 +32,7 @@ namespace Droniverse.Community.Application.Services
             var now = _clock.Now;
 
             var rounds = await _unitOfWork.Rounds.GetManyByCondition(
-                r => r.Status != RoundStatus.Finished &&
-                     r.Status != RoundStatus.SCHEDULE_INVALID,
+                r => r.Status != RoundStatus.Cancelled,
                 q => q.Include(r => r.Competition)
             );
 
@@ -49,15 +48,17 @@ namespace Droniverse.Community.Application.Services
 
                 if (round.RoundNumber > 1)
                 {
-                    var prevStatus = await _unitOfWork.Rounds
+                    var previousRound = await _unitOfWork.Rounds
                         .GetManyByConditionAsQueryable(r =>
                             r.CompetitionID == round.CompetitionID &&
                             r.RoundNumber == round.RoundNumber - 1,
                             q => q.AsNoTracking())
-                        .Select(r => (RoundStatus?)r.Status)
+                        .Select(r => new { r.Status, r.EndTime })
                         .FirstOrDefaultAsync();
 
-                    isPreviousRoundFinished = prevStatus == RoundStatus.Finished;
+                    isPreviousRoundFinished = previousRound != null
+                        && previousRound.Status == RoundStatus.Valid
+                        && now >= previousRound.EndTime;
                 }
 
                 state.Handle(round, now, isPreviousRoundFinished);

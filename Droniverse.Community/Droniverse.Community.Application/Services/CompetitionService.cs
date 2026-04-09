@@ -4,12 +4,12 @@ using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Shared.Helpers;
 using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
+using Droniverse.Community.Domain.AppHelpers;
 using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Response;
-using Droniverse.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
@@ -54,6 +54,13 @@ namespace Droniverse.Community.Application.Services
             _logger = logger;
         }
 
+        /// <summary>
+        /// Chỉ cho competition có status là DRAFT được quyền update thôi
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        /// <exception cref="UnauthorizedAccessException"></exception>
+        /// <exception cref="KeyNotFoundException"></exception>
         public async Task<CompetitionResponse> CreateCompetition(CompetitionCreationRequest request)
         {
             var currentUserId = Guid.Parse(_currentUserService.UserID
@@ -125,18 +132,18 @@ namespace Droniverse.Community.Application.Services
                     );
                     break;
 
-                case CompetitionStatus.PUBLISHED:
-                    competition.UpdatePublishedInformation(
-                        request.NameVN,
-                        request.NameEN,
-                        request.DescriptionVN,
-                        request.DescriptionEN,
-                        request.MaxParticipants,
-                        request.RuleContent,
-                        currentUserId,
-                        _clock.Now
-                    );
-                    break;
+                //case CompetitionStatus.PUBLISHED:
+                //    competition.UpdatePublishedInformation(
+                //        request.NameVN,
+                //        request.NameEN,
+                //        request.DescriptionVN,
+                //        request.DescriptionEN,
+                //        request.MaxParticipants,
+                //        request.RuleContent,
+                //        currentUserId,
+                //        _clock.Now
+                //    );
+                //    break;
 
                 default:
                     throw new InvalidOperationException(
@@ -283,7 +290,7 @@ namespace Droniverse.Community.Application.Services
             if (competition == null)
                 throw new KeyNotFoundException($"Competition with ID {competitionId} not found.");
 
-            if (competition.Status == CompetitionStatus.ONGOING || competition.Status == CompetitionStatus.FINISHED)
+            if (competition.Status != CompetitionStatus.PUBLISHED || _clock.Now >= competition.StartDate)
                 throw new InvalidOperationException("Không thể rút khỏi cuộc thi đã bắt đầu hoặc kết thúc.");
 
             userCompetition.Withdraw();
@@ -376,6 +383,12 @@ namespace Droniverse.Community.Application.Services
             if (competition == null)
                 throw new KeyNotFoundException($"Không tìm thấy cuộc thi với ID [{competitionId}].");
 
+            if (competition.Status != CompetitionStatus.PUBLISHED)
+                throw new InvalidOperationException("Cuộc thi chưa được công bố.");
+
+            if (_clock.Now < competition.EndDate)
+                throw new InvalidOperationException("Bảng xếp hạng chỉ khả dụng sau khi cuộc thi kết thúc.");
+
             int currentPage = Math.Max(1, request.CurrentPage);
             int pageSize = Math.Max(1, request.PageSize);
             int skip = (currentPage - 1) * pageSize;
@@ -433,7 +446,9 @@ namespace Droniverse.Community.Application.Services
             if (competition == null)
                 throw new KeyNotFoundException($"Không tìm thấy cuộc thi có ID [{competitionId}].");
 
-            competition.UpdateStatus(request.Status, currentUserId, _clock.Now, request.InvalidReason);
+            var hasPrize = await _unitOfWork.CompetitionPrizes.HasCompetitionPrizes(competitionId);
+
+            competition.UpdateStatus(request.Status, currentUserId, _clock.Now, hasPrize, request.InvalidReason);
 
             await _unitOfWork.SaveChangeAsync();
             await InvalidateHotCompetitionsCache(competition.ClubID);
@@ -493,7 +508,7 @@ namespace Droniverse.Community.Application.Services
                 RoundNumber = currentRound.RoundNumber,
                 StartTime = currentRound.StartTime,
                 EndTime = currentRound.EndTime,
-                Status = currentRound.Status,
+                RoundStatus = currentRound.Status,
                 TotalParticipants = currentRound.TotalParticipants
             };
         }
@@ -598,6 +613,8 @@ namespace Droniverse.Community.Application.Services
             List<Competition> competitionList,
             Dictionary<Guid, (int RoundCount, int CompetitorCount, int PrizeCount)> aggregateCounts)
         {
+            var now = _clock.Now;
+
             var userIds = competitionList
                 .Select(c => c.CreatedBy)
                 .Union(competitionList.Select(c => c.UpdatedBy).OfType<Guid>())
@@ -636,7 +653,8 @@ namespace Droniverse.Community.Application.Services
                         RegistrationEndDate = c.RegistrationEndDate,
                         StartDate = c.StartDate,
                         EndDate = c.EndDate,
-                        Status = c.Status,
+                        CompetitionStatus = c.Status,
+                        CompetitionPhase = CommunityAppHelpers.GetCurrentCompetitionLifeCycle(c, now),
                         ResultPublishedAt = c.ResultPublishedAt,
                         CreatedBy = ToSimpleUserResponse(c.CreatedBy, createdByUser),
                         UpdatedBy = c.UpdatedBy.HasValue
@@ -694,11 +712,8 @@ namespace Droniverse.Community.Application.Services
         {
             return status switch
             {
-                CompetitionStatus.ONGOING => 1.0,
-                CompetitionStatus.REGISTRATION_OPEN => 0.8,
-                CompetitionStatus.REGISTRATION_CLOSED => 0.6,
-                CompetitionStatus.PUBLISHED => 0.5,
-                CompetitionStatus.FINISHED => 0.2,
+                CompetitionStatus.PUBLISHED => 1.0,
+                CompetitionStatus.RESULT_PUBLISHED => 0.3,
                 CompetitionStatus.CANCELLED => 0,
                 CompetitionStatus.INVALID => 0,
                 _ => 0
@@ -707,18 +722,14 @@ namespace Droniverse.Community.Application.Services
 
         private static CompetitionStatus[] GetHotStatuses() =>
         [
-            CompetitionStatus.PUBLISHED,
-            CompetitionStatus.REGISTRATION_OPEN,
-            CompetitionStatus.REGISTRATION_CLOSED,
-            CompetitionStatus.ONGOING
+            CompetitionStatus.PUBLISHED
         ];
 
         private static Func<IQueryable<Competition>, IQueryable<Competition>>? BuildCompetitionStatusInclude(CompetitionStatus targetStatus)
         {
             return targetStatus switch
             {
-                CompetitionStatus.ONGOING => q => q.Include(c => c.Rounds)
-                                                    .Include(c => c.UserCompetitions),
+                CompetitionStatus.PUBLISHED => q => q.Include(c => c.Rounds).Include(c => c.CompetitionPrizes),
                 CompetitionStatus.RESULT_PUBLISHED => q => q.Include(c => c.UserPrizes),
                 _ => null
             };
@@ -753,7 +764,8 @@ namespace Droniverse.Community.Application.Services
                 RegistrationEndDate = competition.RegistrationEndDate,
                 StartDate = competition.StartDate,
                 EndDate = competition.EndDate,
-                Status = competition.Status,
+                CompetitionStatus = competition.Status,
+                CompetitionPhase = CommunityAppHelpers.GetCurrentCompetitionLifeCycle(competition, _clock.Now),
                 ResultPublishedAt = competition.ResultPublishedAt,
                 CreatedBy = ToSimpleUserResponse(competition.CreatedBy, createdByUser),
                 UpdatedBy = competition.UpdatedBy.HasValue
@@ -772,6 +784,8 @@ namespace Droniverse.Community.Application.Services
             var competitionList = competitions.ToList();
             if (competitionList.Count == 0)
                 return [];
+
+            var now = _clock.Now;
 
             var competitionIds = competitionList.Select(c => c.CompetitionID).ToList();
             var userIds = competitionList
@@ -813,7 +827,8 @@ namespace Droniverse.Community.Application.Services
                     RegistrationEndDate = competition.RegistrationEndDate,
                     StartDate = competition.StartDate,
                     EndDate = competition.EndDate,
-                    Status = competition.Status,
+                    CompetitionStatus = competition.Status,
+                    CompetitionPhase = CommunityAppHelpers.GetCurrentCompetitionLifeCycle(competition, now),
                     ResultPublishedAt = competition.ResultPublishedAt,
                     CreatedBy = ToSimpleUserResponse(competition.CreatedBy, createdByUser),
                     UpdatedBy = competition.UpdatedBy.HasValue

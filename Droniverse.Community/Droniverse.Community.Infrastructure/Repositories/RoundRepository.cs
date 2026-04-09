@@ -56,9 +56,9 @@ internal class RoundRepository : MySqlRepository<Round>, IRoundRepository
     {
         return await _context.Rounds
             .AsNoTracking()
-            .Where(r => r.CompetitionID == competitionID)
+            .Where(r => r.CompetitionID == competitionID && r.Status == RoundStatus.Valid)
             .OrderBy(r => r.RoundNumber)
-            .Select(r => new RoundQueryModel
+            .Select((r) => new RoundQueryModel
             {
                 RoundID = r.RoundID,
                 CompetitionID = r.CompetitionID,
@@ -68,6 +68,7 @@ internal class RoundRepository : MySqlRepository<Round>, IRoundRepository
                 RoundNumber = r.RoundNumber,
                 StartTime = r.StartTime,
                 EndTime = r.EndTime,
+                TimeLimit = r.TimeLimit,
                 Status = r.Status,
                 TotalParticipants = r.UserRounds.Count()
             })
@@ -76,9 +77,14 @@ internal class RoundRepository : MySqlRepository<Round>, IRoundRepository
 
     public async Task<RoundQueryModel?> GetCurrentRoundByCompetitionID(Guid competitionID)
     {
+        var now = DateTime.UtcNow;
+
         return await _context.Rounds
             .AsNoTracking()
-            .Where(r => r.CompetitionID == competitionID && r.Status == RoundStatus.Ongoing)
+            .Where(r => r.CompetitionID == competitionID
+                        && r.Status == RoundStatus.Valid
+                        && r.StartTime <= now
+                        && r.EndTime >= now)
             .OrderBy(r => r.RoundNumber)
             .Select(r => new RoundQueryModel
             {

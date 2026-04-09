@@ -19,5 +19,6 @@ public interface ICompetitionRepository : IRepository<Competition>
         DateTime? endDate,
         int skip,
         int take);
+
 }
 

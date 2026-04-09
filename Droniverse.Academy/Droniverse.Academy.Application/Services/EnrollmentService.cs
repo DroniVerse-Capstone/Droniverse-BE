@@ -1,11 +1,11 @@
 ﻿using AutoMapper;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
+using Droniverse.Academy.Application.DTO.Extension;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
-using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Services.IServices;
 
@@ -118,6 +118,49 @@ public class EnrollmentService : IEnrollmentService
 
         await _unitOfWork.Enrollments.DeleteAsync(enrollment);
         await _unitOfWork.SaveChangesAsync();
+    }
+
+    public async Task<PaginationResult<IEnumerable<CoursesEnrollmentResponse>>> GetCoursesOfUser(Guid clubId, UserEnrollmentSearchRequest request)
+    {
+        if (clubId == Guid.Empty)
+            throw new ValidationException("ClubId không hợp lệ.");
+
+        request ??= new UserEnrollmentSearchRequest();
+        var currentUserId = _currentUser.UserId;
+        EnrollStatus? enrollmentStatus = request.EnrollmentStatus switch
+        {
+            UserEnrollment.ACTIVE => EnrollStatus.ACTIVE,
+            UserEnrollment.COMPLETED => EnrollStatus.COMPLETED,
+            _ => null
+        };
+
+        var result = await _unitOfWork.Enrollments.GetCoursesOfUserAsync(
+            userId: currentUserId,
+            clubId: clubId,
+            pageIndex: request.CurrentPage,
+            pageSize: request.PageSize,
+            level: request.Level,
+            courseSearchName: request.CourseSearchName,
+            enrollmentStatus: enrollmentStatus);
+
+        var mapped = result.Data.Select(x => new CoursesEnrollmentResponse
+        {
+            EnrollmentId = x.EnrollmentId,
+            CourseId = x.CourseId,
+            CourseNameVN = x.CourseNameVN,
+            CourseNameEN = x.CourseNameEN,
+            ImageUrl = x.ImageUrl,
+            Level = x.Level,
+            EstimatedDuration = x.EstimatedDuration,
+            Progress = x.Progress,
+            EnrollStatus = x.EnrollStatus
+        }).ToList();
+
+        return new PaginationResult<IEnumerable<CoursesEnrollmentResponse>>(
+            mapped,
+            result.TotalRecords,
+            result.PageIndex,
+            result.PageSize);
     }
 
     private async Task<Enrollment> GetMyEnrollmentEntityOrThrowAsync(Guid enrollmentId)

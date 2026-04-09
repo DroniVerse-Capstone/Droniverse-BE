@@ -124,7 +124,7 @@ internal class CompetitionRepository : MySqlRepository<Competition>, ICompetitio
             .Select(c => new
             {
                 c.CompetitionID,
-                RoundCount = _context.Set<Round>().Count(r => r.CompetitionID == c.CompetitionID),
+                RoundCount = _context.Set<Round>().Count(r => r.CompetitionID == c.CompetitionID && r.Status == RoundStatus.Valid),
                 CompetitorCount = _context.Set<UserCompetition>().Count(uc => uc.CompetitionID == c.CompetitionID),
                 PrizeCount = _context.Set<CompetitionPrize>().Count(cp => cp.CompetitionID == c.CompetitionID)
             })

@@ -1,5 +1,6 @@
 ﻿using Droniverse.Academy.API.Enums;
 using Droniverse.Academy.API.Examples;
+using Droniverse.Academy.Application.DTO.Extension;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
@@ -130,6 +131,34 @@ public class UserEnrollmentController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy ra danh sách khóa học cùng với tiến trình
+    /// </summary>
+    /// <remarks>
+    /// - dùng cho ROLE : <b>CLUB_MEMBER</b>
+    /// - Để <b>EnrollmentStatus</b> mặc định => lấy status <b>ACTIVE</b>
+    /// </remarks>
+    /// <param name="clubId">ID của câu lạc bộ</param>
+    /// <param name="request">Search request của api</param>
+    /// <returns></returns>
+    [HttpGet("me/clubs/{clubId}/courses")]
+    [Authorize(Roles = Roles.ClubMember)]
+    public async Task<ApiResponse> GetCoursesOfUser(Guid clubId, [FromQuery] UserEnrollmentSearchRequest request)
+    {
+        try
+        {
+            var result = await _service.GetCoursesOfUser(clubId, request);
+            return SuccessResponse<PaginationResult<IEnumerable<CoursesEnrollmentResponse>>>.Create(
+                result,
+                "Lấy danh sách khóa học của người dùng thành công.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lấy danh sách khóa học của người dùng thất bại.");
+            throw;
+        }
+    }
+
     private static EnrollStatus? MapEnrollmentStatus(EnrollmentStatusFilter status)
     {
         return status switch
@@ -142,4 +171,5 @@ public class UserEnrollmentController : ControllerBase
             _ => null
         };
     }
+
 }

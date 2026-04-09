@@ -7,7 +7,6 @@ namespace Droniverse.Community.Domain.Entities;
 public class Competition
 {
     public Guid CompetitionID { get; private set; }
-
     public Guid ClubID { get; private set; }
     public Club Club { get; private set; }
     public string NameVN { get; private set; }
@@ -93,46 +92,50 @@ public class Competition
 
     public void OpenRegistration(Guid updatedBy, DateTime now)
     {
-        EnsureStatus(CompetitionStatus.DRAFT);
-        Status = CompetitionStatus.REGISTRATION_OPEN;
+        EnsureStatus(CompetitionStatus.PUBLISHED);
+        if (now < RegistrationStartDate)
+            throw new InvalidOperationException("Chưa đến thời gian mở đăng ký.");
         SetUpdated(updatedBy, now);
     }
 
     public void CloseRegistration(Guid updatedBy, DateTime now)
     {
-        EnsureStatus(CompetitionStatus.REGISTRATION_OPEN);
-
-        Status = CompetitionStatus.REGISTRATION_CLOSED;
+        EnsureStatus(CompetitionStatus.PUBLISHED);
+        if (now < RegistrationEndDate)
+            throw new InvalidOperationException("Chưa đến thời gian đóng đăng ký.");
         SetUpdated(updatedBy, now);
     }
 
     public void StartCompetition(Guid updatedBy, DateTime now)
     {
-        EnsureStatus(CompetitionStatus.REGISTRATION_CLOSED);
+        EnsureStatus(CompetitionStatus.PUBLISHED);
+
+        if (now < StartDate)
+            throw new InvalidOperationException("Chưa đến thời gian bắt đầu cuộc thi.");
 
         // Kiểm tra có ít nhất 1 round Pending
-        if (!Rounds.Any(r => r.Status == RoundStatus.Pending))
+        if (!Rounds.Any(r => r.Status == RoundStatus.Valid))
             throw new InvalidOperationException("Không thể bắt đầu cuộc thi khi không có round nào ở trạng thái Pending. Các round có trạng thái [SCHEDULE_INVALID] phải được chỉnh sửa trước.");
 
         if (UserCompetitions.Count == 0)
             throw new InvalidOperationException("Không thể bắt đầu cuộc thi khi chưa có người tham gia.");
 
-        Status = CompetitionStatus.ONGOING;
         SetUpdated(updatedBy, now);
     }
 
     public void FinishCompetition(Guid updatedBy, DateTime now)
     {
-        EnsureStatus(CompetitionStatus.ONGOING);
-
-        Status = CompetitionStatus.FINISHED;
+        EnsureStatus(CompetitionStatus.PUBLISHED);
+        if (now < EndDate)
+            throw new InvalidOperationException("Chưa đến thời gian kết thúc cuộc thi.");
+        IsSummarized = true;
         SetUpdated(updatedBy, now);
     }
 
     public void CancelCompetition(Guid updatedBy, DateTime now)
     {
-        if (Status == CompetitionStatus.FINISHED)
-            throw new InvalidOperationException("Không thể hủy cuộc thi đã kết thúc.");
+        if (Status == CompetitionStatus.RESULT_PUBLISHED)
+            throw new InvalidOperationException("Không thể hủy cuộc thi đã công bố kết quả.");
 
         Status = CompetitionStatus.CANCELLED;
         SetUpdated(updatedBy, now);
@@ -182,9 +185,12 @@ public class Competition
         Guid userId,
         Guid prizeId,
         int rank,
-        Guid createdBy)
+        Guid createdBy,
+        DateTime now)
     {
-        if (Status != CompetitionStatus.FINISHED)
+        EnsureStatus(CompetitionStatus.PUBLISHED);
+
+        if (now < EndDate)
             throw new InvalidOperationException("Chỉ có thể trao thưởng sau khi cuộc thi kết thúc.");
 
         var prize = CompetitionPrizes.FirstOrDefault(x => x.CompetitionPrizeID == prizeId);
@@ -219,9 +225,12 @@ public class Competition
 
     public void GeneratePrizesFromRanking(
         Dictionary<Guid, int> ranking,
-        Guid createdBy)
+        Guid createdBy,
+        DateTime now)
     {
-        if (Status != CompetitionStatus.FINISHED)
+        EnsureStatus(CompetitionStatus.PUBLISHED);
+
+        if (now < EndDate)
             throw new InvalidOperationException("Chỉ tạo giải thưởng sau khi cuộc thi kết thúc.");
 
         foreach (var item in ranking)
@@ -258,7 +267,9 @@ public class Competition
 
     public void PublishResult(Guid updatedBy, DateTime now)
     {
-        if (Status != CompetitionStatus.FINISHED)
+        EnsureStatus(CompetitionStatus.PUBLISHED);
+
+        if (now < EndDate)
             throw new InvalidOperationException("Cuộc thi phải kết thúc trước khi công bố kết quả.");
 
         if (!UserPrizes.Any())
@@ -346,7 +357,7 @@ public class Competition
 
     public UserCompetition RegisterParticipant(Guid userId, DateTime now)
     {
-        if (Status != CompetitionStatus.REGISTRATION_OPEN)
+        if (Status != CompetitionStatus.PUBLISHED)
             throw new InvalidOperationException("Cuộc thi không trong trạng thái cho phép đăng ký.");
 
         if (now < RegistrationStartDate || now > RegistrationEndDate)
@@ -366,11 +377,11 @@ public class Competition
         return userCompetition;
     }
 
-    public List<Guid> ValidateAndMarkInvalidRounds()
+    public void ValidateAndMarkInvalidRounds()
     {
         var invalidRoundIds = new List<Guid>();
 
-        foreach (var round in Rounds.Where(r => r.Status == RoundStatus.Pending))
+        foreach (var round in Rounds.Where(r => r.Status == RoundStatus.Valid))
         {
             if (round.StartTime < StartDate || round.EndTime > EndDate)
             {
@@ -379,7 +390,7 @@ public class Competition
             }
         }
 
-        return invalidRoundIds;
+        //return invalidRoundIds;
     }
 
     public CompetitionCertificate AddCertificate(Guid certificateId)
@@ -415,6 +426,7 @@ public class Competition
         CompetitionStatus targetStatus,
         Guid updatedBy,
         DateTime now,
+        bool hasPrizes,
         CompetitionInvalidReason? invalidReason = null)
     {
         if (Status == targetStatus)
@@ -424,45 +436,23 @@ public class Competition
         {
             case CompetitionStatus.PUBLISHED:
                 EnsureStatus(CompetitionStatus.DRAFT);
+                if (!Rounds.Any(r => r.Status == RoundStatus.Valid))
+                    throw new InvalidOperationException("Phải có ít nhất 1 round hợp lệ.");
+
+                if (Rounds.Any(r => r.Status == RoundStatus.ScheduleInvalid))
+                    throw new InvalidOperationException("Không được có round bị lỗi lịch.");
+
+                if (!hasPrizes)
+                    throw new InvalidOperationException("Cuộc thi chưa cấu hình giải thưởng.");
                 Status = CompetitionStatus.PUBLISHED;
                 break;
 
-            case CompetitionStatus.REGISTRATION_OPEN:
-                EnsureStatus(CompetitionStatus.PUBLISHED);
-                if (now < RegistrationStartDate)
-                    throw new InvalidOperationException("Chưa đến thời gian mở đăng ký.");
-                Status = CompetitionStatus.REGISTRATION_OPEN;
-                break;
-
-            case CompetitionStatus.REGISTRATION_CLOSED:
-                EnsureStatus(CompetitionStatus.REGISTRATION_OPEN);
-                if (now < RegistrationEndDate)
-                    throw new InvalidOperationException("Chưa đến thời gian đóng đăng ký.");
-                if (now >= StartDate)
-                    throw new InvalidOperationException("Không thể đóng đăng ký khi đã qua thời điểm bắt đầu cuộc thi.");
-                Status = CompetitionStatus.REGISTRATION_CLOSED;
-                break;
-
-            case CompetitionStatus.ONGOING:
-                EnsureStatus(CompetitionStatus.REGISTRATION_CLOSED);
-                if (now < StartDate)
-                    throw new InvalidOperationException("Chưa đến thời gian bắt đầu cuộc thi.");
-                if (!Rounds.Any(r => r.Status == RoundStatus.Pending))
-                    throw new InvalidOperationException("Không thể bắt đầu cuộc thi khi không có round nào ở trạng thái Pending. Các round có trạng thái [SCHEDULE_INVALID] phải được chỉnh sửa trước.");
-                if (UserCompetitions.Count == 0)
-                    throw new InvalidOperationException("Không thể bắt đầu cuộc thi khi chưa có người tham gia.");
-                Status = CompetitionStatus.ONGOING;
-                break;
-
-            case CompetitionStatus.FINISHED:
-                EnsureStatus(CompetitionStatus.ONGOING);
-                if (now < EndDate)
-                    throw new InvalidOperationException("Chưa đến thời gian kết thúc cuộc thi.");
-                Status = CompetitionStatus.FINISHED;
-                break;
-
             case CompetitionStatus.RESULT_PUBLISHED:
-                EnsureStatus(CompetitionStatus.FINISHED);
+                EnsureStatus(CompetitionStatus.PUBLISHED);
+                if (now < EndDate)
+                    throw new InvalidOperationException("Cuộc thi chưa kết thúc, không thể công bố kết quả.");
+                if (!IsSummarized)
+                    throw new InvalidOperationException("Chỉ được công bố kết quả sau khi đã tổng kết cuộc thi.");
                 if (!UserPrizes.Any())
                     throw new InvalidOperationException("Chưa có dữ liệu trao thưởng.");
                 ResultPublishedAt = now;
@@ -470,16 +460,16 @@ public class Competition
                 break;
 
             case CompetitionStatus.CANCELLED:
-                if (Status == CompetitionStatus.FINISHED || Status == CompetitionStatus.RESULT_PUBLISHED)
-                    throw new InvalidOperationException("Không thể hủy cuộc thi đã kết thúc hoặc đã công bố kết quả.");
+                if (Status == CompetitionStatus.RESULT_PUBLISHED)
+                    throw new InvalidOperationException("Không thể hủy cuộc thi đã công bố kết quả.");
                 Status = CompetitionStatus.CANCELLED;
                 break;
 
             case CompetitionStatus.INVALID:
                 if (!invalidReason.HasValue)
                     throw new InvalidOperationException("Cần cung cấp lý do khi chuyển sang trạng thái INVALID.");
-                if (Status == CompetitionStatus.FINISHED || Status == CompetitionStatus.RESULT_PUBLISHED)
-                    throw new InvalidOperationException($"Không thể [{CompetitionStatus.INVALID}] khi đã kết thúc.");
+                if (Status == CompetitionStatus.RESULT_PUBLISHED)
+                    throw new InvalidOperationException($"Không thể [{CompetitionStatus.INVALID}] khi đã công bố kết quả.");
                 InvalidReason = invalidReason.Value;
                 InvalidAt = now;
                 Status = CompetitionStatus.INVALID;
@@ -495,76 +485,73 @@ public class Competition
     // ======== CÁC HÀM VALIDATE CHO BACKGROUND JOB ========
     public bool CanAutoOpenRegistration(DateTime now)
     {
-        return Status == CompetitionStatus.PUBLISHED && now >= RegistrationStartDate;
+        return Status == CompetitionStatus.PUBLISHED
+            && now >= RegistrationStartDate
+            && now <= RegistrationEndDate;
     }
 
     public bool CanAutoCloseRegistration(DateTime now)
     {
-        return Status == CompetitionStatus.REGISTRATION_OPEN && now >= RegistrationEndDate && now < StartDate;
+        return Status == CompetitionStatus.PUBLISHED && now > RegistrationEndDate && now < StartDate;
     }
 
     public bool CanAutoStartCompetition(DateTime now)
     {
-        return (Status == CompetitionStatus.REGISTRATION_OPEN || Status == CompetitionStatus.REGISTRATION_CLOSED) && now >= StartDate;
+        return Status == CompetitionStatus.PUBLISHED && now >= StartDate && now <= EndDate;
     }
 
     public bool CanAutoFinishCompetition(DateTime now)
     {
-        return Status == CompetitionStatus.ONGOING && now >= EndDate;
+        return Status == CompetitionStatus.PUBLISHED && now > EndDate;
     }
 
     public bool CanAutoInvalidCompetition(DateTime now)
     {
-        return Status == CompetitionStatus.REGISTRATION_OPEN
+        return Status == CompetitionStatus.PUBLISHED
             && now >= StartDate
-            && !Rounds.Any(r => r.Status == RoundStatus.Pending);
+            && !Rounds.Any(r => r.Status == RoundStatus.Valid);
     }
 
-   public bool CanAutoPublish(DateTime now)
-{
-    return Status == CompetitionStatus.DRAFT
-        && now >= VisibleAt;
-}
+    public bool CanAutoPublish(DateTime now)
+    {
+        return Status == CompetitionStatus.DRAFT
+            && now >= VisibleAt;
+    }
 
     // Các hàm thực thi (dùng cho hệ thống hoặc cron job gọi)
     public void SystemOpenRegistration(DateTime now)
     {
         EnsureStatus(CompetitionStatus.PUBLISHED);
-        Status = CompetitionStatus.REGISTRATION_OPEN;
         UpdatedAt = now;
     }
-    
+
     public void SystemCloseRegistration(DateTime now)
     {
-        EnsureStatus(CompetitionStatus.REGISTRATION_OPEN);
-        Status = CompetitionStatus.REGISTRATION_CLOSED;
-        UpdatedAt = now; 
+        EnsureStatus(CompetitionStatus.PUBLISHED);
+        UpdatedAt = now;
     }
 
     public void SystemStartCompetition(DateTime now)
     {
-        if (Status != CompetitionStatus.REGISTRATION_CLOSED)
-            throw new InvalidOperationException($"Chỉ có thể bắt đầu khi cuộc thi đang là [{CompetitionStatus.REGISTRATION_CLOSED}].");
+        EnsureStatus(CompetitionStatus.PUBLISHED);
 
-        if (!Rounds.Any(r => r.Status == RoundStatus.Pending))
+        if (!Rounds.Any(r => r.Status == RoundStatus.Valid))
             throw new InvalidOperationException("Không thể bắt đầu cuộc thi khi không có vòng đấu nào ở trạng thái [Pending].");
 
-        Status = CompetitionStatus.ONGOING;
         UpdatedAt = now;
     }
 
     public void SystemFinishCompetition(DateTime now)
     {
-        EnsureStatus(CompetitionStatus.ONGOING);
-        Status = CompetitionStatus.FINISHED;
+        EnsureStatus(CompetitionStatus.PUBLISHED);
+        IsSummarized = true;
         UpdatedAt = now;
     }
 
     public void SystemInvalidCompetition(CompetitionInvalidReason reason, DateTime now)
     {
-        if (Status == CompetitionStatus.FINISHED
-            || Status == CompetitionStatus.RESULT_PUBLISHED)
-            throw new InvalidOperationException($"Không thể [{CompetitionStatus.INVALID}] khi đã kết thúc.");
+        if (Status == CompetitionStatus.RESULT_PUBLISHED)
+            throw new InvalidOperationException($"Không thể [{CompetitionStatus.INVALID}] khi đã công bố kết quả.");
 
         Status = CompetitionStatus.INVALID;
         InvalidReason = reason;
