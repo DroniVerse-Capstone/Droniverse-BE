@@ -120,8 +120,8 @@ internal class PaymentService : IPaymentService
             long orderCode = DateTimeOffset.Now.ToUnixTimeSeconds();
             string fullDescription = $"Order {orderCode}";
             // Cắt ngắn description tối đa 25 ký tự (requirement của PayOS)
-            string description = fullDescription.Length > 25 
-                ? fullDescription.Substring(0, 25) 
+            string description = fullDescription.Length > 25
+                ? fullDescription.Substring(0, 25)
                 : fullDescription;
 
             _logger.LogInformation(
@@ -176,7 +176,8 @@ internal class PaymentService : IPaymentService
             {
                 OrderId = orderId,
                 PaymentUrl = response.CheckoutUrl,
-                Status = PaymentStatus.PENDING
+                Status = PaymentStatus.PENDING,
+
             };
         }
         catch (Exception ex)
@@ -210,6 +211,10 @@ internal class PaymentService : IPaymentService
                 if (paymentInfo is not null)
                 {
                     paymemt.PaymentStatus = (PaymentStatus)paymentInfo.Status;
+                    await _orderRepository.UpdatePayment(orderId, paymemt);
+
+                    _logger.LogInformation("Updated payment status from PayOS: {Status}", paymentInfo.Status);
+
                 }
             }
             catch (Exception ex)
@@ -253,7 +258,7 @@ internal class PaymentService : IPaymentService
     {
         try
         {
-            if (webhook.Data is null)
+            if (webhook?.Data is null)
                 return false;
 
             _logger.LogInformation("Processing webhook for orderId: {OrderId}", webhook.Data.OrderId);
@@ -262,6 +267,7 @@ internal class PaymentService : IPaymentService
             if (payment == null)
             {
                 _logger.LogWarning("Payment not found for orderId: {OrderId}", webhook.Data.OrderId);
+                return false;
             }
 
             _logger.LogInformation("Webhook code: {Code}, webhook is success: {IsSuccess}", webhook.Code, webhook.IsSuccess);
@@ -270,19 +276,36 @@ internal class PaymentService : IPaymentService
             {
                 _logger.LogInformation("webhook.Data.Code là {result}", webhook.Data.Code);
                 payment.PaymentStatus = PaymentStatus.SUCCESS;
-                payment.TransactionDate = DateTime.UtcNow.AddHours(7);
                 payment.Reference = webhook.Data.Reference;
                 payment.PaymentLinkID = webhook.Data.PaymentLinkId;
-                payment.WebhookReceivedAt = DateTime.UtcNow.AddHours(7);
-
-                await _orderRepository.UpdatePayment(webhook.Data.OrderId, payment);
+                _logger.LogInformation("Payment SUCCESS for orderId: {OrderId}", webhook.Data.OrderId);
             }
+            else if (webhook.Code == "05")
+            {
+                payment.PaymentStatus = PaymentStatus.CANCELLED;
+                _logger.LogWarning("Payment CANCELLED for orderId: {OrderId}", webhook.Data.OrderId);
+            }
+            else if (!webhook.IsSuccess)
+            {
+                payment.PaymentStatus = PaymentStatus.FAILED;
+                _logger.LogWarning("Payment FAILED for orderId: {OrderId}, Code: {Code}",
+                    webhook.Data.OrderId, webhook.Code);
+            } else
+            {
+                _logger.LogWarning("Unknown webhook code: {Code}", webhook.Code);
+                return false;
+            }
+            payment.TransactionDate = DateTime.UtcNow.AddHours(7);
+            payment.WebhookReceivedAt = DateTime.UtcNow.AddHours(7);
+            await _orderRepository.UpdatePayment(webhook.Data.OrderId, payment);
+            _logger.LogInformation("Updated payment status to {Status}", payment.PaymentStatus);
+
             return true;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-
-            throw;
+            _logger.LogError(ex, "Error handling webhook for orderId: {OrderId}", webhook?.Data?.OrderId);
+            return false;
         }
 
     }

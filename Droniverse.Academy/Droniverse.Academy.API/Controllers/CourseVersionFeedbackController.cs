@@ -54,7 +54,7 @@ public class CourseVersionFeedbackController : ControllerBase
     /// Lấy danh sách phản hồi của phiên bản khóa học.
     /// </summary>
     [HttpGet]
-    [Authorize(Roles = $"{Roles.SystemManager},{Roles.ClubManager}")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetFeedbacks(Guid courseId, Guid versionId)
     {
         try
@@ -73,7 +73,7 @@ public class CourseVersionFeedbackController : ControllerBase
     /// Lấy chi tiết phản hồi.
     /// </summary>
     [HttpGet("{feedbackId:guid}")]
-    [Authorize(Roles = $"{Roles.SystemManager},{Roles.ClubManager}")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetFeedbackDetail(Guid courseId, Guid versionId, Guid feedbackId)
     {
         try

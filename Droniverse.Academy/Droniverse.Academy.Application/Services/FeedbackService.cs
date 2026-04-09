@@ -1,10 +1,13 @@
 ﻿using AutoMapper;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
+using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.IRepository;
+using Droniverse.Shared.DTOs;
 using Droniverse.Shared.Exceptions;
+using Droniverse.Shared.Helpers;
 using Droniverse.Shared.Services.IServices;
 
 namespace Droniverse.Academy.Application.Services;
@@ -15,17 +18,20 @@ public class FeedbackService : IFeedbackService
     private readonly IMapper _mapper;
     private readonly ICurrentUserService _currentUser;
     private readonly IClock _clock;
+    private readonly IdentityMicroserviceClient _identityMicroserviceClient;
 
     public FeedbackService(
         IUnitOfWork unitOfWork,
         IMapper mapper,
         ICurrentUserService currentUser,
-        IClock clock)
+        IClock clock,
+        IdentityMicroserviceClient identityMicroserviceClient)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _currentUser = currentUser;
         _clock = clock;
+        _identityMicroserviceClient = identityMicroserviceClient;
     }
 
     public async Task<FeedbackClientViewDTO> CreateFeedbackForCourseVersionAsync(Guid courseId, Guid versionId, FeedbackCreateDTO request)
@@ -48,9 +54,10 @@ public class FeedbackService : IFeedbackService
 
         var created = await _unitOfWork.Feedbacks.GetByConditionAsync(
             f => f.FeedbackID == feedback.FeedbackID,
-            includeProperties: "CourseVersion,CourseVersion.CourseVersionCategories,CourseVersion.RequiredDrones");
-
-        return _mapper.Map<FeedbackClientViewDTO>(created ?? feedback);
+            includeProperties: string.Empty);
+        var result = _mapper.Map<FeedbackClientViewDTO>(created ?? feedback);
+        await PopulateUserAsync(result, (created ?? feedback).UserID);
+        return result;
     }
 
     public async Task<IEnumerable<FeedbackClientViewDTO>> GetFeedbacksByCourseVersionAsync(Guid courseId, Guid versionId)
@@ -62,9 +69,37 @@ public class FeedbackService : IFeedbackService
             orderBy: q => q.OrderByDescending(x => x.CreatedAt),
             pageIndex: 1,
             pageSize: int.MaxValue,
-            includeProperties: "CourseVersion,CourseVersion.CourseVersionCategories,CourseVersion.RequiredDrones");
+            includeProperties: string.Empty);
+        var feedbackEntities = feedbacks.Data.ToList();
+        var mapped = _mapper.Map<List<FeedbackClientViewDTO>>(feedbackEntities);
 
-        return _mapper.Map<IEnumerable<FeedbackClientViewDTO>>(feedbacks.Data);
+        var userIds = feedbackEntities
+            .Select(x => x.UserID)
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        var users = await _identityMicroserviceClient.GetUsersBulk(userIds);
+        var usersLookup = users
+            .ToDictionary(
+                x => x.UserId,
+                x => new SimpleUserReponse
+                {
+                    UserId = x.UserId,
+                    Email = x.Email,
+                    FullName = AppHelper.GetFullName(x) ?? string.Empty,
+                    AvatarUrl = x.ImageUrl
+                });
+
+        foreach (var (entity, dto) in feedbackEntities.Zip(mapped))
+        {
+            if (usersLookup.TryGetValue(entity.UserID, out var user))
+            {
+                dto.User = user;
+            }
+        }
+
+        return mapped;
     }
 
     public async Task<FeedbackClientViewDTO> GetFeedbackDetailAsync(Guid courseId, Guid versionId, Guid feedbackId)
@@ -73,12 +108,14 @@ public class FeedbackService : IFeedbackService
 
         var feedback = await _unitOfWork.Feedbacks.GetByConditionAsync(
             f => f.FeedbackID == feedbackId && f.CourseVersionID == versionId,
-            includeProperties: "CourseVersion,CourseVersion.CourseVersionCategories,CourseVersion.RequiredDrones");
+            includeProperties: string.Empty);
 
         if (feedback == null)
             throw new BaseException("Không tìm thấy phản hồi.", "NOT_FOUND");
 
-        return _mapper.Map<FeedbackClientViewDTO>(feedback);
+        var detail = _mapper.Map<FeedbackClientViewDTO>(feedback);
+        await PopulateUserAsync(detail, feedback.UserID);
+        return detail;
     }
 
     public async Task<FeedbackClientViewDTO> UpdateFeedbackAsync(Guid courseId, Guid versionId, Guid feedbackId, FeedbackUpdateDTO request)
@@ -91,7 +128,7 @@ public class FeedbackService : IFeedbackService
 
         var feedback = await _unitOfWork.Feedbacks.GetByConditionAsync(
             f => f.FeedbackID == feedbackId && f.CourseVersionID == versionId,
-            includeProperties: "CourseVersion,CourseVersion.CourseVersionCategories,CourseVersion.RequiredDrones");
+            includeProperties: string.Empty);
 
         if (feedback == null)
             throw new BaseException("Không tìm thấy phản hồi.", "NOT_FOUND");
@@ -104,7 +141,9 @@ public class FeedbackService : IFeedbackService
         await _unitOfWork.Feedbacks.UpdateAsync(feedback);
         await _unitOfWork.SaveChangesAsync();
 
-        return _mapper.Map<FeedbackClientViewDTO>(feedback);
+        var updated = _mapper.Map<FeedbackClientViewDTO>(feedback);
+        await PopulateUserAsync(updated, feedback.UserID);
+        return updated;
     }
 
     public async Task DeleteFeedbackAsync(Guid courseId, Guid versionId, Guid feedbackId)
@@ -136,5 +175,13 @@ public class FeedbackService : IFeedbackService
     {
         if (rating < 1 || rating > 5)
             throw new ValidationException("Điểm đánh giá phải từ 1 đến 5.");
+    }
+
+    private async Task PopulateUserAsync(FeedbackClientViewDTO dto, Guid userId)
+    {
+        if (userId == Guid.Empty)
+            return;
+
+        dto.User = await _identityMicroserviceClient.GetUserByUserID(userId);
     }
 }
