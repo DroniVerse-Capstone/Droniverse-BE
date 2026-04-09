@@ -13,6 +13,6 @@ namespace Droniverse.Community.Application.DTO.Request
         [Required]
         public DateTime EndTime { get; set; }
         [Required]
-        public DateTime TimeLimit { get; set; }
+        public TimeSpan TimeLimit { get; set; }
     }
 }
