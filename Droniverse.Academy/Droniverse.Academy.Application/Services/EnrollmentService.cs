@@ -82,6 +82,24 @@ public class EnrollmentService : IEnrollmentService
         return _mapper.Map<EnrollmentResponseDTO>(enrollment);
     }
 
+    public async Task<EnrollmentResponseDTO> GetMyEnrollmentByClubAndCourseVersionAsync(Guid clubId, Guid courseVersionId)
+    {
+        if (clubId == Guid.Empty)
+            throw new ValidationException("ClubId không hợp lệ.");
+
+        if (courseVersionId == Guid.Empty)
+            throw new ValidationException("CourseVersionId không hợp lệ.");
+
+        var userId = _currentUser.UserId;
+        var enrollment = await _unitOfWork.Enrollments.GetByConditionAsync(
+            x => x.UserID == userId && x.ClubID == clubId && x.CourseVersionID == courseVersionId);
+
+        if (enrollment == null)
+            throw new BaseException("Không tìm thấy enrollment.", "NOT_FOUND");
+
+        return _mapper.Map<EnrollmentResponseDTO>(enrollment);
+    }
+
     public async Task<EnrollmentResponseDTO> UpdateMyEnrollmentAsync(Guid enrollmentId, UpdateEnrollmentRequestDTO request)
     {
         if (request == null)

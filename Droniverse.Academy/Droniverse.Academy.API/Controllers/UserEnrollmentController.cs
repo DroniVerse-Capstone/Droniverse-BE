@@ -92,6 +92,27 @@ public class UserEnrollmentController : ControllerBase
     }
 
     /// <summary>
+    /// Lấy chi tiết enrollment của người dùng hiện tại theo club và course version.
+    /// </summary>
+    /// <param name="clubId">Mã câu lạc bộ.</param>
+    /// <param name="courseVersionId">Mã phiên bản khóa học.</param>
+    [HttpGet("me/clubs/{clubId:guid}/course-versions/{courseVersionId:guid}")]
+    [Authorize(Roles = Roles.ClubMember)]
+    public async Task<IActionResult> GetMyEnrollmentByClubAndCourseVersion(Guid clubId, Guid courseVersionId)
+    {
+        try
+        {
+            var result = await _service.GetMyEnrollmentByClubAndCourseVersionAsync(clubId, courseVersionId);
+            return Ok(SuccessResponse<EnrollmentResponseDTO>.Create(result, "Lấy chi tiết enrollment thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lấy chi tiết enrollment theo club và course version thất bại.");
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Cập nhật enrollment của người dùng hiện tại.
     /// </summary>
     /// <param name="enrollmentId">Mã enrollment.</param>

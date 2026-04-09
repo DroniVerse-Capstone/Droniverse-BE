@@ -55,6 +55,7 @@ public class CourseOverviewSuccessResponseExample : IExamplesProvider<SuccessRes
         return SuccessResponse<CourseOverviewResponseDTO>.Create(
             new CourseOverviewResponseDTO
             {
+                EnrollmentID = Guid.Parse("a12b7c3d-8a3f-4f9f-9261-4bc1a2f0d9ab"),
                 CourseVersionID = Guid.Parse("7d8aa3db-7477-4af6-a06c-783f26450484"),
                 TitleVN = "Lập trình drone cơ bản",
                 TitleEN = "Drone Programming Basics",

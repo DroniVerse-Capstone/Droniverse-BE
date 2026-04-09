@@ -146,13 +146,21 @@ public class CourseService : ICourseService
         Guid courseVersionId,
         CancellationToken cancellationToken = default)
     {
+        var currentUserId = _currentUser.UserId;
+
         var overviewData = await _unitOfWork.CourseVersions
-            .GetCourseOverviewDataAsync(courseVersionId, _currentUser.UserId, cancellationToken);
+            .GetCourseOverviewDataAsync(courseVersionId, currentUserId, cancellationToken);
 
         if (overviewData == null)
             throw new NotFoundException($"Không tìm thấy phiên bản khóa học với id {courseVersionId}.");
 
         var response = _mapper.Map<CourseOverviewResponseDTO>(overviewData);
+
+        var enrollment = await _unitOfWork.Enrollments.GetByConditionAsync(
+            x => x.UserID == currentUserId
+                 && x.ClubID == clubId
+                 && x.CourseVersionID == courseVersionId);
+        response.EnrollmentID = enrollment?.EnrollmentID;
 
         var userIds = new List<Guid> { overviewData.AuthorId };
         if (overviewData.LastUpdatedById.HasValue && overviewData.LastUpdatedById.Value != Guid.Empty)
