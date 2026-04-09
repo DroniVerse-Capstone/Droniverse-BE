@@ -9,15 +9,24 @@ public class LearningMappingProfile : Profile
     public LearningMappingProfile()
     {
         CreateMap<Enrollment, LearningPathDTO>()
+            .ForMember(dest => dest.TitleVN, opt => opt.Ignore())
+            .ForMember(dest => dest.TitleEN, opt => opt.Ignore())
+            .ForMember(dest => dest.TotalLessons, opt => opt.Ignore())
+            .ForMember(dest => dest.Duration, opt => opt.Ignore())
             .ForMember(dest => dest.Modules, opt => opt.Ignore());
 
         CreateMap<Module, LearningPathModuleDTO>()
+            .ForMember(dest => dest.TotalLessons, opt => opt.Ignore())
+            .ForMember(dest => dest.Duration, opt => opt.Ignore())
             .ForMember(dest => dest.Progress, opt => opt.Ignore())
             .ForMember(dest => dest.IsCompleted, opt => opt.Ignore())
             .ForMember(dest => dest.IsLocked, opt => opt.Ignore())
             .ForMember(dest => dest.Lessons, opt => opt.Ignore());
 
         CreateMap<Lesson, LearningPathLessonDTO>()
+            .ForMember(dest => dest.TitleVN, opt => opt.Ignore())
+            .ForMember(dest => dest.TitleEN, opt => opt.Ignore())
+            .ForMember(dest => dest.Duration, opt => opt.Ignore())
             .ForMember(dest => dest.Progress, opt => opt.Ignore())
             .ForMember(dest => dest.IsCompleted, opt => opt.Ignore())
             .ForMember(dest => dest.IsLocked, opt => opt.Ignore())

@@ -28,6 +28,7 @@ public class LearningService : ILearningService
     public async Task<LearningPathDTO> GetMyLearningPathAsync(Guid enrollmentId)
     {
         var enrollment = await GetEnrollmentAsync(enrollmentId);
+        var courseVersion = await GetCourseVersionAsync(enrollment.CourseVersionID);
 
         var modules = await GetModulesByCourseVersionAsync(enrollment.CourseVersionID);
         var moduleIds = modules.Select(x => x.ModuleID).ToArray();
@@ -37,8 +38,9 @@ public class LearningService : ILearningService
 
         var userLessons = await GetUserLessonsLookupAsync(_currentUser.UserId, lessonIds);
         var userModules = await GetUserModulesLookupAsync(_currentUser.UserId, moduleIds);
+        var lessonMetadataLookup = await GetLessonMetadataLookupAsync(lessons);
 
-        return BuildLearningPath(enrollment, modules, lessons, userLessons, userModules);
+        return BuildLearningPath(enrollment, courseVersion, modules, lessons, userLessons, userModules, lessonMetadataLookup);
     }
 
     public async Task ValidateLessonAccessAsync(Guid enrollmentId, Guid lessonId)
@@ -268,6 +270,15 @@ public class LearningService : ILearningService
         return LearningValidator.EnsureEnrollmentOwnedByUser(enrollment);
     }
 
+    private async Task<CourseVersion> GetCourseVersionAsync(Guid courseVersionId)
+    {
+        var courseVersion = await _unitOfWork.CourseVersions.GetByIdAsync(courseVersionId);
+        if (courseVersion == null)
+            throw new NotFoundException("Không tìm thấy phiên bản khóa học.");
+
+        return courseVersion;
+    }
+
     private async Task<List<Module>> GetModulesByCourseVersionAsync(Guid courseVersionId)
     {
         var modulesResult = await _unitOfWork.Modules.GetAllAsync(
@@ -326,10 +337,12 @@ public class LearningService : ILearningService
 
     private LearningPathDTO BuildLearningPath(
         Enrollment enrollment,
+        CourseVersion courseVersion,
         IReadOnlyCollection<Module> modules,
         IReadOnlyCollection<Lesson> lessons,
         IReadOnlyDictionary<Guid, UserLesson> userLessons,
-        IReadOnlyDictionary<Guid, UserModule> userModules)
+        IReadOnlyDictionary<Guid, UserModule> userModules,
+        IReadOnlyDictionary<Guid, LessonMetadata> lessonMetadataLookup)
     {
         var lessonsByModule = lessons
             .GroupBy(x => x.ModuleID)
@@ -360,6 +373,12 @@ public class LearningService : ILearningService
                 var lessonLocked = UnlockHelper.IsLessonLocked(moduleLocked, previousLessonCompleted);
 
                 var lessonDto = _mapper.Map<LearningPathLessonDTO>(lesson);
+                if (lessonMetadataLookup.TryGetValue(lesson.LessonID, out var lessonMetadata))
+                {
+                    lessonDto.TitleVN = lessonMetadata.TitleVN;
+                    lessonDto.TitleEN = lessonMetadata.TitleEN;
+                    lessonDto.Duration = lessonMetadata.Duration;
+                }
                 lessonDto.IsCompleted = isCompleted;
                 lessonDto.Progress = progress;
                 lessonDto.IsLocked = lessonLocked;
@@ -385,6 +404,8 @@ public class LearningService : ILearningService
                 : moduleCompleted;
             moduleDto.IsLocked = moduleLocked;
             moduleDto.Lessons = lessonDtos;
+            moduleDto.TotalLessons = lessonDtos.Count;
+            moduleDto.Duration = SumDuration(lessonDtos.Select(x => x.Duration));
             moduleDtos.Add(moduleDto);
         }
 
@@ -392,9 +413,110 @@ public class LearningService : ILearningService
         var enrollmentProgress = ProgressHelper.CalculateProgress(completedModules, moduleDtos.Count);
 
         var response = _mapper.Map<LearningPathDTO>(enrollment);
+        response.TitleVN = courseVersion.TitleVN;
+        response.TitleEN = courseVersion.TitleEN;
+        response.TotalLessons = moduleDtos.Sum(x => x.TotalLessons);
+        response.Duration = courseVersion.EstimatedDuration ?? SumDuration(moduleDtos.Select(x => x.Duration));
         response.Progress = enrollmentProgress;
         response.Modules = moduleDtos;
         return response;
+    }
+
+    private async Task<Dictionary<Guid, LessonMetadata>> GetLessonMetadataLookupAsync(IReadOnlyCollection<Lesson> lessons)
+    {
+        if (lessons.Count == 0)
+            return [];
+
+        var theoryIds = lessons
+            .Where(x => x.Type == LessonType.THEORY)
+            .Select(x => x.ReferenceID)
+            .ToHashSet();
+
+        var quizIds = lessons
+            .Where(x => x.Type == LessonType.QUIZ)
+            .Select(x => x.ReferenceID)
+            .ToHashSet();
+
+        var labIds = lessons
+            .Where(x => x.Type == LessonType.LAB)
+            .Select(x => x.ReferenceID)
+            .ToHashSet();
+
+        var theoryLookup = await GetTheoryMetadataLookupAsync(theoryIds);
+        var quizLookup = await GetQuizMetadataLookupAsync(quizIds);
+        var labLookup = await GetLabMetadataLookupAsync(labIds);
+
+        var result = new Dictionary<Guid, LessonMetadata>();
+        foreach (var lesson in lessons)
+        {
+            LessonMetadata? metadata = lesson.Type switch
+            {
+                LessonType.THEORY => theoryLookup.GetValueOrDefault(lesson.ReferenceID),
+                LessonType.QUIZ => quizLookup.GetValueOrDefault(lesson.ReferenceID),
+                LessonType.LAB => labLookup.GetValueOrDefault(lesson.ReferenceID),
+                _ => null
+            };
+
+            if (metadata != null)
+                result[lesson.LessonID] = metadata;
+        }
+
+        return result;
+    }
+
+    private async Task<Dictionary<Guid, LessonMetadata>> GetTheoryMetadataLookupAsync(IReadOnlySet<Guid> theoryIds)
+    {
+        if (theoryIds.Count == 0)
+            return [];
+
+        var theories = await _unitOfWork.Theories.GetAllAsync(
+            filter: x => theoryIds.Contains(x.TheoryID),
+            pageIndex: 1,
+            pageSize: 10000);
+
+        return theories.Data.ToDictionary(
+            x => x.TheoryID,
+            x => new LessonMetadata(x.TitleVN, x.TitleEN, x.EstimatedTime));
+    }
+
+    private async Task<Dictionary<Guid, LessonMetadata>> GetQuizMetadataLookupAsync(IReadOnlySet<Guid> quizIds)
+    {
+        if (quizIds.Count == 0)
+            return [];
+
+        var quizzes = await _unitOfWork.Quizs.GetAllAsync(
+            filter: x => quizIds.Contains(x.QuizID),
+            pageIndex: 1,
+            pageSize: 10000);
+
+        return quizzes.Data.ToDictionary(
+            x => x.QuizID,
+            x => new LessonMetadata(x.TitleVN, x.TitleEN, x.TimeLimit));
+    }
+
+    private async Task<Dictionary<Guid, LessonMetadata>> GetLabMetadataLookupAsync(IReadOnlySet<Guid> labIds)
+    {
+        if (labIds.Count == 0)
+            return [];
+
+        var labs = await _unitOfWork.Labs.GetAllAsync(
+            filter: x => labIds.Contains(x.LabID),
+            pageIndex: 1,
+            pageSize: 10000);
+
+        return labs.Data.ToDictionary(
+            x => x.LabID,
+            x => new LessonMetadata(x.NameVN, x.NameEN, x.EstimatedTime));
+    }
+
+    private static int? SumDuration(IEnumerable<int?> durations)
+    {
+        var values = durations
+            .Where(x => x.HasValue)
+            .Select(x => x!.Value)
+            .ToList();
+
+        return values.Count == 0 ? null : values.Sum();
     }
 
     private bool IsLessonLocked(
@@ -478,4 +600,9 @@ public class LearningService : ILearningService
         IReadOnlyCollection<Lesson> Lessons,
         Dictionary<Guid, UserLesson> UserLessons,
         Dictionary<Guid, UserModule> UserModules);
+
+    private sealed record LessonMetadata(
+        string? TitleVN,
+        string? TitleEN,
+        int? Duration);
 }
