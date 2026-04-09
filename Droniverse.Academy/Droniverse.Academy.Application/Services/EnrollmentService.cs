@@ -147,6 +147,7 @@ public class EnrollmentService : IEnrollmentService
         {
             EnrollmentId = x.EnrollmentId,
             CourseId = x.CourseId,
+            CourseVersionId = x.CourseVersionId,
             CourseNameVN = x.CourseNameVN,
             CourseNameEN = x.CourseNameEN,
             ImageUrl = x.ImageUrl,

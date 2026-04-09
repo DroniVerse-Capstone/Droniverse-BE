@@ -12,6 +12,7 @@ namespace Droniverse.Academy.Domain.QueryModels
     {
         public Guid EnrollmentId { get; set; }
         public Guid CourseId { get; set; }
+        public Guid CourseVersionId { get; set; }
         public string CourseNameVN { get; set; } = string.Empty;
         public string CourseNameEN { get; set; } = string.Empty;
         public string? ImageUrl { get; set; }

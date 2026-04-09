@@ -84,6 +84,7 @@ internal class EnrollmentRepository : MySqlRepository<Enrollment>, IEnrollmentRe
             {
                 EnrollmentId = e.EnrollmentID,
                 CourseId = e.CourseID,
+                CourseVersionId = e.CourseVersionID,
                 CourseNameVN = e.CourseVersion.TitleVN,
                 CourseNameEN = e.CourseVersion.TitleEN,
                 ImageUrl = e.CourseVersion.ImageUrl,
