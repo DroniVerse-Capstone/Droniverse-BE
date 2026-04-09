@@ -18,8 +18,4 @@
 		<ProjectReference Include="..\..\Droniverse.Shared\Droniverse.Shared.csproj" />
 	</ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="DTO\Extension\" />
-  </ItemGroup>
-
 </Project>

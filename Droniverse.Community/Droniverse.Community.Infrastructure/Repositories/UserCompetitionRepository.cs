@@ -112,5 +112,10 @@ namespace Droniverse.Community.Infrastructure.Repositories
 
             return query;
         }
+
+        public async Task<bool> IsUserInCompetitionAsync(Guid competitionId, Guid userId)
+        {
+            return await _context.UserCompetitions.AsNoTracking().AnyAsync(uc => uc.UserID == userId && uc.CompetitionID == competitionId);
+        }
     }
 }

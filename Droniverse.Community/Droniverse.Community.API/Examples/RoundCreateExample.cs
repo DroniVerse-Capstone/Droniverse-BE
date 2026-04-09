@@ -22,19 +22,19 @@ namespace Droniverse.Community.API.Examples
             yield return SwaggerExample.Create(
                 "Use with a competition created by Quick Test timeline.",
                 "01. Quick Test - Round 1 (Valid)",
-                CreateQuickRound(now, 1, 8, 9, LabId1)
+                CreateQuickRound(now, 8, 9, LabId1)
             );
 
             yield return SwaggerExample.Create(
                 "Use with a competition created by Quick Test timeline.",
                 "02. Quick Test - Round 2 (Valid)",
-                CreateQuickRound(now, 2, 9, 10, LabId2)
+                CreateQuickRound(now, 9, 10, LabId2)
             );
 
             yield return SwaggerExample.Create(
                 "03. Quick Test - Error (Outside Competition Period)",
                 "Round starts after Quick Test EndDate (+10m), should fail validation.",
-                CreateQuickRound(now, 3, 11, 12, LabId1)
+                CreateQuickRound(now, 11, 12, LabId1)
             );
 
             // REALISTIC competition timeline (from CompetitionCreationRequestExample):
@@ -42,25 +42,24 @@ namespace Droniverse.Community.API.Examples
             yield return SwaggerExample.Create(
                 "04. Realistic Timeline - Round 1 (Valid)",
                 "Use with a competition created by Realistic Timeline example.",
-                CreateRealisticRound(now, 1, 60, 75, LabId1)
+                CreateRealisticRound(now, 60, 75, LabId1)
             );
 
             yield return SwaggerExample.Create(
                 "05. Realistic Timeline - Round 2 (Valid)",
                 "Use with a competition created by Realistic Timeline example.",
-                CreateRealisticRound(now, 2, 90, 105, LabId2)
+                CreateRealisticRound(now, 90, 105, LabId2)
             );
 
             yield return SwaggerExample.Create(
                 "06. Realistic Timeline - Error (Outside Competition Period)",
                 "Round ends after Realistic EndDate (+2h), should fail validation.",
-                CreateRealisticRound(now, 3, 115, 130, LabId1)
+                CreateRealisticRound(now, 115, 130, LabId1)
             );
         }
 
         private static RoundCreateDto CreateQuickRound(
             DateTime now,
-            int roundNumber,
             int startOffsetMinutes,
             int endOffsetMinutes,
             string labId)
@@ -69,15 +68,14 @@ namespace Droniverse.Community.API.Examples
             {
                 CompetitionID = QuickTestCompetitionId,
                 LabID = Guid.Parse(labId),
-                RoundNumber = roundNumber,
                 StartTime = now.AddMinutes(startOffsetMinutes),
-                EndTime = now.AddMinutes(endOffsetMinutes)
+                EndTime = now.AddMinutes(endOffsetMinutes),
+                LimitTime = TimeSpan.FromMinutes(15)
             };
         }
 
         private static RoundCreateDto CreateRealisticRound(
             DateTime now,
-            int roundNumber,
             int startOffsetMinutes,
             int endOffsetMinutes,
             string labId)
@@ -86,9 +84,9 @@ namespace Droniverse.Community.API.Examples
             {
                 CompetitionID = RealisticCompetitionId,
                 LabID = Guid.Parse(labId),
-                RoundNumber = roundNumber,
                 StartTime = now.AddMinutes(startOffsetMinutes),
-                EndTime = now.AddMinutes(endOffsetMinutes)
+                EndTime = now.AddMinutes(endOffsetMinutes),
+                LimitTime = TimeSpan.FromMinutes(30)
             };
         }
     }

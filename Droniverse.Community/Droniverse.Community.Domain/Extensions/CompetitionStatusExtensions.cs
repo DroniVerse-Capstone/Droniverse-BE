@@ -13,10 +13,11 @@ namespace Droniverse.Community.Domain.Extensions
             => status != CompetitionStatus.DRAFT;
 
         public static bool CanRegister(this CompetitionStatus status)
-            => status == CompetitionStatus.REGISTRATION_OPEN;
+            => status == CompetitionStatus.PUBLISHED;
 
         public static bool IsFinished(this CompetitionStatus status)
-            => status == CompetitionStatus.FINISHED
-            || status == CompetitionStatus.RESULT_PUBLISHED;
+            => status == CompetitionStatus.RESULT_PUBLISHED
+            || status == CompetitionStatus.CANCELLED
+            || status == CompetitionStatus.INVALID;
     }
 }

@@ -1,7 +1,9 @@
 ﻿using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
+using Droniverse.Academy.Domain.QueryModels;
 using Droniverse.Academy.Infrastructure.Persistence.MySql;
+using Droniverse.Shared.DTOs.Response;
 using Microsoft.EntityFrameworkCore;
 
 namespace Droniverse.Academy.Infrastructure.Repositories;
@@ -35,6 +37,70 @@ internal class EnrollmentRepository : MySqlRepository<Enrollment>, IEnrollmentRe
                 x => x.CourseVersionId,
                 x => x.ParticipantCount,
                 cancellationToken);
+    }
+
+    public async Task<PaginationResult<IEnumerable<CourseEnrollmentQueryModel>>> GetCoursesOfUserAsync(
+        Guid userId,
+        Guid clubId,
+        int pageIndex,
+        int pageSize,
+        CourseLevel? level = null,
+        string? courseSearchName = null,
+        EnrollStatus? enrollmentStatus = null,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedPageIndex = pageIndex < 1 ? 1 : pageIndex;
+        var normalizedPageSize = pageSize < 1 ? 5 : pageSize;
+        var keyword = courseSearchName?.Trim();
+
+        var query = _dbSet
+            .AsNoTracking()
+            .Where(e => e.UserID == userId && e.ClubID == clubId);
+
+        if (enrollmentStatus.HasValue)
+        {
+            var status = enrollmentStatus.Value;
+            query = query.Where(e => e.Status == status);
+        }
+
+        if (level.HasValue)
+        {
+            var courseLevel = level.Value;
+            query = query.Where(e => e.CourseVersion.Level == courseLevel);
+        }
+
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            query = query.Where(e =>
+                e.CourseVersion.TitleVN.Contains(keyword) ||
+                e.CourseVersion.TitleEN.Contains(keyword));
+        }
+
+        var totalRecords = await query.CountAsync(cancellationToken);
+
+        var items = await query
+            .OrderByDescending(e => e.LastAccessDate)
+            .Select(e => new CourseEnrollmentQueryModel
+            {
+                EnrollmentId = e.EnrollmentID,
+                CourseId = e.CourseID,
+                CourseNameVN = e.CourseVersion.TitleVN,
+                CourseNameEN = e.CourseVersion.TitleEN,
+                ImageUrl = e.CourseVersion.ImageUrl,
+                Level = e.CourseVersion.Level,
+                EstimatedDuration = e.CourseVersion.EstimatedDuration,
+                Progress = e.Progress,
+                EnrollStatus = e.Status
+            })
+            .Skip((normalizedPageIndex - 1) * normalizedPageSize)
+            .Take(normalizedPageSize)
+            .ToListAsync(cancellationToken);
+
+        return new PaginationResult<IEnumerable<CourseEnrollmentQueryModel>>(
+            items,
+            totalRecords,
+            normalizedPageIndex,
+            normalizedPageSize);
     }
 }
 
