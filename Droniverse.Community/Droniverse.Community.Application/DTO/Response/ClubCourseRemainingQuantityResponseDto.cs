@@ -6,7 +6,7 @@ namespace Droniverse.Community.Application.DTO.Response
     public class ClubCourseRemainingQuantityResponseDto
     {
         public int RemainingQuantity { get; set; }
-        public ClubCourseProfit ProfitType { get; private set; }
+        public ClubCourseProfit ProfitType { get; set; }
 
     }
 }

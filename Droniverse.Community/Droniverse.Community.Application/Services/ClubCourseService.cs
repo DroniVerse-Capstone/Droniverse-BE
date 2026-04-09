@@ -114,7 +114,8 @@ namespace Droniverse.Community.Application.Services
             var clubCourse = await GetExistingClubCourse(clubId, courseId);
             return new ClubCourseRemainingQuantityResponseDto
             {
-                RemainingQuantity = clubCourse.RemainingQuantity
+                RemainingQuantity = clubCourse.RemainingQuantity,
+                ProfitType = clubCourse.ProfitType
             };
         }
 
