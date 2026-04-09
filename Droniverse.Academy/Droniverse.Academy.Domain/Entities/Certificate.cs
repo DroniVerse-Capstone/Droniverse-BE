@@ -6,11 +6,11 @@ public class Certificate
     public Guid CourseVersionID { get; set; }        // FK -> CourseVersion
     public required string CertificateNameVN { get; set; }
     public required string CertificateNameEN { get; set; }
-    //public string ImageUrl { get; set; }              // text
-    //public string LogoCertificate { get; set; }       // text
-    //public string Description { get; set; }           // text
-    //public string Signature { get; set; }             // text
-    //public string AuthorName { get; set; }            // varchar(100)
+    public string ImageUrl { get; set; }              // text
+    public string LogoCertificate { get; set; }       // text
+    public string Description { get; set; }           // text
+    public string Signature { get; set; }             // text
+    public string AuthorName { get; set; }            // varchar(100)
     public DateTime CreateAt { get; private set; }
     public Guid CreateBy { get; private set; }                // FK -> User
     public Guid UpdateBy { get; private set; }                // FK -> User
