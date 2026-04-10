@@ -284,9 +284,14 @@ public class IdentityMicroserviceClient
 
     private string GetEndpoint()
     {
-        return _environment.IsDevelopment()
-            ? "/identity"
-            : "/api/identity";
+        var host = _httpClient.BaseAddress?.Host?.ToLowerInvariant() ?? string.Empty;
+
+        // If Community is configured to call through API Gateway, it must use upstream prefix.
+        if (host.Contains("gateway"))
+            return "/api/identity";
+
+        // Direct service-to-service call to Identity uses controller prefix.
+        return "/identity";
     }
 }
 
