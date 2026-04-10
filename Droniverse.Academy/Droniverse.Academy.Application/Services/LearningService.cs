@@ -568,6 +568,13 @@ public class LearningService : ILearningService
         return UnlockHelper.IsLessonLocked(false, previousLessonCompleted);
     }
 
+    /// <summary>
+    /// Cấp chứng chỉ cho học viên (nếu đủ 
+    /// </summary>
+    /// <param name="courseVersionId"></param>
+    /// <param name="userId"></param>
+    /// <param name="now"></param>
+    /// <returns></returns>
     private async Task<bool> IssueCertificateIfNeededAsync(Guid courseVersionId, Guid userId, DateTime now)
     {
         var certificate = await _unitOfWork.Certificates.GetByConditionAsync(x => x.CourseVersionID == courseVersionId);
@@ -584,7 +591,7 @@ public class LearningService : ILearningService
         {
             UserID = userId,
             CertificateID = certificate.CertificateID,
-            SerialNumber = Guid.NewGuid(),
+            CertificateUrl = certificate.ImageUrl,
             AchievedDate = now,
             Status = UserCertificateStatus.ACHIEVED
         };
