@@ -27,18 +27,14 @@ public class CertificateService : ICertificateService
         _userDisplayNameService = userDisplayNameService;
     }
 
-    public async Task<CertificateResponseDTO> CreateCertificateAsync(Guid courseId, Guid versionId, CreateCertificateRequestDTO request)
+    public async Task<CertificateResponseDTO> CreateCertificateAsync(Guid courseId, Guid versionId, CreateCertificateRequestDTO request, string imageUrl)
     {
-        var cv = await _unitOfWork.CourseVersions.GetByConditionAsync(v => v.CourseVersionID == versionId && v.CourseID == courseId, includeProperties: "Certificate");
-        if (cv == null)
-            throw new BaseException("Không tìm thấy phiên bản khóa học.", "NOT_FOUND");
-
-        if (cv.Certificate != null)
-            throw new ValidationException("Phiên bản khóa học đã có chứng chỉ.");
+        await GetValidatedCourseVersionAsync(courseId, versionId);
 
         var cert = _mapper.Map<Certificate>(request);
         cert.CertificateID = Guid.NewGuid();
         cert.CourseVersionID = versionId;
+        cert.ImageUrl = imageUrl;
         cert.SetAuditOnCreate(_currentUser.UserId, _clock.Now);
 
         await _unitOfWork.Certificates.AddAsync(cert);
@@ -48,6 +44,12 @@ public class CertificateService : ICertificateService
         await PopulateUsersAsync(response, cert.CreateBy, cert.UpdateBy);
 
         return response;
+    }
+
+    public async Task<string> GetCourseVersionTitleVNAsync(Guid courseId, Guid versionId)
+    {
+        var cv = await GetValidatedCourseVersionAsync(courseId, versionId);
+        return cv.TitleVN;
     }
 
     public async Task DeleteCertificateAsync(Guid courseId, Guid versionId, Guid certificateId)
@@ -173,5 +175,20 @@ public class CertificateService : ICertificateService
                 dto.Updater = updater;
             }
         }
+    }
+
+    private async Task<CourseVersion> GetValidatedCourseVersionAsync(Guid courseId, Guid versionId)
+    {
+        var cv = await _unitOfWork.CourseVersions.GetByConditionAsync(
+            v => v.CourseVersionID == versionId && v.CourseID == courseId,
+            includeProperties: "Certificate");
+
+        if (cv == null)
+            throw new BaseException("Không tìm thấy phiên bản khóa học.", "NOT_FOUND");
+
+        if (cv.Certificate != null)
+            throw new ValidationException("Phiên bản khóa học đã có chứng chỉ.");
+
+        return cv;
     }
 }

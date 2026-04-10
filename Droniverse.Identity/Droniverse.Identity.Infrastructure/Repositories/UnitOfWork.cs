@@ -10,6 +10,8 @@ internal class UnitOfWork : IUnitOfWork
     private IUserRepository _account;
     private IRepository<UserInfo> _userInfo;
     private IPermissionRepository _permission;
+    private ISysConfigRepository _sysConfig;
+
 
     public UnitOfWork(IdentityDbContext context)
     {
@@ -23,6 +25,7 @@ internal class UnitOfWork : IUnitOfWork
     public IRepository<UserInfo> UserInfos => _userInfo ??= new Repository<UserInfo>(_context);
 
     public IPermissionRepository Permissions => _permission ??= new PermissionRepository(_context);
+    public ISysConfigRepository SysConfigs => _sysConfig ??= new SysConfigRepository(_context);
 
     public void Dispose() // dùng để đóng kết nối với DbContext
     {

@@ -41,7 +41,7 @@ public class UserCertificateService : IUserCertificateService
             throw new ValidationException("Người dùng đã được cấp chứng chỉ này.");
 
         var uc = _mapper.Map<UserCertificate>(request);
-        uc.SerialNumber = Guid.NewGuid();
+        //uc.SerialNumber = Guid.NewGuid();
         uc.AchievedDate = _clock.Now;
         uc.Status = UserCertificateStatus.ACHIEVED;
 

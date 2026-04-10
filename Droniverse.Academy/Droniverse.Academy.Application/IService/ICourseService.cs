@@ -37,5 +37,7 @@ public interface ICourseService
     Task<PagedCourseBulkResponse> GetHotCoursesByIdsAsync(
         HotCoursesSearchRequest searchRequest,
         IEnumerable<Guid> courseIds);
+
+    Task<PagedManagerCoursesBulkResponse> GetCoursesByIdsManagementAsync(ManagerCourseBulkSearchRequest searchRequest, GetCoursesByIdsRequestDTO courseIds);
 }
 

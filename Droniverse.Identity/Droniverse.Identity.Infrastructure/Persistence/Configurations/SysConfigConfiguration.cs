@@ -27,6 +27,8 @@ public class SysConfigConfiguration : IEntityTypeConfiguration<SysConfig>
         builder.Property(sc => sc.LogoCertificate)
             .HasColumnType("text").IsRequired();
 
+        builder.Property(sc => sc.CertificateTemplateUrl).HasColumnType("text");
+
     }
 }
 
