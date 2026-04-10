@@ -6,6 +6,7 @@ namespace Droniverse.Academy.Application.DTO.Response;
 public class CourseOverviewResponseDTO
 {
     public SimpleUserReponse? Author { get; set; }
+    public Guid? EnrollmentID { get; set; }
     public Guid CourseVersionID { get; set; }
     public string TitleVN { get; set; } = null!;
     public string TitleEN { get; set; } = null!;

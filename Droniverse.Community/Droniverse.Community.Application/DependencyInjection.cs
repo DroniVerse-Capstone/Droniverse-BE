@@ -37,10 +37,6 @@ public static class DependencyInjection
         services.AddScoped<IProductCategoryService, ProductCategoryService>();
         services.AddScoped<ICompetitionState, DraftState>();
         services.AddScoped<ICompetitionState, PublishedState>();
-        services.AddScoped<ICompetitionState, RegistrationOpenState>();
-        services.AddScoped<ICompetitionState, RegistrationClosedState>();
-        services.AddScoped<ICompetitionState, OngoingState>();
-        services.AddScoped<ICompetitionState, FinishedState>();
         services.AddScoped<ICompetitionState, ResultPublishedState>();
         services.AddScoped<ICompetitionState, CancelledState>();
         services.AddScoped<ICompetitionState, InvalidState>();
@@ -49,8 +45,6 @@ public static class DependencyInjection
         services.AddScoped<CompetitionLifecycleService>();
 
         services.AddScoped<IRoundState, PendingRoundState>();
-        services.AddScoped<IRoundState, OngoingRoundState>();
-        services.AddScoped<IRoundState, FinishedRoundState>();
         services.AddScoped<IRoundState, ScheduleInvalidRoundState>();
 
         services.AddScoped<IRoundStateFactory, RoundStateFactory>();

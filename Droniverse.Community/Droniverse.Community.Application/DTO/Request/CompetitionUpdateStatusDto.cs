@@ -7,7 +7,6 @@ namespace Droniverse.Community.Application.DTO.Request
     {
         [Required]
         public CompetitionStatus Status { get; set; }
-
         public CompetitionInvalidReason? InvalidReason { get; set; }
     }
 }

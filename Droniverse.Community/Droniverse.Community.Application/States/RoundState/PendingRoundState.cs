@@ -5,7 +5,7 @@ namespace Droniverse.Community.Application.States.RoundState
 {
     public class PendingRoundState : IRoundState
     {
-        public RoundStatus Status => RoundStatus.Pending;
+        public RoundStatus Status => RoundStatus.Valid;
 
         public void Handle(Round round, DateTime now, bool isPreviousRoundFinished)
         {
@@ -15,12 +15,8 @@ namespace Droniverse.Community.Application.States.RoundState
                 return;
             }
 
-            var competitionStatus = round.Competition?.Status ?? CompetitionStatus.DRAFT;
-
-            if (round.CanStart(now, isPreviousRoundFinished, competitionStatus))
-            {
-                round.StartRound(now);
-            }
+            // RoundStatus hiện chỉ phản ánh tính hợp lệ nghiệp vụ.
+            // Lifecycle đang được xử lý theo timeline ở service.
         }
     }
 }

@@ -1,8 +1,13 @@
 ﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.API.Examples;
+using Droniverse.Shared.DTOs.Response;
+using Droniverse.Shared.Extensions;
+using Droniverse.Shared.Services.IServices;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Filters;
@@ -15,16 +20,31 @@ public class CertificateController : ControllerBase
 {
     private readonly ILogger<CertificateController> _logger;
     private readonly ICertificateService _service;
+    private readonly ICertificateImageService _certificateImageService;
+    private readonly IdentityMicroserviceClient _identityMicroserviceClient;
+    private readonly ICloudinaryService _cloudinaryService;
 
-    public CertificateController(ILogger<CertificateController> logger, ICertificateService service)
+    public CertificateController(
+        ILogger<CertificateController> logger,
+        ICertificateService service,
+        ICertificateImageService certificateImageService,
+        IdentityMicroserviceClient identityMicroserviceClient,
+        ICloudinaryService cloudinaryService)
     {
         _logger = logger;
         _service = service;
+        _certificateImageService = certificateImageService;
+        _identityMicroserviceClient = identityMicroserviceClient;
+        _cloudinaryService = cloudinaryService;
     }
 
     /// <summary>
-    /// Tạo chứng chỉ cho phiên bản khóa học.
+    /// API để tao ra chứng chỉ
     /// </summary>
+    /// <remarks>
+    /// Tạo chứng chỉ từ ảnh mẫu, tự động ghi tên khóa học tiếng Việt ở giữa ảnh,
+    /// upload ảnh mới lên server và trả về URL ảnh chứng chỉ vừa tạo.
+    /// </remarks>
     /// <param name="courseId">Mã khóa học.</param>
     /// <param name="versionId">Mã phiên bản khóa học.</param>
     /// <param name="request">Thông tin chứng chỉ cần tạo.</param>
@@ -37,14 +57,65 @@ public class CertificateController : ControllerBase
     {
         try
         {
-            var created = await _service.CreateCertificateAsync(courseId, versionId, request);
-            return CreatedAtAction(nameof(GetCertificate), new { courseId = courseId, versionId = versionId }, SuccessResponse<object>.Create(created, "Tạo chứng chỉ thành công."));
+            var courseVersionTitleVN = await _service.GetCourseVersionTitleVNAsync(courseId, versionId);
+
+            var certificateTemplate = await _identityMicroserviceClient.GetCertificateTemplate();
+            if (certificateTemplate == null || string.IsNullOrWhiteSpace(certificateTemplate.ImageUrl))
+            {
+                return NotFound(new { message = "Không tìm thấy mẫu chứng chỉ." });
+            }
+
+            var generatedImage = await _certificateImageService.GenerateImageFromTemplateAsync(
+                certificateTemplate.ImageUrl,
+                courseVersionTitleVN,
+                CertificateWriteFor.Course_Write,
+                HttpContext.RequestAborted);
+
+            await using var imageStream = new MemoryStream(generatedImage.Content);
+            var generatedFile = new FormFile(imageStream, 0, imageStream.Length, "file", generatedImage.FileName)
+            {
+                Headers = new HeaderDictionary(),
+                ContentType = generatedImage.ContentType
+            };
+
+            var uploadResult = await this.UploadImageAsync(
+                _cloudinaryService,
+                new FileUploadDto { File = generatedFile },
+                "academy/certificates");
+
+            if (uploadResult is not OkObjectResult okUploadResult)
+            {
+                return uploadResult;
+            }
+
+            var uploadedUrl = GetUploadedImageUrl(okUploadResult);
+            if (string.IsNullOrWhiteSpace(uploadedUrl))
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new { message = "Không thể lấy URL ảnh chứng chỉ sau khi upload." });
+            }
+
+            var created = await _service.CreateCertificateAsync(courseId, versionId, request, uploadedUrl);
+
+            return CreatedAtAction(
+                nameof(GetCertificate),
+                new { courseId, versionId },
+                SuccessResponse<object>.Create(new { imageUrl = created.ImageUrl }, "Tạo chứng chỉ thành công."));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Tạo chứng chỉ thất bại.");
             throw;
         }
+    }
+
+    private static string? GetUploadedImageUrl(OkObjectResult okUploadResult)
+    {
+        return okUploadResult.Value?
+            .GetType()
+            .GetProperty("url")?
+            .GetValue(okUploadResult.Value)?
+            .ToString();
     }
 
     /// <summary>

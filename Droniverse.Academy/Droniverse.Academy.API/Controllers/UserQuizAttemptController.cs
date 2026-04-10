@@ -1,12 +1,9 @@
 ﻿using Droniverse.Academy.API.Enums;
-using Droniverse.Academy.API.Examples;
-using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Swashbuckle.AspNetCore.Filters;
 
 namespace Droniverse.Academy.API.Controllers;
 
@@ -22,26 +19,6 @@ public class UserQuizAttemptController : ControllerBase
     {
         _logger = logger;
         _service = service;
-    }
-
-    /// <summary>
-    /// Tạo quiz attempt cho người dùng hiện tại.
-    /// </summary>
-    /// <param name="request">Thông tin quiz attempt cần tạo.</param>
-    [HttpPost]
-    [SwaggerRequestExample(typeof(CreateUserQuizAttemptRequestDTO), typeof(CreateUserQuizAttemptRequestExample))]
-    public async Task<IActionResult> CreateQuizAttempt([FromBody] CreateUserQuizAttemptRequestDTO request)
-    {
-        try
-        {
-            var created = await _service.CreateUserQuizAttemptAsync(request);
-            return StatusCode(201, SuccessResponse<object>.Create(created, "Tạo quiz attempt thành công."));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Tạo quiz attempt thất bại.");
-            throw;
-        }
     }
 
     /// <summary>
@@ -83,46 +60,6 @@ public class UserQuizAttemptController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Lấy chi tiết quiz attempt thất bại.");
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Cập nhật quiz attempt của người dùng hiện tại.
-    /// </summary>
-    /// <param name="attemptId">Mã quiz attempt.</param>
-    /// <param name="request">Thông tin quiz attempt cần cập nhật.</param>
-    [HttpPut("{attemptId:guid}")]
-    [SwaggerRequestExample(typeof(UpdateUserQuizAttemptRequestDTO), typeof(UpdateUserQuizAttemptRequestExample))]
-    public async Task<IActionResult> UpdateMyQuizAttempt(Guid attemptId, [FromBody] UpdateUserQuizAttemptRequestDTO request)
-    {
-        try
-        {
-            var updated = await _service.UpdateMyQuizAttemptAsync(attemptId, request);
-            return Ok(SuccessResponse<object>.Create(updated, "Cập nhật quiz attempt thành công."));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Cập nhật quiz attempt thất bại.");
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Xóa quiz attempt của người dùng hiện tại.
-    /// </summary>
-    /// <param name="attemptId">Mã quiz attempt.</param>
-    [HttpDelete("{attemptId:guid}")]
-    public async Task<IActionResult> DeleteMyQuizAttempt(Guid attemptId)
-    {
-        try
-        {
-            await _service.DeleteMyQuizAttemptAsync(attemptId);
-            return Ok(SuccessResponse<object>.Create(null!, "Xóa quiz attempt thành công."));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Xóa quiz attempt thất bại.");
             throw;
         }
     }

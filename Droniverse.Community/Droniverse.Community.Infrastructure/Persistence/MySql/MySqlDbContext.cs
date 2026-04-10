@@ -14,6 +14,7 @@ public class MySqlDbContext : DbContext
     public DbSet<ClubCourse> ClubCourses { get; set; }
     public DbSet<ClubAttemptRequest> ClubRequests { get; set; }
     public DbSet<Competition> Competitions { get; set; }
+    public DbSet<CompetitionPrize> CompetitionPrizes { get; set; }
     public DbSet<CompetitionCertificate> CompetitionCertificates { get; set; }
     public DbSet<Media> Medias { get; set; }
     public DbSet<MediaType> MediaTypes { get; set; }

@@ -1,5 +1,6 @@
 ﻿using Droniverse.Academy.API.Enums;
 using Droniverse.Academy.API.Examples;
+using Droniverse.Academy.Application.DTO.Extension;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
@@ -91,6 +92,27 @@ public class UserEnrollmentController : ControllerBase
     }
 
     /// <summary>
+    /// Lấy chi tiết enrollment của người dùng hiện tại theo club và course version.
+    /// </summary>
+    /// <param name="clubId">Mã câu lạc bộ.</param>
+    /// <param name="courseVersionId">Mã phiên bản khóa học.</param>
+    [HttpGet("me/clubs/{clubId:guid}/course-versions/{courseVersionId:guid}")]
+    [Authorize(Roles = Roles.ClubMember)]
+    public async Task<IActionResult> GetMyEnrollmentByClubAndCourseVersion(Guid clubId, Guid courseVersionId)
+    {
+        try
+        {
+            var result = await _service.GetMyEnrollmentByClubAndCourseVersionAsync(clubId, courseVersionId);
+            return Ok(SuccessResponse<EnrollmentResponseDTO>.Create(result, "Lấy chi tiết enrollment thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lấy chi tiết enrollment theo club và course version thất bại.");
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Cập nhật enrollment của người dùng hiện tại.
     /// </summary>
     /// <param name="enrollmentId">Mã enrollment.</param>
@@ -107,44 +129,6 @@ public class UserEnrollmentController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Cập nhật enrollment thất bại.");
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Lấy learning path của enrollment hiện tại.
-    /// </summary>
-    /// <param name="enrollmentId">Mã enrollment.</param>
-    [HttpGet("{enrollmentId:guid}/learning-path")]
-    public async Task<IActionResult> GetMyLearningPath(Guid enrollmentId)
-    {
-        try
-        {
-            var result = await _service.GetMyLearningPathAsync(enrollmentId);
-            return Ok(SuccessResponse<EnrollmentLearningPathResponseDTO>.Create(result, "Lấy learning path thành công."));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Lấy learning path thất bại.");
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Lấy bài học tiếp theo của enrollment hiện tại.
-    /// </summary>
-    /// <param name="enrollmentId">Mã enrollment.</param>
-    [HttpGet("{enrollmentId:guid}/next")]
-    public async Task<IActionResult> GetMyNextLesson(Guid enrollmentId)
-    {
-        try
-        {
-            var result = await _service.GetMyNextLessonAsync(enrollmentId);
-            return Ok(SuccessResponse<EnrollmentNextLessonResponseDTO?>.Create(result, "Lấy bài học tiếp theo thành công."));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Lấy bài học tiếp theo thất bại.");
             throw;
         }
     }
@@ -168,6 +152,34 @@ public class UserEnrollmentController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy ra danh sách khóa học cùng với tiến trình
+    /// </summary>
+    /// <remarks>
+    /// - dùng cho ROLE : <b>CLUB_MEMBER</b>
+    /// - Để <b>EnrollmentStatus</b> mặc định => lấy status <b>ACTIVE</b>
+    /// </remarks>
+    /// <param name="clubId">ID của câu lạc bộ</param>
+    /// <param name="request">Search request của api</param>
+    /// <returns></returns>
+    [HttpGet("me/clubs/{clubId}/courses")]
+    [Authorize(Roles = Roles.ClubMember)]
+    public async Task<ApiResponse> GetCoursesOfUser(Guid clubId, [FromQuery] UserEnrollmentSearchRequest request)
+    {
+        try
+        {
+            var result = await _service.GetCoursesOfUser(clubId, request);
+            return SuccessResponse<PaginationResult<IEnumerable<CoursesEnrollmentResponse>>>.Create(
+                result,
+                "Lấy danh sách khóa học của người dùng thành công.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lấy danh sách khóa học của người dùng thất bại.");
+            throw;
+        }
+    }
+
     private static EnrollStatus? MapEnrollmentStatus(EnrollmentStatusFilter status)
     {
         return status switch
@@ -180,4 +192,5 @@ public class UserEnrollmentController : ControllerBase
             _ => null
         };
     }
+
 }

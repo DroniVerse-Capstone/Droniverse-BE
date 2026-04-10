@@ -122,41 +122,41 @@ namespace Droniverse.Community.API.Controllers
             );
         }
 
-        /// <summary>
-        /// Bắt đầu vòng thi
-        /// </summary>
-        /// <param name="roundId">ID của vòng thi</param>
-        /// <returns>200 OK - Bắt đầu vòng thi thành công</returns>
-        [HttpPut("{roundId}/start")]
-        [ProducesResponseType(typeof(SuccessResponse<RoundResponseDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [Authorize(Roles = Roles.AdminOrManagerRoles)]
-        public async Task<ApiResponse> StartRound(Guid roundId)
-        {
-            var round = await _roundService.StartRound(roundId);
-            return SuccessResponse<RoundResponseDto>.Create(
-                round,
-                "Bắt đầu vòng thi thành công!"
-            );
-        }
+        ///// <summary>
+        ///// Bắt đầu vòng thi
+        ///// </summary>
+        ///// <param name="roundId">ID của vòng thi</param>
+        ///// <returns>200 OK - Bắt đầu vòng thi thành công</returns>
+        //[HttpPut("{roundId}/start")]
+        //[ProducesResponseType(typeof(SuccessResponse<RoundResponseDto>), StatusCodes.Status200OK)]
+        //[ProducesResponseType(StatusCodes.Status400BadRequest)]
+        //[Authorize(Roles = Roles.AdminOrManagerRoles)]
+        //public async Task<ApiResponse> StartRound(Guid roundId)
+        //{
+        //    var round = await _roundService.StartRound(roundId);
+        //    return SuccessResponse<RoundResponseDto>.Create(
+        //        round,
+        //        "Bắt đầu vòng thi thành công!"
+        //    );
+        //}
 
-        /// <summary>
-        /// Kết thúc vòng thi
-        /// </summary>
-        /// <param name="roundId">ID của vòng thi</param>
-        /// <returns>200 OK - Kết thúc vòng thi thành công</returns>
-        [HttpPut("{roundId}/finish")]
-        [ProducesResponseType(typeof(SuccessResponse<RoundResponseDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [Authorize(Roles = Roles.AdminOrManagerRoles)]
-        public async Task<ApiResponse> FinishRound(Guid roundId)
-        {
-            var round = await _roundService.FinishRound(roundId);
-            return SuccessResponse<RoundResponseDto>.Create(
-                round,
-                "Kết thúc vòng thi thành công!"
-            );
-        }
+        ///// <summary>
+        ///// Kết thúc vòng thi
+        ///// </summary>
+        ///// <param name="roundId">ID của vòng thi</param>
+        ///// <returns>200 OK - Kết thúc vòng thi thành công</returns>
+        //[HttpPut("{roundId}/finish")]
+        //[ProducesResponseType(typeof(SuccessResponse<RoundResponseDto>), StatusCodes.Status200OK)]
+        //[ProducesResponseType(StatusCodes.Status400BadRequest)]
+        //[Authorize(Roles = Roles.AdminOrManagerRoles)]
+        //public async Task<ApiResponse> FinishRound(Guid roundId)
+        //{
+        //    var round = await _roundService.FinishRound(roundId);
+        //    return SuccessResponse<RoundResponseDto>.Create(
+        //        round,
+        //        "Kết thúc vòng thi thành công!"
+        //    );
+        //}
 
         /// <summary>
         /// Lấy bảng xếp hạng của vòng thi
@@ -275,6 +275,23 @@ namespace Droniverse.Community.API.Controllers
                 result,
                 "Submit giải pháp thành công!"
             );
+        }
+
+        /// <summary>
+        /// Api dùng để cập nhật trạng thái của round
+        /// </summary>
+        /// <remarks>
+        /// - API dùng cho CLUB_MANAGER, SYSTEM_MANAGER, ADMIN
+        /// </remarks>
+        /// <param name="roundId">ID của vòng thi</param>
+        /// <returns></returns>
+        /// 
+        [Authorize(Roles = Roles.SystemRoles)]
+        [HttpPatch("{roundId}/cancel")]
+        public async Task<ApiResponse> UpdateRoundStatus(Guid roundId)
+        {
+            var result = await _roundService.UpdateRoundStatus(roundId);
+            return SuccessResponse<RoundResponseDto>.Create(result, "Vòng thi được hủy thành công !");
         }
     }
 }

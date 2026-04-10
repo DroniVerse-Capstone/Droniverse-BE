@@ -10,7 +10,7 @@ namespace Droniverse.Community.Application.States.RoundState
 {
     public class ScheduleInvalidRoundState : IRoundState
     {
-        public RoundStatus Status => RoundStatus.SCHEDULE_INVALID;
+        public RoundStatus Status => RoundStatus.ScheduleInvalid;
 
         public void Handle(Round round, DateTime now, bool isPreviousRoundFinished)
         {

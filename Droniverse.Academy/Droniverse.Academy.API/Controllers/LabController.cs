@@ -45,6 +45,25 @@ public class LabController : ControllerBase
     }
 
     /// <summary>
+    /// Nhân bản lab và nội dung lab.
+    /// </summary>
+    [HttpPost("{labId:guid}/duplicate")]
+    [Authorize(Roles = Roles.AdminOrSystemManager)]
+    public async Task<IActionResult> DuplicateLab(Guid labId)
+    {
+        try
+        {
+            var duplicated = await _labService.DuplicateLabAsync(labId);
+            return StatusCode(201, SuccessResponse<LabDetailResponseDTO>.Create(duplicated, "Nhân bản lab thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Nhân bản lab thất bại.");
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Tạo lesson từ lab có sẵn trong kho và gán lab vào lesson đó.
     /// </summary>
     [HttpPost("{labId:guid}/lessons")]

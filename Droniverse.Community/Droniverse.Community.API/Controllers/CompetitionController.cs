@@ -14,9 +14,12 @@ namespace Droniverse.Community.API.Controllers
 {
     /// <summary>
     /// API quản lý cuộc thi (Competition).
-    /// Vòng đời trạng thái hiện tại:
-    /// DRAFT(0) → PUBLISHED(1) → REGISTRATION_OPEN(2) → REGISTRATION_CLOSED(3) → ONGOING(4) → FINISHED(5) → RESULT_PUBLISHED(6).
-    /// Trạng thái kết thúc đặc biệt: CANCELLED(7), INVALID(8).
+    /// Trạng thái CompetitionStatus hiện tại:
+    /// DRAFT(0), PUBLISHED(1), RESULT_PUBLISHED(2), CANCELLED(3), INVALID(4).
+    ///
+    /// Lưu ý:
+    /// - Các mốc vận hành theo thời gian (mở đăng ký, đóng đăng ký, đang thi, đã kết thúc)
+    ///   được biểu diễn qua CompetitionPhase (CompetitionLifeCycleStatus), không phải CompetitionStatus.
     /// </summary>
     [ApiController]
     [Route("community/competitions")]
@@ -71,12 +74,7 @@ namespace Droniverse.Community.API.Controllers
         ///    - Validate: `RegistrationStartDate &lt; RegistrationEndDate`, `StartDate &lt; EndDate`
         ///    - Validate timeline: `VisibleAt ≤ RegistrationStartDate`, `RegistrationEndDate ≤ StartDate`
         ///
-        /// 2. **PUBLISHED**:
-        ///    - Chỉ cập nhật thông tin nội dung: `NameVN`, `NameEN`, `DescriptionVN`, `DescriptionEN`
-        ///    - Có thể cập nhật `MaxParticipants` nhưng không được nhỏ hơn số đã đăng ký
-        ///    - `RuleContent` chỉ được đổi khi chưa có người đăng ký
-        ///
-        /// 3. **Các trạng thái khác** (`REGISTRATION_OPEN`, `REGISTRATION_CLOSED`, `ONGOING`, `FINISHED`, `RESULT_PUBLISHED`, `CANCELLED`, `INVALID`):
+        /// 3. **Các trạng thái khác** (`PUBLISH`,`RESULT_PUBLISHED`, `CANCELLED`, `INVALID`):
         ///    - Không được cập nhật bằng luồng này.
         /// </remarks>
         /// <returns>200 OK - Cập nhật thành công</returns>
@@ -154,6 +152,7 @@ namespace Droniverse.Community.API.Controllers
         public async Task<ApiResponse> GetAllCompetitionWithCondition([FromQuery] CompetitionSearchRequest searchRequest)
         {
             var competitions = await _competitionService.GetAllCompetitionsWithCondition(searchRequest);
+
             return SuccessResponse<PaginationResult<IEnumerable<CompetitionResponse>>>.Create(
                 competitions,
                 "Lấy danh sách cuộc thi thành công!"
@@ -165,7 +164,8 @@ namespace Droniverse.Community.API.Controllers
         /// </summary>
         /// <param name="competitionId">ID của cuộc thi</param>
         /// <remarks>
-        /// Chỉ hợp lệ khi cuộc thi ở trạng thái `REGISTRATION_OPEN` và thời điểm hiện tại nằm trong khoảng đăng ký.
+        /// Chỉ hợp lệ khi cuộc thi ở trạng thái `PUBLISHED`
+        /// và thời điểm hiện tại nằm trong khoảng đăng ký [`RegistrationStartDate`, `RegistrationEndDate`].
         /// </remarks>
         /// <returns>200 OK - Đăng ký thành công</returns>
         [HttpPost("{competitionId}/register")]
@@ -242,7 +242,10 @@ namespace Droniverse.Community.API.Controllers
         /// <param name="request">Trạng thái mục tiêu cần cập nhật</param>
         /// <remarks>
         /// API dùng để cập nhật `CompetitionStatus` theo rule domain.
-        /// Ví dụ: `REGISTRATION_OPEN`, `REGISTRATION_CLOSED`, `ONGOING`, `FINISHED`, `RESULT_PUBLISHED`, `CANCELLED`, `INVALID`.
+        /// Các trạng thái hợp lệ để cập nhật: `PUBLISHED`, `RESULT_PUBLISHED`, `CANCELLED`, `INVALID`.
+        ///
+        /// Không hỗ trợ cập nhật về `DRAFT` qua API này.
+        /// Các trạng thái theo timeline được xác định qua `CompetitionPhase`.
         ///
         /// Khi trạng thái được cập nhật sang `INVALID`, hệ thống yêu cầu cung cấp thêm `InvalidReason`
         /// để xác định nguyên nhân cuộc thi không hợp lệ.
@@ -253,8 +256,8 @@ namespace Droniverse.Community.API.Controllers
         /// - `ScheduleInvalid`: Lịch thi đấu không hợp lệ (ngoài khoảng thời gian competition).
         /// - `RegistrationTimeInvalid`: Thời gian đăng ký không hợp lệ.
         /// - `CompetitionTimeInvalid`: Thời gian diễn ra cuộc thi không hợp lệ.
-        /// - `StartFailed`: Thất bại khi chuyển trạng thái sang ONGOING.
-        /// - `FinishFailed`: Thất bại khi kết thúc cuộc thi.
+        /// - `StartFailed`: Thất bại khi bắt đầu cuộc thi theo timeline.
+        /// - `FinishFailed`: Thất bại khi hoàn tất cuộc thi theo timeline.
         /// - `SystemError`: Lỗi hệ thống không xác định.
         /// - `DependencyFailed`: Lỗi từ service bên ngoài (API khác, email, payment,...).
         /// - `Unknown`: Không xác định được nguyên nhân cụ thể.
@@ -277,6 +280,8 @@ namespace Droniverse.Community.API.Controllers
                 "Cập nhật trạng thái cuộc thi thành công!"
             );
         }
+
+
 
         /// <summary>
         /// Lấy danh sách vòng thi của cuộc thi
@@ -444,7 +449,7 @@ namespace Droniverse.Community.API.Controllers
         /// <param name="request">Thông tin giải thưởng</param>
         /// <param name="competitionId">Id cuộc thi</param>
         /// <returns>201 Created - Tạo giải thưởng thành công</returns>
-        [HttpPost("{competitionId}")]
+        [HttpPost("{competitionId}/prizes")]
         [ProducesResponseType(typeof(SuccessResponse<CompetitionPrizeResponseDto>), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [SwaggerRequestExample(typeof(CompetitionPrizeCreateDto), typeof(CompetitionPrizeCreateExample))]

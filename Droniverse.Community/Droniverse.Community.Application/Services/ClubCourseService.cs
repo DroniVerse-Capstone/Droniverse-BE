@@ -60,11 +60,10 @@ namespace Droniverse.Community.Application.Services
 
             var clubCourse = await GetExistingClubCourse(clubId, courseId);
 
-            if (request.TotalQuantity.HasValue)
-                clubCourse.UpdateTotalQuantity(request.TotalQuantity.Value);
+            if (request.ProfitType == clubCourse.ProfitType)
+                throw new InvalidOperationException($"Khóa học đã ở trạng thái {request.ProfitType} rồi.");
 
-            if (request.ProfitType.HasValue)
-                clubCourse.UpdateProfitType(request.ProfitType.Value);
+            clubCourse.UpdateProfitType(request.ProfitType);
 
             await _unitOfWork.SaveChangeAsync();
             await InvalidateRemainingQuantityCache(clubId, courseId);
@@ -114,7 +113,8 @@ namespace Droniverse.Community.Application.Services
             var clubCourse = await GetExistingClubCourse(clubId, courseId);
             return new ClubCourseRemainingQuantityResponseDto
             {
-                RemainingQuantity = clubCourse.RemainingQuantity
+                RemainingQuantity = clubCourse.RemainingQuantity,
+                ProfitType = clubCourse.ProfitType
             };
         }
 

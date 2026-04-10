@@ -184,6 +184,58 @@ namespace Droniverse.Academy.Application.HttpClients
             }
         }
 
+        public async Task<CertificateTemplateResponse?> GetCertificateTemplate()
+        {
+            try
+            {
+                HttpResponseMessage response = await _httpClient.GetAsync("/identity/system-configs/certificate");
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                    {
+                        _logger.LogError("Identity service unavailable when getting certificate template.");
+                        return null;
+                    }
+                    else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    {
+                        _logger.LogWarning("Certificate template not found.");
+                        return null;
+                    }
+                    else if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                    {
+                        throw new HttpRequestException(
+                            "Bad request when calling certificate template API",
+                            null,
+                            System.Net.HttpStatusCode.BadRequest);
+                    }
+                    else
+                    {
+                        throw new HttpRequestException(
+                            $"Identity service error: {response.StatusCode}",
+                            null,
+                            response.StatusCode);
+                    }
+                }
+
+                var result = await response.Content
+                    .ReadFromJsonAsync<CertificateTemplateResponse>(JsonOptions);
+
+                if (result == null)
+                {
+                    throw new ArgumentException("Invalid certificate template response");
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calling certificate template API");
+                throw;
+            }
+        }
+
+
         private static string GetUserCacheKey(Guid userId) => $"user:{userId}";
     }
 }

@@ -1,12 +1,9 @@
 ﻿using Droniverse.Academy.API.Enums;
-using Droniverse.Academy.API.Examples;
-using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Swashbuckle.AspNetCore.Filters;
 
 namespace Droniverse.Academy.API.Controllers;
 
@@ -22,26 +19,6 @@ public class UserLabController : ControllerBase
     {
         _logger = logger;
         _service = service;
-    }
-
-    /// <summary>
-    /// Tạo user lab cho người dùng hiện tại.
-    /// </summary>
-    /// <param name="request">Thông tin user lab cần tạo.</param>
-    [HttpPost]
-    [SwaggerRequestExample(typeof(CreateUserLabRequestDTO), typeof(CreateUserLabRequestExample))]
-    public async Task<IActionResult> CreateUserLab([FromBody] CreateUserLabRequestDTO request)
-    {
-        try
-        {
-            var created = await _service.CreateUserLabAsync(request);
-            return StatusCode(201, SuccessResponse<object>.Create(created, "Tạo user lab thành công."));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Tạo user lab thất bại.");
-            throw;
-        }
     }
 
     /// <summary>
@@ -83,46 +60,6 @@ public class UserLabController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Lấy chi tiết user lab thất bại.");
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Cập nhật user lab của người dùng hiện tại.
-    /// </summary>
-    /// <param name="userLabId">Mã user lab.</param>
-    /// <param name="request">Thông tin user lab cần cập nhật.</param>
-    [HttpPut("{userLabId:guid}")]
-    [SwaggerRequestExample(typeof(UpdateUserLabRequestDTO), typeof(UpdateUserLabRequestExample))]
-    public async Task<IActionResult> UpdateMyUserLab(Guid userLabId, [FromBody] UpdateUserLabRequestDTO request)
-    {
-        try
-        {
-            var updated = await _service.UpdateMyUserLabAsync(userLabId, request);
-            return Ok(SuccessResponse<object>.Create(updated, "Cập nhật user lab thành công."));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Cập nhật user lab thất bại.");
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Xóa user lab của người dùng hiện tại.
-    /// </summary>
-    /// <param name="userLabId">Mã user lab.</param>
-    [HttpDelete("{userLabId:guid}")]
-    public async Task<IActionResult> DeleteMyUserLab(Guid userLabId)
-    {
-        try
-        {
-            await _service.DeleteMyUserLabAsync(userLabId);
-            return Ok(SuccessResponse<object>.Create(null!, "Xóa user lab thành công."));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Xóa user lab thất bại.");
             throw;
         }
     }

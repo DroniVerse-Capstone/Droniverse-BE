@@ -12,7 +12,7 @@ public class UserCertificateMappingProfile : Profile
         CreateMap<GrantUserCertificateRequestDTO, UserCertificate>()
             .ForMember(dest => dest.CertificateID, opt => opt.MapFrom(src => src.CertificateID))
             .ForMember(dest => dest.UserID, opt => opt.MapFrom(src => src.UserID))
-            .ForMember(dest => dest.SerialNumber, opt => opt.Ignore())
+            .ForMember(dest => dest.CertificateUrl, opt => opt.Ignore())
             .ForMember(dest => dest.AchievedDate, opt => opt.Ignore())
             .ForMember(dest => dest.Status, opt => opt.Ignore())
             .ForMember(dest => dest.Certificate, opt => opt.Ignore());

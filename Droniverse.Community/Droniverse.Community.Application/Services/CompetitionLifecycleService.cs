@@ -31,9 +31,9 @@ namespace Droniverse.Community.Application.Services
             var now = _clock.Now;
 
             var competitions = await _unitOfWork.Competitions.GetManyByCondition(
-                c => c.Status != CompetitionStatus.FINISHED &&
-                     c.Status != CompetitionStatus.CANCELLED &&
-                     c.Status != CompetitionStatus.RESULT_PUBLISHED,
+                c => c.Status != CompetitionStatus.CANCELLED &&
+                     c.Status != CompetitionStatus.RESULT_PUBLISHED &&
+                     c.Status != CompetitionStatus.INVALID,
                 q => q.Include(c => c.Rounds)
             );
 

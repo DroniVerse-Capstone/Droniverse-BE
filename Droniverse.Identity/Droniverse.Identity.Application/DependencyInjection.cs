@@ -16,7 +16,7 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IRoleService, RoleService>();
-        services.AddScoped<IPermissionService, PermissionService>();
+        services.AddScoped<ISysConfigService, SysConfigService>();
         services.AddScoped<IEmailService, EmailService>();
         services.AddAutoMapper(typeof(AccountMappingProfile).Assembly);
         services.AddAutoMapper(typeof(PermissionMappingProfile).Assembly);
@@ -24,7 +24,7 @@ public static class DependencyInjection
         //rabbitmq
         services.AddTransient<IPublisher, UserPublisher>();
         services.AddTransient<IUserPublisher, UserPublisher>();
-        
+
         return services;
     }
 }

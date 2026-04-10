@@ -238,7 +238,7 @@ namespace Droniverse.Community.Application.Services
             if (round == null)
                 throw new KeyNotFoundException($"Không tìm thấy vòng thi với ID [{roundId}].");
 
-            if (round.Status != RoundStatus.Finished)
+            if (round.Status != RoundStatus.Valid || _clock.Now < round.EndTime)
                 throw new InvalidOperationException("Vòng thi chưa kết thúc, chưa thể xem kết quả tổng hợp.");
 
             int currentPage = Math.Max(1, request.CurrentPage);

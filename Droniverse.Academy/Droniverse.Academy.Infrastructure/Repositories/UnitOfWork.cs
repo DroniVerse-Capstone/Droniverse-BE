@@ -95,5 +95,36 @@ internal class UnitOfWork : IUnitOfWork
     {
         return await _mySqlContext.SaveChangesAsync();
     }
+
+    public async Task ExecuteInTransactionAsync(Func<Task> action)
+    {
+        await using var transaction = await _mySqlContext.Database.BeginTransactionAsync();
+        try
+        {
+            await action();
+            await transaction.CommitAsync();
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
+
+    public async Task<T> ExecuteInTransactionAsync<T>(Func<Task<T>> action)
+    {
+        await using var transaction = await _mySqlContext.Database.BeginTransactionAsync();
+        try
+        {
+            var result = await action();
+            await transaction.CommitAsync();
+            return result;
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
 }
 

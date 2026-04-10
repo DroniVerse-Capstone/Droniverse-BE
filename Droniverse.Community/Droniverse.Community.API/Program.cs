@@ -17,10 +17,6 @@ using System.Text;
 using System.Text.Json.Serialization;
 using Droniverse.Community.Application.Jobs;
 using Droniverse.Community.API.Jobs;
-using Hangfire;
-using Hangfire.MySql;
-using System.Transactions;
-using Droniverse.Community.API.BackgroundJobs;
 using Droniverse.Shared.Exceptions;
 
 
@@ -32,9 +28,9 @@ builder.Configuration.AddEnvironmentVariables();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication(builder.Configuration);
 builder.Services.AddShared(builder.Configuration);
-builder.Services.AddScoped<CompetitionStatusJob>();
-builder.Services.AddScoped<RoundStatusJob>();
-builder.Services.AddScoped<HotCompetitionsJob>();
+//builder.Services.AddScoped<CompetitionStatusJob>();
+//builder.Services.AddScoped<RoundStatusJob>();
+//builder.Services.AddScoped<HotCompetitionsJob>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -232,14 +228,14 @@ var app = builder.Build();
 
 
 app.UseSwagger();
-app.UseSwaggerUI(c => 
-{ 
+app.UseSwaggerUI(c =>
+{
     c.DocExpansion(DocExpansion.None);
     c.DocumentTitle = "Community API Docs";
     c.DisplayRequestDuration();
     c.EnableFilter();
     c.ConfigObject.AdditionalItems["persistAuthorization"] = true;
-}); 
+});
 
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 

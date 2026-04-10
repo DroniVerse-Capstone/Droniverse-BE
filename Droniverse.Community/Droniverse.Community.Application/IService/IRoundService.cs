@@ -13,6 +13,8 @@ namespace Droniverse.Community.Application.IService
         Task<RoundResponseDto> StartRound(Guid id);
         Task<RoundResponseDto> FinishRound(Guid id);
         Task<RoundJoinResponse> JoinRound(Guid id);
+
+        Task<RoundResponseDto> UpdateRoundStatus(Guid roundId);
         /// <summary>
         /// Lấy danh sách người tham gia của vòng thi theo điều kiện tìm kiếm và phân trang.
         /// </summary>
