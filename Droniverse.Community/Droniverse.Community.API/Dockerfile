@@ -32,9 +32,9 @@ FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 
-ENV IdentityMicroserviceName=identity-microservice
+ENV IdentityMicroserviceName=identity-service
 ENV IdentityMicroservicePort=8080
-ENV AcademyMicroserviceName=academy-microservice
+ENV AcademyMicroserviceName=academy-service
 ENV AcademyMicroservicePort=8080
 
 ENTRYPOINT ["dotnet", "Droniverse.Community.API.dll"]
