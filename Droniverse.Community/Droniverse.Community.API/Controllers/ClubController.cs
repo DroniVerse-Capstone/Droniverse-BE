@@ -144,10 +144,43 @@ namespace Droniverse.Community.API.Controllers
         [Authorize(Roles = Roles.AllRoles)]
         public async Task<ApiResponse> GetClubCourses(Guid clubId, [FromQuery] CourseBulkSearchRequest searchRequest)
         {
-
             var courses = await _clubService.GetClubCourses(clubId, searchRequest);
             return SuccessResponse<PaginationResult<IEnumerable<CourseBulkResponseDTO>>>
                 .Create(courses, "Lấy danh khóa học của câu lạc bộ thành công!");
+        }
+
+        /// <summary>
+        /// Lấy danh sách khóa học quản trị của câu lạc bộ theo phân trang và bộ lọc dành cho hệ thống.
+        /// </summary>
+        /// <param name="clubId">GUID của câu lạc bộ.</param>
+        /// <param name="searchRequest">
+        /// Bộ lọc quản trị khóa học:
+        /// - CurrentPage, PageSize
+        /// - Level
+        /// - ProfitType
+        /// - CourseSortBy, CourseSortDirection
+        /// </param>
+        /// <remarks>
+        /// Dữ liệu trả về bao gồm thông tin khóa học từ Academy và thông tin sở hữu của câu lạc bộ:
+        /// - Giá khóa học (Price) lấy từ Product đang ACTIVE.
+        /// - ClubCourseInfo gồm RemainingCode và ProfitType.
+        /// - Chỉ xử lý sort tại Community khi SortBy là Total_Codes_Quantity hoặc Remaining_Codes_Quantity.
+        /// </remarks>
+        /// <returns>
+        /// 200 OK - Trả về danh sách khóa học quản trị có phân trang.
+        /// 404 NotFound - Không tìm thấy câu lạc bộ.
+        /// 500 InternalServerError - Lỗi hệ thống.
+        /// </returns>
+        [HttpGet("{clubId}/courses/management")]
+        [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<ManagerCoursesBulkResponseDTO>>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [Authorize(Roles = Roles.SystemRoles)]
+        public async Task<ApiResponse> GetClubCoursesManagement(Guid clubId, [FromQuery] ManagerCourseBulkSearchRequest searchRequest)
+        {
+            var courses = await _clubService.GetClubCoursesManagement(clubId, searchRequest);
+            return SuccessResponse<PaginationResult<IEnumerable<ManagerCoursesBulkResponseDTO>>>
+                .Create(courses, "Lấy danh sách khóa học quản trị của câu lạc bộ thành công!");
         }
 
         /// <summary>

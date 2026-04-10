@@ -77,6 +77,26 @@ namespace Droniverse.Academy.API.Controllers
             }
         }
 
+        [HttpPost("by-ids/management")]
+        [SwaggerRequestExample(typeof(GetCoursesByIdsRequestDTO), typeof(GetCoursesByIdsExample))]
+        [SwaggerResponseExample(StatusCodes.Status200OK, typeof(CoursesByIdsSuccessResponseExample))]
+        [ProducesResponseType(typeof(PagedCourseBulkResponse), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetCoursesByIdsManagement(
+         [FromQuery] ManagerCourseBulkSearchRequest searchRequest,
+         [FromBody] GetCoursesByIdsRequestDTO request)
+        {
+            try
+            {
+                var result = await _courseService.GetCoursesByIdsManagementAsync(searchRequest, request);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lấy danh sách course theo id thất bại.");
+                throw;
+            }
+        }
+
         ///// <summary>
         ///// Lấy danh sách khóa học theo danh sách ID (kèm filter + pagination).
         ///// </summary>

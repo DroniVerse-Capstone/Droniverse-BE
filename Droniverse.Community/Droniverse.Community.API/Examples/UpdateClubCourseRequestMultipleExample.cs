@@ -11,19 +11,17 @@ public class UpdateClubCourseRequestMultipleExample : IMultipleExamplesProvider<
     {
         yield return SwaggerExample.Create(
             "Cập nhật sang NONPROFIT",
-            "Điều chỉnh tổng số lượng và loại lợi nhuận về phi lợi nhuận",
+            "Ko lợi nhuận",
             new UpdateClubCourseRequest
             {
-                TotalQuantity = 80,
                 ProfitType = ClubCourseProfit.NONPROFIT
             });
 
         yield return SwaggerExample.Create(
             "Cập nhật sang PROFIT",
-            "Điều chỉnh tổng số lượng và loại lợi nhuận về có lợi nhuận",
+            "Có lợi nhuận",
             new UpdateClubCourseRequest
             {
-                TotalQuantity = 120,
                 ProfitType = ClubCourseProfit.PROFIT
             });
     }

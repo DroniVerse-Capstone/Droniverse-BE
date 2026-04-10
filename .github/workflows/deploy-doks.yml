@@ -81,12 +81,12 @@ jobs:
       REGISTRY: registry.digitalocean.com
       REGISTRY_NAME: ${{ secrets.DOCR_REGISTRY_NAME }}
       DOKS_CLUSTER_NAME: ${{ secrets.DOKS_CLUSTER_NAME }}
-      K8S_NAMESPACE: droniverse
+      K8S_NAMESPACE: droniverse-hostname
 
-      GATEWAY_DEPLOYMENT: droniverse-gateway
-      ACADEMY_DEPLOYMENT: academy-microservice
-      COMMUNITY_DEPLOYMENT: community-microservice
-      IDENTITY_DEPLOYMENT: identity-microservice
+      GATEWAY_DEPLOYMENT: gateway
+      ACADEMY_DEPLOYMENT: academy
+      COMMUNITY_DEPLOYMENT: community
+      IDENTITY_DEPLOYMENT: identity
 
       GATEWAY_CONTAINER: gateway
       ACADEMY_CONTAINER: academy
@@ -180,6 +180,10 @@ jobs:
         if: env.DEPLOY_GATEWAY == 'true' || env.DEPLOY_ACADEMY == 'true' || env.DEPLOY_COMMUNITY == 'true' || env.DEPLOY_IDENTITY == 'true'
         run: doctl kubernetes cluster kubeconfig save "$DOKS_CLUSTER_NAME"
 
+      - name: Verify rollout targets exist
+        if: env.DEPLOY_GATEWAY == 'true' || env.DEPLOY_ACADEMY == 'true' || env.DEPLOY_COMMUNITY == 'true' || env.DEPLOY_IDENTITY == 'true'
+        run: kubectl -n "$K8S_NAMESPACE" get deployment "$GATEWAY_DEPLOYMENT" "$ACADEMY_DEPLOYMENT" "$COMMUNITY_DEPLOYMENT" "$IDENTITY_DEPLOYMENT"
+
       - name: Rollout Gateway
         if: env.DEPLOY_GATEWAY == 'true'
         run: kubectl -n "$K8S_NAMESPACE" set image deployment/$GATEWAY_DEPLOYMENT $GATEWAY_CONTAINER=$GW
@@ -223,17 +227,17 @@ jobs:
               exit 1
             fi
       
-            if ! grep -q 'academy-microservice' /app/ocelot.json; then
+            if ! grep -q 'academy-service\|academy-microservice' /app/ocelot.json; then
               echo 'Academy route missing'
               exit 1
             fi
       
-            if ! grep -q 'community-microservice' /app/ocelot.json; then
+            if ! grep -q 'community-service\|community-microservice' /app/ocelot.json; then
               echo 'Community route missing'
               exit 1
             fi
       
-            if ! grep -q 'identity-microservice' /app/ocelot.json; then
+            if ! grep -q 'identity-service\|identity-microservice' /app/ocelot.json; then
               echo 'Identity route missing'
               exit 1
             fi

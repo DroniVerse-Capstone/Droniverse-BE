@@ -62,7 +62,7 @@ builder.Services.AddSwaggerGen(c =>
                 {
                     Type = ReferenceType.SecurityScheme,
                     Id = "Bearer"
-                }  
+                }
             },
             Array.Empty<string>()
         }
@@ -154,6 +154,8 @@ builder.Services.AddHangfire(config =>
 builder.Services.AddHangfireServer();
 
 var app = builder.Build();
+
+Console.Title = "Identity Service";
 
 // Configure the HTTP request pipeline.
 //if (app.Environment.IsDevelopment())

@@ -1,4 +1,4 @@
-using Droniverse.Shared.Enums;
+﻿using Droniverse.Shared.Enums;
 
 namespace Droniverse.Identity.Domain.Interfaces;
 

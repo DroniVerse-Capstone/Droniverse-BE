@@ -6,7 +6,9 @@ namespace Droniverse.Academy.Application.IService;
 
 public interface ICertificateService
 {
-    Task<CertificateResponseDTO> CreateCertificateAsync(Guid courseId, Guid versionId, CreateCertificateRequestDTO request);
+    Task<CertificateResponseDTO> CreateCertificateAsync(Guid courseId, Guid versionId, CreateCertificateRequestDTO request, string imageUrl);
+
+    Task<string> GetCourseVersionTitleVNAsync(Guid courseId, Guid versionId);
 
     Task<CertificateResponseDTO> GetCertificateAsync(Guid courseId, Guid versionId);
 

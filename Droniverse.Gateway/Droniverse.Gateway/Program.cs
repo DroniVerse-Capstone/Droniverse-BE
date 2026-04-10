@@ -89,10 +89,10 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+app.UseStaticFiles();
+
 if (app.Environment.IsDevelopment())
 {
-    app.UseStaticFiles();
-
     var swaggerCustomFile = Path.Combine(app.Environment.WebRootPath, "swagger-custom.js");
     var swaggerCustomVersion = File.Exists(swaggerCustomFile)
         ? File.GetLastWriteTimeUtc(swaggerCustomFile).Ticks.ToString()
@@ -129,15 +129,13 @@ if (app.Environment.IsDevelopment())
             await next();
         }
     });
-
-
-
-    app.UseSwaggerForOcelotUI(opt =>
-    {
-        opt.PathToSwaggerGenerator = "/swagger/docs";
-        opt.ReConfigureUpstreamSwaggerJson = AlterUpstreamSwaggerJson;
-    });
 }
+
+app.UseSwaggerForOcelotUI(opt =>
+{
+    opt.PathToSwaggerGenerator = "/swagger/docs";
+    opt.ReConfigureUpstreamSwaggerJson = AlterUpstreamSwaggerJson;
+});
 
 app.UseHttpsRedirection();
 app.UseCors();
