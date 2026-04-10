@@ -500,4 +500,156 @@ public class CourseService : ICourseService
             }
         }
     }
+
+    public async Task<PagedManagerCoursesBulkResponse> GetCoursesByIdsManagementAsync(
+        ManagerCourseBulkSearchRequest searchRequest,
+        GetCoursesByIdsRequestDTO courseIds)
+    {
+        searchRequest ??= new ManagerCourseBulkSearchRequest();
+
+        var pageIndex = searchRequest.CurrentPage < 1 ? 1 : searchRequest.CurrentPage;
+        var pageSize = searchRequest.PageSize < 1 ? 5 : searchRequest.PageSize;
+
+        var ids = courseIds?.CourseIds?
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToList() ?? [];
+
+        if (ids.Count == 0)
+        {
+            return CreateEmptyManagerCoursesPagedResponse(pageIndex, pageSize);
+        }
+
+        var filteredCourseIds = ids;
+        var priceByCourseId = new Dictionary<Guid, decimal>();
+
+        //if (searchRequest.ProfitType.HasValue)
+        //{
+        //    var products = await _communityMicroserviceClient.GetProductsBulkByReferenceIdsAsync(ids);
+        //    priceByCourseId = products
+        //        .Where(p => p.ReferenceId != Guid.Empty)
+        //        .GroupBy(p => p.ReferenceId)
+        //        .ToDictionary(g => g.Key, g => g.First().Price);
+
+        //    filteredCourseIds = ids
+        //        .Where(id => MatchProfitType(
+        //            priceByCourseId.TryGetValue(id, out var price) ? price : (decimal?)null,
+        //            searchRequest.ProfitType))
+        //        .ToList();
+
+        //    if (filteredCourseIds.Count == 0)
+        //    {
+        //        return CreateEmptyManagerCoursesPagedResponse(pageIndex, pageSize);
+        //    }
+        //}
+
+        Expression<Func<Course, bool>> filter = c =>
+            c.CurrentVersion != null &&
+            filteredCourseIds.Contains(c.CourseID) &&
+            (!searchRequest.Level.HasValue || c.CurrentVersion.Level == searchRequest.Level.Value);
+
+        var orderBy = BuildManagerCoursesOrderBy(searchRequest);
+
+        var coursePage = await _unitOfWork.Courses.GetAllWithCurrentVersionAsync(
+            filter: filter,
+            orderBy: orderBy,
+            pageIndex: pageIndex,
+            pageSize: pageSize);
+
+        var courses = coursePage.Data.ToList();
+        if (courses.Count == 0)
+        {
+            return new PagedManagerCoursesBulkResponse
+            {
+                TotalItems = coursePage.TotalRecords,
+                Items = []
+            };
+        }
+
+        var versionIds = courses
+            .Where(c => c.CurrentVersion != null)
+            .Select(c => c.CurrentVersion!.CourseVersionID)
+            .Distinct()
+            .ToList();
+
+        var participantByVersionId = await _unitOfWork.Enrollments
+            .GetActiveOrCompletedParticipantCountsByCourseVersionIdsAsync(versionIds);
+
+        var items = courses
+            .Where(c => c.CurrentVersion != null)
+            .Select(c =>
+            {
+                var currentVersion = c.CurrentVersion!;
+                participantByVersionId.TryGetValue(currentVersion.CourseVersionID, out var participants);
+
+                return new ManagerCoursesBulkResponseDTO
+                {
+                    CourseId = c.CourseID,
+                    CourseVersionId = currentVersion.CourseVersionID,
+                    TitleVN = currentVersion.TitleVN,
+                    TitleEN = currentVersion.TitleEN,
+                    ImageUrl = currentVersion.ImageUrl ?? string.Empty,
+                    Level = currentVersion.Level,
+                    ClubCourseInfo = null,
+                    NumberOfParticipants = participants,
+                    EstimatedDuration = currentVersion.EstimatedDuration,
+                    Price = null
+                };
+            })
+            .ToList();
+
+        return new PagedManagerCoursesBulkResponse
+        {
+            TotalItems = coursePage.TotalRecords,
+            Items = items
+        };
+    }
+
+    private static PagedManagerCoursesBulkResponse CreateEmptyManagerCoursesPagedResponse(int pageIndex, int pageSize)
+    {
+        return new PagedManagerCoursesBulkResponse
+        {
+            TotalItems = 0,
+            Items = []
+        };
+    }
+
+    private static bool MatchProfitType(decimal? price, ClubCourseProfit? expectedProfitType)
+    {
+        if (!expectedProfitType.HasValue)
+        {
+            return true;
+        }
+
+        var actualProfitType = price.GetValueOrDefault() > 0
+            ? ClubCourseProfit.PROFIT
+            : ClubCourseProfit.NONPROFIT;
+
+        return actualProfitType == expectedProfitType.Value;
+    }
+
+    private static Func<IQueryable<Course>, IOrderedQueryable<Course>>? BuildManagerCoursesOrderBy(
+       ManagerCourseBulkSearchRequest searchRequest)
+    {
+        var sortBy = searchRequest.CourseSortBy ?? ManagerCourseSortBy.Participants_Quantity;
+        var sortDirection = searchRequest.CourseSortDirection ?? SortDirection.Asc;
+
+        if (sortBy != ManagerCourseSortBy.Participants_Quantity)
+            return null;
+
+        return q =>
+        {
+            var query = sortDirection == SortDirection.Desc
+                ? q.OrderByDescending(c =>
+                    c.CurrentVersion!.Enrollments.Count(e =>
+                        e.Status == EnrollStatus.ACTIVE ||
+                        e.Status == EnrollStatus.COMPLETED))
+                : q.OrderBy(c =>
+                    c.CurrentVersion!.Enrollments.Count(e =>
+                        e.Status == EnrollStatus.ACTIVE ||
+                        e.Status == EnrollStatus.COMPLETED));
+
+            return query.ThenBy(c => c.CourseID);
+        };
+    }
 }

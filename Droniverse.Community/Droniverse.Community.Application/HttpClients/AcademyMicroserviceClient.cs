@@ -493,6 +493,100 @@ public class AcademyMicroserviceClient
         }
     }
 
+    public async Task<PagedCourseBulkResponse> GetCoursesByIdsManagement(
+    IEnumerable<Guid> courseIds,
+    ManagerCourseBulkSearchRequest searchRequest,
+    CancellationToken cancellationToken = default)
+    {
+        searchRequest ??= new ManagerCourseBulkSearchRequest();
+
+        var ids = courseIds?
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToList() ?? [];
+
+        if (!ids.Any())
+            return CreatePagedCourseResponse([], 0);
+
+        var queryString = BuildManagerCourseBulkSearchQuery(searchRequest);
+
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync(
+                $"{BuildAcademyPath("courses/by-ids/management")}?{queryString}",
+                new GetCoursesByIdsRequestDTO { CourseIds = ids },
+                cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                {
+                    _logger.LogError("Academy service không khả dụng.");
+                    return CreatePagedCourseResponse([], 0);
+                }
+                else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    _logger.LogWarning("Không tìm thấy course.");
+                    return CreatePagedCourseResponse([], 0);
+                }
+                else if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    throw new HttpRequestException("Request không hợp lệ", null, System.Net.HttpStatusCode.BadRequest);
+                }
+                else
+                {
+                    throw new HttpRequestException(
+                        $"Academy service error: {response.StatusCode}",
+                        null,
+                        response.StatusCode);
+                }
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<PagedCourseBulkResponse>(_jsonOptions);
+
+            return result ?? CreatePagedCourseResponse([], 0);
+        }
+        catch (TaskCanceledException)
+        {
+            _logger.LogError("Timeout khi gọi courses/by-ids/management");
+            return CreatePagedCourseResponse([], 0);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi gọi courses/by-ids/management");
+            return CreatePagedCourseResponse([], 0);
+        }
+    }
+
+    private static string BuildManagerCourseBulkSearchQuery(ManagerCourseBulkSearchRequest request)
+    {
+        var queryParts = new List<string>
+    {
+        $"CurrentPage={request.CurrentPage}",
+        $"PageSize={request.PageSize}"
+    };
+
+        // Level
+        if (request.Level.HasValue)
+        {
+            queryParts.Add($"Level={(int)request.Level.Value}");
+        }
+
+        // ProfitType
+        if (request.ProfitType.HasValue)
+        {
+            queryParts.Add($"ProfitType={(int)request.ProfitType.Value}");
+        }
+
+        // SortBy (có default nên luôn gửi)
+        queryParts.Add($"CourseSortBy={(int)request.CourseSortBy!.Value}");
+
+        // SortDirection (có default nên luôn gửi)
+        queryParts.Add($"CourseSortDirection={(int)request.CourseSortDirection!.Value}");
+
+        return string.Join("&", queryParts);
+    }
+
     private static string BuildBulkCoursesPageCacheKey(IEnumerable<Guid> courseIds, string queryString)
     {
         var sortedIds = courseIds

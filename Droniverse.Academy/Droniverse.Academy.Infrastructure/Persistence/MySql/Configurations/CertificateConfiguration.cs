@@ -33,15 +33,16 @@ public class CertificateConfiguration : IEntityTypeConfiguration<Certificate>
             .HasMaxLength(100)
             .IsRequired();
         builder.Property(c => c.ImageUrl)
-            .HasColumnType("text");
-        builder.Property(c => c.LogoCertificate)
-            .HasColumnType("text");
-        builder.Property(c => c.Description)
-            .HasColumnType("text");
-        builder.Property(c => c.Signature)
-            .HasColumnType("text");
-        builder.Property(c => c.AuthorName)
-            .HasMaxLength(100);
+            .HasColumnType("text")
+            .IsRequired();
+        //builder.Property(c => c.LogoCertificate)
+        //    .HasColumnType("text");
+        //builder.Property(c => c.Description)
+        //    .HasColumnType("text");
+        //builder.Property(c => c.Signature)
+        //    .HasColumnType("text");
+        //builder.Property(c => c.AuthorName)
+        //    .HasMaxLength(100);
         builder.Property(c => c.CreateAt)
             .HasColumnType("datetime");
         builder.Property(c => c.UpdateAt)

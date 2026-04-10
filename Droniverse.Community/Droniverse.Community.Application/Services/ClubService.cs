@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using AutoMapper;
 using Droniverse.Community.Application.DTO.Extensions;
 using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
@@ -11,10 +10,10 @@ using Droniverse.Academy.Application.Enums;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.DTOs.Response;
-using Droniverse.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.Enums;
+using Droniverse.Shared.DTOs;
 
 namespace Droniverse.Community.Application.Services;
 internal class ClubService : IClubService
@@ -126,6 +125,8 @@ internal class ClubService : IClubService
             return false;
         }
     }
+
+
 
     public async Task<PaginationResult<IEnumerable<ClubResponseDto>>> GetAllClubs(GetAllClubsSearchRequest request)
     {
@@ -881,6 +882,119 @@ internal class ClubService : IClubService
         {
             Status = Domain.Enums.ClubStatus.INACTIVE
         });
+    }
+
+    public async Task<PaginationResult<IEnumerable<ManagerCoursesBulkResponseDTO>>> GetClubCoursesManagement(Guid clubId, ManagerCourseBulkSearchRequest searchRequest)
+    {
+        searchRequest ??= new ManagerCourseBulkSearchRequest();
+
+        var club = await _unitOfWork.Clubs.GetByCondition(
+            c => c.ClubID == clubId,
+            q => q.AsNoTracking());
+
+        if (club == null)
+            throw new KeyNotFoundException($"Không tìm thấy câu lạc bộ với ID [{clubId}].");
+
+        var clubCourses = (await _unitOfWork.ClubCourses.GetManyByCondition(
+            cc => cc.ClubID == clubId,
+            q => q.AsNoTracking()))?.ToList() ?? [];
+
+        if (clubCourses.Count == 0)
+            return new PaginationResult<IEnumerable<ManagerCoursesBulkResponseDTO>>([], 0, searchRequest.CurrentPage, searchRequest.PageSize);
+
+        if (searchRequest.ProfitType.HasValue)
+        {
+            clubCourses = clubCourses
+                .Where(cc => cc.ProfitType == searchRequest.ProfitType.Value)
+                .ToList();
+        }
+
+        var courseIds = clubCourses
+            .Select(cc => cc.CourseID)
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        if (courseIds.Count == 0)
+            return new PaginationResult<IEnumerable<ManagerCoursesBulkResponseDTO>>([], 0, searchRequest.CurrentPage, searchRequest.PageSize);
+
+        var pagedCourses = await _academyMicroserviceClient.GetCoursesByIdsManagement(courseIds, searchRequest);
+        var academyItems = pagedCourses.Items?.ToList() ?? [];
+
+        if (academyItems.Count == 0)
+            return new PaginationResult<IEnumerable<ManagerCoursesBulkResponseDTO>>([], pagedCourses.TotalItems, searchRequest.CurrentPage, searchRequest.PageSize);
+
+        var clubCourseByCourseId = clubCourses
+            .GroupBy(cc => cc.CourseID)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        var itemCourseIds = academyItems
+            .Select(c => c.CourseId)
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        var products = await _unitOfWork.Products.GetManyByCondition(
+            p => itemCourseIds.Contains(p.ReferenceID) && p.Status == ProductStatus.ACTIVE,
+            q => q.AsNoTracking());
+
+        var priceByCourseId = products?
+            .GroupBy(p => p.ReferenceID)
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderByDescending(x => x.UpdateAt)
+                      .Select(x => (decimal?)x.Price)
+                      .FirstOrDefault())
+            ?? [];
+
+        var result = academyItems
+            .Select(c =>
+            {
+                clubCourseByCourseId.TryGetValue(c.CourseId, out var clubCourse);
+
+                return new ManagerCoursesBulkResponseDTO
+                {
+                    CourseId = c.CourseId,
+                    CourseVersionId = c.CourseVersionId,
+                    TitleVN = c.TitleVN,
+                    TitleEN = c.TitleEN,
+                    ImageUrl = c.ImageUrl ?? string.Empty,
+                    Level = c.Level,
+                    EstimatedDuration = c.EstimatedDuration,
+                    NumberOfParticipants = c.NumberOfParticipants,
+                    Price = priceByCourseId.TryGetValue(c.CourseId, out var price) ? price : null,
+                    ClubCourseInfo = clubCourse == null
+                        ? null
+                        : new ManagerClubCourseOwnedResponse
+                        {
+                            TotalCode = clubCourse.TotalQuantity,
+                            RemainingCode = clubCourse.RemainingQuantity,
+                            ProfitType = clubCourse.ProfitType
+                        }
+                };
+            })
+            .ToList();
+
+        if (searchRequest.CourseSortBy == ManagerCourseSortBy.Total_Codes_Quantity)
+        {
+            result = searchRequest.CourseSortDirection == SortDirection.Desc
+                ? result.OrderByDescending(x =>
+                    clubCourseByCourseId.TryGetValue(x.CourseId, out var cc) ? cc.TotalQuantity : 0).ToList()
+                : result.OrderBy(x =>
+                    clubCourseByCourseId.TryGetValue(x.CourseId, out var cc) ? cc.TotalQuantity : 0).ToList();
+        }
+        else if (searchRequest.CourseSortBy == ManagerCourseSortBy.Remaining_Codes_Quantity)
+        {
+            result = searchRequest.CourseSortDirection == SortDirection.Desc
+                ? result.OrderByDescending(x => x.ClubCourseInfo?.RemainingCode ?? 0).ToList()
+                : result.OrderBy(x => x.ClubCourseInfo?.RemainingCode ?? 0).ToList();
+        }
+
+        return new PaginationResult<IEnumerable<ManagerCoursesBulkResponseDTO>>(
+            result,
+            pagedCourses.TotalItems,
+            searchRequest.CurrentPage,
+            searchRequest.PageSize);
     }
 }
 
