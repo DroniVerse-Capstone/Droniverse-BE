@@ -116,6 +116,9 @@ public class EnrollmentService : IEnrollmentService
         if (request.Progress.HasValue)
             enrollment.Progress = request.Progress.Value;
 
+        if (enrollment.Progress >= 100)
+            enrollment.Status = EnrollStatus.COMPLETED;
+
         enrollment.LastAccessDate = request.LastAccessDate ?? _clock.Now;
 
         if (request.ExpireDate.HasValue)

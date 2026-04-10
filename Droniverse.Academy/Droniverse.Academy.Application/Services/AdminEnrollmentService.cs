@@ -81,6 +81,9 @@ public class AdminEnrollmentService : IAdminEnrollmentService
 
         _mapper.Map(request, enrollment);
 
+        if (enrollment.Progress >= 100)
+            enrollment.Status = EnrollStatus.COMPLETED;
+
         await _unitOfWork.Enrollments.UpdateAsync(enrollment);
         await _unitOfWork.SaveChangesAsync();
 

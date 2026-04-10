@@ -11,9 +11,7 @@ public class CreateUserModuleRequestExample : IMultipleExamplesProvider<CreateUs
             "Ví dụ tạo user module",
             new CreateUserModuleRequestDTO
             {
-                ModuleID = Guid.Parse("55555555-5555-5555-5555-555555555555"),
-                Progress = 30f,
-                IsCompleted = false
+                ModuleID = Guid.Parse("55555555-5555-5555-5555-555555555555")
             }
         );
     }
