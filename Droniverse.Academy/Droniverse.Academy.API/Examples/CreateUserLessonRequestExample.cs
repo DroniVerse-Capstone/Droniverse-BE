@@ -1,5 +1,4 @@
 ﻿using Droniverse.Academy.Application.DTO.Request;
-using Droniverse.Academy.Domain.Enums;
 using Swashbuckle.AspNetCore.Filters;
 
 namespace Droniverse.Academy.API.Examples;
@@ -12,9 +11,7 @@ public class CreateUserLessonRequestExample : IMultipleExamplesProvider<CreateUs
             "Ví dụ tạo user lesson",
             new CreateUserLessonRequestDTO
             {
-                LessonID = Guid.Parse("44444444-4444-4444-4444-444444444444"),
-                Status = UserLessonStatus.INCOMPLETED,
-                Progress = 25f
+                LessonID = Guid.Parse("44444444-4444-4444-4444-444444444444")
             }
         );
     }

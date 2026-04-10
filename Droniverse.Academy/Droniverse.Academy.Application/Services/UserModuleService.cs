@@ -30,9 +30,6 @@ public class UserModuleService : IUserModuleService
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
-        if (request.Progress is < 0 or > 100)
-            throw new ValidationException("Progress phải nằm trong khoảng từ 0 đến 100.");
-
         if (await _unitOfWork.Modules.GetByIdAsync(request.ModuleID) == null)
             throw new BaseException("Không tìm thấy module.", "NOT_FOUND");
 
@@ -46,8 +43,10 @@ public class UserModuleService : IUserModuleService
 
         var userModule = _mapper.Map<UserModule>(request);
         userModule.UserID = userId;
+        userModule.Progress = 0;
+        userModule.IsCompleted = false;
         userModule.EnrollDate = _clock.Now;
-        userModule.CompleteDate = request.IsCompleted ? _clock.Now : null;
+        userModule.CompleteDate = null;
 
         await _unitOfWork.UserModules.AddAsync(userModule);
         await _unitOfWork.SaveChangesAsync();
@@ -102,7 +101,11 @@ public class UserModuleService : IUserModuleService
 
         userModule.Progress = request.Progress;
         userModule.IsCompleted = request.IsCompleted;
-        userModule.CompleteDate = request.IsCompleted ? _clock.Now : null;
+
+        if (userModule.Progress >= 100)
+            userModule.IsCompleted = true;
+
+        userModule.CompleteDate = userModule.IsCompleted ? _clock.Now : null;
 
         await _unitOfWork.UserModules.UpdateAsync(userModule);
         await _unitOfWork.SaveChangesAsync();

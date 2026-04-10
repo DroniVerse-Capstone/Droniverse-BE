@@ -21,6 +21,33 @@ public class UserLearningLessonController : ControllerBase
         _service = service;
     }
 
+    /// <summary>
+    /// Lấy trạng thái học lesson theo enrollment, tự tạo user lesson nếu chưa tồn tại.
+    /// </summary>
+    /// <param name="enrollmentId">Mã enrollment.</param>
+    /// <param name="lessonId">Mã lesson.</param>
+    /// <example>/academy/user/enrollments/{enrollmentId}/lessons/{lessonId}</example>
+    [HttpGet("{lessonId:guid}")]
+    public async Task<IActionResult> GetOrCreateUserLesson(Guid enrollmentId, Guid lessonId)
+    {
+        try
+        {
+            var result = await _service.GetOrCreateUserLessonAsync(enrollmentId, lessonId);
+            return Ok(SuccessResponse<UserLessonResponseDTO>.Create(result, "Lấy dữ liệu lesson học thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lấy dữ liệu lesson học thất bại.");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Đánh dấu hoàn thành lesson lý thuyết.
+    /// </summary>
+    /// <param name="enrollmentId">Mã enrollment.</param>
+    /// <param name="lessonId">Mã lesson lý thuyết.</param>
+    /// <example>/academy/user/enrollments/{enrollmentId}/lessons/{lessonId}/complete</example>
     [HttpPost("{lessonId:guid}/complete")]
     public async Task<IActionResult> CompleteLesson(Guid enrollmentId, Guid lessonId)
     {

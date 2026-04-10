@@ -43,6 +43,74 @@ public class LearningService : ILearningService
         return BuildLearningPath(enrollment, courseVersion, modules, lessons, userLessons, userModules, lessonMetadataLookup);
     }
 
+    public async Task<UserLessonResponseDTO> GetOrCreateUserLessonAsync(Guid enrollmentId, Guid lessonId)
+    {
+        await ValidateLessonAccessAsync(enrollmentId, lessonId);
+
+        var userLesson = await _unitOfWork.UserLessons.GetByConditionAsync(
+            x => x.UserID == _currentUser.UserId && x.LessonID == lessonId);
+
+        if (userLesson == null)
+        {
+            userLesson = new UserLesson
+            {
+                UserLessonID = Guid.NewGuid(),
+                UserID = _currentUser.UserId,
+                LessonID = lessonId,
+                Status = UserLessonStatus.INCOMPLETED,
+                Progress = 0,
+                LastAccessDate = _clock.Now
+            };
+
+            await _unitOfWork.UserLessons.AddAsync(userLesson);
+        }
+        else
+        {
+            userLesson.LastAccessDate = _clock.Now;
+            await _unitOfWork.UserLessons.UpdateAsync(userLesson);
+        }
+
+        await _unitOfWork.SaveChangesAsync();
+        return _mapper.Map<UserLessonResponseDTO>(userLesson);
+    }
+
+    public async Task<UserModuleResponseDTO> GetOrCreateUserModuleAsync(Guid enrollmentId, Guid moduleId)
+    {
+        var enrollment = await GetEnrollmentAsync(enrollmentId);
+        var modules = await GetModulesByCourseVersionAsync(enrollment.CourseVersionID);
+
+        var targetModule = modules.FirstOrDefault(x => x.ModuleID == moduleId)
+            ?? throw new NotFoundException("Không tìm thấy module.");
+
+        var moduleIds = modules.Select(x => x.ModuleID).ToArray();
+        var userModules = await GetUserModulesLookupAsync(_currentUser.UserId, moduleIds);
+
+        var isLocked = IsModuleLocked(modules, userModules, targetModule.ModuleID);
+        if (isLocked)
+            throw new ForbiddenException("Module chưa được mở. Vui lòng hoàn thành module trước đó.");
+
+        var userModule = await _unitOfWork.UserModules.GetByConditionAsync(
+            x => x.UserID == _currentUser.UserId && x.ModuleID == moduleId);
+
+        if (userModule == null)
+        {
+            userModule = new UserModule
+            {
+                UserID = _currentUser.UserId,
+                ModuleID = moduleId,
+                EnrollDate = _clock.Now,
+                Progress = 0,
+                IsCompleted = false,
+                CompleteDate = null
+            };
+
+            await _unitOfWork.UserModules.AddAsync(userModule);
+        }
+
+        await _unitOfWork.SaveChangesAsync();
+        return _mapper.Map<UserModuleResponseDTO>(userModule);
+    }
+
     public async Task ValidateLessonAccessAsync(Guid enrollmentId, Guid lessonId)
     {
         var enrollment = await GetEnrollmentAsync(enrollmentId);
@@ -184,9 +252,12 @@ public class LearningService : ILearningService
         await _unitOfWork.Enrollments.UpdateAsync(enrollment);
     }
 
-    private static bool IsCompletedUserLesson(UserLesson userLesson)
+    private static bool IsCompletedUserLesson(UserLesson? userLesson)
     {
-        return userLesson.Status == UserLessonStatus.COMPLETED && userLesson.Progress >= 100;
+        if (userLesson == null)
+            return false;
+
+        return userLesson.Status == UserLessonStatus.COMPLETED;
     }
 
     private static Dictionary<Guid, List<Lesson>> BuildLessonsByModule(IReadOnlyCollection<Lesson> lessons)
@@ -325,6 +396,7 @@ public class LearningService : ILearningService
         if (moduleIds.Count == 0)
             return [];
 
+
         var userModulesResult = await _unitOfWork.UserModules.GetAllAsync(
             filter: x => x.UserID == userId && moduleIds.Contains(x.ModuleID),
             pageIndex: 1,
@@ -344,15 +416,9 @@ public class LearningService : ILearningService
         IReadOnlyDictionary<Guid, UserModule> userModules,
         IReadOnlyDictionary<Guid, LessonMetadata> lessonMetadataLookup)
     {
-        var lessonsByModule = lessons
-            .GroupBy(x => x.ModuleID)
-            .ToDictionary(x => x.Key, x => x.OrderBy(y => y.OrderIndex).ToList());
+        var lessonsByModule = BuildLessonsByModule(lessons);
 
-        var moduleCompletionStates = modules
-            .OrderBy(x => x.ModuleNumber)
-            .ToDictionary(x => x.ModuleID, _ => false);
-
-        var moduleDtos = new List<LearningPathModuleDTO>();
+        var moduleDTOs = new List<LearningPathModuleDTO>();
         var previousModuleCompleted = true;
 
         foreach (var module in modules.OrderBy(x => x.ModuleNumber))
@@ -361,65 +427,99 @@ public class LearningService : ILearningService
                 ? list
                 : [];
 
-            var moduleLocked = UnlockHelper.IsModuleLocked(previousModuleCompleted);
-            var lessonDtos = new List<LearningPathLessonDTO>();
+            var (moduleDTO, moduleCompleted) = BuildModuleDTO(
+                module,
+                moduleLessons,
+                userLessons,
+                userModules,
+                lessonMetadataLookup,
+                previousModuleCompleted);
 
-            var previousLessonCompleted = true;
-            foreach (var lesson in moduleLessons)
-            {
-                userLessons.TryGetValue(lesson.LessonID, out var userLesson);
-                var isCompleted = userLesson is { Status: UserLessonStatus.COMPLETED } && userLesson.Progress >= 100;
-                var progress = userLesson?.Progress ?? 0;
-                var lessonLocked = UnlockHelper.IsLessonLocked(moduleLocked, previousLessonCompleted);
-
-                var lessonDto = _mapper.Map<LearningPathLessonDTO>(lesson);
-                if (lessonMetadataLookup.TryGetValue(lesson.LessonID, out var lessonMetadata))
-                {
-                    lessonDto.TitleVN = lessonMetadata.TitleVN;
-                    lessonDto.TitleEN = lessonMetadata.TitleEN;
-                    lessonDto.Duration = lessonMetadata.Duration;
-                }
-                lessonDto.IsCompleted = isCompleted;
-                lessonDto.Progress = progress;
-                lessonDto.IsLocked = lessonLocked;
-                lessonDto.LastAccessDate = userLesson?.LastAccessDate;
-                lessonDtos.Add(lessonDto);
-
-                previousLessonCompleted = isCompleted;
-            }
-
-            var completedLessons = lessonDtos.Count(x => x.IsCompleted);
-            var moduleProgress = ProgressHelper.CalculateProgress(completedLessons, lessonDtos.Count);
-            var moduleCompleted = lessonDtos.Count > 0 && completedLessons == lessonDtos.Count;
-
-            moduleCompletionStates[module.ModuleID] = moduleCompleted;
             previousModuleCompleted = moduleCompleted;
-
-            var moduleDto = _mapper.Map<LearningPathModuleDTO>(module);
-            moduleDto.Progress = userModules.TryGetValue(module.ModuleID, out var userModule)
-                ? userModule.Progress
-                : moduleProgress;
-            moduleDto.IsCompleted = userModules.TryGetValue(module.ModuleID, out var currentUserModule)
-                ? currentUserModule.IsCompleted
-                : moduleCompleted;
-            moduleDto.IsLocked = moduleLocked;
-            moduleDto.Lessons = lessonDtos;
-            moduleDto.TotalLessons = lessonDtos.Count;
-            moduleDto.Duration = SumDuration(lessonDtos.Select(x => x.Duration));
-            moduleDtos.Add(moduleDto);
+            moduleDTOs.Add(moduleDTO);
         }
 
-        var completedModules = moduleDtos.Count(x => x.IsCompleted);
-        var enrollmentProgress = ProgressHelper.CalculateProgress(completedModules, moduleDtos.Count);
+        var completedModules = moduleDTOs.Count(x => x.IsCompleted);
+        var enrollmentProgress = ProgressHelper.CalculateProgress(completedModules, moduleDTOs.Count);
 
         var response = _mapper.Map<LearningPathDTO>(enrollment);
         response.TitleVN = courseVersion.TitleVN;
         response.TitleEN = courseVersion.TitleEN;
-        response.TotalLessons = moduleDtos.Sum(x => x.TotalLessons);
-        response.Duration = courseVersion.EstimatedDuration ?? SumDuration(moduleDtos.Select(x => x.Duration));
+        response.TotalLessons = moduleDTOs.Sum(x => x.TotalLessons);
+        response.Duration = courseVersion.EstimatedDuration ?? SumDuration(moduleDTOs.Select(x => x.Duration));
         response.Progress = enrollmentProgress;
-        response.Modules = moduleDtos;
+        response.Modules = moduleDTOs;
         return response;
+    }
+
+    private (LearningPathModuleDTO ModuleDTO, bool IsCompleted) BuildModuleDTO(
+        Module module,
+        IReadOnlyCollection<Lesson> moduleLessons,
+        IReadOnlyDictionary<Guid, UserLesson> userLessons,
+        IReadOnlyDictionary<Guid, UserModule> userModules,
+        IReadOnlyDictionary<Guid, LessonMetadata> lessonMetadataLookup,
+        bool previousModuleCompleted)
+    {
+        var moduleLocked = UnlockHelper.IsModuleLocked(previousModuleCompleted);
+        var lessonDTOs = BuildLessonDTOs(moduleLessons, userLessons, lessonMetadataLookup, moduleLocked);
+
+        var completedLessons = lessonDTOs.Count(x => x.IsCompleted);
+        var moduleProgress = ProgressHelper.CalculateProgress(completedLessons, lessonDTOs.Count);
+        var moduleCompleted = lessonDTOs.Count > 0 && completedLessons == lessonDTOs.Count;
+
+        var moduleDTO = _mapper.Map<LearningPathModuleDTO>(module);
+        if (userModules.TryGetValue(module.ModuleID, out var userModule))
+        {
+            moduleDTO.Progress = userModule.Progress;
+            moduleDTO.IsCompleted = userModule.IsCompleted;
+        }
+        else
+        {
+            moduleDTO.Progress = moduleProgress;
+            moduleDTO.IsCompleted = moduleCompleted;
+        }
+
+        moduleDTO.IsLocked = moduleLocked;
+        moduleDTO.Lessons = lessonDTOs;
+        moduleDTO.TotalLessons = lessonDTOs.Count;
+        moduleDTO.Duration = SumDuration(lessonDTOs.Select(x => x.Duration));
+
+        return (moduleDTO, moduleCompleted);
+    }
+
+    private List<LearningPathLessonDTO> BuildLessonDTOs(
+        IReadOnlyCollection<Lesson> moduleLessons,
+        IReadOnlyDictionary<Guid, UserLesson> userLessons,
+        IReadOnlyDictionary<Guid, LessonMetadata> lessonMetadataLookup,
+        bool moduleLocked)
+    {
+        var lessonDTOs = new List<LearningPathLessonDTO>(moduleLessons.Count);
+        var previousLessonCompleted = true;
+
+        foreach (var lesson in moduleLessons)
+        {
+            userLessons.TryGetValue(lesson.LessonID, out var userLesson);
+            var isCompleted = IsCompletedUserLesson(userLesson);
+            var lessonLocked = UnlockHelper.IsLessonLocked(moduleLocked, previousLessonCompleted);
+
+            var lessonDTO = _mapper.Map<LearningPathLessonDTO>(lesson);
+            if (lessonMetadataLookup.TryGetValue(lesson.LessonID, out var lessonMetadata))
+            {
+                lessonDTO.TitleVN = lessonMetadata.TitleVN;
+                lessonDTO.TitleEN = lessonMetadata.TitleEN;
+                lessonDTO.Duration = lessonMetadata.Duration;
+            }
+
+            lessonDTO.IsCompleted = isCompleted;
+            lessonDTO.Progress = userLesson?.Progress ?? 0;
+            lessonDTO.IsLocked = lessonLocked;
+            lessonDTO.LastAccessDate = userLesson?.LastAccessDate;
+            lessonDTOs.Add(lessonDTO);
+
+            previousLessonCompleted = isCompleted;
+        }
+
+        return lessonDTOs;
     }
 
     private async Task<Dictionary<Guid, LessonMetadata>> GetLessonMetadataLookupAsync(IReadOnlyCollection<Lesson> lessons)
@@ -545,8 +645,7 @@ public class LearningService : ILearningService
             var previousLessons = lessonsByModule.TryGetValue(previousModule.ModuleID, out var value) ? value : [];
             previousModuleCompleted = previousLessons.Count > 0 && previousLessons.All(x =>
                 userLessons.TryGetValue(x.LessonID, out var userLesson)
-                && userLesson.Status == UserLessonStatus.COMPLETED
-                && userLesson.Progress >= 100);
+                && IsCompletedUserLesson(userLesson));
         }
 
         var moduleLocked = UnlockHelper.IsModuleLocked(previousModuleCompleted);
@@ -562,10 +661,30 @@ public class LearningService : ILearningService
 
         var previousLesson = orderedLessons[targetLessonIndex - 1];
         var previousLessonCompleted = userLessons.TryGetValue(previousLesson.LessonID, out var userLessonState)
-            && userLessonState.Status == UserLessonStatus.COMPLETED
-            && userLessonState.Progress >= 100;
+            && IsCompletedUserLesson(userLessonState);
 
         return UnlockHelper.IsLessonLocked(false, previousLessonCompleted);
+    }
+
+    private static bool IsModuleLocked(
+        IReadOnlyCollection<Module> modules,
+        IReadOnlyDictionary<Guid, UserModule> userModules,
+        Guid moduleId)
+    {
+        var orderedModules = modules.OrderBy(x => x.ModuleNumber).ToList();
+        var targetIndex = orderedModules.FindIndex(x => x.ModuleID == moduleId);
+
+        if (targetIndex < 0)
+            throw new NotFoundException("Không tìm thấy module.");
+
+        if (targetIndex == 0)
+            return false;
+
+        var previousModule = orderedModules[targetIndex - 1];
+        var previousModuleCompleted = userModules.TryGetValue(previousModule.ModuleID, out var userModule)
+            && userModule.IsCompleted;
+
+        return UnlockHelper.IsModuleLocked(previousModuleCompleted);
     }
 
     /// <summary>
