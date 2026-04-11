@@ -196,10 +196,10 @@ jobs:
         if: env.DEPLOY_ACADEMY == 'true'
         run: |
           kubectl -n "$K8S_NAMESPACE" set env deployment/$ACADEMY_DEPLOYMENT \
-            IdentityMicroserviceName=droniverse-gateway \
-            IdentityMicroservicePort=8080 \
-            CommunityMicroserviceName=droniverse-gateway \
-            CommunityMicroservicePort=8080
+            IdentityMicroserviceName=gateway-service \
+            IdentityMicroservicePort=80 \
+            CommunityMicroserviceName=gateway-service \
+            CommunityMicroservicePort=80
 
       - name: Rollout Community
         if: env.DEPLOY_COMMUNITY == 'true'
@@ -209,10 +209,10 @@ jobs:
         if: env.DEPLOY_COMMUNITY == 'true'
         run: |
           kubectl -n "$K8S_NAMESPACE" set env deployment/$COMMUNITY_DEPLOYMENT \
-            IdentityMicroserviceName=droniverse-gateway \
-            IdentityMicroservicePort=8080 \
-            AcademyMicroserviceName=droniverse-gateway \
-            AcademyMicroservicePort=8080
+            IdentityMicroserviceName=gateway-service \
+            IdentityMicroservicePort=80 \
+            AcademyMicroserviceName=gateway-service \
+            AcademyMicroservicePort=80
 
       - name: Rollout Identity
         if: env.DEPLOY_IDENTITY == 'true'
