@@ -131,12 +131,13 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+app.MapGet("/healthz", () => Results.Ok("OK"));
+
 app.UseSwaggerForOcelotUI(opt =>
 {
     opt.PathToSwaggerGenerator = "/swagger/docs";
     opt.ReConfigureUpstreamSwaggerJson = AlterUpstreamSwaggerJson;
 });
-app.MapGet("/healthz", () => Results.Ok("OK"));
 app.UseHttpsRedirection();
 app.UseCors();
 app.UseAuthentication();
