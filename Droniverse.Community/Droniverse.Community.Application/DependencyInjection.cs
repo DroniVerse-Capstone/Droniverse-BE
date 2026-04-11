@@ -57,7 +57,7 @@ public static class DependencyInjection
         //đăng ký httpclient
         services.AddHttpClient<IdentityMicroserviceClient>(client =>
         {
-            client.BaseAddress = new Uri($"https://{configuration["IdentityMicroserviceName"]}:{configuration["IdentityMicroservicePort"]}");
+            client.BaseAddress = new Uri($"http://{configuration["IdentityMicroserviceName"]}:{configuration["IdentityMicroservicePort"]}");
         }).AddHttpMessageHandler<AuthorizationDelegatingHandler>();
         services.AddHttpClient<AcademyMicroserviceClient>(client =>
         {

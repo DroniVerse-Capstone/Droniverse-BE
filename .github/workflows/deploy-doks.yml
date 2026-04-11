@@ -196,10 +196,10 @@ jobs:
         if: env.DEPLOY_ACADEMY == 'true'
         run: |
           kubectl -n "$K8S_NAMESPACE" set env deployment/$ACADEMY_DEPLOYMENT \
-            IdentityMicroserviceName=identity-service \
-            IdentityMicroservicePort=5002 \
-            CommunityMicroserviceName=community-service \
-            CommunityMicroservicePort=5001
+            IdentityMicroserviceName=gateway \
+            IdentityMicroservicePort=8080 \
+            CommunityMicroserviceName=gateway \
+            CommunityMicroservicePort=8080
 
       - name: Rollout Community
         if: env.DEPLOY_COMMUNITY == 'true'
@@ -209,10 +209,10 @@ jobs:
         if: env.DEPLOY_COMMUNITY == 'true'
         run: |
           kubectl -n "$K8S_NAMESPACE" set env deployment/$COMMUNITY_DEPLOYMENT \
-            IdentityMicroserviceName=identity-service \
-            IdentityMicroservicePort=5002 \
-            AcademyMicroserviceName=academy-service \
-            AcademyMicroservicePort=5000
+            IdentityMicroserviceName=gateway \
+            IdentityMicroservicePort=8080 \
+            AcademyMicroserviceName=gateway \
+            AcademyMicroservicePort=8080
 
       - name: Rollout Identity
         if: env.DEPLOY_IDENTITY == 'true'
