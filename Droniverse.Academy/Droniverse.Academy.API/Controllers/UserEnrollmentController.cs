@@ -49,49 +49,6 @@ public class UserEnrollmentController : ControllerBase
     }
 
     /// <summary>
-    /// Lấy danh sách enrollment của người dùng hiện tại.
-    /// </summary>
-    /// <param name="pageIndex">Trang hiện tại, bắt đầu từ 1.</param>
-    /// <param name="pageSize">Số bản ghi trên mỗi trang.</param>
-    /// <param name="status">Bộ lọc trạng thái enrollment.</param>
-    [HttpGet]
-    public async Task<IActionResult> GetMyEnrollments(
-        [FromQuery] int pageIndex = 1,
-        [FromQuery] int pageSize = 10,
-        [FromQuery] EnrollmentStatusFilter status = EnrollmentStatusFilter.All)
-    {
-        try
-        {
-            var result = await _service.GetMyEnrollmentsAsync(pageIndex, pageSize, MapEnrollmentStatus(status));
-            return Ok(SuccessResponse<PaginationResult<IEnumerable<EnrollmentResponseDTO>>>.Create(result, "Lấy danh sách enrollment thành công."));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Lấy danh sách enrollment thất bại.");
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Lấy chi tiết enrollment của người dùng hiện tại.
-    /// </summary>
-    /// <param name="enrollmentId">Mã enrollment.</param>
-    [HttpGet("{enrollmentId:guid}")]
-    public async Task<IActionResult> GetMyEnrollmentById(Guid enrollmentId)
-    {
-        try
-        {
-            var result = await _service.GetMyEnrollmentByIdAsync(enrollmentId);
-            return Ok(SuccessResponse<EnrollmentResponseDTO>.Create(result, "Lấy chi tiết enrollment thành công."));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Lấy chi tiết enrollment thất bại.");
-            throw;
-        }
-    }
-
-    /// <summary>
     /// Lấy chi tiết enrollment của người dùng hiện tại theo club và course version.
     /// </summary>
     /// <param name="clubId">Mã câu lạc bộ.</param>
@@ -112,45 +69,6 @@ public class UserEnrollmentController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Cập nhật enrollment của người dùng hiện tại.
-    /// </summary>
-    /// <param name="enrollmentId">Mã enrollment.</param>
-    /// <param name="request">Thông tin enrollment cần cập nhật.</param>
-    [HttpPatch("{enrollmentId:guid}")]
-    [SwaggerRequestExample(typeof(UpdateEnrollmentRequestDTO), typeof(UpdateEnrollmentRequestExample))]
-    public async Task<IActionResult> UpdateMyEnrollment(Guid enrollmentId, [FromBody] UpdateEnrollmentRequestDTO request)
-    {
-        try
-        {
-            var updated = await _service.UpdateMyEnrollmentAsync(enrollmentId, request);
-            return Ok(SuccessResponse<EnrollmentResponseDTO>.Create(updated, "Cập nhật enrollment thành công."));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Cập nhật enrollment thất bại.");
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Xóa enrollment của người dùng hiện tại.
-    /// </summary>
-    /// <param name="enrollmentId">Mã enrollment.</param>
-    [HttpDelete("{enrollmentId:guid}")]
-    public async Task<IActionResult> DeleteMyEnrollment(Guid enrollmentId)
-    {
-        try
-        {
-            await _service.DeleteMyEnrollmentAsync(enrollmentId);
-            return Ok(SuccessResponse<object>.Create(null!, "Xóa enrollment thành công."));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Xóa enrollment thất bại.");
-            throw;
-        }
-    }
 
     /// <summary>
     /// Lấy ra danh sách khóa học cùng với tiến trình

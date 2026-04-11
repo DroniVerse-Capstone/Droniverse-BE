@@ -29,6 +29,7 @@ namespace Droniverse.Academy.Application.Mapper
 
             CreateMap<CourseVersion, CourseVersionResponseDTO>()
                 .ForMember(dest => dest.ChangeLog, opt => opt.MapFrom(src => src.ChangeLog))
+                .ForMember(dest => dest.CertifycateImg, opt => opt.MapFrom(src => src.Certificate != null ? src.Certificate.ImageUrl : null))
                 .ForMember(dest => dest.Categories, opt => opt.Ignore())
                 .ForMember(dest => dest.RequiredDrones, opt => opt.Ignore());
 

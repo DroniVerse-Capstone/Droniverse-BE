@@ -10,6 +10,7 @@ namespace Droniverse.Academy.API.Controllers;
 [Route("academy/user/labs")]
 [ApiController]
 [Authorize(Roles = Roles.AllRoles)]
+[ApiExplorerSettings(IgnoreApi = true)]
 public class UserLabController : ControllerBase
 {
     private readonly ILogger<UserLabController> _logger;
@@ -19,30 +20,6 @@ public class UserLabController : ControllerBase
     {
         _logger = logger;
         _service = service;
-    }
-
-    /// <summary>
-    /// Lấy danh sách user lab của người dùng hiện tại.
-    /// </summary>
-    /// <param name="pageIndex">Trang hiện tại, bắt đầu từ 1.</param>
-    /// <param name="pageSize">Số bản ghi trên mỗi trang.</param>
-    /// <param name="completion">Bộ lọc trạng thái hoàn thành.</param>
-    [HttpGet]
-    public async Task<IActionResult> GetMyUserLabs(
-        [FromQuery] int pageIndex = 1,
-        [FromQuery] int pageSize = 10,
-        [FromQuery] UserLabCompletionFilter completion = UserLabCompletionFilter.All)
-    {
-        try
-        {
-            var result = await _service.GetMyUserLabsAsync(pageIndex, pageSize, MapCompletionFilter(completion));
-            return Ok(SuccessResponse<object>.Create(result, "Lấy danh sách user lab thành công."));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Lấy danh sách user lab thất bại.");
-            throw;
-        }
     }
 
     /// <summary>
