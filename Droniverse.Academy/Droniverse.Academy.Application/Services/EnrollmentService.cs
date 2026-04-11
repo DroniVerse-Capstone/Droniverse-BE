@@ -53,8 +53,12 @@ public class EnrollmentService : IEnrollmentService
         enrollment.Progress = 0;
         enrollment.Status = EnrollStatus.ACTIVE;
 
-        await _unitOfWork.Enrollments.AddAsync(enrollment);
-        await _unitOfWork.SaveChangesAsync();
+        await _unitOfWork.ExecuteInTransactionAsync(async () =>
+        {
+            await _unitOfWork.Enrollments.AddAsync(enrollment);
+            await CreateUserModulesAsync(courseVersion, enrollment.EnrollDate);
+            await _unitOfWork.SaveChangesAsync();
+        });
 
         return _mapper.Map<EnrollmentResponseDTO>(enrollment);
     }
@@ -196,6 +200,32 @@ public class EnrollmentService : IEnrollmentService
             throw new BaseException("Không tìm thấy enrollment.", "NOT_FOUND");
 
         return enrollment;
+    }
+
+    private async Task CreateUserModulesAsync(CourseVersion courseVersion, DateTime enrollDate)
+    {
+        var modulesResult = await _unitOfWork.Modules.GetAllAsync(
+            filter: x => x.CourseVersionID == courseVersion.CourseVersionID,
+            orderBy: q => q.OrderBy(x => x.ModuleNumber),
+            pageIndex: 1,
+            pageSize: 10000);
+
+        var userModules = modulesResult.Data
+            .Select(module => new UserModule
+            {
+                UserID = _currentUser.UserId,
+                ModuleID = module.ModuleID,
+                EnrollDate = enrollDate,
+                Progress = 0,
+                CompleteDate = null,
+                IsCompleted = false
+            })
+            .ToList();
+
+        if (userModules.Count == 0)
+            return;
+
+        await _unitOfWork.UserModules.AddRangeAsync(userModules);
     }
 
 }

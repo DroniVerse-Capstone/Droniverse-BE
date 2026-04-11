@@ -1,5 +1,6 @@
 ﻿using Droniverse.Academy.Domain.Enums;
 using Droniverse.Shared.DTOs;
+using System.Text.Json.Serialization;
 
 namespace Droniverse.Academy.Application.DTO.Response;
 
@@ -20,6 +21,7 @@ public class CourseVersionResponseDTO
     public DateTime? UpdateAt { get; set; }
     public string? ContextVN { get; set; }
     public string? ContextEN { get; set; }
+    public string? CertifycateImg { get; set; }
     public IEnumerable<CategoryResponseDTO> Categories { get; set; } = [];
     public IEnumerable<DroneClientViewDTO> RequiredDrones { get; set; } = [];
 }

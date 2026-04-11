@@ -10,6 +10,7 @@ namespace Droniverse.Academy.API.Controllers;
 [Route("academy/user/quiz-attempts")]
 [ApiController]
 [Authorize(Roles = Roles.AllRoles)]
+[ApiExplorerSettings(IgnoreApi = true)]
 public class UserQuizAttemptController : ControllerBase
 {
     private readonly ILogger<UserQuizAttemptController> _logger;
@@ -19,30 +20,6 @@ public class UserQuizAttemptController : ControllerBase
     {
         _logger = logger;
         _service = service;
-    }
-
-    /// <summary>
-    /// Lấy danh sách quiz attempt của người dùng hiện tại.
-    /// </summary>
-    /// <param name="pageIndex">Trang hiện tại, bắt đầu từ 1.</param>
-    /// <param name="pageSize">Số bản ghi trên mỗi trang.</param>
-    /// <param name="result">Bộ lọc kết quả làm bài.</param>
-    [HttpGet]
-    public async Task<IActionResult> GetMyQuizAttempts(
-        [FromQuery] int pageIndex = 1,
-        [FromQuery] int pageSize = 10,
-        [FromQuery] UserQuizAttemptResultFilter result = UserQuizAttemptResultFilter.All)
-    {
-        try
-        {
-            var data = await _service.GetMyQuizAttemptsAsync(pageIndex, pageSize, MapResultFilter(result));
-            return Ok(SuccessResponse<object>.Create(data, "Lấy danh sách quiz attempt thành công."));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Lấy danh sách quiz attempt thất bại.");
-            throw;
-        }
     }
 
     /// <summary>
