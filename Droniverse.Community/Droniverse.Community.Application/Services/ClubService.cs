@@ -363,9 +363,15 @@ internal class ClubService : IClubService
         {
             return await _identityMicroserviceClient.GetUsersBulk(ids);
         }
-        catch
+        catch (Exception ex)
         {
-            Console.WriteLine("Không lấy được thông tin users khi gọi API");
+            Console.WriteLine($"Không lấy được thông tin users khi gọi API. Error: {ex.Message}");
+            Console.WriteLine($"Exception Type: {ex.GetType().Name}");
+            Console.WriteLine($"Stack Trace: {ex.StackTrace}");
+            if (ex.InnerException != null)
+            {
+                Console.WriteLine($"Inner Exception: {ex.InnerException.Message}");
+            }
             return [];
         }
     }
