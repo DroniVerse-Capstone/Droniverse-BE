@@ -22,22 +22,47 @@ public class UserLearningLessonController : ControllerBase
     }
 
     /// <summary>
-    /// Lấy trạng thái học lesson theo enrollment, tự tạo user lesson nếu chưa tồn tại.
+    /// Tạo dữ liệu học lesson theo enrollment.
     /// </summary>
     /// <param name="enrollmentId">Mã enrollment.</param>
     /// <param name="lessonId">Mã lesson.</param>
     /// <example>/academy/user/enrollments/{enrollmentId}/lessons/{lessonId}</example>
-    [HttpGet("{lessonId:guid}")]
-    public async Task<IActionResult> GetOrCreateUserLesson(Guid enrollmentId, Guid lessonId)
+    /// <example>/academy/user/enrollments/11111111-1111-1111-1111-111111111111/lessons/22222222-2222-2222-2222-222222222222</example>
+    [HttpPost("{lessonId:guid}")]
+    [ProducesResponseType(typeof(SuccessResponse<UserLessonResponseDTO>), StatusCodes.Status201Created)]
+    public async Task<IActionResult> CreateUserLesson(Guid enrollmentId, Guid lessonId)
     {
         try
         {
-            var result = await _service.GetOrCreateUserLessonAsync(enrollmentId, lessonId);
-            return Ok(SuccessResponse<UserLessonResponseDTO>.Create(result, "Lấy dữ liệu lesson học thành công."));
+            var result = await _service.CreateUserLessonAsync(enrollmentId, lessonId);
+            return StatusCode(201, SuccessResponse<UserLessonResponseDTO>.Create(result, "Tạo dữ liệu lesson học thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Lấy dữ liệu lesson học thất bại.");
+            _logger.LogError(ex, "Tạo dữ liệu lesson học thất bại.");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Kiểm tra user lesson đã tồn tại theo lesson.
+    /// </summary>
+    /// <param name="enrollmentId">Mã enrollment.</param>
+    /// <param name="lessonId">Mã lesson.</param>
+    /// <example>/academy/user/enrollments/{enrollmentId}/lessons/{lessonId}/exists</example>
+    /// <example>/academy/user/enrollments/11111111-1111-1111-1111-111111111111/lessons/22222222-2222-2222-2222-222222222222/exists</example>
+    [HttpGet("{lessonId:guid}/exists")]
+    [ProducesResponseType(typeof(SuccessResponse<bool>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> CheckUserLessonExists(Guid enrollmentId, Guid lessonId)
+    {
+        try
+        {
+            var result = await _service.CheckUserLessonExistsAsync(enrollmentId, lessonId);
+            return Ok(SuccessResponse<bool>.Create(result, "Kiểm tra user lesson tồn tại thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Kiểm tra user lesson tồn tại thất bại.");
             throw;
         }
     }
@@ -48,7 +73,9 @@ public class UserLearningLessonController : ControllerBase
     /// <param name="enrollmentId">Mã enrollment.</param>
     /// <param name="lessonId">Mã lesson lý thuyết.</param>
     /// <example>/academy/user/enrollments/{enrollmentId}/lessons/{lessonId}/complete</example>
+    /// <example>/academy/user/enrollments/11111111-1111-1111-1111-111111111111/lessons/22222222-2222-2222-2222-222222222222/complete</example>
     [HttpPost("{lessonId:guid}/complete")]
+    [ProducesResponseType(typeof(SuccessResponse<CompleteLessonResultDTO>), StatusCodes.Status200OK)]
     public async Task<IActionResult> CompleteLesson(Guid enrollmentId, Guid lessonId)
     {
         try

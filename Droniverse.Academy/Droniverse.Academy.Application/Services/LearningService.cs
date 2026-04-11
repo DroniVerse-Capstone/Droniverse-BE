@@ -43,35 +43,45 @@ public class LearningService : ILearningService
         return BuildLearningPath(enrollment, courseVersion, modules, lessons, userLessons, userModules, lessonMetadataLookup);
     }
 
-    public async Task<UserLessonResponseDTO> GetOrCreateUserLessonAsync(Guid enrollmentId, Guid lessonId)
+    public async Task<UserLessonResponseDTO> CreateUserLessonAsync(Guid enrollmentId, Guid lessonId)
     {
         await ValidateLessonAccessAsync(enrollmentId, lessonId);
 
         var userLesson = await _unitOfWork.UserLessons.GetByConditionAsync(
             x => x.UserID == _currentUser.UserId && x.LessonID == lessonId);
 
-        if (userLesson == null)
-        {
-            userLesson = new UserLesson
-            {
-                UserLessonID = Guid.NewGuid(),
-                UserID = _currentUser.UserId,
-                LessonID = lessonId,
-                Status = UserLessonStatus.INCOMPLETED,
-                Progress = 0,
-                LastAccessDate = _clock.Now
-            };
+        if (userLesson != null)
+            throw new ValidationException("Người dùng đã có dữ liệu lesson này.");
 
-            await _unitOfWork.UserLessons.AddAsync(userLesson);
-        }
-        else
+        userLesson = new UserLesson
         {
-            userLesson.LastAccessDate = _clock.Now;
-            await _unitOfWork.UserLessons.UpdateAsync(userLesson);
-        }
+            UserLessonID = Guid.NewGuid(),
+            UserID = _currentUser.UserId,
+            LessonID = lessonId,
+            Status = UserLessonStatus.INCOMPLETED,
+            Progress = 0,
+            LastAccessDate = _clock.Now
+        };
+
+        await _unitOfWork.UserLessons.AddAsync(userLesson);
 
         await _unitOfWork.SaveChangesAsync();
         return _mapper.Map<UserLessonResponseDTO>(userLesson);
+    }
+
+    public async Task<bool> CheckUserLessonExistsAsync(Guid enrollmentId, Guid lessonId)
+    {
+        var enrollment = await GetEnrollmentAsync(enrollmentId);
+        var lesson = LearningValidator.EnsureLessonExists(await _unitOfWork.Lessons.GetByIdAsync(lessonId));
+
+        var modules = await GetModulesByCourseVersionAsync(enrollment.CourseVersionID);
+        var moduleIds = modules.Select(x => x.ModuleID).ToArray();
+        LearningValidator.EnsureLessonInCourseVersion(lesson, moduleIds);
+
+        var userLesson = await _unitOfWork.UserLessons.GetByConditionAsync(
+            x => x.UserID == _currentUser.UserId && x.LessonID == lessonId);
+
+        return userLesson != null;
     }
 
     public async Task<UserModuleResponseDTO> GetOrCreateUserModuleAsync(Guid enrollmentId, Guid moduleId)
