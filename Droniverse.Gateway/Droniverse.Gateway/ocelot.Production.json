@@ -1,78 +1,6 @@
 {
   "Routes": [
     {
-      "DownstreamPathTemplate": "/swagger/v1/swagger.json",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "academy-service",
-          "Port": 80
-        }
-      ],
-      "UpstreamPathTemplate": "/swagger/docs/v1/academy",
-      "UpstreamHttpMethod": [ "GET" ]
-    },
-    {
-      "DownstreamPathTemplate": "/swagger/v1/swagger.json",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "academy-service",
-          "Port": 80
-        }
-      ],
-      "UpstreamPathTemplate": "/swagger/docs/academy",
-      "UpstreamHttpMethod": [ "GET" ]
-    },
-    {
-      "DownstreamPathTemplate": "/swagger/v1/swagger.json",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "community-service",
-          "Port": 80
-        }
-      ],
-      "UpstreamPathTemplate": "/swagger/docs/v1/community",
-      "UpstreamHttpMethod": [ "GET" ]
-    },
-    {
-      "DownstreamPathTemplate": "/swagger/v1/swagger.json",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "community-service",
-          "Port": 80
-        }
-      ],
-      "UpstreamPathTemplate": "/swagger/docs/community",
-      "UpstreamHttpMethod": [ "GET" ]
-    },
-    {
-      "DownstreamPathTemplate": "/swagger/v1/swagger.json",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "identity-service",
-          "Port": 80
-        }
-      ],
-      "UpstreamPathTemplate": "/swagger/docs/v1/identity",
-      "UpstreamHttpMethod": [ "GET" ]
-    },
-    {
-      "DownstreamPathTemplate": "/swagger/v1/swagger.json",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "identity-service",
-          "Port": 80
-        }
-      ],
-      "UpstreamPathTemplate": "/swagger/docs/identity",
-      "UpstreamHttpMethod": [ "GET" ]
-    },
-    {
       "DownstreamPathTemplate": "/academy/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
@@ -123,7 +51,7 @@
         {
           "Name": "Academy Service API",
           "Version": "v1",
-          "Url": "/swagger/docs/v1/academy"
+          "Url": "http://academy-service/swagger/v1/swagger.json"
         }
       ]
     },
@@ -133,7 +61,7 @@
         {
           "Name": "Identity Service API",
           "Version": "v1",
-          "Url": "/swagger/docs/v1/identity"
+          "Url": "http://identity-service/swagger/v1/swagger.json"
         }
       ]
     },
@@ -143,7 +71,7 @@
         {
           "Name": "Community Service API",
           "Version": "v1",
-          "Url": "/swagger/docs/v1/community"
+          "Url": "http://community-service/swagger/v1/swagger.json"
         }
       ]
     }
