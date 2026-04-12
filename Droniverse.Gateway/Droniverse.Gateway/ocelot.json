@@ -9,7 +9,7 @@
           "Port": 8080
         }
       ],
-      "UpstreamPathTemplate": "/swagger/docs/academy",
+      "UpstreamPathTemplate": "/swagger/docs/v1/academy",
       "UpstreamHttpMethod": [ "GET" ]
     },
     {
@@ -21,7 +21,7 @@
           "Port": 8080
         }
       ],
-      "UpstreamPathTemplate": "/swagger/docs/community",
+      "UpstreamPathTemplate": "/swagger/docs/v1/community",
       "UpstreamHttpMethod": [ "GET" ]
     },
     {
@@ -33,7 +33,7 @@
           "Port": 8080
         }
       ],
-      "UpstreamPathTemplate": "/swagger/docs/identity",
+      "UpstreamPathTemplate": "/swagger/docs/v1/identity",
       "UpstreamHttpMethod": [ "GET" ]
     },
     {
@@ -85,7 +85,7 @@
       "Key": "academy",
       "Config": [
         {
-          "Name": "Academy Service API",
+          "Name": "Academy Service API - v1",
           "Version": "v1",
           "Url": "/swagger/docs/academy"
         }
@@ -95,7 +95,7 @@
       "Key": "identity",
       "Config": [
         {
-          "Name": "Identity Service API",
+          "Name": "Identity Service API - v1",
           "Version": "v1",
           "Url": "/swagger/docs/identity"
         }
@@ -105,7 +105,7 @@
       "Key": "community",
       "Config": [
         {
-          "Name": "Community Service API",
+          "Name": "Community Service API - v1",
           "Version": "v1",
           "Url": "/swagger/docs/community"
         }
