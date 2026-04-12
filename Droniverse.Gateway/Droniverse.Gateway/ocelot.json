@@ -51,7 +51,7 @@
         {
           "Name": "Academy Service API",
           "Version": "v1",
-          "Url": "http://academy-microservice:8080/swagger/v1/swagger.json"
+          "Url": "/api/academy/swagger/v1/swagger.json"
         }
       ]
     },
@@ -61,7 +61,7 @@
         {
           "Name": "Identity Service API",
           "Version": "v1",
-          "Url": "http://identity-microservice:8080/swagger/v1/swagger.json"
+          "Url": "/api/identity/swagger/v1/swagger.json"
         }
       ]
     },
@@ -71,7 +71,7 @@
         {
           "Name": "Community Service API",
           "Version": "v1",
-          "Url": "http://community-microservice:8080/swagger/v1/swagger.json"
+          "Url": "/api/community/swagger/v1/swagger.json"
         }
       ]
     }
