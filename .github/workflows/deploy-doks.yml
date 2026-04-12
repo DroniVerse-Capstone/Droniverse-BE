@@ -188,6 +188,10 @@ jobs:
         if: env.DEPLOY_GATEWAY == 'true'
         run: kubectl -n "$K8S_NAMESPACE" set image deployment/$GATEWAY_DEPLOYMENT $GATEWAY_CONTAINER=$GW
 
+      - name: Set Gateway environment to Production
+        if: env.DEPLOY_GATEWAY == 'true'
+        run: kubectl -n "$K8S_NAMESPACE" set env deployment/$GATEWAY_DEPLOYMENT ASPNETCORE_ENVIRONMENT=Production
+
       - name: Rollout Academy
         if: env.DEPLOY_ACADEMY == 'true'
         run: kubectl -n "$K8S_NAMESPACE" set image deployment/$ACADEMY_DEPLOYMENT $ACADEMY_CONTAINER=$ACA
@@ -201,6 +205,10 @@ jobs:
             CommunityMicroserviceName=gateway-service \
             CommunityMicroservicePort=80
 
+      - name: Set Academy environment to Production
+        if: env.DEPLOY_ACADEMY == 'true'
+        run: kubectl -n "$K8S_NAMESPACE" set env deployment/$ACADEMY_DEPLOYMENT ASPNETCORE_ENVIRONMENT=Production
+
       - name: Rollout Community
         if: env.DEPLOY_COMMUNITY == 'true'
         run: kubectl -n "$K8S_NAMESPACE" set image deployment/$COMMUNITY_DEPLOYMENT $COMMUNITY_CONTAINER=$COM
@@ -213,6 +221,14 @@ jobs:
             IdentityMicroservicePort=80 \
             AcademyMicroserviceName=gateway-service \
             AcademyMicroservicePort=80
+
+      - name: Set Community environment to Production
+        if: env.DEPLOY_COMMUNITY == 'true'
+        run: kubectl -n "$K8S_NAMESPACE" set env deployment/$COMMUNITY_DEPLOYMENT ASPNETCORE_ENVIRONMENT=Production
+
+      - name: Set Identity environment to Production
+        if: env.DEPLOY_IDENTITY == 'true'
+        run: kubectl -n "$K8S_NAMESPACE" set env deployment/$IDENTITY_DEPLOYMENT ASPNETCORE_ENVIRONMENT=Production
 
       - name: Rollout Identity
         if: env.DEPLOY_IDENTITY == 'true'
