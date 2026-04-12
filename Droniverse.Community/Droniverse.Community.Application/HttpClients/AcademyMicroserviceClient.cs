@@ -1,5 +1,4 @@
-﻿using Droniverse.Community.Application.DTO.Extensions;
-using Droniverse.Community.Application.DTO.Response;
+﻿using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Academy.Application.Enums;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Request;
@@ -63,6 +62,47 @@ public class AcademyMicroserviceClient
         _logger = logger;
         _distributedCache = distributedCache;
         _environment = environment;
+    }
+
+    public async Task<CreateCodesResponse> GenerateCodes(GenerateCodesRequestDTO request)
+    {
+        if (request == null)
+            throw new ArgumentNullException(nameof(request));
+
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync(
+                BuildAcademyPath("codes/generate"),
+                request);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    _logger.LogWarning("Không tìm thấy dữ liệu khi gọi Academy API codes/generate.");
+                    throw new KeyNotFoundException("Không tìm thấy dữ liệu để tạo code.");
+                }
+
+                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                    throw new HttpRequestException("Yêu cầu không hợp lệ khi gọi Academy service.", null, System.Net.HttpStatusCode.BadRequest);
+
+                throw new HttpRequestException(
+                    $"Academy service lỗi khi gọi codes/generate: {response.StatusCode}",
+                    null,
+                    response.StatusCode);
+            }
+
+            var created = await response.Content.ReadFromJsonAsync<CreateCodesResponse>(_jsonOptions);
+            if (created == null)
+                throw new InvalidOperationException("Không nhận được phản hồi tạo code hợp lệ từ Academy service.");
+
+            return created;
+        }
+        catch (Exception ex) when (ex is not HttpRequestException && ex is not KeyNotFoundException)
+        {
+            _logger.LogError(ex, "Lỗi khi gọi Academy API codes/generate cho ClubId {ClubId}, CourseId {CourseId}", request.ClubId, request.CourseId);
+            throw;
+        }
     }
 
     public async Task<IEnumerable<SimpleLabResponse>> GetLabsByIds(IEnumerable<Guid> labIds)
@@ -414,6 +454,60 @@ public class AcademyMicroserviceClient
         await _distributedCache.SetStringAsync(pageCacheKey, ownedCacheString, CourseCacheOptions);
 
         return ownedResult;
+    }
+
+    public async Task<IEnumerable<SimpleCourseResponse>> GetCoursesByIdsSimple(
+        IEnumerable<Guid> courseIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = courseIds?
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToList() ?? [];
+
+        if (ids.Count == 0)
+            return [];
+
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync(
+                BuildAcademyPath("courses/by-ids/simple"),
+                new GetCoursesByIdsRequestDTO { CourseIds = ids },
+                cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    _logger.LogWarning("Không tìm thấy khóa học khi gọi courses/by-ids/simple.");
+                    return [];
+                }
+
+                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    throw new HttpRequestException("Yêu cầu không hợp lệ khi gọi Academy service.", null, System.Net.HttpStatusCode.BadRequest);
+                }
+
+                _logger.LogWarning("Academy service lỗi khi gọi courses/by-ids/simple: {StatusCode}", response.StatusCode);
+                return [];
+            }
+
+            var data = await response.Content.ReadFromJsonAsync<IEnumerable<SimpleCourseResponse>>(_jsonOptions, cancellationToken);
+            return data?
+                .Where(x => x != null && x.CourseId != Guid.Empty)
+                .ToList()
+                ?? [];
+        }
+        catch (TaskCanceledException)
+        {
+            _logger.LogError("Timeout khi gọi courses/by-ids/simple");
+            return [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi gọi courses/by-ids/simple");
+            return [];
+        }
     }
 
     /// <summary>

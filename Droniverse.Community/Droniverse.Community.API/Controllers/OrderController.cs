@@ -43,19 +43,20 @@ namespace Droniverse.Community.API.Controllers
         /// <summary>
         /// Tạo mới một đơn hàng. #1. Luồng thanh toán
         /// </summary>
+        /// <param name="clubId">ID của club</param>
         /// <param name="orderCreateDto">Thông tin đơn hàng cần tạo</param>
         /// <returns>
         /// 200 OK - Tạo đơn hàng thành công
         /// 400 BadRequest - Dữ liệu không hợp lệ
         /// </returns>
-        [HttpPost]
+        [HttpPost("clubs/{clubId:guid}")]
         [ProducesResponseType(typeof(SuccessResponse<OrderResponseDto?>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ApiResponse> AddOrder([FromBody]OrderCreateDto orderCreateDto)
+        public async Task<ApiResponse> AddOrder(Guid clubId, [FromBody] OrderCreateDto orderCreateDto)
         {
             try
             {
-                var createdOrder = await _orderService.AddOrder(orderCreateDto);
+                var createdOrder = await _orderService.AddOrder(clubId,orderCreateDto);
                 if (createdOrder == null)
                 {
                     return ErrorResponse.Create("Dữ liệu đơn hàng không hợp lệ.", "ER2002");

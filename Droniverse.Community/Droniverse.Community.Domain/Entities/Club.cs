@@ -5,8 +5,8 @@ using System.ComponentModel.DataAnnotations;
 namespace Droniverse.Community.Domain.Entities;
 public class Club
 {
-    public Guid ClubID { get; set; } //char(36)
-    public Guid CreatedBy { get; set; } //char(36) // reference to UserID
+    public Guid ClubID { get; set; }
+    public Guid CreatedBy { get; set; }
     public ICollection<ClubCategory> ClubCategories { get; set; }
     public ICollection<ClubCourse> ClubCourses { get; set; }
     public ICollection<Participation> Participations { get; set; }

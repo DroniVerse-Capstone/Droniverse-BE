@@ -1,7 +1,7 @@
 ﻿using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Application.IService.Mongo;
 using Droniverse.Academy.Application.IService.Duplication;
-﻿using Droniverse.Academy.Application.Delegate;
+using Droniverse.Academy.Application.Delegate;
 using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Application.Mapper;
@@ -87,6 +87,9 @@ public static class DependencyInjection
             var user = configuration["Redis:User"];
             options.Configuration = $"{host}:{port},password={password},user={user}";
         });
+
+        services.AddMediatR(cfg =>
+                cfg.RegisterServicesFromAssembly(typeof(DependencyInjection).Assembly));
 
         return services;
     }

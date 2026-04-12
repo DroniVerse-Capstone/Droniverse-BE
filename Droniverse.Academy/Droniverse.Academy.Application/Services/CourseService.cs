@@ -410,9 +410,9 @@ public class CourseService : ICourseService
         var remainingCodeTask = _unitOfWork.Codes.GetAllAsync(
             filter: c =>
                 itemCourseIds.Contains(c.CourseID) &&
-                c.Status == CodeStatus.ACTIVE &&
+                c.Status == CodeStatus.Active &&
                 c.ExpireDate >= _clock.Now &&
-                !c.CodeUsages.Any(),
+                c.UsedByUserID == null,
             pageIndex: 1,
             pageSize: int.MaxValue);
 
@@ -455,6 +455,33 @@ public class CourseService : ICourseService
             TotalItems = courseResult.TotalRecords,
             Items = items
         };
+    }
+
+    public async Task<IEnumerable<SimpleCourseResponse>> GetCoursesByIdsSimpleAsync(GetCoursesByIdsRequestDTO request)
+    {
+        var ids = request?.CourseIds?
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToList() ?? [];
+
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        var courses = (await _unitOfWork.Courses.GetSimpleCoursesByIdsAsync(ids)).ToList();
+        if (courses.Count == 0)
+        {
+            return [];
+        }
+
+        var orderLookup = ids
+            .Select((id, index) => new { id, index })
+            .ToDictionary(x => x.id, x => x.index);
+
+        return courses
+            .OrderBy(c => orderLookup.GetValueOrDefault(c.CourseId, int.MaxValue))
+            .ToList();
     }
 
     private async Task PopulateCreatorAsync(CourseResponseDTO course, Guid createBy)

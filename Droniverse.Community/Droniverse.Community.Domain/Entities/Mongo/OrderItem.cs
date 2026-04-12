@@ -6,13 +6,13 @@ namespace Droniverse.Community.Domain.Entities.Mongo;
 public class OrderItem
 {
     public Guid ProductID { get; set; }
-
-    public string ProductName { get; set; }
+    public required string ProductNameVN { get; set; }
+    public required string ProductNameEN { get; set; }
     [BsonRepresentation(BsonType.String)]
     public ProductType Type { get; set; } // CODE, DRONE
-    public double UnitOfPrice { get; set; }
+    public decimal UnitOfPrice { get; set; }
     public int Quantity { get; set; }
 
-    public double Total { get; set; }
+    public decimal Total { get; set; }
 }
 
