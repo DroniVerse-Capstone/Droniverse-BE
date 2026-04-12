@@ -6,7 +6,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "academy-service",
-          "Port": 80
+          "Port": 5000
         }
       ],
       "UpstreamPathTemplate": "/api/academy/{everything}",
@@ -22,7 +22,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "community-service",
-          "Port": 80
+          "Port": 5001
         }
       ],
       "UpstreamPathTemplate": "/api/community/{everything}",
@@ -35,7 +35,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "identity-service",
-          "Port": 80
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/api/identity/{everything}",
@@ -51,7 +51,7 @@
         {
           "Name": "Academy Service API",
           "Version": "v1",
-          "Url": "http://academy-service/swagger/v1/swagger.json"
+          "Url": "http://academy-service:5000/swagger/v1/swagger.json"
         }
       ]
     },
@@ -61,7 +61,7 @@
         {
           "Name": "Identity Service API",
           "Version": "v1",
-          "Url": "http://identity-service/swagger/v1/swagger.json"
+          "Url": "http://identity-service:5002/swagger/v1/swagger.json"
         }
       ]
     },
@@ -71,7 +71,7 @@
         {
           "Name": "Community Service API",
           "Version": "v1",
-          "Url": "http://community-service/swagger/v1/swagger.json"
+          "Url": "http://community-service:5001/swagger/v1/swagger.json"
         }
       ]
     }
