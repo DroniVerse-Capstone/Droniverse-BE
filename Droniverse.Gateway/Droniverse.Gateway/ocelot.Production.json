@@ -1,0 +1,160 @@
+{
+  "Routes": [
+    {
+      "DownstreamPathTemplate": "/swagger/v1/swagger.json",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "academy-service",
+          "Port": 80
+        }
+      ],
+      "UpstreamPathTemplate": "/swagger/docs/{version}/academy",
+      "UpstreamHttpMethod": [ "GET" ],
+      "Priority": 1
+    },
+    {
+      "DownstreamPathTemplate": "/swagger/v1/swagger.json",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "academy-service",
+          "Port": 80
+        }
+      ],
+      "UpstreamPathTemplate": "/swagger/docs/academy",
+      "UpstreamHttpMethod": [ "GET" ],
+      "Priority": 2
+    },
+    {
+      "DownstreamPathTemplate": "/swagger/v1/swagger.json",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "community-service",
+          "Port": 80
+        }
+      ],
+      "UpstreamPathTemplate": "/swagger/docs/{version}/community",
+      "UpstreamHttpMethod": [ "GET" ],
+      "Priority": 1
+    },
+    {
+      "DownstreamPathTemplate": "/swagger/v1/swagger.json",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "community-service",
+          "Port": 80
+        }
+      ],
+      "UpstreamPathTemplate": "/swagger/docs/community",
+      "UpstreamHttpMethod": [ "GET" ],
+      "Priority": 2
+    },
+    {
+      "DownstreamPathTemplate": "/swagger/v1/swagger.json",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "identity-service",
+          "Port": 80
+        }
+      ],
+      "UpstreamPathTemplate": "/swagger/docs/{version}/identity",
+      "UpstreamHttpMethod": [ "GET" ],
+      "Priority": 1
+    },
+    {
+      "DownstreamPathTemplate": "/swagger/v1/swagger.json",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "identity-service",
+          "Port": 80
+        }
+      ],
+      "UpstreamPathTemplate": "/swagger/docs/identity",
+      "UpstreamHttpMethod": [ "GET" ],
+      "Priority": 2
+    },
+    {
+      "DownstreamPathTemplate": "/academy/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "academy-service",
+          "Port": 80
+        }
+      ],
+      "UpstreamPathTemplate": "/api/academy/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS" ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      },
+      "SwaggerKey": "academy"
+    },
+    {
+      "DownstreamPathTemplate": "/community/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "community-service",
+          "Port": 80
+        }
+      ],
+      "UpstreamPathTemplate": "/api/community/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+      "SwaggerKey": "community"
+    },
+    {
+      "DownstreamPathTemplate": "/identity/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "identity-service",
+          "Port": 80
+        }
+      ],
+      "UpstreamPathTemplate": "/api/identity/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+      "TimeoutInMilliseconds": 30000,
+      "SwaggerKey": "identity"
+    }
+  ],
+  "SwaggerEndPoints": [
+    {
+      "Key": "academy",
+      "Config": [
+        {
+          "Name": "Academy Service API",
+          "Version": "v1",
+          "Url": "/swagger/docs/academy"
+        }
+      ]
+    },
+    {
+      "Key": "identity",
+      "Config": [
+        {
+          "Name": "Identity Service API",
+          "Version": "v1",
+          "Url": "/swagger/docs/identity"
+        }
+      ]
+    },
+    {
+      "Key": "community",
+      "Config": [
+        {
+          "Name": "Community Service API",
+          "Version": "v1",
+          "Url": "/swagger/docs/community"
+        }
+      ]
+    }
+  ],
+  "GlobalConfiguration": {
+    "BaseUrl": "https://droniverse-system.io.vn"
+  }
+}

@@ -68,8 +68,20 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Load Ocelot configuration
-builder.Configuration.AddJsonFile("ocelot.json", optional: false, reloadOnChange: true);
+// Load Ocelot configuration based on environment
+var environment = builder.Environment.EnvironmentName;
+var ocelotFile = $"ocelot.{environment}.json";
+var defaultOcelotFile = "ocelot.json";
+
+// Try to load environment-specific config first, fall back to ocelot.json
+if (File.Exists(ocelotFile))
+{
+    builder.Configuration.AddJsonFile(ocelotFile, optional: false, reloadOnChange: true);
+}
+else
+{
+    builder.Configuration.AddJsonFile(defaultOcelotFile, optional: false, reloadOnChange: true);
+}
 
 // Add Ocelot
 builder.Services.AddOcelot(builder.Configuration);
