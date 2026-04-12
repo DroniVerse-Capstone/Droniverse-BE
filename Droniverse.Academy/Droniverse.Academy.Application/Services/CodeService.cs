@@ -353,7 +353,6 @@ public class CodeService : ICodeService
             {
                 var code = codeById[item.CodeId];
                 code.AssignToUser(item.UserId, _clock.Now);
-                await _unitOfWork.Codes.UpdateAsync(code);
 
                 assignedItems.Add(new CodeAssignmentResponseDTO
                 {
@@ -365,14 +364,17 @@ public class CodeService : ICodeService
 
             await _unitOfWork.SaveChangesAsync();
         });
+        
 
         if (request.SendEmail)
         {
-            foreach (var assigned in assignedItems)
+            var tasks = assignedItems.Select(x =>
             {
-                var assignedCode = codeById[assigned.CodeId];
-                await SendAssignEmailAsync(assigned.UserId, assigned.CodeId, assignedCode.CourseID);
-            }
+                var code = codeById[x.CodeId];
+                return SendAssignEmailAsync(x.UserId, x.CodeId, code.CourseID);
+            });
+
+            await Task.WhenAll(tasks);
         }
 
         return new BulkCodeAssignmentResponseDTO

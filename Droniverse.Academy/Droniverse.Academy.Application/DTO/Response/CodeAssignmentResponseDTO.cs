@@ -7,7 +7,7 @@ public class CodeAssignmentResponseDTO
     public DateTime AssignedAt { get; set; }
 }
 
-public class BulkCodeAssignmentResponseDTO
+public class BulkCodeAssignmentResponseDTO  
 {
     public int TotalAssigned { get; set; }
     public List<CodeAssignmentResponseDTO> AssignedItems { get; set; } = [];

@@ -477,8 +477,11 @@ namespace Droniverse.Community.API.Controllers
         //}
 
         /// <summary>
-        /// Api dành cho <br>CLUB_MANAGER</br> generate để tạo mã cho
+        /// Api dành cho generate để tạo mã cho
         /// </summary>
+        /// <remarks>
+        /// Được sử dụng cho : <br>CLUB_MANAGER</br>
+        /// </remarks>
         /// <param name="request">yêu cầu tạo</param>
         /// <param name="clubId">ID câu lạc bộ</param>
         /// <returns>200 : ok</returns>
