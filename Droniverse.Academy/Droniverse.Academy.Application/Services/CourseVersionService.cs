@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Droniverse.Academy.Application.Common.Extensions;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.HttpClients;
@@ -262,20 +263,25 @@ public class CourseVersionService : ICourseVersionService
         if (!updateBy.HasValue || updateBy.Value == Guid.Empty)
             return;
 
-        courseVersion.Updater = await _userDisplayNameService.ResolveUserDisplayNameAsync(updateBy.Value);
+        var users = await _userDisplayNameService.GetListUserAsync(new[] { updateBy.Value });
+        courseVersion.Updater = users.FirstOrDefault();
     }
 
     private async Task<Dictionary<Guid, SimpleUserReponse?>> BuildUpdaterLookupAsync(IEnumerable<CourseVersion> versions)
     {
         var userIds = versions
             .Select(v => v.UpdateBy)
-            .Where(id => id.HasValue && id.Value != Guid.Empty)
-            .Select(id => id!.Value)
-            .Distinct()
-            .ToList();
+            .ToDistinctValidIds();
 
-        var lookup = await _userDisplayNameService.ResolveUsersDisplayNameAsync(userIds);
-        return lookup.ToDictionary(x => x.Key, x => x.Value);
+        var users = await _userDisplayNameService.GetListUserAsync(userIds);
+        var lookup = users.ToDictionary(u => u.UserId, u => (SimpleUserReponse?)u);
+
+        foreach (var userId in userIds)
+        {
+            lookup.TryAdd(userId, null);
+        }
+
+        return lookup;
     }
 
     private static void PopulateMappedVersionsUpdater(
