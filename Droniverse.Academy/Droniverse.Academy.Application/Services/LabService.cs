@@ -352,7 +352,12 @@ public class LabService : ILabService
 
     private async Task PopulateUsersAsync(LabClientViewDTO lab, Guid createBy, Guid updateBy)
     {
-        var (creator, updater) = await _userDisplayNameService.ResolveCreatorUpdaterAsync(createBy, updateBy);
+        var users = await _userDisplayNameService.GetListUserAsync(new[] { createBy, updateBy });
+        var userLookup = users.ToDictionary(u => u.UserId, u => (SimpleUserReponse?)u);
+
+        userLookup.TryGetValue(createBy, out var creator);
+        userLookup.TryGetValue(updateBy, out var updater);
+
         lab.Creator = creator;
         lab.Updater = updater;
     }
@@ -361,20 +366,17 @@ public class LabService : ILabService
     {
         var userIds = labs
             .SelectMany(l => new[] { l.CreateBy, l.UpdateBy })
-            .Where(id => id != Guid.Empty)
-            .Distinct()
-            .ToList();
+            .ToDistinctValidIds();
 
-        try
+        var users = await _userDisplayNameService.GetListUserAsync(userIds);
+        var lookup = users.ToDictionary(u => u.UserId, u => (SimpleUserReponse?)u);
+
+        foreach (var userId in userIds)
         {
-            var lookup = await _userDisplayNameService.ResolveUsersDisplayNameAsync(userIds);
-            return lookup.ToDictionary(x => x.Key, x => x.Value);
+            lookup.TryAdd(userId, null);
         }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Không thể lấy thông tin người dùng từ Identity service. Trả về danh sách lab không kèm creator/updater.");
-            return new Dictionary<Guid, SimpleUserReponse?>();
-        }
+
+        return lookup;
     }
 
     private static void PopulateMappedLabsUsers(

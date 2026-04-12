@@ -1,70 +1,44 @@
 ﻿using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.Application.Common.Extensions;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.Helpers;
+using Microsoft.Extensions.Logging;
 
 namespace Droniverse.Academy.Application.Services;
 
 public class UserDisplayNameService : IUserDisplayNameService
 {
     private readonly IdentityMicroserviceClient _identityClient;
+    private readonly ILogger<UserDisplayNameService> _logger;
 
-    public UserDisplayNameService(IdentityMicroserviceClient identityClient)
+    public UserDisplayNameService(IdentityMicroserviceClient identityClient, ILogger<UserDisplayNameService> logger)
     {
         _identityClient = identityClient;
+        _logger = logger;
     }
 
-    public async Task<SimpleUserReponse?> ResolveUserDisplayNameAsync(Guid userId)
+    public async Task<IReadOnlyList<SimpleUserReponse>> GetListUserAsync(IEnumerable<Guid> userIds)
     {
-        if (userId == Guid.Empty)
-            return null;
-
-        return await _identityClient.GetUserByUserID(userId);
-    }
-
-    public async Task<IReadOnlyDictionary<Guid, SimpleUserReponse?>> ResolveUsersDisplayNameAsync(IEnumerable<Guid> userIds)
-    {
-        var ids = userIds?
-            .Where(id => id != Guid.Empty)
-            .Distinct()
-            .ToList() ?? [];
+        var ids = userIds.ToDistinctValidIds();
 
         if (ids.Count == 0)
-            return new Dictionary<Guid, SimpleUserReponse?>();
+            return [];
 
-        var users = await _identityClient.GetUsersBulk(ids);
-        var lookup = users.ToDictionary(
-            u => u.UserId,
-            u => (SimpleUserReponse?)new SimpleUserReponse
+        try
+        {
+            var users = await _identityClient.GetUsersBulk(ids);
+            return users.Select(u => new SimpleUserReponse
             {
                 UserId = u.UserId,
                 Email = u.Email,
                 FullName = AppHelper.GetFullName(u)
-            });
-
-        foreach (var id in ids)
-        {
-            if (!lookup.ContainsKey(id))
-            {
-                lookup[id] = null;
-            }
+            }).ToList();
         }
-
-        return lookup;
-    }
-
-    public async Task<(SimpleUserReponse? Creator, SimpleUserReponse? Updater)> ResolveCreatorUpdaterAsync(Guid createBy, Guid updateBy)
-    {
-        if (createBy == updateBy)
+        catch (Exception ex)
         {
-            var user = await ResolveUserDisplayNameAsync(createBy);
-            return (user, user);
+            _logger.LogWarning(ex, "Không thể lấy thông tin người dùng từ Identity service. Trả về danh sách rỗng.");
+            return [];
         }
-
-        var users = await ResolveUsersDisplayNameAsync(new[] { createBy, updateBy });
-        users.TryGetValue(createBy, out var creator);
-        users.TryGetValue(updateBy, out var updater);
-
-        return (creator, updater);
     }
 }
