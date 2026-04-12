@@ -4,6 +4,7 @@ using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.Services.IServices;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Hosting;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -21,19 +22,21 @@ namespace Droniverse.Academy.Application.HttpClients
         private readonly HttpClient _httpClient;
         private readonly ILogger<CommunityMicroserviceClient> _logger;
         private readonly ICacheService _cacheService;
+        private readonly IHostEnvironment _environment;
         private const int CacheAbsoluteExpirationSeconds = 300;
         private const int CacheSlidingExpirationSeconds = 100;
 
-        public CommunityMicroserviceClient(HttpClient httpClient, ILogger<CommunityMicroserviceClient> logger, ICacheService cacheService)
+        public CommunityMicroserviceClient(HttpClient httpClient, ILogger<CommunityMicroserviceClient> logger, ICacheService cacheService, IHostEnvironment environment)
         {
             _httpClient = httpClient;
             _logger = logger;
             _cacheService = cacheService;
+            _environment = environment;
         }
 
         public async Task<ClubCourseResponse> AddCourseToClub(Guid clubId, AddClubCourseRequestDto request)
         {
-            HttpResponseMessage response = await _httpClient.PostAsync($"/community/clubs/{clubId}/courses", JsonContent.Create(request));
+            HttpResponseMessage response = await _httpClient.PostAsync(BuildCommunityPath($"clubs/{clubId}/courses"), JsonContent.Create(request));
             if (!response.IsSuccessStatusCode)
             {
                 if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
@@ -68,7 +71,7 @@ namespace Droniverse.Academy.Application.HttpClients
 
             //read cache from redis, if exist
 
-            HttpResponseMessage response = await _httpClient.GetAsync($"/community/clubs/myclub");
+            HttpResponseMessage response = await _httpClient.GetAsync(BuildCommunityPath("clubs/myclub"));
             if (!response.IsSuccessStatusCode)
             {
                 if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
@@ -145,7 +148,7 @@ namespace Droniverse.Academy.Application.HttpClients
         {
 
             HttpResponseMessage? response = await _httpClient.PostAsJsonAsync(
-                $"/community/clubs/{clubId}/courses/{courseId}/consume", new ChangeClubCourseSlotRequestDto
+                BuildCommunityPath($"clubs/{clubId}/courses/{courseId}/consume"), new ChangeClubCourseSlotRequestDto
                 { Quantity = num },
     cancellationToken);
 
@@ -211,7 +214,7 @@ namespace Droniverse.Academy.Application.HttpClients
                 }
                 if (missingIds.Count > 0)
                 {
-                    var response = await _httpClient.PostAsJsonAsync("/community/categories/bulk", missingIds);
+                    var response = await _httpClient.PostAsJsonAsync(BuildCommunityPath("categories/bulk"), missingIds);
 
                     if (!response.IsSuccessStatusCode)
                     {
@@ -275,7 +278,7 @@ namespace Droniverse.Academy.Application.HttpClients
             }
 
             var response = await _httpClient.GetAsync(
-                $"/community/clubs/{clubId}/courses/{courseId}/remaining-quantity",
+                BuildCommunityPath($"clubs/{clubId}/courses/{courseId}/remaining-quantity"),
                 cancellationToken);
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -328,7 +331,7 @@ namespace Droniverse.Academy.Application.HttpClients
                     return cachedProduct;
                 }
 
-                var response = await _httpClient.GetAsync($"/community/products/reference/{referenceId}", cancellationToken);
+                var response = await _httpClient.GetAsync(BuildCommunityPath($"products/reference/{referenceId}"), cancellationToken);
 
                 if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 {
@@ -404,7 +407,7 @@ namespace Droniverse.Academy.Application.HttpClients
                 }
 
                 var response = await _httpClient.PostAsJsonAsync(
-                    "/community/products/reference/bulk",
+                    BuildCommunityPath("products/reference/bulk"),
                     missingIds,
                     cancellationToken);
 
@@ -484,6 +487,18 @@ namespace Droniverse.Academy.Application.HttpClients
         private string GetCacheKeyForCode(Guid codeId)
         {
             return $"code:{codeId}";
+        }
+
+        private string BuildCommunityPath(string relativePath)
+        {
+            return $"{GetCommunityEndpoint().TrimEnd('/')}/{relativePath.TrimStart('/')}";
+        }
+
+        private string GetCommunityEndpoint()
+        {
+            return _environment.IsDevelopment()
+                ? "/community"
+                : "/api/community";
         }
     
         private string GetCacheKeyForRemainingQuantity(Guid clubId, Guid courseId)

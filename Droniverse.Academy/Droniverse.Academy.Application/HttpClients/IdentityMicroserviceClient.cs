@@ -3,6 +3,7 @@ using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Helpers;
 using Droniverse.Shared.Services.IServices;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Hosting;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -14,6 +15,7 @@ namespace Droniverse.Academy.Application.HttpClients
         private readonly HttpClient _httpClient;
         private readonly ILogger<IdentityMicroserviceClient> _logger;
         private readonly ICacheService _cacheService;
+        private readonly IHostEnvironment _environment;
         private const int UserCacheAbsoluteExpirationSeconds = 300;
         private const int UserCacheSlidingExpirationSeconds = 100;
         private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions
@@ -27,12 +29,14 @@ namespace Droniverse.Academy.Application.HttpClients
         public IdentityMicroserviceClient(
             HttpClient httpClient,
             ILogger<IdentityMicroserviceClient> logger,
-            ICacheService cacheService
+            ICacheService cacheService,
+            IHostEnvironment environment
             )
         {
             _httpClient = httpClient;
             _logger = logger;
             _cacheService = cacheService;
+            _environment = environment;
         }
 
         public async Task<SimpleUserReponse?> GetUserByUserID(Guid userId)
@@ -50,7 +54,7 @@ namespace Droniverse.Academy.Application.HttpClients
             }
 
             //HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/api/users/{userId}");
-            HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/identity/users/{userId}");
+            HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync(BuildIdentityPath($"users/{userId}"));
             if (!httpResponseMsg.IsSuccessStatusCode)
             {
                 if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
@@ -130,7 +134,7 @@ namespace Droniverse.Academy.Application.HttpClients
                 if (missingIds.Count > 0)
                 {
                     var response = await _httpClient.PostAsJsonAsync(
-                        "/identity/users/bulk",
+                        BuildIdentityPath("users/bulk"),
                         missingIds
                     );
 
@@ -188,7 +192,7 @@ namespace Droniverse.Academy.Application.HttpClients
         {
             try
             {
-                HttpResponseMessage response = await _httpClient.GetAsync("/identity/system-configs/certificate");
+                HttpResponseMessage response = await _httpClient.GetAsync(BuildIdentityPath("system-configs/certificate"));
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -235,6 +239,18 @@ namespace Droniverse.Academy.Application.HttpClients
             }
         }
 
+
+        private string BuildIdentityPath(string relativePath)
+        {
+            return $"{GetEndpoint().TrimEnd('/')}/{relativePath.TrimStart('/')}";
+        }
+
+        private string GetEndpoint()
+        {
+            return _environment.IsDevelopment()
+                ? "/identity"
+                : "/api/identity";
+        }
 
         private static string GetUserCacheKey(Guid userId) => $"user:{userId}";
     }
