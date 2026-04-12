@@ -171,6 +171,10 @@ static string AlterUpstreamSwaggerJson(HttpContext context, string swaggerJson)
         swagger["components"] = new JObject();
     }
 
+    // Lấy description hiện có từ downstream (có chứa tokens)
+    var existingDescription = swagger["components"]?["securitySchemes"]?["Bearer"]?["description"]?.Value<string>() ?? 
+        "JWT Authorization header using the Bearer scheme. Example: 'Bearer {token}'";
+
     swagger["components"]!["securitySchemes"] = new JObject
     {
         ["Bearer"] = new JObject
@@ -178,7 +182,7 @@ static string AlterUpstreamSwaggerJson(HttpContext context, string swaggerJson)
             ["type"] = "http",
             ["scheme"] = "bearer",
             ["bearerFormat"] = "JWT",
-            ["description"] = "JWT Authorization header using the Bearer scheme. Example: 'Bearer {token}'"
+            ["description"] = existingDescription  // Giữ description gốc (có tokens)
         }
     };
 
