@@ -241,6 +241,14 @@ app.UseSwaggerUI(c =>
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 app.UseStaticFiles();
 
+// Enable request body buffering for webhook signature verification
+app.Use(async (context, next) =>
+{
+    // Enable buffering so request body can be read multiple times
+    context.Request.EnableBuffering();
+    await next();
+});
+
 // Inject swagger-custom.js into Swagger UI
 var swaggerCustomFile = Path.Combine(app.Environment.WebRootPath, "swagger-custom.js");
 var swaggerCustomVersion = File.Exists(swaggerCustomFile)
