@@ -2,10 +2,13 @@
 using Droniverse.Community.Application.DTO.Request.Mongo;
 using Droniverse.Community.Application.DTO.Response.Mongo;
 using Droniverse.Community.Application.IService.Mongo;
+using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.Entities.Mongo;
 using Droniverse.Community.Domain.Enums;
+using Droniverse.Community.Domain.IRepository;
 using Droniverse.Community.Domain.IRepository.Mongo;
-using Droniverse.Shared.Services;
+using Droniverse.Shared.Constants;
+using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
 namespace Droniverse.Community.Application.Services.Mongo;
@@ -17,46 +20,64 @@ internal class OrderService : IOrderService
     private readonly IMapper _mapper;
     private readonly IPaymentService _paymentService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IUnitOfWork _unitOfWork;
     public OrderService(
-        IOrderRepository orderRepository, 
-        IMapper mapper, 
+        IOrderRepository orderRepository,
+        IMapper mapper,
         IInvoiceRepository invoiceRepository,
         IPaymentService paymentService,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        IUnitOfWork unitOfWork)
     {
         _orderRepository = orderRepository;
         _mapper = mapper;
         _invoiceRepository = invoiceRepository;
         _paymentService = paymentService;
         _currentUserService = currentUserService;
+        _unitOfWork = unitOfWork;
     }
 
-    public async Task<OrderResponseDto?> AddOrder(OrderCreateDto orderAddRequest)
+    public async Task<OrderResponseDto?> AddOrder(Guid clubId, OrderCreateDto orderAddRequest)
     {
         if (orderAddRequest == null)
             throw new ArgumentNullException(nameof(orderAddRequest));
 
-        if(orderAddRequest.Item is null)
+        if (orderAddRequest.Item is null)
             throw new ArgumentNullException("Đơn hàng không có sản phẩm.", nameof(orderAddRequest.Item));
 
-        if(_currentUserService.UserID == null)
+        if (_currentUserService.UserID == null)
             throw new UnauthorizedAccessException("Không tìm thấy người dùng.");
 
-        if(!Guid.TryParse(_currentUserService.UserID, out var currentUserId))
+        if (!Guid.TryParse(_currentUserService.UserID, out var currentUserId))
             throw new UnauthorizedAccessException("Nguời dùng chưa được xác thực.");
 
-        if(orderAddRequest.TotalAmount <= 0)
-            throw new ArgumentException("Tổng tiền phải lớn hơn 0.", nameof(orderAddRequest.TotalAmount));
+        Club? club = await _unitOfWork.Clubs.GetByCondition(c => c.ClubID == clubId && c.Status == ClubStatus.ACTIVE, query => query.AsNoTracking());
+        if (club == null)
+            throw new KeyNotFoundException("Không tìm thấy câu lạc bộ");
+
+        var userRoles = _currentUserService.Roles;
+        var isMember = userRoles.Contains(Roles.ClubMember);
+        //var isClubManager = userRoles.Contains(Roles.ClubManager);
+
+        // lấy product info
+        Product? product = await _unitOfWork.Products.GetByCondition(p => p.ProductID == orderAddRequest.Item.ProductID && p.Status == ProductStatus.ACTIVE,
+            query => query.AsNoTracking());
+
+        if (product == null)
+            throw new KeyNotFoundException("Không tìm thấy thông tin của sản phẩm");
+
+        int quantity = orderAddRequest.Item.Quantity;
 
         // Tạo order item (chỉ có 1 item cho mỗi order
         OrderItem orderItem = new OrderItem
         {
             ProductID = orderAddRequest.Item.ProductID,
-            ProductName = orderAddRequest.Item.ProductName,
+            ProductNameVN = product.ProductNameVN,
+            ProductNameEN = product.ProductNameEN,
             Type = orderAddRequest.Item.Type,
-            UnitOfPrice = orderAddRequest.Item.UnitOfPrice,
-            Quantity = orderAddRequest.Item.Quantity,
-            Total = orderAddRequest.Item.Total
+            UnitOfPrice = product.Price,
+            Quantity = quantity,
+            Total = CalculateTotal(product.Price, quantity),
         };
 
         //Tạo order
@@ -64,11 +85,12 @@ internal class OrderService : IOrderService
         {
             _id = Guid.NewGuid(),
             UserID = currentUserId,
-            CreateAt = DateTime.UtcNow.AddDays(7),
-            InvoiceID = Guid.Empty, // Chưa có invoice khi tạo order
+            ClubID = clubId,
+            CreateAt = DateTime.UtcNow.AddHours(7),
+            OrderType = isMember ? OrderType.USER_PURCHASE : OrderType.CLUB_IMPORT,
             Item = orderItem,
             Status = OrderStatus.PENDING,
-            TotalAmount = orderAddRequest.TotalAmount,
+            TotalAmount = CalculateTotal(product.Price, quantity),
             Payment = null // Chưa có payment khi tạo order
         };
 
@@ -106,19 +128,27 @@ internal class OrderService : IOrderService
         }
 
         //Add Invoice
-        Invoice invoice= new Invoice();
-        invoice._id = Guid.NewGuid();
-        invoice.TotalAmount = order.TotalAmount;
-        invoice.ContentEN = "Content invoice...";
-        invoice.ContentVN = "Nội dung hóa đơn...";
-        invoice.IssueAt = DateTime.UtcNow.AddDays(7);
-        invoice.CustomerInfo = new CustomerInfo
-        {
-            UserID = order.UserID,
-            Name = _currentUserService.UserName,
-            TaxCode = "xxx-yyy-zzz"
-        };
-        Invoice? responseInvoice = await _invoiceRepository.AddInvoice(invoice);
+        //Invoice invoice = new Invoice();
+        //invoice._id = Guid.NewGuid();
+        //invoice.TotalAmount = order.TotalAmount;
+        //invoice.ContentVN =
+        //        $"Thanh toán {order.Item.ProductName} " +
+        //        $"(SL: {order.Item.Quantity}) " +
+        //        $"với tổng tiền {order.TotalAmount:N0} VND";
+        //invoice.ContentEN =
+        //        $"Payment for {order.Item.ProductName} " +
+        //        $"(Qty: {order.Item.Quantity}) " +
+        //        $"with total amount {order.TotalAmount:N0} VND";
+        //invoice.IssueAt = DateTime.UtcNow.AddHours(7);
+        //invoice.CustomerInfo = new CustomerInfo
+        //{
+        //    UserID = order.UserID,
+        //    FullName = _currentUserService.UserName!,
+        //    Email = _currentUserService.Email!,
+        //    TaxCode = null,
+        //};
+        //Invoice? responseInvoice = await _invoiceRepository.AddInvoice(invoice);
+
         return _mapper.Map<OrderResponseDto?>(createdOrder);
     }
 
@@ -130,7 +160,7 @@ internal class OrderService : IOrderService
     public async Task<OrderResponseDto?> GetOrderByCondition(FilterDefinition<Order> filter)
     {
         var order = await _orderRepository.GetOrderByCondition(filter);
-        return _mapper.Map<Order, OrderResponseDto?>(order);   
+        return _mapper.Map<Order, OrderResponseDto?>(order);
     }
 
     public async Task<List<OrderResponseDto?>> GetOrders()
@@ -150,6 +180,11 @@ internal class OrderService : IOrderService
     public Task<OrderResponseDto?> UpdateOrder(OrderUpdateDto orderUpdateRequest)
     {
         throw new NotImplementedException();
+    }
+
+    private decimal CalculateTotal(decimal price, int quantity)
+    {
+        return price * quantity;
     }
 }
 

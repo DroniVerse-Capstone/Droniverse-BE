@@ -846,42 +846,45 @@ internal class ClubService : IClubService
         }
     }
 
-    [Obsolete("Use UpdateClubStatus instead")]
-    public async Task<ClubResponseDto> SuspendClub(Guid clubId, string? reason = null)
+    public async Task<CreateCodesResponse> GenerateCodesByManager(Guid clubId, CreateCodesRequestDTO request)
     {
-        return await UpdateClubStatus(clubId, new ClubUpdateStatusDto
-        {
-            Status = Domain.Enums.ClubStatus.SUSPENDED,
-            Reason = reason
-        });
-    }
+        if (request == null)
+            throw new ArgumentNullException(nameof(request));
 
-    [Obsolete("Use UpdateClubStatus instead")]
-    public async Task<ClubResponseDto> ArchiveClub(Guid clubId, string? reason = null)
-    {
-        return await UpdateClubStatus(clubId, new ClubUpdateStatusDto
-        {
-            Status = Domain.Enums.ClubStatus.ARCHIVED,
-            Reason = reason
-        });
-    }
+        var club = await _unitOfWork.Clubs.GetByCondition(c => c.ClubID == clubId);
+        if (club == null)
+            throw new KeyNotFoundException("Không tìm thấy câu lạc bộ");
+        if (club.Status != ClubStatus.ACTIVE)
+            throw new InvalidOperationException("Câu lạc bộ không ở trạng thái để tạo mã");
 
-    [Obsolete("Use UpdateClubStatus instead")]
-    public async Task<ClubResponseDto> RestoreClub(Guid clubId)
-    {
-        return await UpdateClubStatus(clubId, new ClubUpdateStatusDto
-        {
-            Status = Domain.Enums.ClubStatus.ACTIVE
-        });
-    }
+        var clubCourse = await _unitOfWork.ClubCourses.GetByCondition(cc => cc.ClubID == clubId && cc.CourseID == request.CourseId);
 
-    [Obsolete("Use UpdateClubStatus instead")]
-    public async Task<ClubResponseDto> DeactivateClub(Guid clubId)
-    {
-        return await UpdateClubStatus(clubId, new ClubUpdateStatusDto
+        if (clubCourse == null)
+            throw new KeyNotFoundException("Câu lạc bộ chưa sở hữu khóa học này");
+
+        if (clubCourse.RemainingQuantity < request.Quantity)
+            throw new InvalidOperationException("Câu lạc bộ không sở hữu đủ code");
+
+        var generateResponse = await _academyMicroserviceClient.GenerateCodes(new GenerateCodesRequestDTO
         {
-            Status = Domain.Enums.ClubStatus.INACTIVE
+            ClubId = clubId,
+            CourseId = request.CourseId,
+            Quantity = request.Quantity
         });
+
+        if (generateResponse.CreatedCode < 0)
+            throw new InvalidOperationException("Số lượng code trả về từ Academy không hợp lệ.");
+
+        if (generateResponse.CreatedCode > 0)
+        {
+            if (clubCourse.RemainingQuantity < generateResponse.CreatedCode)
+                throw new InvalidOperationException("Số lượng code được tạo vượt quá số lượng còn lại của câu lạc bộ.");
+
+            clubCourse.Consume(generateResponse.CreatedCode);
+            await _unitOfWork.SaveChangeAsync();
+        }
+
+        return generateResponse;
     }
 
     public async Task<PaginationResult<IEnumerable<ManagerCoursesBulkResponseDTO>>> GetClubCoursesManagement(Guid clubId, ManagerCourseBulkSearchRequest searchRequest)

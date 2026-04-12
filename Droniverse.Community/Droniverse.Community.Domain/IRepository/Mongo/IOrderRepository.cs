@@ -21,5 +21,10 @@ public interface IOrderRepository
     Task<Order?> AddOrder(Order order);
     Task<Order?> UpdateOrder(Order order);
     Task<bool?> DeleteOrder(Guid orderID);
+
+    Task<IEnumerable<OrderRevenueData>> GetSuccessfulRevenueDataByProductIds(
+        IEnumerable<Guid> productIds,
+        DateTime? fromInclusive = null,
+        DateTime? toExclusive = null);
 }
 

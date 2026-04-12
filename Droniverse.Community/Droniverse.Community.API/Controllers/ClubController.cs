@@ -3,18 +3,15 @@ using Droniverse.Community.Application.DTO.Extensions;
 using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.IService;
-using Droniverse.Community.Application.Services;
 using Droniverse.Community.Domain.Enums;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Extensions;
-using Droniverse.Shared.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Filters;
-using System.ComponentModel;
 
 namespace Droniverse.Community.API.Controllers
 {
@@ -470,6 +467,27 @@ namespace Droniverse.Community.API.Controllers
                 competitions,
                 "Lấy danh sách cuộc thi HOT của club thành công!"
             );
+        }
+
+        //[HttpGet("{clubId:guid}/codes")]
+        //[Authorize(Roles = Roles.SystemRoles)]
+        //public async Task<ApiResponse> GetCodesByClub(Guid clubId, [FromQuery] GetAllCodesByClubSearchRequest request)
+        //{
+        //    var result = await _clubService.GetAll
+        //}
+
+        /// <summary>
+        /// Api dành cho <br>CLUB_MANAGER</br> generate để tạo mã cho
+        /// </summary>
+        /// <param name="request">yêu cầu tạo</param>
+        /// <param name="clubId">ID câu lạc bộ</param>
+        /// <returns>200 : ok</returns>
+        [HttpPost("{clubId}/codes/generate")]
+        [Authorize(Roles = Roles.SystemRoles)]
+        public async Task<ApiResponse> GenerateCodesByManager(Guid clubId, [FromBody] CreateCodesRequestDTO request)
+        {
+            var result = await _clubService.GenerateCodesByManager(clubId, request);
+            return SuccessResponse<CreateCodesResponse>.Create(result, $"Khởi tạo {result.CreatedCode} mã thành công");
         }
 
     }

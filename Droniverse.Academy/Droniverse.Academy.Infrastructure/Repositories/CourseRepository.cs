@@ -1,8 +1,10 @@
 ﻿using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
+using Droniverse.Academy.Domain.QueryModels;
 using Droniverse.Academy.Infrastructure.Persistence.MySql;
 using Droniverse.Academy.Infrastructure.Persistence.MySql.ReadModels;
+using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Response;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
@@ -206,5 +208,47 @@ internal class CourseRepository : MySqlRepository<Course>, ICourseRepository
 
         return new PaginationResult<IEnumerable<CourseBulkResponseDTO>>(items, totalCount, normalizedPageIndex, normalizedPageSize);
     }
+
+    public async Task<IEnumerable<SimpleCourseResponse>> GetSimpleCoursesByIdsAsync(
+        IEnumerable<Guid> courseIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = courseIds?
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToList() ?? [];
+
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        return await _dbSet
+            .AsNoTracking()
+            .Where(c => ids.Contains(c.CourseID) && c.CurrentVersion != null && c.Status == CourseStatus.PUBLISH)
+            .Select(c => new SimpleCourseResponse
+            {
+                CourseId = c.CourseID,
+                CourseNameVN = c.CurrentVersion!.TitleVN,
+                CourseNameEN = c.CurrentVersion.TitleEN,
+                ImageUrl = c.CurrentVersion.ImageUrl ?? string.Empty
+            })
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<CourseInfoQueryModel?> GetCourseInfoByIdAsync(Guid courseId)
+    {
+        return await _dbSet
+            .Where(c => c.CourseID == courseId)
+            .Select(c => new CourseInfoQueryModel
+            {
+                CourseId = c.CourseID,
+                CourseNameVN = c.CurrentVersion!.TitleVN,
+                CourseNameEN = c.CurrentVersion.TitleEN,
+                CourseStatus = c.Status
+            })
+            .FirstOrDefaultAsync();
+    }
+
 }
 

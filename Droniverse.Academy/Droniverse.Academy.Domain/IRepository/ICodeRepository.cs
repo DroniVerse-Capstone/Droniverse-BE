@@ -1,5 +1,6 @@
 ﻿using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.IRepository.SearchSpec;
+using Droniverse.Shared.DTOs.Request;
 
 namespace Droniverse.Academy.Domain.IRepository;
 public interface ICodeRepository : IRepository<Code>
@@ -8,5 +9,19 @@ public interface ICodeRepository : IRepository<Code>
         ICodeSearchSpec requestDTO, 
         int pageIndex, 
         int pageSize);
+
+    Task<PaginationResult<IEnumerable<Code>>> GetCodesByClubAsync(
+        Guid clubId,
+        GetAllCodesByClubSearchRequest request,
+        int pageIndex,
+        int pageSize);
+
+    Task<PaginationResult<IEnumerable<Code>>> GetCodesByUserAsync(
+        Guid userId,
+        int pageIndex,
+        int pageSize,
+        bool? isUsed = null);
+
+    Task<IEnumerable<Code>> GetByCodeIdsAsync(IEnumerable<string> codeIds);
 }
 

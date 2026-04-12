@@ -1,5 +1,7 @@
 ﻿using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
+using Droniverse.Academy.Domain.QueryModels;
+using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Response;
 using System.Linq.Expressions;
 
@@ -61,5 +63,11 @@ public interface ICourseRepository : IRepository<Course>
         int pageIndex,
         int pageSize,
         CancellationToken cancellationToken = default);
+
+    Task<IEnumerable<SimpleCourseResponse>> GetSimpleCoursesByIdsAsync(
+        IEnumerable<Guid> courseIds,
+        CancellationToken cancellationToken = default);
+
+    Task<CourseInfoQueryModel?> GetCourseInfoByIdAsync(Guid courseId);
 }
 

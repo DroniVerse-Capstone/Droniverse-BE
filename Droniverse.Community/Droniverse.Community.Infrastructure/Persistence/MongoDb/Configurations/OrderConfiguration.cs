@@ -17,12 +17,15 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
             .IsRequired();
         builder.Property(o => o.CreateAt)
             .IsRequired();
-        builder.Property(o => o.InvoiceID);
-
+        builder.Property(o => o.OrderType)
+                .HasConversion<string>()
+                .IsRequired();
+        builder.Property(o => o.ClubID).IsRequired();
         builder.OwnsOne(o => o.Item, items =>
         {
             items.Property(i => i.ProductID).IsRequired();
-            items.Property(i => i.ProductName).IsRequired();
+            items.Property(i => i.ProductNameVN).IsRequired();
+            items.Property(i => i.ProductNameEN).IsRequired();
             items.Property(i => i.Type)
                 .HasConversion<string>()
                 .IsRequired();

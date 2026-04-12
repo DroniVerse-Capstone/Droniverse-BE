@@ -6,9 +6,12 @@ using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
+using Droniverse.Academy.Domain.QueryModels;
 using Droniverse.Shared.DTOs;
+using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.Enums;
 using Droniverse.Shared.Exceptions;
+using Droniverse.Shared.Helpers;
 using Droniverse.Shared.Services.IServices;
 using Microsoft.Extensions.Logging;
 using System.Security.Claims;
@@ -18,84 +21,76 @@ namespace Droniverse.Academy.Application.Services;
 public class CodeService : ICodeService
 {
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IMapper _mapper;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<CodeService> _logger;
     private readonly CommunityMicroserviceClient _communityMicroserviceClient;
+    private readonly IdentityMicroserviceClient _identityMicroserviceClient;
+    private readonly IEmailService _emailService;
+    private readonly IClock _clock;
     public CodeService(
-        IUnitOfWork unitOfWork, 
-        IMapper mapper, 
+        IUnitOfWork unitOfWork,
         ICurrentUserService currentUserService,
         ILogger<CodeService> logger,
-        CommunityMicroserviceClient communityMicroserviceClient)
+        CommunityMicroserviceClient communityMicroserviceClient,
+        IdentityMicroserviceClient identityMicroserviceClient,
+        IEmailService emailService,
+        IClock clock)
     {
         _unitOfWork = unitOfWork;
-        _mapper = mapper;
         _currentUserService = currentUserService;
         _logger = logger;
         _communityMicroserviceClient = communityMicroserviceClient;
+        _identityMicroserviceClient = identityMicroserviceClient;
+        _emailService = emailService;
+        _clock = clock;
     }
-    public async Task<IEnumerable<string>>  CreateCodeAsync(Guid courseId, int quantity, ClubCourseProfit profitType)
+    public async Task<CreateCodesResponse> CreateCodeAsync(GenerateCodesRequestDTO request)
     {
-        if(quantity<=0)
+        if (request is null)
+            throw new ValidationException("Dữ liệu tạo mã code không hợp lệ.");
+
+        var currentUserId = _currentUserService.UserId;
+
+        CourseInfoQueryModel? courseInfo = await _unitOfWork.Courses.GetCourseInfoByIdAsync(request.CourseId);
+
+        if (courseInfo is null)
+            throw new NotFoundException($"Không tìm thấy khóa học");
+
+        var now = _clock.Now;
+        var courseNameForCode = !string.IsNullOrWhiteSpace(courseInfo.CourseNameEN)
+            ? courseInfo.CourseNameEN
+            : courseInfo.CourseNameVN;
+
+        var generatedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var codes = new List<Code>(request.Quantity);
+
+        while (codes.Count < request.Quantity)
         {
-            throw new ValidationException("Số lượng code phải lớn hơn 0");
-        }
-
-        ClaimsPrincipal user = _currentUserService.User;
-        if (user is null)
-        {
-            throw new UnauthorizedAccessException("Người dùng chưa xác thực");
-        }
-
-        Course? course = await _unitOfWork.Courses.GetByConditionAsync(c => c.CourseID == courseId, includeProperties:"CurrentVersion");
-        if (course is null)
-        {
-            throw new NotFoundException($"Course with id {courseId} not found");
-        }
-
-        //lấy ra club của user hiện tại
-        var userClubs = await _communityMicroserviceClient.GetMyClubsAsync();
-        if (!userClubs.Any())
-        {
-            throw new ValidationException("Người dùng không thuộc club nào");
-        }
-
-        var club = userClubs.First();
-
-        //thêm course vào club
-        AddClubCourseRequestDto requestDto = new AddClubCourseRequestDto
-        {
-            CourseId = courseId,
-            TotalQuantity = quantity,
-            ProfitType = profitType
-        };
-
-
-        await _communityMicroserviceClient.AddCourseToClub(club.ClubID, requestDto);
-
-        List<Code> codes = new List<Code>();
-        for (int i = 0; i < quantity; i++)
-        {
-            Code code = new Code
+            var codeId = GenerateCodeId(courseNameForCode);
+            if (!generatedIds.Add(codeId))
             {
-                CodeID = GenerateCodeId(course.CurrentVersion.TitleEN),
-                CourseID = courseId,
-                ExpireDate = DateTime.UtcNow.AddHours(7).AddMonths(6),
-                Status = CodeStatus.ACTIVE,
-            };
+                continue;
+            }
+
+            var code = new Code(
+                codeId: codeId,
+                clubId: request.ClubId,
+                courseId: request.CourseId,
+                expireDate: now.AddMonths(6),
+                createdBy: currentUserId,
+                now: now);
+
             codes.Add(code);
-
         }
 
-        foreach (var code in codes)
-        {
-            await _unitOfWork.Codes.AddAsync(code);
-        }
+        await _unitOfWork.Codes.AddRangeAsync(codes);
         await _unitOfWork.SaveChangesAsync();
 
-        IEnumerable<string> listCodeIds = codes.Select(c => c.CodeID).ToList();
-        return listCodeIds;
+        return new CreateCodesResponse
+        {
+            CreatedCode = codes.Count
+        };
+
     }
 
     private string GenerateCodeId(string courseName)
@@ -143,14 +138,18 @@ public class CodeService : ICodeService
 
     public async Task<PaginationResult<IEnumerable<CodeResponseDTO>>> GetAllCodesAsync(CodeSearchRequestDTO requestDTO)
     {
-        PaginationResult<IEnumerable<Code>> codes = await _unitOfWork.Codes.GetAllCodesAsync(
-            requestDTO, 
-            requestDTO.CurrentPage, 
-            requestDTO.PageSize);
-        // Map IEnumerable<Code> -> IEnumerable<CodeResponseDTO>
-        var mappedCodes = _mapper.Map<IEnumerable<CodeResponseDTO>>(codes.Data);
+        requestDTO ??= new CodeSearchRequestDTO();
 
-        // Tạo PaginationResult mới với data đã mapped
+        var pageIndex = requestDTO.CurrentPage < 1 ? 1 : requestDTO.CurrentPage;
+        var pageSize = requestDTO.PageSize < 1 ? 5 : requestDTO.PageSize;
+
+        PaginationResult<IEnumerable<Code>> codes = await _unitOfWork.Codes.GetAllCodesAsync(
+            requestDTO,
+            pageIndex,
+            pageSize);
+
+        var mappedCodes = codes.Data.Select(MapCodeResponse).ToList();
+
         return new PaginationResult<IEnumerable<CodeResponseDTO>>(
             mappedCodes,
             codes.TotalRecords,
@@ -166,13 +165,68 @@ public class CodeService : ICodeService
         {
             throw new NotFoundException($"Code with id {codeId} not found");
         }
-        CodeResponseDTO response = _mapper.Map<CodeResponseDTO>(code);
-        return response;
+
+        return MapCodeResponse(code);
     }
 
     public Task<CodeResponseDTO> UpdateCodeAsync(string codeId)
     {
         throw new NotImplementedException();
+    }
+
+    public async Task<ClubCodesResponse> GetCodesByClub(Guid clubId, GetAllCodesByClubSearchRequest request)
+    {
+        request ??= new GetAllCodesByClubSearchRequest();
+
+        var pageIndex = request.CurrentPage;
+        var pageSize = request.PageSize;
+
+        var pagedCodes = await _unitOfWork.Codes.GetCodesByClubAsync(clubId, request, pageIndex, pageSize);
+        var codes = pagedCodes.Data.ToList();
+
+        var usedUserIds = codes
+                 .Where(c => c.IsUsed())
+                 .Select(c => c.UsedByUserID!.Value)
+                 .Distinct()
+                 .ToList();
+
+        var users = usedUserIds.Count > 0
+            ? await _identityMicroserviceClient.GetUsersBulk(usedUserIds)
+            : [];
+
+        var usersById = users.ToDictionary(
+            x => x.UserId,
+            x => new SimpleUserReponse
+            {
+                UserId = x.UserId,
+                FullName = AppHelper.GetFullName(x) ?? x.Username,
+                Email = x.Email,
+                AvatarUrl = x.ImageUrl
+            });
+
+        var codeItems = codes.Select(code =>
+        {
+            var isUsed = code.IsUsed();
+            var consumer = isUsed && code.UsedByUserID.HasValue
+                ? usersById.GetValueOrDefault(code.UsedByUserID.Value)
+                : null;
+
+            return new CodeEntryResponse
+            {
+                Code = code.CodeID,
+                CourseID = code.CourseID.ToString(),
+                IsUsed = isUsed,
+                ComsumerInfo = consumer,
+                ExpireDate = code.ExpireDate
+            };
+        }).ToList();
+
+        return new ClubCodesResponse
+        {
+            ClubID = clubId.ToString(),
+            TotalItems = pagedCodes.TotalRecords,
+            CodesItem = codeItems
+        };
     }
 
     /// <summary>
@@ -198,34 +252,25 @@ public class CodeService : ICodeService
                 throw new ValidationException("Mã code của khóa học chưa đúng! Vui lòng nhập lại");
             }
 
-            CodeUsage? existCodeUsage = await _unitOfWork.CodeUsages.GetByConditionAsync(cu => cu.CodeID == codeId && cu.UserID == _currentUserService.UserId);
-            if(existCodeUsage is not null)
+            if (code.OwnedUserID.HasValue && code.OwnedUserID.Value != _currentUserService.UserId)
             {
-                throw new ValidationException("Mã code này đã được sử dụng trước đó!");
+                throw new ValidationException("Mã code này đã được gán cho người dùng khác.");
             }
 
-            CodeUsage codeUsage = new CodeUsage
+            code.Redeem(_currentUserService.UserId, _clock.Now);
+
+            await _unitOfWork.Codes.UpdateAsync(code);
+            await _unitOfWork.SaveChangesAsync();
+
+            //Gọi qua community để gọi hàm consumeslot
+            await _communityMicroserviceClient.ConsumeSlotForCodeAsync(code.ClubID, code.CourseID, 1);
+
+            return new CodeUsageResponseDTO
             {
                 CodeID = code.CodeID,
                 UserID = _currentUserService.UserId,
-                UsedDate = DateTime.UtcNow.AddHours(7)
+                UsedDate = code.UsedDate ?? _clock.Now
             };
-
-            CodeUsage addedCodeUsage = await _unitOfWork.CodeUsages.AddAsync(codeUsage);
-            await _unitOfWork.SaveChangesAsync();
-
-            var userClubs = await _communityMicroserviceClient.GetMyClubsAsync();
-            if (!userClubs.Any())
-            {
-                throw new ValidationException("Người dùng không thuộc club nào");
-            }
-
-            var club = userClubs.First();
-
-            //Gọi qua community để gọi hàm consumeslot
-            await _communityMicroserviceClient.ConsumeSlotForCodeAsync(club.ClubID, code.CourseID, 1);
-
-            return _mapper.Map<CodeUsageResponseDTO>(addedCodeUsage);
         }
         catch (Exception ex)
         {
@@ -233,6 +278,168 @@ public class CodeService : ICodeService
             throw;
         }
 
+    }
+
+    public async Task<CodeAssignmentResponseDTO> AssignCodeAsync(string codeId, AssignCodeRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(codeId))
+            throw new ValidationException("Mã code không hợp lệ.");
+
+        if (request == null || request.UserId == Guid.Empty)
+            throw new ValidationException("Người nhận code không hợp lệ.");
+
+        var code = await _unitOfWork.Codes.GetByIdAsync(codeId.Trim())
+            ?? throw new NotFoundException("Không tìm thấy mã code.");
+
+        code.AssignToUser(request.UserId, _clock.Now);
+        await _unitOfWork.Codes.UpdateAsync(code);
+        await _unitOfWork.SaveChangesAsync();
+
+        if (request.SendEmail)
+        {
+            await SendAssignEmailAsync(request.UserId, code.CodeID, code.CourseID);
+        }
+
+        return new CodeAssignmentResponseDTO
+        {
+            CodeId = code.CodeID,
+            UserId = request.UserId,
+            AssignedAt = code.UpdatedAt ?? _clock.Now
+        };
+    }
+
+    public async Task<BulkCodeAssignmentResponseDTO> BulkAssignCodesAsync(BulkAssignCodesRequest request)
+    {
+        if (request?.Items == null || request.Items.Count == 0)
+            throw new ValidationException("Danh sách gán code không được để trống.");
+
+        var items = request.Items
+            .Where(x => !string.IsNullOrWhiteSpace(x.CodeId) && x.UserId != Guid.Empty)
+            .Select(x => new BulkAssignCodeItemRequest
+            {
+                CodeId = x.CodeId.Trim(),
+                UserId = x.UserId
+            })
+            .ToList();
+
+        if (items.Count == 0)
+            throw new ValidationException("Danh sách gán code không hợp lệ.");
+
+        var duplicateCodeIds = items
+            .GroupBy(x => x.CodeId, StringComparer.OrdinalIgnoreCase)
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key)
+            .ToList();
+
+        if (duplicateCodeIds.Count > 0)
+            throw new ValidationException($"Danh sách có mã code bị trùng: {string.Join(", ", duplicateCodeIds)}");
+
+        var codes = (await _unitOfWork.Codes.GetByCodeIdsAsync(items.Select(x => x.CodeId))).ToList();
+        var codeById = codes.ToDictionary(x => x.CodeID, StringComparer.OrdinalIgnoreCase);
+
+        var missingCodeIds = items
+            .Where(x => !codeById.ContainsKey(x.CodeId))
+            .Select(x => x.CodeId)
+            .ToList();
+
+        if (missingCodeIds.Count > 0)
+            throw new NotFoundException($"Không tìm thấy mã code: {string.Join(", ", missingCodeIds)}");
+
+        var assignedItems = new List<CodeAssignmentResponseDTO>(items.Count);
+
+        await _unitOfWork.ExecuteInTransactionAsync(async () =>
+        {
+            foreach (var item in items)
+            {
+                var code = codeById[item.CodeId];
+                code.AssignToUser(item.UserId, _clock.Now);
+                await _unitOfWork.Codes.UpdateAsync(code);
+
+                assignedItems.Add(new CodeAssignmentResponseDTO
+                {
+                    CodeId = code.CodeID,
+                    UserId = item.UserId,
+                    AssignedAt = code.UpdatedAt ?? _clock.Now
+                });
+            }
+
+            await _unitOfWork.SaveChangesAsync();
+        });
+
+        if (request.SendEmail)
+        {
+            foreach (var assigned in assignedItems)
+            {
+                var assignedCode = codeById[assigned.CodeId];
+                await SendAssignEmailAsync(assigned.UserId, assigned.CodeId, assignedCode.CourseID);
+            }
+        }
+
+        return new BulkCodeAssignmentResponseDTO
+        {
+            TotalAssigned = assignedItems.Count,
+            AssignedItems = assignedItems
+        };
+    }
+
+    public async Task<PaginationResult<IEnumerable<MyCodeResponseDTO>>> GetCodesByUserAsync(Guid userId, GetCodesByUserSearchRequest request)
+    {
+        if (userId == Guid.Empty)
+            throw new ValidationException("UserId không hợp lệ.");
+
+        request ??= new GetCodesByUserSearchRequest();
+
+        var pageIndex = request.CurrentPage < 1 ? 1 : request.CurrentPage;
+        var pageSize = request.PageSize < 1 ? 5 : request.PageSize;
+
+        var pagedCodes = await _unitOfWork.Codes.GetCodesByUserAsync(userId, pageIndex, pageSize, request.IsUsed);
+
+        var items = pagedCodes.Data
+            .Select(c => new MyCodeResponseDTO
+            {
+                CodeId = c.CodeID,
+                ClubId = c.ClubID,
+                CourseId = c.CourseID,
+                Status = c.Status,
+                ExpireDate = c.ExpireDate,
+                UsedDate = c.UsedDate
+            })
+            .ToList();
+
+        return new PaginationResult<IEnumerable<MyCodeResponseDTO>>(
+            items,
+            pagedCodes.TotalRecords,
+            pagedCodes.PageIndex,
+            pagedCodes.PageSize);
+    }
+
+    private async Task SendAssignEmailAsync(Guid userId, string codeId, Guid courseId)
+    {
+        var user = (await _identityMicroserviceClient.GetUsersBulk([userId])).FirstOrDefault();
+        if (user == null || string.IsNullOrWhiteSpace(user.Email))
+        {
+            return;
+        }
+
+        var fullName = AppHelper.GetFullName(user) ?? user.Username;
+        var subject = "Bạn vừa được cấp mã học khóa học";
+        var message = $"Xin chào {fullName},<br/>Bạn vừa được cấp mã <b>{codeId}</b> cho khóa học <b>{courseId}</b>.";
+        await _emailService.SendEmailAsync(user.Email, subject, message);
+    }
+
+    private static CodeResponseDTO MapCodeResponse(Code code)
+    {
+        return new CodeResponseDTO
+        {
+            CodeID = code.CodeID,
+            CourseID = code.CourseID.ToString(),
+            ClubID = code.ClubID.ToString(),
+            OwnedUserID = code.OwnedUserID,
+            UsedByUserID = code.UsedByUserID,
+            UsedDate = code.UsedDate,
+            ExpireDate = code.ExpireDate,
+            Status = code.Status
+        };
     }
 }
 
