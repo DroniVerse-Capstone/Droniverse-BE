@@ -1,6 +1,42 @@
 {
   "Routes": [
     {
+      "DownstreamPathTemplate": "/swagger/v1/swagger.json",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "academy-microservice",
+          "Port": 8080
+        }
+      ],
+      "UpstreamPathTemplate": "/api/academy/swagger/v1/swagger.json",
+      "UpstreamHttpMethod": [ "GET" ]
+    },
+    {
+      "DownstreamPathTemplate": "/swagger/v1/swagger.json",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "community-microservice",
+          "Port": 8080
+        }
+      ],
+      "UpstreamPathTemplate": "/api/community/swagger/v1/swagger.json",
+      "UpstreamHttpMethod": [ "GET" ]
+    },
+    {
+      "DownstreamPathTemplate": "/swagger/v1/swagger.json",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "identity-microservice",
+          "Port": 8080
+        }
+      ],
+      "UpstreamPathTemplate": "/api/identity/swagger/v1/swagger.json",
+      "UpstreamHttpMethod": [ "GET" ]
+    },
+    {
       "DownstreamPathTemplate": "/academy/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
