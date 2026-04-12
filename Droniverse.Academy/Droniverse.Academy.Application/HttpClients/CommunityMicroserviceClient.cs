@@ -33,7 +33,7 @@ namespace Droniverse.Academy.Application.HttpClients
 
         public async Task<ClubCourseResponse> AddCourseToClub(Guid clubId, AddClubCourseRequestDto request)
         {
-            HttpResponseMessage response = await _httpClient.PostAsync($"/community/clubs/{clubId}/courses", JsonContent.Create(request));
+            HttpResponseMessage response = await _httpClient.PostAsync($"/api/community/clubs/{clubId}/courses", JsonContent.Create(request));
             if (!response.IsSuccessStatusCode)
             {
                 if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
@@ -68,7 +68,7 @@ namespace Droniverse.Academy.Application.HttpClients
 
             //read cache from redis, if exist
 
-            HttpResponseMessage response = await _httpClient.GetAsync($"/community/clubs/myclub");
+            HttpResponseMessage response = await _httpClient.GetAsync($"/api/community/clubs/myclub");
             if (!response.IsSuccessStatusCode)
             {
                 if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
@@ -145,7 +145,7 @@ namespace Droniverse.Academy.Application.HttpClients
         {
 
             HttpResponseMessage? response = await _httpClient.PostAsJsonAsync(
-                $"/community/clubs/{clubId}/courses/{courseId}/consume", new ChangeClubCourseSlotRequestDto
+                $"/api/community/clubs/{clubId}/courses/{courseId}/consume", new ChangeClubCourseSlotRequestDto
                 { Quantity = num },
     cancellationToken);
 
@@ -211,7 +211,7 @@ namespace Droniverse.Academy.Application.HttpClients
                 }
                 if (missingIds.Count > 0)
                 {
-                    var response = await _httpClient.PostAsJsonAsync("/community/categories/bulk", missingIds);
+                    var response = await _httpClient.PostAsJsonAsync("/api/community/categories/bulk", missingIds);
 
                     if (!response.IsSuccessStatusCode)
                     {
@@ -275,7 +275,7 @@ namespace Droniverse.Academy.Application.HttpClients
             }
 
             var response = await _httpClient.GetAsync(
-                $"/community/clubs/{clubId}/courses/{courseId}/remaining-quantity",
+                $"/api/community/clubs/{clubId}/courses/{courseId}/remaining-quantity",
                 cancellationToken);
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -328,7 +328,7 @@ namespace Droniverse.Academy.Application.HttpClients
                     return cachedProduct;
                 }
 
-                var response = await _httpClient.GetAsync($"/community/products/reference/{referenceId}", cancellationToken);
+                var response = await _httpClient.GetAsync($"/api/community/products/reference/{referenceId}", cancellationToken);
 
                 if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 {
@@ -404,7 +404,7 @@ namespace Droniverse.Academy.Application.HttpClients
                 }
 
                 var response = await _httpClient.PostAsJsonAsync(
-                    "/community/products/reference/bulk",
+                    "/api/community/products/reference/bulk",
                     missingIds,
                     cancellationToken);
 
@@ -485,7 +485,7 @@ namespace Droniverse.Academy.Application.HttpClients
         {
             return $"code:{codeId}";
         }
-    
+
         private string GetCacheKeyForRemainingQuantity(Guid clubId, Guid courseId)
         {
             return $"club:{clubId}:course:{courseId}:remaining-quantity";
@@ -497,5 +497,5 @@ namespace Droniverse.Academy.Application.HttpClients
         }
 
 
-    } 
+    }
 }

@@ -762,9 +762,10 @@ public class AcademyMicroserviceClient
 
     private string GetEndpoint()
     {
-        return _environment.IsDevelopment()
-            ? "/academy"
-            : "/api/academy";
+        return "/api/academy";
+        //return _environment.IsDevelopment()
+        //    ? "/academy"
+        //    : "/api/academy";
     }
 
     private async Task<SimpleLabResponse?> GetLabById(Guid labId)

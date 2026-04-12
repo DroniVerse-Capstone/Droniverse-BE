@@ -284,9 +284,10 @@ public class IdentityMicroserviceClient
 
     private string GetEndpoint()
     {
-        return _environment.IsDevelopment()
-            ? "/identity"
-            : "/api/identity";
+        return "/api/identity";
+        //return _environment.IsDevelopment()
+        //    ? "/identity"
+        //    : "/api/identity";
     }
 }
 

@@ -50,7 +50,7 @@ namespace Droniverse.Academy.Application.HttpClients
             }
 
             //HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/api/users/{userId}");
-            HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/identity/users/{userId}");
+            HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/api/identity/users/{userId}");
             if (!httpResponseMsg.IsSuccessStatusCode)
             {
                 if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
@@ -130,7 +130,7 @@ namespace Droniverse.Academy.Application.HttpClients
                 if (missingIds.Count > 0)
                 {
                     var response = await _httpClient.PostAsJsonAsync(
-                        "/identity/users/bulk",
+                        "/api/identity/users/bulk",
                         missingIds
                     );
 
@@ -188,7 +188,7 @@ namespace Droniverse.Academy.Application.HttpClients
         {
             try
             {
-                HttpResponseMessage response = await _httpClient.GetAsync("/identity/system-configs/certificate");
+                HttpResponseMessage response = await _httpClient.GetAsync("/api/identity/system-configs/certificate");
 
                 if (!response.IsSuccessStatusCode)
                 {

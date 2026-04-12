@@ -26,7 +26,7 @@ function addTokenDropdown() {
     const select = document.createElement('select');
     select.className = 'token-dropdown';
     select.style.cssText = 'width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 14px;';
-
+    ss
     // Thêm option mặc định
     const defaultOption = document.createElement('option');
     defaultOption.text = '-- Chọn token có sẵn --';
