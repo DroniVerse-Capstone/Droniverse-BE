@@ -1,42 +1,6 @@
 {
   "Routes": [
     {
-      "DownstreamPathTemplate": "/swagger/v1/swagger.json",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "academy-microservice",
-          "Port": 8080
-        }
-      ],
-      "UpstreamPathTemplate": "/swagger/docs/v1/academy",
-      "UpstreamHttpMethod": [ "GET" ]
-    },
-    {
-      "DownstreamPathTemplate": "/swagger/v1/swagger.json",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "community-microservice",
-          "Port": 8080
-        }
-      ],
-      "UpstreamPathTemplate": "/swagger/docs/v1/community",
-      "UpstreamHttpMethod": [ "GET" ]
-    },
-    {
-      "DownstreamPathTemplate": "/swagger/v1/swagger.json",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "identity-microservice",
-          "Port": 8080
-        }
-      ],
-      "UpstreamPathTemplate": "/swagger/docs/v1/identity",
-      "UpstreamHttpMethod": [ "GET" ]
-    },
-    {
       "DownstreamPathTemplate": "/academy/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
@@ -85,9 +49,9 @@
       "Key": "academy",
       "Config": [
         {
-          "Name": "Academy Service API - v1",
+          "Name": "Academy Service API",
           "Version": "v1",
-          "Url": "/swagger/docs/academy"
+          "Url": "http://academy-microservice:8080/swagger/v1/swagger.json"
         }
       ]
     },
@@ -95,9 +59,9 @@
       "Key": "identity",
       "Config": [
         {
-          "Name": "Identity Service API - v1",
+          "Name": "Identity Service API",
           "Version": "v1",
-          "Url": "/swagger/docs/identity"
+          "Url": "http://identity-microservice:8080/swagger/v1/swagger.json"
         }
       ]
     },
@@ -105,9 +69,9 @@
       "Key": "community",
       "Config": [
         {
-          "Name": "Community Service API - v1",
+          "Name": "Community Service API",
           "Version": "v1",
-          "Url": "/swagger/docs/community"
+          "Url": "http://community-microservice:8080/swagger/v1/swagger.json"
         }
       ]
     }
