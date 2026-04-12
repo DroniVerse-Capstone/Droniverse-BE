@@ -113,7 +113,7 @@ public class CourseVersionService : ICourseVersionService
 
     public async Task<CourseVersionResponseDTO> GetCourseVersionByIdAsync(Guid courseId, Guid versionId)
     {
-        var cv = await _unitOfWork.CourseVersions.GetByConditionAsync(v => v.CourseVersionID == versionId && v.CourseID == courseId, includeProperties: "CourseVersionCategories,RequiredDrones");
+        var cv = await _unitOfWork.CourseVersions.GetByConditionAsync(v => v.CourseVersionID == versionId && v.CourseID == courseId, includeProperties: "CourseVersionCategories,RequiredDrones,Certificate");
         if (cv == null)
             throw new BaseException("Không tìm thấy phiên bản khóa học.", "NOT_FOUND");
 
@@ -181,7 +181,7 @@ public class CourseVersionService : ICourseVersionService
             filter = v => v.CourseID == courseId && v.Status == s;
         }
 
-        var result = await _unitOfWork.CourseVersions.GetAllAsync(filter, null, pageIndex, pageSize, includeProperties: "CourseVersionCategories,RequiredDrones");
+        var result = await _unitOfWork.CourseVersions.GetAllAsync(filter, null, pageIndex, pageSize, includeProperties: "CourseVersionCategories,RequiredDrones,Certificate");
         var entities = result.Data.ToList();
         var mapped = entities.Select(v => _mapper.Map<CourseVersionResponseDTO>(v)).ToList();
 

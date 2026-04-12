@@ -192,9 +192,27 @@ jobs:
         if: env.DEPLOY_ACADEMY == 'true'
         run: kubectl -n "$K8S_NAMESPACE" set image deployment/$ACADEMY_DEPLOYMENT $ACADEMY_CONTAINER=$ACA
 
+      - name: Set Academy internal service endpoints
+        if: env.DEPLOY_ACADEMY == 'true'
+        run: |
+          kubectl -n "$K8S_NAMESPACE" set env deployment/$ACADEMY_DEPLOYMENT \
+            IdentityMicroserviceName=gateway-service \
+            IdentityMicroservicePort=80 \
+            CommunityMicroserviceName=gateway-service \
+            CommunityMicroservicePort=80
+
       - name: Rollout Community
         if: env.DEPLOY_COMMUNITY == 'true'
         run: kubectl -n "$K8S_NAMESPACE" set image deployment/$COMMUNITY_DEPLOYMENT $COMMUNITY_CONTAINER=$COM
+
+      - name: Set Community internal service endpoints
+        if: env.DEPLOY_COMMUNITY == 'true'
+        run: |
+          kubectl -n "$K8S_NAMESPACE" set env deployment/$COMMUNITY_DEPLOYMENT \
+            IdentityMicroserviceName=gateway-service \
+            IdentityMicroservicePort=80 \
+            AcademyMicroserviceName=gateway-service \
+            AcademyMicroservicePort=80
 
       - name: Rollout Identity
         if: env.DEPLOY_IDENTITY == 'true'
