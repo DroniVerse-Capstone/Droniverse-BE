@@ -186,6 +186,8 @@ app.UseSwaggerUI(c =>
 //app.UseHttpsRedirection();
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 app.UseCors();
+
+app.UseRouting();
 app.UseAuthentication();
 app.UseHangfireDashboard("/hangfire", new DashboardOptions
 {
