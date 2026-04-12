@@ -26,13 +26,15 @@ internal class PaymentService : IPaymentService
     private readonly ILogger<PaymentService> _logger;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IInvoiceRepository _invoiceRepository;
     private readonly string _checksumKey;
     public PaymentService(
         IConfiguration configuration,
         ILogger<PaymentService> logger,
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUserService,
-        IOrderRepository orderRepository)
+        IOrderRepository orderRepository,
+        IInvoiceRepository invoiceRepository)
     {
         _orderRepository = orderRepository;
         _configuration = configuration;
@@ -73,6 +75,8 @@ internal class PaymentService : IPaymentService
             _logger.LogError(ex, "Failed to initialize PayOSClient");
             throw;
         }
+
+        _invoiceRepository = invoiceRepository;
     }
 
     public async Task<PaymentResponseDto> CreatePaymentLink(Guid orderId, PaymentCreateDto paymentCreateDto)
@@ -278,6 +282,47 @@ internal class PaymentService : IPaymentService
                 payment.PaymentStatus = PaymentStatus.SUCCESS;
                 payment.Reference = webhook.Data.Reference;
                 payment.PaymentLinkID = webhook.Data.PaymentLinkId;
+
+                FilterDefinition<Order> orderFilter = Builders<Order>.Filter.And(
+                              Builders<Order>.Filter.Eq(o => o._id, webhook.Data.OrderId)
+                          );
+
+                Order? order = await _orderRepository.GetOrderByCondition(orderFilter);
+                if (order == null)
+                    throw new NotFoundException($"Không tìm thấy đơn hàng [{webhook.Data.OrderId}]");
+                //Add Invoice
+                Invoice invoice = new Invoice();
+                invoice._id = Guid.NewGuid();
+                invoice.TotalAmount = order.TotalAmount;
+                invoice.ContentVN =
+                        $"Thanh toán {order.Item.ProductNameVN} " +
+                        $"(SL: {order.Item.Quantity}) " +
+                        $"với tổng tiền {order.TotalAmount:N0} VND";
+                invoice.ContentEN =
+                        $"Payment for {order.Item.ProductNameEN} " +
+                        $"(Qty: {order.Item.Quantity}) " +
+                        $"with total amount {order.TotalAmount:N0} VND";
+                invoice.IssueAt = DateTime.UtcNow.AddHours(7);
+                invoice.CustomerInfo = new CustomerInfo
+                {
+                    UserID = order.UserID,
+                    FullName = _currentUserService.UserName!,
+                    Email = _currentUserService.Email!,
+                    TaxCode = null,
+                };
+                invoice.Item = new InvoiceItem
+                {
+                    ProductID = order.Item.ProductID,
+                    ProductNameVN = order.Item.ProductNameVN,
+                    ProductNameEN = order.Item.ProductNameEN,
+                    Currency = "VND",
+                    Quantity = order.Item.Quantity,
+                    Total = order.TotalAmount,
+                    UnitPrice = order.Item.UnitOfPrice
+                };
+
+                Invoice? responseInvoice = await _invoiceRepository.AddInvoice(invoice);
+
                 _logger.LogInformation("Payment SUCCESS for orderId: {OrderId}", webhook.Data.OrderId);
             }
             else if (webhook.Code == "05")
@@ -290,7 +335,8 @@ internal class PaymentService : IPaymentService
                 payment.PaymentStatus = PaymentStatus.FAILED;
                 _logger.LogWarning("Payment FAILED for orderId: {OrderId}, Code: {Code}",
                     webhook.Data.OrderId, webhook.Code);
-            } else
+            }
+            else
             {
                 _logger.LogWarning("Unknown webhook code: {Code}", webhook.Code);
                 return false;
@@ -309,6 +355,8 @@ internal class PaymentService : IPaymentService
         }
 
     }
+
+
 
     /// <summary>
     /// Tính toán HMAC-SHA256 hash của chuỗi dữ liệu đầu vào sử dụng khóa bí mật đã cấu hình. Kết quả trả về là một chuỗi thập lục phân viết thường, có thể được so sánh với chữ ký được gửi trong webhook để xác minh tính hợp lệ của yêu cầu.

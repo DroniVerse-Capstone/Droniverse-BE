@@ -39,5 +39,7 @@ public interface ICourseService
         IEnumerable<Guid> courseIds);
 
     Task<PagedManagerCoursesBulkResponse> GetCoursesByIdsManagementAsync(ManagerCourseBulkSearchRequest searchRequest, GetCoursesByIdsRequestDTO courseIds);
+
+    Task<IEnumerable<SimpleCourseResponse>> GetCoursesByIdsSimpleAsync(GetCoursesByIdsRequestDTO request);
 }
 

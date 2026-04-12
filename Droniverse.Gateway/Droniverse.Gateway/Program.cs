@@ -68,8 +68,20 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Load Ocelot configuration
-builder.Configuration.AddJsonFile("ocelot.json", optional: false, reloadOnChange: true);
+// Load Ocelot configuration based on environment
+var environment = builder.Environment.EnvironmentName;
+var ocelotFile = $"ocelot.{environment}.json";
+var defaultOcelotFile = "ocelot.json";
+
+// Try to load environment-specific config first, fall back to ocelot.json
+if (File.Exists(ocelotFile))
+{
+    builder.Configuration.AddJsonFile(ocelotFile, optional: false, reloadOnChange: true);
+}
+else
+{
+    builder.Configuration.AddJsonFile(defaultOcelotFile, optional: false, reloadOnChange: true);
+}
 
 // Add Ocelot
 builder.Services.AddOcelot(builder.Configuration);
@@ -131,12 +143,13 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+app.MapGet("/healthz", () => Results.Ok("OK"));
+
 app.UseSwaggerForOcelotUI(opt =>
 {
     opt.PathToSwaggerGenerator = "/swagger/docs";
     opt.ReConfigureUpstreamSwaggerJson = AlterUpstreamSwaggerJson;
 });
-app.MapGet("/healthz", () => Results.Ok("OK"));
 app.UseHttpsRedirection();
 app.UseCors();
 app.UseAuthentication();
@@ -158,6 +171,10 @@ static string AlterUpstreamSwaggerJson(HttpContext context, string swaggerJson)
         swagger["components"] = new JObject();
     }
 
+    // Lấy description hiện có từ downstream (có chứa tokens)
+    var existingDescription = swagger["components"]?["securitySchemes"]?["Bearer"]?["description"]?.Value<string>() ?? 
+        "JWT Authorization header using the Bearer scheme. Example: 'Bearer {token}'";
+
     swagger["components"]!["securitySchemes"] = new JObject
     {
         ["Bearer"] = new JObject
@@ -165,7 +182,7 @@ static string AlterUpstreamSwaggerJson(HttpContext context, string swaggerJson)
             ["type"] = "http",
             ["scheme"] = "bearer",
             ["bearerFormat"] = "JWT",
-            ["description"] = "JWT Authorization header using the Bearer scheme. Example: 'Bearer {token}'"
+            ["description"] = existingDescription  // Giữ description gốc (có tokens)
         }
     };
 

@@ -6,7 +6,10 @@ public class CodeResponseDTO
 {
     public string CodeID { get; set; }
     public string CourseID { get; set; }
-    public ICollection<CodeUsageResponseDTO> CodeUsages { get; set; }
+    public string ClubID { get; set; }
+    public Guid? OwnedUserID { get; set; }
+    public Guid? UsedByUserID { get; set; }
+    public DateTime? UsedDate { get; set; }
     public DateTime ExpireDate { get; set; }
     public CodeStatus Status { get; set; }
 }

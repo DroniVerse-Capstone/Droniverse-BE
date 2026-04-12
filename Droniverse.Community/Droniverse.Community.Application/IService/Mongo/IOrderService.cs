@@ -9,7 +9,7 @@ public interface IOrderService
     Task<List<OrderResponseDto?>> GetOrders();
     Task<List<OrderResponseDto?>> GetOrdersByCondition(FilterDefinition<Order> filter);
     Task<OrderResponseDto?> GetOrderByCondition(FilterDefinition<Order> filter);
-    Task<OrderResponseDto?> AddOrder(OrderCreateDto orderAddRequest);
+    Task<OrderResponseDto?> AddOrder(Guid clubId, OrderCreateDto orderAddRequest);
     Task<OrderResponseDto?> UpdateOrder(OrderUpdateDto orderUpdateRequest);
     Task<bool> DeleteOrder(Guid orderID);
 }

@@ -165,5 +165,40 @@ internal class OrderRepository : IOrderRepository
 
         return order;
     }
+
+    public async Task<IEnumerable<OrderRevenueData>> GetSuccessfulRevenueDataByProductIds(
+        IEnumerable<Guid> productIds,
+        DateTime? fromInclusive = null,
+        DateTime? toExclusive = null)
+    {
+        var ids = productIds?
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToList() ?? [];
+
+        if (ids.Count == 0)
+            return [];
+
+        var filter = Builders<Order>.Filter.And(
+            Builders<Order>.Filter.In(o => o.Item.ProductID, ids),
+            Builders<Order>.Filter.Ne(o => o.Payment, null),
+            Builders<Order>.Filter.Eq(o => o.Payment.PaymentStatus, PaymentStatus.SUCCESS));
+
+        if (fromInclusive.HasValue)
+            filter &= Builders<Order>.Filter.Gte(o => o.Payment.TransactionDate, fromInclusive.Value);
+
+        if (toExclusive.HasValue)
+            filter &= Builders<Order>.Filter.Lt(o => o.Payment.TransactionDate, toExclusive.Value);
+
+        return await _orders
+            .Find(filter)
+            .Project(o => new OrderRevenueData
+            {
+                ProductId = o.Item.ProductID,
+                Revenue = o.TotalAmount,
+                PaidAt = o.Payment.TransactionDate
+            })
+            .ToListAsync();
+    }
 }
 

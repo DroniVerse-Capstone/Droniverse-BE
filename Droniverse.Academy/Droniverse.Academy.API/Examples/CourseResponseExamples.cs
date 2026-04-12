@@ -148,3 +148,27 @@ public class CoursesByIdsSuccessResponseExample : IExamplesProvider<SuccessRespo
             "Lấy danh sách course theo id thành công.");
     }
 }
+
+public class SimpleCoursesByIdsSuccessResponseExample : IExamplesProvider<IEnumerable<SimpleCourseResponse>>
+{
+    public IEnumerable<SimpleCourseResponse> GetExamples()
+    {
+        return
+        [
+            new SimpleCourseResponse
+            {
+                CourseId = Guid.Parse("9f5b91ea-b6ca-46db-a2da-18f8a6f5af13"),
+                CourseNameVN = "Lập trình drone cơ bản",
+                CourseNameEN = "Drone Programming Basics",
+                ImageUrl = "https://cdn.example.com/course-1.jpg"
+            },
+            new SimpleCourseResponse
+            {
+                CourseId = Guid.Parse("2f7a7dc5-b4e2-4d36-a014-5f85366a2d28"),
+                CourseNameVN = "Drone nâng cao",
+                CourseNameEN = "Advanced Drone",
+                ImageUrl = "https://cdn.example.com/course-2.jpg"
+            }
+        ];
+    }
+}

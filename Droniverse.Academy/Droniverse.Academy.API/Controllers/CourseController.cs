@@ -97,6 +97,30 @@ namespace Droniverse.Academy.API.Controllers
             }
         }
 
+        /// <summary>
+        /// Lấy danh sách khóa học đơn giản theo danh sách ID.
+        /// </summary>
+        /// <param name="request">Danh sách <c>CourseId</c> cần truy vấn.</param>
+        /// <returns>Danh sách khóa học rút gọn tương ứng với các ID hợp lệ.</returns>
+        [HttpPost("by-ids/simple")]
+        [SwaggerRequestExample(typeof(GetCoursesByIdsRequestDTO), typeof(GetCoursesByIdsExample))]
+        [SwaggerResponseExample(StatusCodes.Status200OK, typeof(SimpleCoursesByIdsSuccessResponseExample))]
+        [ProducesResponseType(typeof(IEnumerable<SimpleCourseResponse>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetCoursesByIdsSimple(
+        [FromBody] GetCoursesByIdsRequestDTO request)
+        {
+            try
+            {
+                var result = await _courseService.GetCoursesByIdsSimpleAsync(request);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lấy danh sách khóa học đơn giản theo ID thất bại.");
+                throw;
+            }
+        }
+
         ///// <summary>
         ///// Lấy danh sách khóa học theo danh sách ID (kèm filter + pagination).
         ///// </summary>
