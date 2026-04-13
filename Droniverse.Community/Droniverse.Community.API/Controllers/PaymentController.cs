@@ -120,14 +120,21 @@ namespace Droniverse.Community.API.Controllers
                     return Unauthorized();
                 }
 
+                // Process webhook but always return 200 OK to acknowledge receipt
+                // PayOS requires 200 OK to confirm webhook was received
                 bool result = await _paymentService.HandleWebhook(webhook);
                 _logger.LogInformation("Handle webhook result: {Result}", result);
-                return result ? Ok() : BadRequest("Failed to process webhook");
+                
+                // Always return 200 OK - PayOS just needs confirmation that endpoint received it
+                // Even if order not found, we return OK (may be a test webhook or delayed delivery)
+                return Ok();
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing webhook");
-                return StatusCode(500, "Internal server error");
+                // Still return 200 OK on error to avoid webhook retry loop
+                // Errors are logged and can be reviewed later
+                return Ok();
             }
         }
         
