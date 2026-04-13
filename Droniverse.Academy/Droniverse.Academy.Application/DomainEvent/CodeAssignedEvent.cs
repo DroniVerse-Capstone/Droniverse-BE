@@ -1,23 +1,34 @@
 ﻿using MediatR;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Droniverse.Academy.Application.DomainEvent
 {
     public class CodeAssignedEvent : INotification
     {
-        public string CodeId { get; }
+        public string Code { get; }
         public Guid UserId { get; }
         public Guid CourseId { get; }
+        public string Email { get; }
 
-        public CodeAssignedEvent(string codeId, Guid userId, Guid courseId)
+        public string FullName { get; }
+        public string CourseNameVN { get; }
+        public string CourseNameEN { get; }
+
+        public CodeAssignedEvent(
+            string code,
+            Guid userId,
+            Guid courseId,
+            string email,
+            string fullName,
+            string courseNameVN,
+            string courseNameEN)
         {
-            CodeId = codeId;
+            Code = code;
             UserId = userId;
             CourseId = courseId;
+            Email = email;
+            FullName = fullName;
+            CourseNameVN = courseNameVN;
+            CourseNameEN = courseNameEN;
         }
     }
 }

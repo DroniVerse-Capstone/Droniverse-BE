@@ -230,7 +230,7 @@ using (var scope = app.Services.CreateScope())
         var db = scope.ServiceProvider.GetRequiredService<MySqlDbContext>();
         db.Database.Migrate();
         logger.LogInformation("Academy DB migrated successfully.");
-    }   
+    }
     catch (Exception ex)
     {
         logger.LogError(ex, "Academy DB migration failed.");
@@ -262,44 +262,6 @@ app.UseSwaggerUI(c =>
     c.DisplayRequestDuration();
     c.EnableFilter();
     c.ConfigObject.AdditionalItems["persistAuthorization"] = true;
-});
-
-// Inject swagger-custom.js into Swagger UI
-var swaggerCustomFile = Path.Combine(app.Environment.WebRootPath, "swagger-custom.js");
-var swaggerCustomVersion = File.Exists(swaggerCustomFile)
-    ? File.GetLastWriteTimeUtc(swaggerCustomFile).Ticks.ToString()
-    : DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
-
-app.Use(async (context, next) =>
-{
-    if (context.Request.Path.StartsWithSegments("/swagger"))
-    {
-        var originalBody = context.Response.Body;
-        using var memoryStream = new MemoryStream();
-        context.Response.Body = memoryStream;
-
-        await next();
-
-        memoryStream.Seek(0, SeekOrigin.Begin);
-        var responseBody = await new StreamReader(memoryStream).ReadToEndAsync();
-
-        if (context.Response.ContentType?.Contains("text/html") == true)
-        {
-            responseBody = responseBody.Replace(
-                "</body>",
-                $"<script src=\"/swagger-custom.js?v={swaggerCustomVersion}\"></script></body>"
-            );
-        }
-
-        var modifiedBody = Encoding.UTF8.GetBytes(responseBody);
-        context.Response.Body = originalBody;
-        context.Response.ContentLength = modifiedBody.Length;
-        await context.Response.Body.WriteAsync(modifiedBody);
-    }
-    else
-    {
-        await next();
-    }
 });
 
 // app.UseHttpsRedirection();

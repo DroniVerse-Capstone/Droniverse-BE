@@ -41,7 +41,7 @@ namespace Droniverse.Academy.Infrastructure.Repositories
         public virtual async Task<T?> GetByIdAsync(object id, CancellationToken cancellationToken = default)
         {
             // DbSet.FindAsync accepts a params object[] for key values
-            var value = await _dbSet.FindAsync(new object[] { id }, cancellationToken);
+            var value = await _dbSet.FindAsync([id], cancellationToken);
             return value;
         }
 

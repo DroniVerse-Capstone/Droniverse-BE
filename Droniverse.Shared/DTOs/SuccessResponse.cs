@@ -4,7 +4,6 @@ namespace Droniverse.Shared.DTOs;
 
 public class SuccessResponse<T> : ApiResponse
 {
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public T Data { get; set; }
     [JsonConstructor]
     public SuccessResponse() { } //private constructor to force use of factory method
