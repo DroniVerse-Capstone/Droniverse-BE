@@ -102,7 +102,6 @@ namespace Droniverse.Community.API.Controllers
                 return StatusCode(500, "Internal server error");
             }
         }
-        }
 
         /// <summary>
         /// Lấy danh sách các giao dịch thanh toán của người dùng hiện tại. 6#. Luồng thanh toán
