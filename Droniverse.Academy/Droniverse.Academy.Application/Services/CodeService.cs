@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Droniverse.Academy.Application.DomainEvent;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.HttpClients;
@@ -13,6 +14,7 @@ using Droniverse.Shared.Enums;
 using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Helpers;
 using Droniverse.Shared.Services.IServices;
+using MediatR;
 using Microsoft.Extensions.Logging;
 using System.Security.Claims;
 
@@ -27,6 +29,8 @@ public class CodeService : ICodeService
     private readonly IdentityMicroserviceClient _identityMicroserviceClient;
     private readonly IEmailService _emailService;
     private readonly IClock _clock;
+    private readonly IMediator _mediator;
+
     public CodeService(
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUserService,
@@ -34,7 +38,8 @@ public class CodeService : ICodeService
         CommunityMicroserviceClient communityMicroserviceClient,
         IdentityMicroserviceClient identityMicroserviceClient,
         IEmailService emailService,
-        IClock clock)
+        IClock clock,
+        IMediator mediator)
     {
         _unitOfWork = unitOfWork;
         _currentUserService = currentUserService;
@@ -43,7 +48,9 @@ public class CodeService : ICodeService
         _identityMicroserviceClient = identityMicroserviceClient;
         _emailService = emailService;
         _clock = clock;
+        _mediator = mediator;
     }
+
     public async Task<CreateCodesResponse> CreateCodeAsync(GenerateCodesRequestDTO request)
     {
         if (request is null)
@@ -277,27 +284,56 @@ public class CodeService : ICodeService
             _logger.LogError(ex, "Error occurred while entering code {CodeID} for user {UserID}", codeId, _currentUserService.UserId);
             throw;
         }
-
     }
 
-    public async Task<CodeAssignmentResponseDTO> AssignCodeAsync(string codeId, AssignCodeRequest request)
+    public async Task<CodeAssignmentResponseDTO> AssignCodeAsync(AssignCodeRequest request)
     {
-        if (string.IsNullOrWhiteSpace(codeId))
-            throw new ValidationException("Mã code không hợp lệ.");
+        if (string.IsNullOrWhiteSpace(request.CodeId))
+            throw new ValidationException("CodeId không hợp lệ.");
 
-        if (request == null || request.UserId == Guid.Empty)
-            throw new ValidationException("Người nhận code không hợp lệ.");
+        if (request.UserId == Guid.Empty)
+            throw new ValidationException("UserId không hợp lệ.");
 
-        var code = await _unitOfWork.Codes.GetByIdAsync(codeId.Trim())
+        var code = await _unitOfWork.Codes.GetByIdAsync(request.CodeId.Trim())
             ?? throw new NotFoundException("Không tìm thấy mã code.");
 
         code.AssignToUser(request.UserId, _clock.Now);
+
         await _unitOfWork.Codes.UpdateAsync(code);
         await _unitOfWork.SaveChangesAsync();
 
         if (request.SendEmail)
         {
-            await SendAssignEmailAsync(request.UserId, code.CodeID, code.CourseID);
+            var userTask = _identityMicroserviceClient.GetUsersBulk([request.UserId]);
+            var courseTask = _unitOfWork.Courses.GetCourseInfoByIdAsync([code.CourseID]);
+
+            await Task.WhenAll(userTask, courseTask);
+
+            var user = (await userTask).FirstOrDefault();
+            var course = (await courseTask)?.FirstOrDefault();
+
+            if (user != null && course != null)
+            {
+                var @event = new CodeAssignedEvent(
+                    code: code.CodeID,
+                    userId: request.UserId,
+                    courseId: code.CourseID,
+                    email: user.Email,
+                    fullName: AppHelper.GetFullName(user)!,
+                    courseNameVN: course.CourseNameVN,
+                    courseNameEN: course.CourseNameEN
+                );
+
+                await _mediator.Publish(@event);
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "Không gửi được email. User hoặc Course không tồn tại. UserId: {UserId}, CourseId: {CourseId}",
+                    request.UserId,
+                    code.CourseID
+                );
+            }
         }
 
         return new CodeAssignmentResponseDTO
@@ -364,14 +400,51 @@ public class CodeService : ICodeService
 
             await _unitOfWork.SaveChangesAsync();
         });
-        
 
         if (request.SendEmail)
         {
-            var tasks = assignedItems.Select(x =>
+            var userIds = assignedItems
+                .Select(x => x.UserId)
+                .Distinct()
+                .ToList();
+
+            var courseIds = assignedItems
+                .Select(x => codeById[x.CodeId].CourseID)
+                .Distinct()
+                .ToList();
+
+            // chạy song song cho nhanh
+            var userTask = _identityMicroserviceClient.GetUsersBulk(userIds);
+            var courseTask = _unitOfWork.Courses.GetCourseInfoByIdAsync(courseIds);
+
+            await Task.WhenAll(userTask, courseTask);
+
+            var users = (await userTask).ToDictionary(x => x.UserId);
+
+            var coursesDict = (await courseTask ?? Enumerable.Empty<CourseInfoQueryModel>())
+                .ToDictionary(x => x.CourseId);
+
+            var tasks = assignedItems.Select(async x =>
             {
                 var code = codeById[x.CodeId];
-                return SendAssignEmailAsync(x.UserId, x.CodeId, code.CourseID);
+
+                if (!users.TryGetValue(x.UserId, out var user))
+                    return;
+
+                if (!coursesDict.TryGetValue(code.CourseID, out var course))
+                    return;
+
+                var @event = new CodeAssignedEvent(
+                    code: code.CodeID,
+                    userId: x.UserId,
+                    courseId: code.CourseID,
+                    email: user.Email,
+                    fullName: AppHelper.GetFullName(user)!,
+                    courseNameVN: course.CourseNameVN,
+                    courseNameEN: course.CourseNameEN
+                );
+
+                await _mediator.Publish(@event);
             });
 
             await Task.WhenAll(tasks);

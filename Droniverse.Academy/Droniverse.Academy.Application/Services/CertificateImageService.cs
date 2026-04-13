@@ -11,11 +11,21 @@ namespace Droniverse.Academy.Application.Services;
 
 public class CertificateImageService : ICertificateImageService
 {
-    private static readonly string[] PreferredFonts = ["Arial", "Tahoma", "Times New Roman", "Segoe UI"];
+    //private static readonly string[] PreferredFonts = ["Arial", "Tahoma", "Times New Roman", "Segoe UI"];
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly FontCollection _fontCollection = new();
+    private readonly FontFamily _fontFamily;
 
     public CertificateImageService(IHttpClientFactory httpClientFactory)
     {
+        var fontPath = Path.Combine(AppContext.BaseDirectory, "fonts", "arialbd.ttf");
+        if (!File.Exists(fontPath))
+        {
+            throw new NotFoundException($"Không tìm thấy font !");
+        }
+
+        _fontFamily = _fontCollection.Add(fontPath);
+
         _httpClientFactory = httpClientFactory;
     }
 
@@ -76,25 +86,18 @@ public class CertificateImageService : ICertificateImageService
         };
     }
 
-    private static Font ResolveFont(int imageWidth, CertificateWriteFor certificateWriteFor)
+    private Font ResolveFont(int imageWidth, CertificateWriteFor certificateWriteFor)
     {
         var userWriteFontSize = Math.Clamp(imageWidth / 14f, 28f, 72f);
+
         var fontSize = certificateWriteFor == CertificateWriteFor.User_Write
             ? userWriteFontSize
             : Math.Clamp(userWriteFontSize * 0.7f, 18f, 56f);
+
         var fontStyle = certificateWriteFor == CertificateWriteFor.User_Write
             ? FontStyle.Bold
             : FontStyle.Italic;
 
-        foreach (var preferredFont in PreferredFonts)
-        {
-            if (SystemFonts.TryGet(preferredFont, out var family))
-            {
-                return family.CreateFont(fontSize, fontStyle);
-            }
-        }
-
-        var fallbackFamily = SystemFonts.Collection.Families.First();
-        return fallbackFamily.CreateFont(fontSize, fontStyle);
+        return _fontFamily.CreateFont(fontSize, fontStyle);
     }
 }

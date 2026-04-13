@@ -59,8 +59,8 @@ public class EmailService : IEmailService
         await client.SendEmailAsync(msg);
         _logger.LogInformation($"Email sent to {email}");
     }
-
-    private async Task<string> LoadTemplateAsync(string templateName)
+        
+    public async Task<string> LoadTemplateAsync(string templateName)
     {
         var assembly = Assembly.GetExecutingAssembly();
         var resourceName = $"Droniverse.Shared.Templates.{templateName}";
