@@ -65,8 +65,20 @@ namespace Droniverse.Community.API.Controllers
         {
             try
             {
-                // Read raw request body - buffering is already enabled in Program.cs middleware
-                using var reader = new StreamReader(HttpContext.Request.Body);
+                // Buffering is enabled in Program.cs middleware - stream should support seeking
+                // Try to seek to beginning (will work with buffered streams, may fail on raw Kestrel stream)
+                try
+                {
+                    HttpContext.Request.Body.Position = 0;
+                }
+                catch
+                {
+                    // If seek fails, it means stream is not seekable - likely not buffered
+                    _logger.LogWarning("Request body stream does not support seeking - buffering may not be enabled");
+                }
+
+                // Read raw request body
+                using var reader = new StreamReader(HttpContext.Request.Body, leaveOpen: true);
                 string rawBody = await reader.ReadToEndAsync();
                 
                 _logger.LogInformation("Received webhook: {RawBody}", rawBody);
@@ -77,6 +89,13 @@ namespace Droniverse.Community.API.Controllers
                     _logger.LogError("Webhook body is empty");
                     return BadRequest("Webhook body is empty");
                 }
+
+                // Reset position for downstream
+                try
+                {
+                    HttpContext.Request.Body.Position = 0;
+                }
+                catch { }
 
                 // Deserialize webhook
                 var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
