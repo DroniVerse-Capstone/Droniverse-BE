@@ -80,7 +80,7 @@ internal class OrderService : IOrderService
             Total = CalculateTotal(product.Price, quantity),
         };
 
-        //Tạo order
+        // Tạo order
         Order order = new Order
         {
             _id = Guid.NewGuid(),

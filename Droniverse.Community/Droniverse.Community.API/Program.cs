@@ -238,16 +238,16 @@ app.UseSwaggerUI(c =>
     c.ConfigObject.AdditionalItems["persistAuthorization"] = true;
 });
 
-app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
-app.UseStaticFiles();
-
-// Enable request body buffering for webhook signature verification
+// Enable request body buffering for webhook signature verification BEFORE any middleware reads the body
 app.Use(async (context, next) =>
 {
     // Enable buffering so request body can be read multiple times
     context.Request.EnableBuffering();
     await next();
 });
+
+app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
+app.UseStaticFiles();
 
 // Inject swagger-custom.js into Swagger UI
 var swaggerCustomFile = Path.Combine(app.Environment.WebRootPath, "swagger-custom.js");
