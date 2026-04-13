@@ -64,7 +64,9 @@ public class QuizService : IQuizService
         await _unitOfWork.SaveChangesAsync();
 
         var response = _mapper.Map<QuizClientViewDTO>(quiz);
-        await PopulateUsersAsync(response, quiz.CreateBy, quiz.UpdateBy);
+        var users = await ResolveUsersAsync(quiz.CreateBy, quiz.UpdateBy);
+        response.Creator = users.Creator;
+        response.Updater = users.Updater;
 
         return response;
     }
@@ -80,7 +82,7 @@ public class QuizService : IQuizService
         var mapped = _mapper.Map<List<QuizClientViewDTO>>(entities);
 
         var userLookup = await BuildUserLookupAsync(entities);
-        PopulateMappedQuizzesUsers(entities, mapped, userLookup);
+        mapped = MapQuizzesUsers(entities, mapped, userLookup);
 
         return mapped;
     }
@@ -92,7 +94,9 @@ public class QuizService : IQuizService
             throw new BaseException("Không tìm thấy bài kiểm tra.", "NOT_FOUND");
 
         var response = _mapper.Map<QuizClientViewDTO>(quiz);
-        await PopulateUsersAsync(response, quiz.CreateBy, quiz.UpdateBy);
+        var users = await ResolveUsersAsync(quiz.CreateBy, quiz.UpdateBy);
+        response.Creator = users.Creator;
+        response.Updater = users.Updater;
 
         return response;
     }
@@ -115,7 +119,9 @@ public class QuizService : IQuizService
         await _unitOfWork.SaveChangesAsync();
 
         var response = _mapper.Map<QuizClientViewDTO>(quiz);
-        await PopulateUsersAsync(response, quiz.CreateBy, quiz.UpdateBy);
+        var users = await ResolveUsersAsync(quiz.CreateBy, quiz.UpdateBy);
+        response.Creator = users.Creator;
+        response.Updater = users.Updater;
 
         return response;
     }
@@ -161,7 +167,7 @@ public class QuizService : IQuizService
             throw new ValidationException("OrderIndex phải là duy nhất trong mô-đun.");
     }
 
-    private async Task PopulateUsersAsync(QuizClientViewDTO quiz, Guid createBy, Guid updateBy)
+    private async Task<(SimpleUserReponse? Creator, SimpleUserReponse? Updater)> ResolveUsersAsync(Guid createBy, Guid updateBy)
     {
         var users = await _userDisplayNameService.GetListUserAsync(new[] { createBy, updateBy });
         var userLookup = users.ToDictionary(u => u.UserId, u => (SimpleUserReponse?)u);
@@ -169,8 +175,7 @@ public class QuizService : IQuizService
         userLookup.TryGetValue(createBy, out var creator);
         userLookup.TryGetValue(updateBy, out var updater);
 
-        quiz.Creator = creator;
-        quiz.Updater = updater;
+        return (creator, updater);
     }
 
     private async Task<Dictionary<Guid, SimpleUserReponse?>> BuildUserLookupAsync(IEnumerable<Quiz> quizzes)
@@ -190,9 +195,9 @@ public class QuizService : IQuizService
         return lookup;
     }
 
-    private static void PopulateMappedQuizzesUsers(
+    private static List<QuizClientViewDTO> MapQuizzesUsers(
         IEnumerable<Quiz> entities,
-        IEnumerable<QuizClientViewDTO> dtos,
+        List<QuizClientViewDTO> dtos,
         IReadOnlyDictionary<Guid, SimpleUserReponse?> userLookup)
     {
         foreach (var (entity, dto) in entities.Zip(dtos))
@@ -207,5 +212,7 @@ public class QuizService : IQuizService
                 dto.Updater = updater;
             }
         }
+
+        return dtos;
     }
 }

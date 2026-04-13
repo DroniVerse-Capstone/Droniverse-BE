@@ -42,7 +42,9 @@ public class CertificateService : ICertificateService
         await _unitOfWork.SaveChangesAsync();
 
         var response = _mapper.Map<CertificateResponseDTO>(cert);
-        await PopulateUsersAsync(response, cert.CreateBy, cert.UpdateBy);
+        var users = await ResolveUsersAsync(cert.CreateBy, cert.UpdateBy);
+        response.Creator = users.Creator;
+        response.Updater = users.Updater;
 
         return response;
     }
@@ -73,7 +75,9 @@ public class CertificateService : ICertificateService
             throw new BaseException("Không tìm thấy chứng chỉ.", "NOT_FOUND");
 
         var response = _mapper.Map<CertificateResponseDTO>(cert);
-        await PopulateUsersAsync(response, cert.CreateBy, cert.UpdateBy);
+        var users = await ResolveUsersAsync(cert.CreateBy, cert.UpdateBy);
+        response.Creator = users.Creator;
+        response.Updater = users.Updater;
 
         return response;
     }
@@ -85,7 +89,9 @@ public class CertificateService : ICertificateService
             throw new BaseException("Không tìm thấy chứng chỉ.", "NOT_FOUND");
 
         var response = _mapper.Map<CertificateResponseDTO>(cert);
-        await PopulateUsersAsync(response, cert.CreateBy, cert.UpdateBy);
+        var users = await ResolveUsersAsync(cert.CreateBy, cert.UpdateBy);
+        response.Creator = users.Creator;
+        response.Updater = users.Updater;
 
         return response;
     }
@@ -106,7 +112,9 @@ public class CertificateService : ICertificateService
         await _unitOfWork.SaveChangesAsync();
 
         var response = _mapper.Map<CertificateResponseDTO>(cert);
-        await PopulateUsersAsync(response, cert.CreateBy, cert.UpdateBy);
+        var users = await ResolveUsersAsync(cert.CreateBy, cert.UpdateBy);
+        response.Creator = users.Creator;
+        response.Updater = users.Updater;
 
         return response;
     }
@@ -128,7 +136,7 @@ public class CertificateService : ICertificateService
             .ToList();
 
         var userLookup = await BuildUserLookupAsync(entities);
-        PopulateMappedCertificatesUsers(entities, data, userLookup);
+        data = MapCertificatesUsers(entities, data, userLookup);
 
         return data
             .OrderBy(c => ids.IndexOf(c.CertificateID))
@@ -140,7 +148,7 @@ public class CertificateService : ICertificateService
         return await _unitOfWork.Certificates.GetSimpleCertificatesByIdsAsync(certificateIds, cancellationToken);
     }
 
-    private async Task PopulateUsersAsync(CertificateResponseDTO certificate, Guid createBy, Guid updateBy)
+    private async Task<(SimpleUserReponse? Creator, SimpleUserReponse? Updater)> ResolveUsersAsync(Guid createBy, Guid updateBy)
     {
         var users = await _userDisplayNameService.GetListUserAsync(new[] { createBy, updateBy });
         var userLookup = users.ToDictionary(u => u.UserId, u => (SimpleUserReponse?)u);
@@ -148,8 +156,7 @@ public class CertificateService : ICertificateService
         userLookup.TryGetValue(createBy, out var creator);
         userLookup.TryGetValue(updateBy, out var updater);
 
-        certificate.Creator = creator;
-        certificate.Updater = updater;
+        return (creator, updater);
     }
 
     private async Task<Dictionary<Guid, SimpleUserReponse?>> BuildUserLookupAsync(IEnumerable<Certificate> certificates)
@@ -169,9 +176,9 @@ public class CertificateService : ICertificateService
         return lookup;
     }
 
-    private static void PopulateMappedCertificatesUsers(
+    private static List<CertificateResponseDTO> MapCertificatesUsers(
         IEnumerable<Certificate> entities,
-        IEnumerable<CertificateResponseDTO> dtos,
+        List<CertificateResponseDTO> dtos,
         IReadOnlyDictionary<Guid, SimpleUserReponse?> userLookup)
     {
         foreach (var (entity, dto) in entities.Zip(dtos))
@@ -186,6 +193,8 @@ public class CertificateService : ICertificateService
                 dto.Updater = updater;
             }
         }
+
+        return dtos;
     }
 
     private async Task<CourseVersion> GetValidatedCourseVersionAsync(Guid courseId, Guid versionId)

@@ -49,7 +49,7 @@ public class CourseService : ICourseService
         await _unitOfWork.SaveChangesAsync();
 
         var response = _mapper.Map<CourseDetailResponseDTO>(course);
-        await PopulateCreatorAsync(response, course.CreateBy);
+        response.Creator = await ResolveUserAsync(course.CreateBy);
 
         return response;
     }
@@ -116,7 +116,7 @@ public class CourseService : ICourseService
         }
 
         var userCache = await BuildUserLookupAsync(entities);
-        PopulateMappedCoursesUsers(entities, mapped, userCache);
+        mapped = MapCoursesUsers(entities, mapped, userCache);
 
         return new PaginationResult<IEnumerable<CourseResponseDTO>>(mapped, result.TotalRecords, result.PageIndex, result.PageSize);
     }
@@ -127,8 +127,11 @@ public class CourseService : ICourseService
             ?? throw new BaseException("Không tìm thấy khóa học.", "NOT_FOUND");
 
         var courseResponse = _mapper.Map<CourseResponseDTO>(course);
-        await PopulateCreatorAsync(courseResponse, course.CreateBy);
-        await PopulateCurrentVersionUpdaterAsync(courseResponse, course.CurrentVersion?.UpdateBy);
+        courseResponse.Creator = await ResolveUserAsync(course.CreateBy);
+        if (courseResponse.CurrentVersion != null)
+        {
+            courseResponse.CurrentVersion.Updater = await ResolveUserAsync(course.CurrentVersion?.UpdateBy);
+        }
 
         if (course.CurrentVersion != null)
         {
@@ -479,25 +482,13 @@ public class CourseService : ICourseService
             .ToList();
     }
 
-    private async Task PopulateCreatorAsync(CourseResponseDTO course, Guid createBy)
+    private async Task<SimpleUserReponse?> ResolveUserAsync(Guid? userId)
     {
-        var users = await _userDisplayNameService.GetListUserAsync(new[] { createBy });
-        course.Creator = users.FirstOrDefault();
-    }
+        if (!userId.HasValue || userId.Value == Guid.Empty)
+            return null;
 
-    private async Task PopulateCreatorAsync(CourseDetailResponseDTO course, Guid createBy)
-    {
-        var users = await _userDisplayNameService.GetListUserAsync(new[] { createBy });
-        course.Creator = users.FirstOrDefault();
-    }
-
-    private async Task PopulateCurrentVersionUpdaterAsync(CourseResponseDTO course, Guid? updateBy)
-    {
-        if (!updateBy.HasValue || updateBy.Value == Guid.Empty)
-            return;
-
-        var users = await _userDisplayNameService.GetListUserAsync(new[] { updateBy.Value });
-        course.CurrentVersion!.Updater = users.FirstOrDefault();
+        var users = await _userDisplayNameService.GetListUserAsync(new[] { userId.Value });
+        return users.FirstOrDefault();
     }
 
     private async Task<Dictionary<Guid, SimpleUserReponse?>> BuildUserLookupAsync(IEnumerable<Course> courses)
@@ -517,9 +508,9 @@ public class CourseService : ICourseService
         return lookup;
     }
 
-    private static void PopulateMappedCoursesUsers(
+    private static List<CourseResponseDTO> MapCoursesUsers(
         IEnumerable<Course> entities,
-        IEnumerable<CourseResponseDTO> dtos,
+        List<CourseResponseDTO> dtos,
         IReadOnlyDictionary<Guid, SimpleUserReponse?> userLookup)
     {
         foreach (var (entity, dto) in entities.Zip(dtos))
@@ -536,6 +527,8 @@ public class CourseService : ICourseService
                 dto.CurrentVersion.Updater = updater;
             }
         }
+
+        return dtos;
     }
 
     public async Task<PagedManagerCoursesBulkResponse> GetCoursesByIdsManagementAsync(

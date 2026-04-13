@@ -79,7 +79,8 @@ public class CourseVersionService : ICourseVersionService
         await _unitOfWork.SaveChangesAsync();
 
         var response = _mapper.Map<CourseVersionResponseDTO>(cv);
-        await PopulateUpdaterAsync(response, cv.UpdateBy);
+        response.Certificate = _mapper.Map<CertificateVersionResponseDTO?>(cv.Certificate);
+        response.Updater = await ResolveUpdaterAsync(cv.UpdateBy);
 
         return response;
     }
@@ -114,14 +115,15 @@ public class CourseVersionService : ICourseVersionService
 
     public async Task<CourseVersionResponseDTO> GetCourseVersionByIdAsync(Guid courseId, Guid versionId)
     {
-        var cv = await _unitOfWork.CourseVersions.GetByConditionAsync(v => v.CourseVersionID == versionId && v.CourseID == courseId, includeProperties: "CourseVersionCategories,RequiredDrones,Certificate");
+        var cv = await _unitOfWork.CourseVersions.GetByConditionAsync(v => v.CourseVersionID == versionId && v.CourseID == courseId, includeProperties: "CourseVersionCategories,RequiredDrones.Drone.DroneType,Certificate");
         if (cv == null)
             throw new BaseException("Không tìm thấy phiên bản khóa học.", "NOT_FOUND");
 
         var response = _mapper.Map<CourseVersionResponseDTO>(cv);
-        await PopulateUpdaterAsync(response, cv.UpdateBy);
-        await PopulateCategoriesAsync(response, cv.CourseVersionCategories);
-        await PopulateRequiredDronesAsync(response, cv.RequiredDrones);
+        response.Certificate = _mapper.Map<CertificateVersionResponseDTO?>(cv.Certificate);
+        response.Updater = await ResolveUpdaterAsync(cv.UpdateBy);
+        response.Categories = await ResolveCategoriesAsync(cv.CourseVersionCategories);
+        response.RequiredDrones = _mapper.Map<IEnumerable<DroneClientViewDTO>>(cv.RequiredDrones);
 
         return response;
     }
@@ -169,7 +171,8 @@ public class CourseVersionService : ICourseVersionService
         }
 
         var response = _mapper.Map<CourseVersionResponseDTO>(duplicationResult.DuplicatedVersion);
-        await PopulateUpdaterAsync(response, duplicationResult.DuplicatedVersion.UpdateBy);
+        response.Certificate = _mapper.Map<CertificateVersionResponseDTO?>(duplicationResult.DuplicatedVersion.Certificate);
+        response.Updater = await ResolveUpdaterAsync(duplicationResult.DuplicatedVersion.UpdateBy);
         return response;
     }
 
@@ -182,12 +185,13 @@ public class CourseVersionService : ICourseVersionService
             filter = v => v.CourseID == courseId && v.Status == s;
         }
 
-        var result = await _unitOfWork.CourseVersions.GetAllAsync(filter, null, pageIndex, pageSize, includeProperties: "CourseVersionCategories,RequiredDrones,Certificate");
+        var result = await _unitOfWork.CourseVersions.GetAllAsync(filter, null, pageIndex, pageSize, includeProperties: "CourseVersionCategories,RequiredDrones.Drone.DroneType,Certificate");
         var entities = result.Data.ToList();
         var mapped = entities.Select(v => _mapper.Map<CourseVersionResponseDTO>(v)).ToList();
 
         var userLookup = await BuildUpdaterLookupAsync(entities);
-        PopulateMappedVersionsUpdater(entities, mapped, userLookup);
+        mapped = MapVersionsUpdater(entities, mapped, userLookup);
+        mapped = MapVersionsCertificates(entities, mapped);
 
         return new PaginationResult<IEnumerable<CourseVersionResponseDTO>>(mapped, result.TotalRecords, result.PageIndex, result.PageSize);
     }
@@ -253,18 +257,19 @@ public class CourseVersionService : ICourseVersionService
         await _unitOfWork.SaveChangesAsync();
 
         var response = _mapper.Map<CourseVersionResponseDTO>(cv);
-        await PopulateUpdaterAsync(response, cv.UpdateBy);
+        response.Certificate = _mapper.Map<CertificateVersionResponseDTO?>(cv.Certificate);
+        response.Updater = await ResolveUpdaterAsync(cv.UpdateBy);
 
         return response;
     }
 
-    private async Task PopulateUpdaterAsync(CourseVersionResponseDTO courseVersion, Guid? updateBy)
+    private async Task<SimpleUserReponse?> ResolveUpdaterAsync(Guid? updateBy)
     {
         if (!updateBy.HasValue || updateBy.Value == Guid.Empty)
-            return;
+            return null;
 
         var users = await _userDisplayNameService.GetListUserAsync(new[] { updateBy.Value });
-        courseVersion.Updater = users.FirstOrDefault();
+        return users.FirstOrDefault();
     }
 
     private async Task<Dictionary<Guid, SimpleUserReponse?>> BuildUpdaterLookupAsync(IEnumerable<CourseVersion> versions)
@@ -284,9 +289,9 @@ public class CourseVersionService : ICourseVersionService
         return lookup;
     }
 
-    private static void PopulateMappedVersionsUpdater(
+    private static List<CourseVersionResponseDTO> MapVersionsUpdater(
         IEnumerable<CourseVersion> entities,
-        IEnumerable<CourseVersionResponseDTO> dtos,
+        List<CourseVersionResponseDTO> dtos,
         IReadOnlyDictionary<Guid, SimpleUserReponse?> userLookup)
     {
         foreach (var (entity, dto) in entities.Zip(dtos))
@@ -298,9 +303,23 @@ public class CourseVersionService : ICourseVersionService
                 dto.Updater = updater;
             }
         }
+
+        return dtos;
     }
 
-    private async Task PopulateCategoriesAsync(CourseVersionResponseDTO response, IEnumerable<CourseVersionCategory>? courseVersionCategories)
+    private List<CourseVersionResponseDTO> MapVersionsCertificates(
+        IEnumerable<CourseVersion> entities,
+        List<CourseVersionResponseDTO> dtos)
+    {
+        foreach (var (entity, dto) in entities.Zip(dtos))
+        {
+            dto.Certificate = _mapper.Map<CertificateVersionResponseDTO?>(entity.Certificate);
+        }
+
+        return dtos;
+    }
+
+    private async Task<IEnumerable<CategoryResponseDTO>> ResolveCategoriesAsync(IEnumerable<CourseVersionCategory>? courseVersionCategories)
     {
         var categoryIds = courseVersionCategories?
             .Select(x => x.CategoryID)
@@ -310,43 +329,15 @@ public class CourseVersionService : ICourseVersionService
 
         if (categoryIds.Count == 0)
         {
-            response.Categories = [];
-            return;
+            return [];
         }
 
         var categories = await _communityMicroserviceClient.GetCategoriesBulk(categoryIds);
         var categoryMap = categories.ToDictionary(x => x.CategoryID, x => x);
-        response.Categories = categoryIds
+        return categoryIds
             .Where(id => categoryMap.ContainsKey(id))
             .Select(id => categoryMap[id])
             .ToList();
     }
 
-    private async Task PopulateRequiredDronesAsync(CourseVersionResponseDTO response, IEnumerable<RequiredDrone>? requiredDrones)
-    {
-        var droneIds = requiredDrones?
-            .Select(x => x.DroneID)
-            .Where(id => id != Guid.Empty)
-            .Distinct()
-            .ToList() ?? [];
-
-        if (droneIds.Count == 0)
-        {
-            response.RequiredDrones = [];
-            return;
-        }
-
-        var dronesResult = await _unitOfWork.Drones.GetAllAsync(
-            filter: d => droneIds.Contains(d.DroneID),
-            pageIndex: 1,
-            pageSize: int.MaxValue,
-            includeProperties: "DroneType");
-
-        var mappedDrones = _mapper.Map<IEnumerable<DroneClientViewDTO>>(dronesResult.Data).ToList();
-        var droneMap = mappedDrones.ToDictionary(x => x.DroneID, x => x);
-        response.RequiredDrones = droneIds
-            .Where(id => droneMap.ContainsKey(id))
-            .Select(id => droneMap[id])
-            .ToList();
-    }
 }

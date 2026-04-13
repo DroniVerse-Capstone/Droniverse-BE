@@ -65,7 +65,9 @@ public class LabService : ILabService
 
         var labContent = await _labContentService.CreateEmptyAsync(lab.LabID);
         var mappedLab = _mapper.Map<LabClientViewDTO>(lab);
-        await PopulateUsersAsync(mappedLab, lab.CreateBy, lab.UpdateBy);
+        var users = await ResolveUsersAsync(lab.CreateBy, lab.UpdateBy);
+        mappedLab.Creator = users.Creator;
+        mappedLab.Updater = users.Updater;
 
         return new LabDetailResponseDTO
         {
@@ -106,7 +108,9 @@ public class LabService : ILabService
         }
 
         var mappedLab = _mapper.Map<LabClientViewDTO>(duplicatedLab);
-        await PopulateUsersAsync(mappedLab, duplicatedLab.CreateBy, duplicatedLab.UpdateBy);
+        var users = await ResolveUsersAsync(duplicatedLab.CreateBy, duplicatedLab.UpdateBy);
+        mappedLab.Creator = users.Creator;
+        mappedLab.Updater = users.Updater;
 
         return new LabDetailResponseDTO
         {
@@ -191,7 +195,7 @@ public class LabService : ILabService
         var mapped = _mapper.Map<List<LabClientViewDTO>>(entities);
 
         var userLookup = await BuildUserLookupAsync(entities);
-        PopulateMappedLabsUsers(entities, mapped, userLookup);
+        mapped = MapLabsUsers(entities, mapped, userLookup);
 
         return new PaginationResult<IEnumerable<LabClientViewDTO>>(mapped, labs.TotalRecords, labs.PageIndex, labs.PageSize);
     }
@@ -204,7 +208,9 @@ public class LabService : ILabService
 
         var labContent = await _labContentService.GetByLabIdAsync(labId) ?? await _labContentService.CreateEmptyAsync(labId);
         var mappedLab = _mapper.Map<LabClientViewDTO>(lab);
-        await PopulateUsersAsync(mappedLab, lab.CreateBy, lab.UpdateBy);
+        var users = await ResolveUsersAsync(lab.CreateBy, lab.UpdateBy);
+        mappedLab.Creator = users.Creator;
+        mappedLab.Updater = users.Updater;
 
         return new LabDetailResponseDTO
         {
@@ -238,7 +244,9 @@ public class LabService : ILabService
 
         var labContent = await _labContentService.GetByLabIdAsync(labId) ?? await _labContentService.CreateEmptyAsync(labId);
         var mappedLab = _mapper.Map<LabClientViewDTO>(lab);
-        await PopulateUsersAsync(mappedLab, lab.CreateBy, lab.UpdateBy);
+        var users = await ResolveUsersAsync(lab.CreateBy, lab.UpdateBy);
+        mappedLab.Creator = users.Creator;
+        mappedLab.Updater = users.Updater;
 
         return new LabDetailResponseDTO
         {
@@ -350,7 +358,7 @@ public class LabService : ILabService
             throw new ValidationException("OrderIndex phải là duy nhất trong mô-đun.");
     }
 
-    private async Task PopulateUsersAsync(LabClientViewDTO lab, Guid createBy, Guid updateBy)
+    private async Task<(SimpleUserReponse? Creator, SimpleUserReponse? Updater)> ResolveUsersAsync(Guid createBy, Guid updateBy)
     {
         var users = await _userDisplayNameService.GetListUserAsync(new[] { createBy, updateBy });
         var userLookup = users.ToDictionary(u => u.UserId, u => (SimpleUserReponse?)u);
@@ -358,8 +366,7 @@ public class LabService : ILabService
         userLookup.TryGetValue(createBy, out var creator);
         userLookup.TryGetValue(updateBy, out var updater);
 
-        lab.Creator = creator;
-        lab.Updater = updater;
+        return (creator, updater);
     }
 
     private async Task<Dictionary<Guid, SimpleUserReponse?>> BuildUserLookupAsync(IEnumerable<Lab> labs)
@@ -379,9 +386,9 @@ public class LabService : ILabService
         return lookup;
     }
 
-    private static void PopulateMappedLabsUsers(
+    private static List<LabClientViewDTO> MapLabsUsers(
         IEnumerable<Lab> entities,
-        IEnumerable<LabClientViewDTO> dtos,
+        List<LabClientViewDTO> dtos,
         IReadOnlyDictionary<Guid, SimpleUserReponse?> userLookup)
     {
         foreach (var (entity, dto) in entities.Zip(dtos))
@@ -396,5 +403,7 @@ public class LabService : ILabService
                 dto.Updater = updater;
             }
         }
+
+        return dtos;
     }
 }
