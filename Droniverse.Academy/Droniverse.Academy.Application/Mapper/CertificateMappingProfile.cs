@@ -30,5 +30,7 @@ public class CertificateMappingProfile : Profile
             .ForMember(dest => dest.UpdateBy, opt => opt.Ignore());
 
         CreateMap<Certificate, CertificateResponseDTO>();
+
+        CreateMap<Certificate, CertificateVersionResponseDTO>();
     }
 }
