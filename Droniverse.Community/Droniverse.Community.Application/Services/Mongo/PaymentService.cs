@@ -392,6 +392,7 @@ internal class PaymentService : IPaymentService
             payment.TransactionDate = DateTime.UtcNow.AddHours(7);
             payment.WebhookReceivedAt = DateTime.UtcNow.AddHours(7);
             await _orderRepository.UpdatePayment(order._id, payment);
+            await _unitOfWork.SaveChangeAsync();
             _logger.LogInformation("Updated payment status to {Status}", payment.PaymentStatus);
 
             return true;
