@@ -15,6 +15,7 @@ using PayOS.Exceptions;
 using PayOS.Models.V2.PaymentRequests;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 
 namespace Droniverse.Community.Application.Services.Mongo;
 
@@ -242,13 +243,58 @@ internal class PaymentService : IPaymentService
         }
     }
 
-    public async Task<bool> VerifyWebhookSignature(string webhookData, string signature)
+    public async Task<bool> VerifyWebhookSignature(PayOSWebhookData webhookData, string signature)
     {
         try
         {
-            string? computedSignature = ComputeHmacSha256(webhookData, _checksumKey);
+            // Serialize data object with camelCase property names in sorted key order
+            var options = new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                WriteIndented = false
+            };
+            string jsonData = JsonSerializer.Serialize(webhookData, options);
+            
+            // Parse JSON and sort keys
+            using JsonDocument doc = JsonDocument.Parse(jsonData);
+            var sortedKeys = doc.RootElement.EnumerateObject()
+                .Select(p => p.Name)
+                .OrderBy(k => k, StringComparer.Ordinal)
+                .ToList();
+
+            // Build signature string: key1=value1&key2=value2&...
+            var signatureData = new StringBuilder();
+            for (int i = 0; i < sortedKeys.Count; i++)
+            {
+                var property = doc.RootElement.GetProperty(sortedKeys[i]);
+                var value = property.ValueKind switch
+                {
+                    JsonValueKind.String => property.GetString() ?? "",
+                    JsonValueKind.Number => property.GetRawText(),
+                    JsonValueKind.True => "true",
+                    JsonValueKind.False => "false",
+                    JsonValueKind.Null => "",
+                    _ => ""
+                };
+
+                signatureData.Append(sortedKeys[i]);
+                signatureData.Append('=');
+                signatureData.Append(value);
+                
+                if (i < sortedKeys.Count - 1)
+                {
+                    signatureData.Append('&');
+                }
+            }
+
+            _logger.LogInformation("Signature data: {SignatureData}", signatureData.ToString());
+
+            // Compute HMAC-SHA256
+            string? computedSignature = ComputeHmacSha256(signatureData.ToString(), _checksumKey);
             bool isValid = computedSignature.Equals(signature, StringComparison.OrdinalIgnoreCase);
-            _logger.LogInformation("Web hook signature verification : {Result}", isValid ? "Valid" : "Invalid");
+            _logger.LogInformation("Web hook signature verification : {Result}, Computed: {Computed}, Provided: {Provided}", 
+                isValid ? "Valid" : "Invalid", computedSignature, signature);
+            
             return await Task.FromResult(isValid);
         }
         catch (Exception ex)
@@ -265,12 +311,20 @@ internal class PaymentService : IPaymentService
             if (webhook?.Data is null)
                 return false;
 
-            _logger.LogInformation("Processing webhook for orderId: {OrderId}", webhook.Data.OrderId);
+            _logger.LogInformation("Processing webhook for PaymentLinkId: {PaymentLinkId}", webhook.Data.PaymentLinkId);
 
-            Payment? payment = await _orderRepository.GetPaymentByOrderID(webhook.Data.OrderId);
+            // Find order by PaymentLinkId (this matches the link created during payment)
+            Order? order = await _orderRepository.GetOrderByPaymentLinkId(webhook.Data.PaymentLinkId);
+            if (order == null)
+            {
+                _logger.LogWarning("Payment not found for PaymentLinkId: {PaymentLinkId}", webhook.Data.PaymentLinkId);
+                return false;
+            }
+
+            Payment? payment = order.Payment;
             if (payment == null)
             {
-                _logger.LogWarning("Payment not found for orderId: {OrderId}", webhook.Data.OrderId);
+                _logger.LogWarning("Payment object is null for PaymentLinkId: {PaymentLinkId}", webhook.Data.PaymentLinkId);
                 return false;
             }
 
@@ -278,18 +332,12 @@ internal class PaymentService : IPaymentService
 
             if (webhook.Code == "00" && webhook.IsSuccess)
             {
-                _logger.LogInformation("webhook.Data.Code là {result}", webhook.Data.Code);
+                _logger.LogInformation("webhook.Data.Code is {result}", webhook.Data.Code);
                 payment.PaymentStatus = PaymentStatus.SUCCESS;
                 payment.Reference = webhook.Data.Reference;
                 payment.PaymentLinkID = webhook.Data.PaymentLinkId;
+                payment.WebhookReceivedAt = DateTime.UtcNow;
 
-                FilterDefinition<Order> orderFilter = Builders<Order>.Filter.And(
-                              Builders<Order>.Filter.Eq(o => o._id, webhook.Data.OrderId)
-                          );
-
-                Order? order = await _orderRepository.GetOrderByCondition(orderFilter);
-                if (order == null)
-                    throw new NotFoundException($"Không tìm thấy đơn hàng [{webhook.Data.OrderId}]");
                 //Add Invoice
                 Invoice invoice = new Invoice();
                 invoice._id = Guid.NewGuid();
@@ -323,18 +371,18 @@ internal class PaymentService : IPaymentService
 
                 Invoice? responseInvoice = await _invoiceRepository.AddInvoice(invoice);
 
-                _logger.LogInformation("Payment SUCCESS for orderId: {OrderId}", webhook.Data.OrderId);
+                _logger.LogInformation("Payment SUCCESS for orderId: {OrderId}", order._id);
             }
             else if (webhook.Code == "05")
             {
                 payment.PaymentStatus = PaymentStatus.CANCELLED;
-                _logger.LogWarning("Payment CANCELLED for orderId: {OrderId}", webhook.Data.OrderId);
+                _logger.LogWarning("Payment CANCELLED for orderId: {OrderId}", order._id);
             }
             else if (!webhook.IsSuccess)
             {
                 payment.PaymentStatus = PaymentStatus.FAILED;
                 _logger.LogWarning("Payment FAILED for orderId: {OrderId}, Code: {Code}",
-                    webhook.Data.OrderId, webhook.Code);
+                    order._id, webhook.Code);
             }
             else
             {
@@ -343,14 +391,14 @@ internal class PaymentService : IPaymentService
             }
             payment.TransactionDate = DateTime.UtcNow.AddHours(7);
             payment.WebhookReceivedAt = DateTime.UtcNow.AddHours(7);
-            await _orderRepository.UpdatePayment(webhook.Data.OrderId, payment);
+            await _orderRepository.UpdatePayment(order._id, payment);
             _logger.LogInformation("Updated payment status to {Status}", payment.PaymentStatus);
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error handling webhook for orderId: {OrderId}", webhook?.Data?.OrderId);
+            _logger.LogError(ex, "Error handling webhook for PaymentLinkId: {PaymentLinkId}", webhook?.Data?.PaymentLinkId);
             return false;
         }
 

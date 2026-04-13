@@ -1,7 +1,10 @@
-﻿namespace Droniverse.Community.Application.DTO.Request.Mongo;
+﻿using System.Text.Json.Serialization;
+
+namespace Droniverse.Community.Application.DTO.Request.Mongo;
 
 public record PayOSWebhookData(
-    Guid OrderId,
+    [property: JsonPropertyName("orderCode")]
+    long OrderCode,
     decimal Amount,
     string Description,
     string AccountNumber,

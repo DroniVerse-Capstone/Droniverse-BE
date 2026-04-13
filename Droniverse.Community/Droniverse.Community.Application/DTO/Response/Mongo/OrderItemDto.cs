@@ -9,7 +9,7 @@ public record OrderItemDto(
     ProductType Type,
     int Quantity)
 {
-    public OrderItemDto() : this(Guid.Empty, ProductType.CODE, 0)
+    public OrderItemDto() : this(Guid.Empty, ProductType.COURSE, 0)
     {
     }
 }

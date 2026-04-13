@@ -15,6 +15,7 @@ public interface IOrderRepository
 
     // Order
     Task<Order> GetOrderByTransactionID(Guid transactionId);
+    Task<Order?> GetOrderByPaymentLinkId(string paymentLinkId);
     Task<IEnumerable<Order>> GetOrders();
     Task<IEnumerable<Order?>> GetOrdersByCondition(FilterDefinition<Order> filter);
     Task<Order?> GetOrderByCondition(FilterDefinition<Order> filter);

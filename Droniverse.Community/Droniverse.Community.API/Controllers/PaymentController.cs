@@ -65,15 +65,26 @@ namespace Droniverse.Community.API.Controllers
         {
             try
             {
-                // Enable buffering to read request body multiple times
-                HttpContext.Request.EnableBuffering();
+                // Request body buffering is already enabled in Program.cs middleware
                 
-                // Read raw request body for signature verification
-                using var reader = new StreamReader(HttpContext.Request.Body);
+                // Seek to beginning to ensure we read from start
+                HttpContext.Request.Body.Seek(0, SeekOrigin.Begin);
+                
+                // Read raw request body
+                using var reader = new StreamReader(HttpContext.Request.Body, leaveOpen: true);
                 string rawBody = await reader.ReadToEndAsync();
-                HttpContext.Request.Body.Position = 0; // Reset for deserialization
-
+                
                 _logger.LogInformation("Received webhook: {RawBody}", rawBody);
+                
+                // Check if body is empty
+                if (string.IsNullOrWhiteSpace(rawBody))
+                {
+                    _logger.LogError("Webhook body is empty");
+                    return BadRequest("Webhook body is empty");
+                }
+
+                // Reset body position for any downstream processing
+                HttpContext.Request.Body.Position = 0;
 
                 // Deserialize webhook
                 var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
@@ -85,8 +96,14 @@ namespace Droniverse.Community.API.Controllers
                     return BadRequest("Invalid webhook format");
                 }
 
-                // Verify signature using raw body (this is what PayOS signed)
-                if (!await _paymentService.VerifyWebhookSignature(rawBody, webhook.Signature))
+                if (webhook.Data == null)
+                {
+                    _logger.LogError("Webhook data is null");
+                    return BadRequest("Webhook data is missing");
+                }
+
+                // Verify signature using data object (serialize with camelCase for proper signature computation)
+                if (!await _paymentService.VerifyWebhookSignature(webhook.Data, webhook.Signature))
                 {
                     _logger.LogError("Webhook signature invalid!");
                     return Unauthorized();
@@ -102,6 +119,7 @@ namespace Droniverse.Community.API.Controllers
                 return StatusCode(500, "Internal server error");
             }
         }
+        
 
         /// <summary>
         /// Lấy danh sách các giao dịch thanh toán của người dùng hiện tại. 6#. Luồng thanh toán

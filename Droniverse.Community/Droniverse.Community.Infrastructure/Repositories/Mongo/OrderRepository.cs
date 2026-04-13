@@ -166,6 +166,20 @@ internal class OrderRepository : IOrderRepository
         return order;
     }
 
+    public async Task<Order?> GetOrderByPaymentLinkId(string paymentLinkId)
+    {
+        if (string.IsNullOrWhiteSpace(paymentLinkId))
+            throw new ArgumentException($"PaymentLinkId cannot be null or empty");
+
+        var filter = Builders<Order>.Filter.And(
+            Builders<Order>.Filter.Ne(x => x.Payment, null),
+            Builders<Order>.Filter.Eq(x => x.Payment.PaymentLinkID, paymentLinkId)
+        );
+
+        var order = await _orders.Find(filter).FirstOrDefaultAsync();
+        return order;
+    }
+
     public async Task<IEnumerable<OrderRevenueData>> GetSuccessfulRevenueDataByProductIds(
         IEnumerable<Guid> productIds,
         DateTime? fromInclusive = null,
