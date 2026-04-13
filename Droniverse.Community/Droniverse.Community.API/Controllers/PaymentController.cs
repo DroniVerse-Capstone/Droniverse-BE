@@ -65,13 +65,8 @@ namespace Droniverse.Community.API.Controllers
         {
             try
             {
-                // Request body buffering is already enabled in Program.cs middleware
-                
-                // Seek to beginning to ensure we read from start
-                HttpContext.Request.Body.Seek(0, SeekOrigin.Begin);
-                
-                // Read raw request body
-                using var reader = new StreamReader(HttpContext.Request.Body, leaveOpen: true);
+                // Read raw request body - buffering is already enabled in Program.cs middleware
+                using var reader = new StreamReader(HttpContext.Request.Body);
                 string rawBody = await reader.ReadToEndAsync();
                 
                 _logger.LogInformation("Received webhook: {RawBody}", rawBody);
@@ -82,9 +77,6 @@ namespace Droniverse.Community.API.Controllers
                     _logger.LogError("Webhook body is empty");
                     return BadRequest("Webhook body is empty");
                 }
-
-                // Reset body position for any downstream processing
-                HttpContext.Request.Body.Position = 0;
 
                 // Deserialize webhook
                 var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
