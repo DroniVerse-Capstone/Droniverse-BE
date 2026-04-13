@@ -61,18 +61,46 @@ namespace Droniverse.Community.API.Controllers
         [HttpPost("webhook")]
         [HttpPut("webhook")]
         [AllowAnonymous]
-        public async Task<IActionResult> HandleWebhookAsync([FromBody] PayOSWebhookDto webhook)
+        public async Task<IActionResult> HandleWebhookAsync()
         {
-            var webhookData = JsonSerializer.Serialize(webhook.Data);
-            _logger.LogInformation("Received webhook: {Data}", webhookData);
-            if (!await _paymentService.VerifyWebhookSignature(webhookData, webhook.Signature))
+            try
             {
-                _logger.LogError("Webhook signature invalid!");
-                return Unauthorized();
+                // Enable buffering to read request body multiple times
+                HttpContext.Request.EnableBuffering();
+                
+                // Read raw request body for signature verification
+                using var reader = new StreamReader(HttpContext.Request.Body);
+                string rawBody = await reader.ReadToEndAsync();
+                HttpContext.Request.Body.Position = 0; // Reset for deserialization
+
+                _logger.LogInformation("Received webhook: {RawBody}", rawBody);
+
+                // Deserialize webhook
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var webhook = JsonSerializer.Deserialize<PayOSWebhookDto>(rawBody, options);
+
+                if (webhook == null)
+                {
+                    _logger.LogError("Failed to deserialize webhook");
+                    return BadRequest("Invalid webhook format");
+                }
+
+                // Verify signature using raw body (this is what PayOS signed)
+                if (!await _paymentService.VerifyWebhookSignature(rawBody, webhook.Signature))
+                {
+                    _logger.LogError("Webhook signature invalid!");
+                    return Unauthorized();
+                }
+
+                bool result = await _paymentService.HandleWebhook(webhook);
+                _logger.LogInformation("Handle webhook result: {Result}", result);
+                return result ? Ok() : BadRequest("Failed to process webhook");
             }
-            bool result = await _paymentService.HandleWebhook(webhook);
-            _logger.LogInformation("Handle webhook result: {Result}", result);
-            return result ? Ok() : BadRequest("Failed to process webhook");
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing webhook");
+                return StatusCode(500, "Internal server error");
+            }
         }
 
         /// <summary>

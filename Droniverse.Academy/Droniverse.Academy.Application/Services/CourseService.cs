@@ -168,7 +168,8 @@ public class CourseService : ICourseService
             userIds.Add(overviewData.LastUpdatedById.Value);
         }
 
-        var userLookup = await _userDisplayNameService.ResolveUsersDisplayNameAsync(userIds.Distinct());
+        var users = await _userDisplayNameService.GetListUserAsync(userIds.Distinct());
+        var userLookup = users.ToDictionary(u => u.UserId, u => (SimpleUserReponse?)u);
 
         if (userLookup.TryGetValue(overviewData.AuthorId, out var author))
         {
@@ -243,10 +244,7 @@ public class CourseService : ICourseService
         var pageSize = searchRequest.PageSize < 1 ? 5 : searchRequest.PageSize;
         var normalizedCourseName = searchRequest.CourseName?.Trim();
 
-        var ids = courseIds?
-            .Where(x => x != Guid.Empty)
-            .Distinct()
-            .ToList() ?? [];
+        var ids = courseIds.ToDistinctValidIds();
 
         if (searchRequest.CourseOwner == CourseOwnerFilter.Owned && ids.Count == 0)
             return new PagedCourseBulkResponse
@@ -365,10 +363,7 @@ public class CourseService : ICourseService
         var pageIndex = searchRequest.CurrentPage < 1 ? 1 : searchRequest.CurrentPage;
         var pageSize = searchRequest.PageSize < 1 ? 5 : searchRequest.PageSize;
 
-        var ids = courseIds?
-            .Where(x => x != Guid.Empty)
-            .Distinct()
-            .ToList() ?? [];
+        var ids = courseIds.ToDistinctValidIds();
 
         if (ids.Count == 0)
         {
@@ -486,12 +481,14 @@ public class CourseService : ICourseService
 
     private async Task PopulateCreatorAsync(CourseResponseDTO course, Guid createBy)
     {
-        course.Creator = await _userDisplayNameService.ResolveUserDisplayNameAsync(createBy);
+        var users = await _userDisplayNameService.GetListUserAsync(new[] { createBy });
+        course.Creator = users.FirstOrDefault();
     }
 
     private async Task PopulateCreatorAsync(CourseDetailResponseDTO course, Guid createBy)
     {
-        course.Creator = await _userDisplayNameService.ResolveUserDisplayNameAsync(createBy);
+        var users = await _userDisplayNameService.GetListUserAsync(new[] { createBy });
+        course.Creator = users.FirstOrDefault();
     }
 
     private async Task PopulateCurrentVersionUpdaterAsync(CourseResponseDTO course, Guid? updateBy)
@@ -499,20 +496,25 @@ public class CourseService : ICourseService
         if (!updateBy.HasValue || updateBy.Value == Guid.Empty)
             return;
 
-        course.CurrentVersion!.Updater = await _userDisplayNameService.ResolveUserDisplayNameAsync(updateBy.Value);
+        var users = await _userDisplayNameService.GetListUserAsync(new[] { updateBy.Value });
+        course.CurrentVersion!.Updater = users.FirstOrDefault();
     }
 
     private async Task<Dictionary<Guid, SimpleUserReponse?>> BuildUserLookupAsync(IEnumerable<Course> courses)
     {
         var userIds = courses
             .SelectMany(c => new Guid?[] { c.CreateBy, c.CurrentVersion?.UpdateBy })
-            .Where(id => id.HasValue && id.Value != Guid.Empty)
-            .Select(id => id!.Value)
-            .Distinct()
-            .ToList();
+            .ToDistinctValidIds();
 
-        var lookup = await _userDisplayNameService.ResolveUsersDisplayNameAsync(userIds);
-        return lookup.ToDictionary(x => x.Key, x => x.Value);
+        var users = await _userDisplayNameService.GetListUserAsync(userIds);
+        var lookup = users.ToDictionary(u => u.UserId, u => (SimpleUserReponse?)u);
+
+        foreach (var userId in userIds)
+        {
+            lookup.TryAdd(userId, null);
+        }
+
+        return lookup;
     }
 
     private static void PopulateMappedCoursesUsers(
@@ -545,10 +547,7 @@ public class CourseService : ICourseService
         var pageIndex = searchRequest.CurrentPage < 1 ? 1 : searchRequest.CurrentPage;
         var pageSize = searchRequest.PageSize < 1 ? 5 : searchRequest.PageSize;
 
-        var ids = courseIds?.CourseIds?
-            .Where(x => x != Guid.Empty)
-            .Distinct()
-            .ToList() ?? [];
+        var ids = courseIds?.CourseIds.ToDistinctValidIds() ?? [];
 
         if (ids.Count == 0)
         {

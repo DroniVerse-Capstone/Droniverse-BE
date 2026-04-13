@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Droniverse.Academy.Application.Common.Extensions;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
@@ -162,7 +163,12 @@ public class TheoryService : ITheoryService
 
     private async Task PopulateUsersAsync(TheoryClientViewDTO theory, Guid createBy, Guid updateBy)
     {
-        var (creator, updater) = await _userDisplayNameService.ResolveCreatorUpdaterAsync(createBy, updateBy);
+        var users = await _userDisplayNameService.GetListUserAsync(new[] { createBy, updateBy });
+        var userLookup = users.ToDictionary(u => u.UserId, u => (SimpleUserReponse?)u);
+
+        userLookup.TryGetValue(createBy, out var creator);
+        userLookup.TryGetValue(updateBy, out var updater);
+
         theory.Creator = creator;
         theory.Updater = updater;
     }
@@ -171,12 +177,17 @@ public class TheoryService : ITheoryService
     {
         var userIds = theories
             .SelectMany(t => new[] { t.CreateBy, t.UpdateBy })
-            .Where(id => id != Guid.Empty)
-            .Distinct()
-            .ToList();
+            .ToDistinctValidIds();
 
-        var lookup = await _userDisplayNameService.ResolveUsersDisplayNameAsync(userIds);
-        return lookup.ToDictionary(x => x.Key, x => x.Value);
+        var users = await _userDisplayNameService.GetListUserAsync(userIds);
+        var lookup = users.ToDictionary(u => u.UserId, u => (SimpleUserReponse?)u);
+
+        foreach (var userId in userIds)
+        {
+            lookup.TryAdd(userId, null);
+        }
+
+        return lookup;
     }
 
     private static void PopulateMappedTheoriesUsers(

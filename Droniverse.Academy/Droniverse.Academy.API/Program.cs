@@ -18,6 +18,8 @@ using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using Swashbuckle.AspNetCore.Filters;
 using Swashbuckle.AspNetCore.SwaggerUI;
+using System.IO;
+using System.Text;
 using System.Reflection;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -241,6 +243,7 @@ using (var scope = app.Services.CreateScope())
 // ======================
 
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
+app.UseStaticFiles();
 
 //if (app.Environment.IsDevelopment())
 //{
@@ -265,6 +268,7 @@ app.UseSwaggerUI(c =>
 
 app.UseCors();
 
+app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 

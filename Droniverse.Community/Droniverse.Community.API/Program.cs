@@ -238,6 +238,7 @@ app.UseSwaggerUI(c =>
 });
 
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
+app.UseStaticFiles();
 
 //app.UseHttpsRedirection();
 
@@ -249,6 +250,7 @@ app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 
 app.UseCors();
 
+app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
