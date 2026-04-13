@@ -250,5 +250,31 @@ internal class CourseRepository : MySqlRepository<Course>, ICourseRepository
             .FirstOrDefaultAsync();
     }
 
+    public async Task<IEnumerable<CourseInfoQueryModel>?> GetCourseInfoByIdAsync(List<Guid> courseIds)
+    {
+        if (courseIds == null || courseIds.Count == 0)
+            return [];
+
+        var distinctIds = courseIds
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        if (distinctIds.Count == 0)
+            return [];
+
+        return await _dbSet
+            .Where(c => distinctIds.Contains(c.CourseID))
+            .Select(c => new CourseInfoQueryModel
+            {
+                CourseId = c.CourseID,
+                CourseNameVN = c.CurrentVersion!.TitleVN,
+                CourseNameEN = c.CurrentVersion!.TitleEN,
+                CourseStatus = c.Status
+            })
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
 }
 

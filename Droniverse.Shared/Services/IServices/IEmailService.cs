@@ -9,5 +9,8 @@ public interface IEmailService
         string confirmationUrl);
 
     Task SendEmailAsync(string email, string subject, string message);
+
+    Task<string> LoadTemplateAsync(string templateName);
+
 }
 

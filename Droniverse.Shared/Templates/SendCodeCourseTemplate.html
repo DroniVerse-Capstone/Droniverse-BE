@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #db4139;
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+        }
+
+            .header h1 {
+                margin: 0;
+                font-size: 24px;
+                color: #db4139;
+            }
+
+            .header p {
+                margin: 5px 0 0 0;
+                font-size: 12px;
+                color: #666;
+            }
+
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-left: 4px solid #db4139;
+        }
+
+            .section h2 {
+                margin: 0 0 10px 0;
+                color: #db4139;
+                font-size: 16px;
+            }
+
+            .section p {
+                margin: 8px 0;
+                line-height: 1.6;
+                color: #333;
+                font-size: 14px;
+            }
+
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+            .info-table tr {
+                border-bottom: 1px solid #ddd;
+            }
+
+            .info-table td {
+                padding: 10px;
+                font-size: 14px;
+            }
+
+                .info-table td:first-child {
+                    font-weight: bold;
+                    width: 150px;
+                    color: #db4139;
+                }
+
+        .code-box {
+            background-color: #db4139;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class='container'>
+
+        <!-- Header -->
+        <div class='header'>
+            <h1>DRONIVERSE</h1>
+            <p>Nền tảng học tập Drone</p>
+        </div>
+
+        <!-- Intro -->
+        <div class='section'>
+            <h2>Bạn đã được cấp mã khóa học</h2>
+            <p>Xin chào <strong>{FullName}</strong>,</p>
+            <p>Bạn đã được cấp quyền tham gia khóa học trên hệ thống Droniverse.</p>
+        </div>
+
+        <!-- Course Info -->
+        <div>
+            <h3 style='color: #db4139;'>THÔNG TIN KHÓA HỌC</h3>
+            <table class='info-table'>
+                <tr>
+                    <td>KHÓA HỌC (VI)</td>
+                    <td>{CourseNameVN}</td>
+                </tr>
+                <tr>
+                    <td>COURSE (EN)</td>
+                    <td>{CourseNameEN}</td>
+                </tr>
+                <tr>
+                    <td>EMAIL</td>
+                    <td>{Email}</td>
+                </tr>
+                <tr>
+                    <td>NGÀY CẤP</td>
+                    <td>{Date}</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Code -->
+        <div>
+            <p style='text-align: center; font-size: 14px;'>MÃ KÍCH HOẠT</p>
+            <div class='code-box'>
+                {Code}
+            </div>
+        </div>
+
+        <!-- Guide -->
+        <div class='section'>
+            <h2>Hướng dẫn sử dụng</h2>
+            <ol style='font-size: 13px; color: #333; padding-left: 20px;'>
+                <li>Đăng nhập vào hệ thống Droniverse</li>
+                <li>Vào mục "Kích hoạt khóa học"</li>
+                <li>Nhập mã ở trên</li>
+                <li>Bắt đầu học</li>
+            </ol>
+        </div>
+
+        <!-- Footer -->
+        <div class='footer'>
+            <p>Nếu bạn cần hỗ trợ: support@droniverse.com</p>
+            <p>© 2024 Droniverse</p>
+        </div>
+
+    </div>
+</body>
+</html>

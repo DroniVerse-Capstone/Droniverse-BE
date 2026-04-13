@@ -99,11 +99,11 @@ public class CodeController : ControllerBase
     /// <summary>
     /// Gán một mã code cho một người dùng.
     /// </summary>
-    [HttpPost("{codeId}/assign")]
+    [HttpPost("assign")]
     [Authorize(Roles = Roles.SystemRoles)]
-    public async Task<IActionResult> AssignCode(string codeId, [FromBody] AssignCodeRequest request)
+    public async Task<IActionResult> AssignCode([FromBody] AssignCodeRequest request)
     {
-        var result = await _codeService.AssignCodeAsync(codeId, request);
+        var result = await _codeService.AssignCodeAsync(request);
         return Ok(SuccessResponse<CodeAssignmentResponseDTO>.Create(result, "Gán code thành công."));
     }
 

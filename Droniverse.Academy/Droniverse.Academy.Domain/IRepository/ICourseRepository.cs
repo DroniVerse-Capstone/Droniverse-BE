@@ -69,5 +69,7 @@ public interface ICourseRepository : IRepository<Course>
         CancellationToken cancellationToken = default);
 
     Task<CourseInfoQueryModel?> GetCourseInfoByIdAsync(Guid courseId);
+
+    Task<IEnumerable<CourseInfoQueryModel>?> GetCourseInfoByIdAsync(List<Guid> courseIds);
 }
 

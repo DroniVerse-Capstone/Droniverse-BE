@@ -230,7 +230,7 @@ using (var scope = app.Services.CreateScope())
         var db = scope.ServiceProvider.GetRequiredService<MySqlDbContext>();
         db.Database.Migrate();
         logger.LogInformation("Academy DB migrated successfully.");
-    }   
+    }
     catch (Exception ex)
     {
         logger.LogError(ex, "Academy DB migration failed.");
