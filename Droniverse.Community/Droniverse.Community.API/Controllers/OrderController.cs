@@ -3,6 +3,7 @@ using Droniverse.Community.Application.DTO.Response.Mongo;
 using Droniverse.Community.Application.IService.Mongo;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Mvc;
+using MongoDB.Driver;
 
 namespace Droniverse.Community.API.Controllers
 {
@@ -56,7 +57,7 @@ namespace Droniverse.Community.API.Controllers
         {
             try
             {
-                var createdOrder = await _orderService.AddOrder(clubId,orderCreateDto);
+                var createdOrder = await _orderService.AddOrder(clubId, orderCreateDto);
                 if (createdOrder == null)
                 {
                     return ErrorResponse.Create("Dữ liệu đơn hàng không hợp lệ.", "ER2002");
@@ -70,5 +71,48 @@ namespace Droniverse.Community.API.Controllers
                 return ErrorResponse.Create(ex.Message, "ER102");
             }
         }
-    }
+
+        /// <summary>
+        /// Lấy thông tin đơn hàng chi tiết theo orderId (mã đơn hàng)
+        /// </summary>
+        /// <param name="orderId"></param>
+        /// <returns></returns>
+        [HttpGet("orderId")]
+        public async Task<ApiResponse> GetOrderByOrderId(Guid orderId)
+        {
+            try
+            {
+                var order = await _orderService.GetOrderByOrderId(orderId);
+                if (order == null)
+                {
+                    return ErrorResponse.Create("Không tìm thấy đơn hàng.", "ER2003");
+                }
+                return SuccessResponse<OrderResponseDto?>
+                    .Create(order, "Lấy thông tin đơn hàng thành công!");
+            }
+            catch (Exception ex)
+            {
+                return ErrorResponse.Create(ex.Message, "ER103");
+            }
+        }
+
+        /// <summary>
+        /// Lấy thông tin đơn hàng chi tiết theo clubId (mã câu lạc bộ)
+        /// </summary>
+        /// <param name="clubId"></param>
+        /// <returns></returns>
+        [HttpGet("clubs/{clubId:guid}")]
+        public async Task<ApiResponse> GetOrdersByClubId(Guid clubId)
+        {
+            try
+            {
+                var orders = await _orderService.GetOrderByClubId(clubId);
+                return SuccessResponse<IEnumerable<OrderResponseDto?>>
+                    .Create(orders, "Lấy danh sách đơn hàng theo ClubID thành công!");
+            }
+            catch (Exception ex)
+            {
+                return ErrorResponse.Create(ex.Message, "ER104");
+            }
+        }
 }

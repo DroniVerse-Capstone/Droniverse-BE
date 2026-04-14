@@ -12,5 +12,8 @@ public interface IOrderService
     Task<OrderResponseDto?> AddOrder(Guid clubId, OrderCreateDto orderAddRequest);
     Task<OrderResponseDto?> UpdateOrder(OrderUpdateDto orderUpdateRequest);
     Task<bool> DeleteOrder(Guid orderID);
+
+    Task<OrderResponseDto?> GetOrderByOrderId(Guid orderID);
+    Task<IEnumerable<OrderResponseDto?>> GetOrderByClubId(Guid clubId);
 }
 

@@ -168,7 +168,7 @@ internal class PaymentService : IPaymentService
                 PaymentStatus = PaymentStatus.PENDING,
                 TransactionDate = DateTime.UtcNow.AddHours(7), // +7 để dùng múi giờ VN
                 PaymentUrl = response.CheckoutUrl,
-                PaymentLinkID = orderCode.ToString()  // ✅ Dùng OrderCode để match webhook
+                PaymentLinkID = orderCode.ToString()  // Dùng OrderCode để match webhook
             };
 
             //Thêm payment vào order

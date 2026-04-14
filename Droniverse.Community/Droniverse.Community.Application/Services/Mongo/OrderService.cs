@@ -8,6 +8,7 @@ using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Community.Domain.IRepository.Mongo;
 using Droniverse.Shared.Constants;
+using Droniverse.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
@@ -157,9 +158,23 @@ internal class OrderService : IOrderService
         throw new NotImplementedException();
     }
 
+    public async Task<OrderResponseDto?> GetOrderByClubId(Guid clubId)
+    {
+        FilterDefinition<Order>? filter = Builders<Order>.Filter.Eq(o => o.ClubID, clubId);
+        IEnumerable<Order?> orders = await _orderRepository.GetOrdersByCondition(filter);
+        return _mapper.Map<IEnumerable<Order>, IEnumerable<OrderResponseDto?>>(orders).FirstOrDefault();
+    }
+
     public async Task<OrderResponseDto?> GetOrderByCondition(FilterDefinition<Order> filter)
     {
         var order = await _orderRepository.GetOrderByCondition(filter);
+        return _mapper.Map<Order, OrderResponseDto?>(order);
+    }
+
+    public async Task<OrderResponseDto?> GetOrderByOrderId(Guid orderID)
+    {
+        FilterDefinition<Order>? filter = Builders<Order>.Filter.Eq(o => o._id, orderID);
+        Order order = await _orderRepository.GetOrderByCondition(filter) ?? throw new NotFoundException($"Không tìm thấy đơn hàng với mã đơn hàng #{orderID}");
         return _mapper.Map<Order, OrderResponseDto?>(order);
     }
 
