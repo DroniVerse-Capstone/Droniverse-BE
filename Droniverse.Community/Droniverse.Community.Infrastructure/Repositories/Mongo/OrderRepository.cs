@@ -180,6 +180,20 @@ internal class OrderRepository : IOrderRepository
         return order;
     }
 
+    public async Task<Order?> GetOrderByOrderCode(long orderCode)
+    {
+        if (orderCode <= 0)
+            throw new ArgumentException($"OrderCode must be greater than 0");
+
+        var filter = Builders<Order>.Filter.And(
+            Builders<Order>.Filter.Ne(x => x.Payment, null),
+            Builders<Order>.Filter.Eq(x => x.Payment.PaymentLinkID, orderCode.ToString())
+        );
+
+        var order = await _orders.Find(filter).FirstOrDefaultAsync();
+        return order;
+    }
+
     public async Task<IEnumerable<OrderRevenueData>> GetSuccessfulRevenueDataByProductIds(
         IEnumerable<Guid> productIds,
         DateTime? fromInclusive = null,
