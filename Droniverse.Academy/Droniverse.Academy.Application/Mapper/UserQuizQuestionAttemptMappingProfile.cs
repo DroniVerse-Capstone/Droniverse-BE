@@ -17,5 +17,9 @@ public class UserQuizQuestionAttemptMappingProfile : Profile
             .ForMember(dest => dest.Score, opt => opt.Ignore());
 
         CreateMap<QuizQuestionAttempt, UserQuizQuestionAttemptResponseDTO>();
+
+        CreateMap<QuizQuestionAttempt, QuizQuestionAttemptReviewDTO>()
+            .ForMember(dest => dest.Attempt, opt => opt.MapFrom(src => src))
+            .ForMember(dest => dest.Question, opt => opt.MapFrom(src => src.QuizQuestion));
     }
 }

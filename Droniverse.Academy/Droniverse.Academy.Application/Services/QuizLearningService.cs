@@ -52,6 +52,37 @@ public class QuizLearningService : IQuizLearningService
         };
     }
 
+    public async Task<QuizAttemptReviewDTO> GetLatestQuizAttemptReviewAsync(Guid enrollmentId, Guid quizId)
+    {
+        var quiz = await GetQuizAsync(quizId);
+        var lesson = await GetQuizLessonAsync(quizId);
+
+        await _learningService.ValidateLessonAccessAsync(enrollmentId, lesson.LessonID);
+
+        var latestAttemptResult = await _unitOfWork.QuizAttempts.GetAllAsync(
+            filter: x => x.QuizID == quizId && x.UserID == _currentUser.UserId,
+            orderBy: q => q.OrderByDescending(x => x.StartTime),
+            pageIndex: 1,
+            pageSize: 1);
+
+        var latestAttempt = latestAttemptResult.Data.FirstOrDefault()
+            ?? throw new NotFoundException("Chưa có bài làm quiz để xem lại.");
+
+        var questionAttemptsResult = await _unitOfWork.QuizQuestionAttempts.GetAllAsync(
+            filter: x => x.AttemptID == latestAttempt.AttemptID,
+            orderBy: q => q.OrderBy(x => x.AttemptAnswerID),
+            pageIndex: 1,
+            pageSize: 10000,
+            includeProperties: "QuizQuestion");
+
+        return new QuizAttemptReviewDTO
+        {
+            Quiz = _mapper.Map<QuizClientViewDTO>(quiz),
+            Attempt = _mapper.Map<QuizAttemptDTO>(latestAttempt),
+            Questions = _mapper.Map<List<QuizQuestionAttemptReviewDTO>>(questionAttemptsResult.Data)
+        };
+    }
+
     public async Task<IEnumerable<QuizQuestionLearningDTO>> GetQuizQuestionsForLearningAsync(Guid enrollmentId, Guid quizId)
     {
         _ = await GetQuizAsync(quizId);

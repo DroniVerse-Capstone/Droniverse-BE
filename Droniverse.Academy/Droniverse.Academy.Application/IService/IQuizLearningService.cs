@@ -6,6 +6,7 @@ namespace Droniverse.Academy.Application.IService;
 public interface IQuizLearningService
 {
     Task<QuizLearningStateDTO> GetQuizAttemptOrQuizAsync(Guid enrollmentId, Guid quizId);
+    Task<QuizAttemptReviewDTO> GetLatestQuizAttemptReviewAsync(Guid enrollmentId, Guid quizId);
     Task<IEnumerable<QuizQuestionLearningDTO>> GetQuizQuestionsForLearningAsync(Guid enrollmentId, Guid quizId);
     Task<SubmitQuizResultDTO> SubmitQuizAsync(Guid enrollmentId, Guid quizId, SubmitQuizRequestDTO request);
 }
