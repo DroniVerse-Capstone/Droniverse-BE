@@ -1,4 +1,5 @@
-﻿using Droniverse.Academy.Application.DTO.Request;
+﻿using AutoMapper;
+using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.Helpers;
 using Droniverse.Academy.Application.IService;
@@ -16,13 +17,39 @@ public class QuizLearningService : IQuizLearningService
     private readonly ICurrentUserService _currentUser;
     private readonly IClock _clock;
     private readonly ILearningService _learningService;
+    private readonly IMapper _mapper;
 
-    public QuizLearningService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IClock clock, ILearningService learningService)
+    public QuizLearningService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IClock clock, ILearningService learningService, IMapper mapper)
     {
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _clock = clock;
         _learningService = learningService;
+        _mapper = mapper;
+    }
+
+    public async Task<QuizLearningStateDTO> GetQuizAttemptOrQuizAsync(Guid enrollmentId, Guid quizId)
+    {
+        var quiz = await GetQuizAsync(quizId);
+        var lesson = await GetQuizLessonAsync(quizId);
+
+        await _learningService.ValidateLessonAccessAsync(enrollmentId, lesson.LessonID);
+
+        var latestAttemptResult = await _unitOfWork.QuizAttempts.GetAllAsync(
+            filter: x => x.QuizID == quizId && x.UserID == _currentUser.UserId,
+            orderBy: q => q.OrderByDescending(x => x.StartTime),
+            pageIndex: 1,
+            pageSize: 1,
+            includeProperties: "Quiz");
+
+        var latestAttempt = latestAttemptResult.Data.FirstOrDefault();
+        return new QuizLearningStateDTO
+        {
+            Quiz = _mapper.Map<QuizClientViewDTO>(quiz),
+            Attempt = latestAttempt == null
+                ? null
+                : _mapper.Map<QuizAttemptDTO>(latestAttempt)
+        };
     }
 
     public async Task<IEnumerable<QuizQuestionLearningDTO>> GetQuizQuestionsForLearningAsync(Guid enrollmentId, Guid quizId)
