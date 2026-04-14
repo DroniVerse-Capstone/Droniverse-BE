@@ -65,11 +65,18 @@ namespace Droniverse.Community.API.Controllers
         {
             try
             {
-                // Request body buffering is already enabled in Program.cs middleware
-                
-                // Seek to beginning to ensure we read from start
-                HttpContext.Request.Body.Seek(0, SeekOrigin.Begin);
-                
+                // Buffering is enabled in Program.cs middleware - stream should support seeking
+                // Try to seek to beginning (will work with buffered streams, may fail on raw Kestrel stream)
+                try
+                {
+                    HttpContext.Request.Body.Position = 0;
+                }
+                catch
+                {
+                    // If seek fails, it means stream is not seekable - likely not buffered
+                    _logger.LogWarning("Request body stream does not support seeking - buffering may not be enabled");
+                }
+
                 // Read raw request body
                 using var reader = new StreamReader(HttpContext.Request.Body, leaveOpen: true);
                 string rawBody = await reader.ReadToEndAsync();
@@ -83,8 +90,12 @@ namespace Droniverse.Community.API.Controllers
                     return BadRequest("Webhook body is empty");
                 }
 
-                // Reset body position for any downstream processing
-                HttpContext.Request.Body.Position = 0;
+                // Reset position for downstream
+                try
+                {
+                    HttpContext.Request.Body.Position = 0;
+                }
+                catch { }
 
                 // Deserialize webhook
                 var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
@@ -109,14 +120,21 @@ namespace Droniverse.Community.API.Controllers
                     return Unauthorized();
                 }
 
+                // Process webhook but always return 200 OK to acknowledge receipt
+                // PayOS requires 200 OK to confirm webhook was received
                 bool result = await _paymentService.HandleWebhook(webhook);
                 _logger.LogInformation("Handle webhook result: {Result}", result);
-                return result ? Ok() : BadRequest("Failed to process webhook");
+                
+                // Always return 200 OK - PayOS just needs confirmation that endpoint received it
+                // Even if order not found, we return OK (may be a test webhook or delayed delivery)
+                return Ok();
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing webhook");
-                return StatusCode(500, "Internal server error");
+                // Still return 200 OK on error to avoid webhook retry loop
+                // Errors are logged and can be reviewed later
+                return Ok();
             }
         }
         

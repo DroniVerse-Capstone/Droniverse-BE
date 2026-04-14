@@ -3,6 +3,7 @@
 namespace Droniverse.Community.Domain.IRepository;
 public interface IParticipationRepository : IRepository<Participation>
 {
+    Task<Club> GetClubByApproverId(Guid userId);
     Task<int> CountMembersByClubIdAsync(Guid clubId);
     Task<bool> IsUserInClub(Guid clubId, Guid userId);
     Task<List<Guid>> GetActiveParticipantUserIdsByClubAsync(Guid clubId);

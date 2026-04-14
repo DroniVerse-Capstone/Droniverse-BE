@@ -156,6 +156,10 @@ internal class PaymentService : IPaymentService
                 throw new Exception("PayOs không trả về kết quả.");
             }
 
+            // 🔍 DEBUG: Log đầy đủ response
+            var responseJson = JsonSerializer.Serialize(response);
+            _logger.LogInformation("PayOS CreatePaymentLink Response: {Response}", responseJson);
+
             //Tạo entity Payment
             Payment payment = new Payment
             {
@@ -163,7 +167,8 @@ internal class PaymentService : IPaymentService
                 PaymentMethod = paymentCreateDto.PaymentMethod,
                 PaymentStatus = PaymentStatus.PENDING,
                 TransactionDate = DateTime.UtcNow.AddHours(7), // +7 để dùng múi giờ VN
-                PaymentUrl = response.CheckoutUrl
+                PaymentUrl = response.CheckoutUrl,
+                PaymentLinkID = orderCode.ToString()  // Dùng OrderCode để match webhook
             };
 
             //Thêm payment vào order
@@ -311,13 +316,13 @@ internal class PaymentService : IPaymentService
             if (webhook?.Data is null)
                 return false;
 
-            _logger.LogInformation("Processing webhook for PaymentLinkId: {PaymentLinkId}", webhook.Data.PaymentLinkId);
+            _logger.LogInformation("Processing webhook for OrderCode: {OrderCode}", webhook.Data.OrderCode);
 
-            // Find order by PaymentLinkId (this matches the link created during payment)
-            Order? order = await _orderRepository.GetOrderByPaymentLinkId(webhook.Data.PaymentLinkId);
+            // Find order by OrderCode (this matches the code created during payment)
+            Order? order = await _orderRepository.GetOrderByOrderCode(webhook.Data.OrderCode);
             if (order == null)
             {
-                _logger.LogWarning("Payment not found for PaymentLinkId: {PaymentLinkId}", webhook.Data.PaymentLinkId);
+                _logger.LogWarning("Payment not found for OrderCode: {OrderCode}", webhook.Data.OrderCode);
                 return false;
             }
 
@@ -338,6 +343,7 @@ internal class PaymentService : IPaymentService
                 payment.PaymentLinkID = webhook.Data.PaymentLinkId;
                 payment.WebhookReceivedAt = DateTime.UtcNow;
 
+                order.Status = OrderStatus.SUCCESS;
                 //Add Invoice
                 Invoice invoice = new Invoice();
                 invoice._id = Guid.NewGuid();
@@ -376,11 +382,13 @@ internal class PaymentService : IPaymentService
             else if (webhook.Code == "05")
             {
                 payment.PaymentStatus = PaymentStatus.CANCELLED;
+                order.Status = OrderStatus.CANCELED;
                 _logger.LogWarning("Payment CANCELLED for orderId: {OrderId}", order._id);
             }
             else if (!webhook.IsSuccess)
             {
                 payment.PaymentStatus = PaymentStatus.FAILED;
+                order.Status = OrderStatus.FAILED;
                 _logger.LogWarning("Payment FAILED for orderId: {OrderId}, Code: {Code}",
                     order._id, webhook.Code);
             }
@@ -391,7 +399,9 @@ internal class PaymentService : IPaymentService
             }
             payment.TransactionDate = DateTime.UtcNow.AddHours(7);
             payment.WebhookReceivedAt = DateTime.UtcNow.AddHours(7);
+            
             await _orderRepository.UpdatePayment(order._id, payment);
+            await _orderRepository.UpdateOrder(order);
             _logger.LogInformation("Updated payment status to {Status}", payment.PaymentStatus);
 
             return true;

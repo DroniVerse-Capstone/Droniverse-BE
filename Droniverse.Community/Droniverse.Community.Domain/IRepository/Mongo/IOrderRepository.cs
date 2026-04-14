@@ -1,5 +1,6 @@
 ﻿using Droniverse.Community.Domain.Entities.Mongo;
 using Droniverse.Community.Domain.Enums;
+using Droniverse.Shared.DTOs.Request;
 using MongoDB.Driver;
 
 namespace Droniverse.Community.Domain.IRepository.Mongo;
@@ -16,7 +17,8 @@ public interface IOrderRepository
     // Order
     Task<Order> GetOrderByTransactionID(Guid transactionId);
     Task<Order?> GetOrderByPaymentLinkId(string paymentLinkId);
-    Task<IEnumerable<Order>> GetOrders();
+    Task<Order?> GetOrderByOrderCode(long orderCode);
+    Task<PaginationResult<IEnumerable<Order>>> GetOrders(OrderSearchRequest searchRequest);
     Task<IEnumerable<Order?>> GetOrdersByCondition(FilterDefinition<Order> filter);
     Task<Order?> GetOrderByCondition(FilterDefinition<Order> filter);
     Task<Order?> AddOrder(Order order);

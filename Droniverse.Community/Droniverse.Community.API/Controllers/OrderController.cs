@@ -1,7 +1,10 @@
 ﻿using Droniverse.Community.Application.DTO.Request.Mongo;
 using Droniverse.Community.Application.DTO.Response.Mongo;
 using Droniverse.Community.Application.IService.Mongo;
+using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
+using Droniverse.Shared.DTOs.Request;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Droniverse.Community.API.Controllers
@@ -26,12 +29,12 @@ namespace Droniverse.Community.API.Controllers
         /// </returns>
         [HttpGet]
         [ProducesResponseType(typeof(SuccessResponse<List<OrderResponseDto?>>), StatusCodes.Status200OK)]
-        public async Task<ApiResponse> GetOrders()
+        public async Task<ApiResponse> GetAllOrders([FromQuery] OrderSearchRequest searchRequest)
         {
             try
             {
-                var orders = await _orderService.GetOrders();
-                return SuccessResponse<List<OrderResponseDto?>>
+                var orders = await _orderService.GetAllOrders(searchRequest);
+                return SuccessResponse<PaginationResult<IEnumerable<OrderResponseDto?>>>
                     .Create(orders, "Lấy danh sách đơn hàng thành công!");
             }
             catch (Exception ex)
@@ -56,7 +59,7 @@ namespace Droniverse.Community.API.Controllers
         {
             try
             {
-                var createdOrder = await _orderService.AddOrder(clubId,orderCreateDto);
+                var createdOrder = await _orderService.AddOrder(clubId, orderCreateDto);
                 if (createdOrder == null)
                 {
                     return ErrorResponse.Create("Dữ liệu đơn hàng không hợp lệ.", "ER2002");
@@ -68,6 +71,91 @@ namespace Droniverse.Community.API.Controllers
             catch (Exception ex)
             {
                 return ErrorResponse.Create(ex.Message, "ER102");
+            }
+        }
+
+        /// <summary>
+        /// Lấy thông tin đơn hàng chi tiết theo orderId (mã đơn hàng)
+        /// </summary>
+        /// <param name="orderId"></param>
+        /// <returns></returns>
+        [HttpGet("{orderId:guid}")]
+        public async Task<ApiResponse> GetOrderByOrderId(Guid orderId)
+        {
+            try
+            {
+                var order = await _orderService.GetOrderByOrderId(orderId);
+                if (order == null)
+                {
+                    return ErrorResponse.Create("Không tìm thấy đơn hàng.", "ER2003");
+                }
+                return SuccessResponse<OrderResponseDto?>
+                    .Create(order, "Lấy thông tin đơn hàng thành công!");
+            }
+            catch (Exception ex)
+            {
+                return ErrorResponse.Create(ex.Message, "ER103");
+            }
+        }
+
+        /// <summary>
+        /// Lấy danh sách (phân trang) các đơn hàng theo clubId (mã câu lạc bộ) - Dành cho Admin và System Manager
+        /// </summary>
+        /// <param name="clubId"></param>
+        /// <returns></returns>
+        [HttpGet("clubs/{clubId:guid}")]
+        [Authorize(Roles = Roles.AdminOrManagerRoles)]
+        public async Task<ApiResponse> GetOrdersByClubId(Guid clubId)
+        {
+            try
+            {
+                var orders = await _orderService.GetOrdersByClubId(clubId);
+                return SuccessResponse<IEnumerable<OrderResponseDto?>>
+                    .Create(orders, "Lấy danh sách đơn hàng theo ClubID thành công!");
+            }
+            catch (Exception ex)
+            {
+                return ErrorResponse.Create(ex.Message, "ER104");
+            }
+        }
+
+        /// <summary>
+        /// Lấy danh sách (phân trang) các đơn hàng của câu lạc bộ hiện tại - Dành cho Club Manager
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("my-club")]
+        [Authorize(Roles = Roles.ClubManager)]
+        public async Task<ApiResponse> GetOrdersByCurrentClub()
+        {
+            try
+            {
+                var orders = await _orderService.GetOrdersByCurrentClub();
+                return SuccessResponse<IEnumerable<OrderResponseDto?>>
+                    .Create(orders, "Lấy danh sách đơn hàng của người dùng hiện tại thành công!");
+            }
+            catch (Exception ex)
+            {
+                return ErrorResponse.Create(ex.Message, "ER105");
+            }
+        }
+
+        /// <summary>
+        /// Lấy danh sách (phân trang) các đơn hàng theo người dùng hiện tại - Dành cho Club Member & Club Manager
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("me")]
+        [Authorize(Roles = Roles.ClubRoles)]
+        public async Task<ApiResponse> GetOrdersByCurrentUser()
+        {
+            try
+            {
+                var orders = await _orderService.GetOrdersByCurrentUser();
+                return SuccessResponse<IEnumerable<OrderResponseDto?>>
+                    .Create(orders, "Lấy danh sách đơn hàng của người dùng hiện tại thành công!");
+            }
+            catch (Exception ex)
+            {
+                return ErrorResponse.Create(ex.Message, "ER106");
             }
         }
     }

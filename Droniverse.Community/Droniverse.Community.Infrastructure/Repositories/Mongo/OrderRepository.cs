@@ -1,6 +1,8 @@
 ﻿using Droniverse.Community.Domain.Entities.Mongo;
 using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository.Mongo;
+using Droniverse.Shared.DTOs;
+using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.Exceptions;
 using MongoDB.Driver;
 
@@ -15,10 +17,37 @@ internal class OrderRepository : IOrderRepository
         _orders = mongoDatabase.GetCollection<Order>(collectionName);
     }
 
-    public async Task<IEnumerable<Order>> GetOrders()
+    public async Task<PaginationResult<IEnumerable<Order>>> GetOrders(OrderSearchRequest searchRequest)
     {
-        IAsyncCursor<Order> orderList = await _orders.FindAsync(Builders<Order>.Filter.Empty);
-        return orderList.ToList();
+        //IAsyncCursor<Order> orderList = await _orders.FindAsync(Builders<Order>.Filter.Empty);
+
+        //int pageIndex = searchRequest.CurrentPage;
+        //int pageSize = searchRequest.PageSize;
+
+        //PaginationResult<IEnumerable<Order>> result = new PaginationResult<IEnumerable<Order>>(orderList.ToList(), orderList.ToList().Count, pageIndex, pageSize);
+        //return result;
+
+        //tính số record bỏ qua
+        int skip = (searchRequest.CurrentPage - 1) * searchRequest.PageSize;
+
+        //lấy data với phân trang (skip & take)
+        var orders = await _orders
+            .Find(Builders<Order>.Filter.Empty)
+            .Skip(skip)
+            .Limit(searchRequest.PageSize)
+            .ToListAsync();
+
+        //tính tổng số record
+        long totalRecords = await _orders.CountDocumentsAsync(Builders<Order>.Filter.Empty);
+
+        //tạo kết quả phân trang
+        PaginationResult<IEnumerable<Order>> result = new PaginationResult<IEnumerable<Order>>(
+            orders, 
+            (int)totalRecords, 
+            searchRequest.CurrentPage, 
+            searchRequest.PageSize
+        );
+        return result;
     }
     public async Task<Order> AddOrder(Order order)
     {
@@ -174,6 +203,20 @@ internal class OrderRepository : IOrderRepository
         var filter = Builders<Order>.Filter.And(
             Builders<Order>.Filter.Ne(x => x.Payment, null),
             Builders<Order>.Filter.Eq(x => x.Payment.PaymentLinkID, paymentLinkId)
+        );
+
+        var order = await _orders.Find(filter).FirstOrDefaultAsync();
+        return order;
+    }
+
+    public async Task<Order?> GetOrderByOrderCode(long orderCode)
+    {
+        if (orderCode <= 0)
+            throw new ArgumentException($"OrderCode must be greater than 0");
+
+        var filter = Builders<Order>.Filter.And(
+            Builders<Order>.Filter.Ne(x => x.Payment, null),
+            Builders<Order>.Filter.Eq(x => x.Payment.PaymentLinkID, orderCode.ToString())
         );
 
         var order = await _orders.Find(filter).FirstOrDefaultAsync();
