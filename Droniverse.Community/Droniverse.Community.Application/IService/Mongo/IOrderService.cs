@@ -14,6 +14,6 @@ public interface IOrderService
     Task<bool> DeleteOrder(Guid orderID);
 
     Task<OrderResponseDto?> GetOrderByOrderId(Guid orderID);
-    Task<IEnumerable<OrderResponseDto?>> GetOrderByClubId(Guid clubId);
+    Task<IEnumerable<OrderResponseDto?>> GetOrdersByClubId(Guid clubId);
 }
 

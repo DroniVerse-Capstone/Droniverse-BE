@@ -106,7 +106,7 @@ namespace Droniverse.Community.API.Controllers
         {
             try
             {
-                var orders = await _orderService.GetOrderByClubId(clubId);
+                var orders = await _orderService.GetOrdersByClubId(clubId);
                 return SuccessResponse<IEnumerable<OrderResponseDto?>>
                     .Create(orders, "Lấy danh sách đơn hàng theo ClubID thành công!");
             }
@@ -115,4 +115,5 @@ namespace Droniverse.Community.API.Controllers
                 return ErrorResponse.Create(ex.Message, "ER104");
             }
         }
+    }
 }

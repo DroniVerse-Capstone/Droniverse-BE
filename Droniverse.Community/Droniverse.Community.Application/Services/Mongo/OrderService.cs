@@ -158,11 +158,11 @@ internal class OrderService : IOrderService
         throw new NotImplementedException();
     }
 
-    public async Task<OrderResponseDto?> GetOrderByClubId(Guid clubId)
+    public async Task<IEnumerable<OrderResponseDto?>> GetOrdersByClubId(Guid clubId)
     {
         FilterDefinition<Order>? filter = Builders<Order>.Filter.Eq(o => o.ClubID, clubId);
         IEnumerable<Order?> orders = await _orderRepository.GetOrdersByCondition(filter);
-        return _mapper.Map<IEnumerable<Order>, IEnumerable<OrderResponseDto?>>(orders).FirstOrDefault();
+        return _mapper.Map<IEnumerable<Order>, IEnumerable<OrderResponseDto?>>(orders);
     }
 
     public async Task<OrderResponseDto?> GetOrderByCondition(FilterDefinition<Order> filter)
