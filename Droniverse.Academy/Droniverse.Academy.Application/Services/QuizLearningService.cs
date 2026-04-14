@@ -178,7 +178,7 @@ public class QuizLearningService : IQuizLearningService
             if (!questionMap.TryGetValue(answer.QuestionID, out var question))
                 continue;
 
-            var selectedAnswer = NormalizeAnswer(answer, question);
+            var selectedAnswer = NormalizeAnswer(answer);
             var isCorrect = string.Equals(selectedAnswer, question.CorrectAnswer, StringComparison.OrdinalIgnoreCase);
             var answerScore = isCorrect ? question.Score : 0f;
 
@@ -264,23 +264,17 @@ public class QuizLearningService : IQuizLearningService
         };
     }
 
-    private static string NormalizeAnswer(SubmitQuizAnswerRequestDTO answer, QuizQuestion question)
+    private static string NormalizeAnswer(SubmitQuizAnswerRequestDTO answer)
     {
-        var selectedValue = !string.IsNullOrWhiteSpace(answer.SelectedOptionKey)
-            ? answer.SelectedOptionKey
-            : answer.SelectedAnswer;
+        var selectedValue = answer.SelectedOptionKey;
 
         if (string.IsNullOrWhiteSpace(selectedValue))
-            throw new BadRequestException("SelectedAnswer không được để trống.");
+            throw new BadRequestException("SelectedOptionKey không được để trống.");
 
         if (TryNormalizeOptionKey(selectedValue, out var normalized))
             return normalized;
 
-        var optionByContent = ResolveOptionKeyFromContent(question, selectedValue);
-        if (optionByContent is not null)
-            return optionByContent;
-
-        throw new BadRequestException("SelectedAnswer phải là A, B, C hoặc D.");
+        throw new BadRequestException("SelectedOptionKey phải là A, B, C hoặc D.");
     }
 
     private static bool TryNormalizeOptionKey(string? value, out string normalized)
@@ -295,29 +289,6 @@ public class QuizLearningService : IQuizLearningService
 
         normalized = key;
         return true;
-    }
-
-    private static string? ResolveOptionKeyFromContent(QuizQuestion question, string selectedValue)
-    {
-        var value = selectedValue.Trim();
-
-        if (string.Equals(value, question.AnswerA, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(value, question.AnswerA_EN, StringComparison.OrdinalIgnoreCase))
-            return "A";
-
-        if (string.Equals(value, question.AnswerB, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(value, question.AnswerB_EN, StringComparison.OrdinalIgnoreCase))
-            return "B";
-
-        if (string.Equals(value, question.AnswerC, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(value, question.AnswerC_EN, StringComparison.OrdinalIgnoreCase))
-            return "C";
-
-        if (string.Equals(value, question.AnswerD, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(value, question.AnswerD_EN, StringComparison.OrdinalIgnoreCase))
-            return "D";
-
-        return null;
     }
 
     private static QuizQuestionLearningDTO MapLearningQuestion(QuizQuestion question)

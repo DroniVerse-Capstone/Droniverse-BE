@@ -19,9 +19,4 @@ public class SubmitQuizAnswerRequestDTO
     /// Key đáp án được chọn (A/B/C/D), dùng cho luồng shuffle đáp án.
     /// </summary>
     public string? SelectedOptionKey { get; set; }
-
-    /// <summary>
-    /// Trường tương thích cũ. Có thể là A/B/C/D hoặc nội dung đáp án.
-    /// </summary>
-    public string SelectedAnswer { get; set; } = string.Empty;
 }

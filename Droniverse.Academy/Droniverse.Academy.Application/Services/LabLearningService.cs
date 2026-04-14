@@ -106,7 +106,6 @@ public class LabLearningService : ILabLearningService
             Length = request.Length,
             FeedbackVN = request.FeedbackVN,
             FeedbackEN = request.FeedbackEN,
-            Rating = request.Rating,
             Point = request.Point
         };
     }
@@ -120,7 +119,6 @@ public class LabLearningService : ILabLearningService
         userLab.Length = request.Length;
         userLab.FeedbackVN = request.FeedbackVN;
         userLab.FeedbackEN = request.FeedbackEN;
-        userLab.Rating = request.Rating;
         userLab.Point = request.Point;
     }
 

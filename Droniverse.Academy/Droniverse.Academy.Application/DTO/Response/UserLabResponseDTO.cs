@@ -12,6 +12,5 @@ public class UserLabResponseDTO
     public float Length { get; set; }
     public string FeedbackVN { get; set; } = string.Empty;
     public string FeedbackEN { get; set; } = string.Empty;
-    public int Rating { get; set; }
     public decimal Point { get; set; }
 }
