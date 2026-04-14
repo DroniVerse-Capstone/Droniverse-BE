@@ -19,7 +19,6 @@ public class CreateUserLabRequestExample : IMultipleExamplesProvider<CreateUserL
                 Length = 560.2f,
                 FeedbackVN = "Cần tối ưu đường bay.",
                 FeedbackEN = "Need to optimize the flight path.",
-                Rating = 4,
                 Point = 8.5m
             }
         );

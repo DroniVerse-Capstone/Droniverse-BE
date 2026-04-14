@@ -23,7 +23,7 @@ public class UserModuleConfiguration : IEntityTypeConfiguration<UserModule>
         builder.Property(um => um.Progress).HasColumnType("float");
         builder.Property(um => um.IsCompleted).HasColumnType("tinyint(1)").IsRequired();
         
-        builder.ToTable(t => t.HasCheckConstraint("CK_UserModule_Progress", "`Progress` IN (0, 100)"));
+        builder.ToTable(t => t.HasCheckConstraint("CK_UserModule_Progress", "`Progress` >= 0 AND `Progress` <= 100"));
 
     }
 }

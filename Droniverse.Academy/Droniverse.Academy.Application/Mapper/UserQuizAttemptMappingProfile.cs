@@ -20,5 +20,6 @@ public class UserQuizAttemptMappingProfile : Profile
             .ForMember(dest => dest.QuizQuestionAttempts, opt => opt.Ignore());
 
         CreateMap<QuizAttempt, UserQuizAttemptResponseDTO>();
+        CreateMap<QuizAttempt, QuizAttemptDTO>();
     }
 }

@@ -10,4 +10,5 @@ public interface ILearningService
     Task<UserModuleResponseDTO> GetOrCreateUserModuleAsync(Guid enrollmentId, Guid moduleId);
     Task ValidateLessonAccessAsync(Guid enrollmentId, Guid lessonId);
     Task<CompleteLessonResultDTO> CompleteLessonAsync(Guid enrollmentId, Guid lessonId);
+    Task<CompleteLessonResultDTO> CompleteLessonByAssessmentAsync(Guid enrollmentId, Guid lessonId);
 }
