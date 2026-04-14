@@ -11,6 +11,7 @@ public class Order // Document trong NoSql ~~ Table trong SequenceSql
 
     //[BsonRepresentation(BsonType.String)]
     public Guid UserID { get; set; }
+    [BsonRepresentation(BsonType.String)]
     public OrderType OrderType { get; set; }
     public required Guid ClubID { get; set; }
     public decimal TotalAmount { get; set; }

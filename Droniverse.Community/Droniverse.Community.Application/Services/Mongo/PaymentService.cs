@@ -343,6 +343,7 @@ internal class PaymentService : IPaymentService
                 payment.PaymentLinkID = webhook.Data.PaymentLinkId;
                 payment.WebhookReceivedAt = DateTime.UtcNow;
 
+                order.Status = OrderStatus.SUCCESS;
                 //Add Invoice
                 Invoice invoice = new Invoice();
                 invoice._id = Guid.NewGuid();
@@ -381,11 +382,13 @@ internal class PaymentService : IPaymentService
             else if (webhook.Code == "05")
             {
                 payment.PaymentStatus = PaymentStatus.CANCELLED;
+                order.Status = OrderStatus.CANCELED;
                 _logger.LogWarning("Payment CANCELLED for orderId: {OrderId}", order._id);
             }
             else if (!webhook.IsSuccess)
             {
                 payment.PaymentStatus = PaymentStatus.FAILED;
+                order.Status = OrderStatus.FAILED;
                 _logger.LogWarning("Payment FAILED for orderId: {OrderId}, Code: {Code}",
                     order._id, webhook.Code);
             }
@@ -396,7 +399,9 @@ internal class PaymentService : IPaymentService
             }
             payment.TransactionDate = DateTime.UtcNow.AddHours(7);
             payment.WebhookReceivedAt = DateTime.UtcNow.AddHours(7);
+            
             await _orderRepository.UpdatePayment(order._id, payment);
+            await _orderRepository.UpdateOrder(order);
             _logger.LogInformation("Updated payment status to {Status}", payment.PaymentStatus);
 
             return true;
