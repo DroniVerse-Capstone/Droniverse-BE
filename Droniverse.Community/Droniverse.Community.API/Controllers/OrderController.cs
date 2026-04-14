@@ -102,15 +102,21 @@ namespace Droniverse.Community.API.Controllers
         /// Lấy danh sách (phân trang) các đơn hàng theo clubId (mã câu lạc bộ) - Dành cho Admin và System Manager
         /// </summary>
         /// <param name="clubId"></param>
+        /// <param name="currentPage">Trang hiện tại (bắt đầu từ 1)</param>
+        /// <param name="pageSize">Số bản ghi trên một trang</param>
         /// <returns></returns>
         [HttpGet("clubs/{clubId:guid}")]
         [Authorize(Roles = Roles.AdminOrManagerRoles)]
-        public async Task<ApiResponse> GetOrdersByClubId(Guid clubId)
+        public async Task<ApiResponse> GetOrdersByClubId(Guid clubId, [FromQuery] int currentPage = 1, [FromQuery] int pageSize = 10)
         {
             try
             {
-                var orders = await _orderService.GetOrdersByClubId(clubId);
-                return SuccessResponse<IEnumerable<OrderResponseDto?>>
+                if (currentPage < 1) currentPage = 1;
+                if (pageSize < 1) pageSize = 10;
+                if (pageSize > 100) pageSize = 100;
+
+                var orders = await _orderService.GetOrdersByClubIdWithPagination(clubId, currentPage, pageSize);
+                return SuccessResponse<PaginationResult<IEnumerable<OrderResponseDto?>>>
                     .Create(orders, "Lấy danh sách đơn hàng theo ClubID thành công!");
             }
             catch (Exception ex)
@@ -122,15 +128,21 @@ namespace Droniverse.Community.API.Controllers
         /// <summary>
         /// Lấy danh sách (phân trang) các đơn hàng của câu lạc bộ hiện tại - Dành cho Club Manager
         /// </summary>
+        /// <param name="currentPage">Trang hiện tại (bắt đầu từ 1)</param>
+        /// <param name="pageSize">Số bản ghi trên một trang</param>
         /// <returns></returns>
         [HttpGet("my-club")]
         [Authorize(Roles = Roles.ClubManager)]
-        public async Task<ApiResponse> GetOrdersByCurrentClub()
+        public async Task<ApiResponse> GetOrdersByCurrentClub([FromQuery] int currentPage = 1, [FromQuery] int pageSize = 10)
         {
             try
             {
-                var orders = await _orderService.GetOrdersByCurrentClub();
-                return SuccessResponse<IEnumerable<OrderResponseDto?>>
+                if (currentPage < 1) currentPage = 1;
+                if (pageSize < 1) pageSize = 10;
+                if (pageSize > 100) pageSize = 100;
+
+                var orders = await _orderService.GetOrdersByCurrentClubWithPagination(currentPage, pageSize);
+                return SuccessResponse<PaginationResult<IEnumerable<OrderResponseDto?>>>
                     .Create(orders, "Lấy danh sách đơn hàng của người dùng hiện tại thành công!");
             }
             catch (Exception ex)
@@ -140,22 +152,76 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
-        /// Lấy danh sách (phân trang) các đơn hàng theo người dùng hiện tại - Dành cho Club Member & Club Manager
+        /// Lấy danh sách (phân trang) các đơn hàng theo người dùng hiện tại - Dành cho Club Manager và Club Member
         /// </summary>
+        /// <param name="currentPage">Trang hiện tại (bắt đầu từ 1)</param>
+        /// <param name="pageSize">Số bản ghi trên một trang</param>
         /// <returns></returns>
         [HttpGet("me")]
         [Authorize(Roles = Roles.ClubRoles)]
-        public async Task<ApiResponse> GetOrdersByCurrentUser()
+        public async Task<ApiResponse> GetOrdersByCurrentUser([FromQuery] int currentPage = 1, [FromQuery] int pageSize = 10)
         {
             try
             {
-                var orders = await _orderService.GetOrdersByCurrentUser();
-                return SuccessResponse<IEnumerable<OrderResponseDto?>>
+                if (currentPage < 1) currentPage = 1;
+                if (pageSize < 1) pageSize = 10;
+                if (pageSize > 100) pageSize = 100;
+
+                var orders = await _orderService.GetOrdersByCurrentUserWithPagination(currentPage, pageSize);
+                return SuccessResponse<PaginationResult<IEnumerable<OrderResponseDto?>>>
                     .Create(orders, "Lấy danh sách đơn hàng của người dùng hiện tại thành công!");
             }
             catch (Exception ex)
             {
                 return ErrorResponse.Create(ex.Message, "ER106");
+            }
+        }
+
+
+        /// <summary>
+        /// Người mua chủ động hủy đơn hàng
+        /// </summary>
+        /// <param name="orderId"></param>
+        /// <returns></returns>
+        [HttpPut("{orderId:guid}/cancel")]
+        public async Task<ApiResponse> CancelOrder(Guid orderId)
+        {
+            try
+            {
+                var result = await _orderService.CancelOrder(orderId);
+                if (!result)
+                {
+                    return ErrorResponse.Create("Hủy đơn hàng thất bại.", "ER107");
+                }
+                return SuccessResponse<bool>.Create(true, "Hủy đơn hàng thành công!");
+            }
+            catch (Exception ex)
+            {
+                return ErrorResponse.Create(ex.Message, "ER108");
+            }
+        }
+
+        /// <summary>
+        /// Người mua sau khi nhận được hàng thì gọi api này
+        /// </summary>
+        /// <param name="orderId"></param>
+        /// <returns></returns>
+
+        [HttpPut("{orderId:guid}/received")]
+        public async Task<ApiResponse> ReceiveOrder(Guid orderId)
+        {
+            try
+            {
+                var result = await _orderService.ReceiveOrder(orderId);
+                if (!result)
+                {
+                    return ErrorResponse.Create("Xác nhận nhận hàng thất bại.", "ER109");
+                }
+                return SuccessResponse<bool>.Create(true, "Xác nhận nhận hàng thành công!");
+            }
+            catch (Exception ex)
+            {
+                return ErrorResponse.Create(ex.Message, "ER110");
             }
         }
     }

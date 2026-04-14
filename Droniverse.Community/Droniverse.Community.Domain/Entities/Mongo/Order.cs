@@ -1,5 +1,4 @@
 ﻿using Droniverse.Community.Domain.Enums;
-using MailKit.Search;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 namespace Droniverse.Community.Domain.Entities.Mongo;
@@ -18,6 +17,7 @@ public class Order // Document trong NoSql ~~ Table trong SequenceSql
     [BsonRepresentation(BsonType.String)]
     public OrderStatus Status { get; set; } // PENDING, SUCCESS, FAILED
     public DateTime CreateAt { get; set; }
+    public DateTime ReceivedAt { get; set; }
     public OrderItem Item { get; set; }
     public Payment Payment { get; set; }
 

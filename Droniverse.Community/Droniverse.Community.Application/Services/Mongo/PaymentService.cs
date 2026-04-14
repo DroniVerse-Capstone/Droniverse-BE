@@ -382,7 +382,7 @@ internal class PaymentService : IPaymentService
             else if (webhook.Code == "05")
             {
                 payment.PaymentStatus = PaymentStatus.CANCELLED;
-                order.Status = OrderStatus.CANCELED;
+                order.Status = OrderStatus.CANCELLED;
                 _logger.LogWarning("Payment CANCELLED for orderId: {OrderId}", order._id);
             }
             else if (!webhook.IsSuccess)
@@ -458,7 +458,7 @@ internal class PaymentService : IPaymentService
         {
             FilterDefinition<Order>? filter = Builders<Order>.Filter.Eq(p => p._id, orderId);
             Order? order = await _orderRepository.GetOrderByCondition(filter);
-            order.Status = OrderStatus.CANCELED;
+            order.Status = OrderStatus.CANCELLED;
             order.Payment.PaymentStatus = PaymentStatus.FAILED;
             return true;
         }

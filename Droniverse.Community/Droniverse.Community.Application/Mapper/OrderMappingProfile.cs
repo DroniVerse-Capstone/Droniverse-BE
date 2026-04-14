@@ -15,6 +15,16 @@ public class OrderMappingProfile : Profile
             .ForMember(dest => dest.CreateAt, opt => opt.MapFrom(src => src.CreateAt))
             .ForMember(dest => dest.TotalAmount, opt => opt.MapFrom(src => src.TotalAmount))
             .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
+            .ForMember(dest => dest.Payment, opt => opt.MapFrom((src, dest, member, context) => 
+            {
+                if (src.Payment == null)
+                    return null;
+                
+                var paymentDto = context.Mapper.Map<PaymentResponseDto>(src.Payment);
+                // Set OrderId from the Order's _id
+                paymentDto = paymentDto with { OrderId = src._id };
+                return paymentDto;
+            }))
             ;
 
         CreateMap<OrderItem, OrderItemDto>()
