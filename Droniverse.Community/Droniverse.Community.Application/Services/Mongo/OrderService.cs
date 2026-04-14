@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Droniverse.Community.Application.DTO.Extensions;
 using Droniverse.Community.Application.DTO.Request.Mongo;
 using Droniverse.Community.Application.DTO.Response.Mongo;
 using Droniverse.Community.Application.IService.Mongo;
@@ -8,6 +9,7 @@ using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Community.Domain.IRepository.Mongo;
 using Droniverse.Shared.Constants;
+using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
@@ -158,7 +160,7 @@ internal class OrderService : IOrderService
         throw new NotImplementedException();
     }
 
-    public async Task<IEnumerable<OrderResponseDto?>> GetOrdersByClubId(Guid clubId)
+    public async Task<IEnumerable<OrderResponseDto?>>  GetOrdersByClubId(Guid clubId)
     {
         FilterDefinition<Order>? filter = Builders<Order>.Filter.Eq(o => o.ClubID, clubId);
         IEnumerable<Order?> orders = await _orderRepository.GetOrdersByCondition(filter);
@@ -178,11 +180,11 @@ internal class OrderService : IOrderService
         return _mapper.Map<Order, OrderResponseDto?>(order);
     }
 
-    public async Task<List<OrderResponseDto?>> GetOrders()
+    public async Task<PaginationResult<IEnumerable<OrderResponseDto?>>> GetAllOrders(OrderSearchRequest searchRequest)
     {
-        IEnumerable<Order> orders = await _orderRepository.GetOrders();
-        IEnumerable<OrderResponseDto?> orderDtos = _mapper.Map<IEnumerable<Order>, IEnumerable<OrderResponseDto?>>(orders);
-        return orderDtos.ToList();
+        PaginationResult<IEnumerable<Order>> orders = await _orderRepository.GetOrders(searchRequest);
+        PaginationResult<IEnumerable<OrderResponseDto?>> orderDtos = _mapper.Map<PaginationResult<IEnumerable<Order>>, PaginationResult<IEnumerable<OrderResponseDto?>>>(orders);
+        return orderDtos;
 
     }
 
@@ -200,6 +202,38 @@ internal class OrderService : IOrderService
     private decimal CalculateTotal(decimal price, int quantity)
     {
         return price * quantity;
+    }
+
+    public async Task<IEnumerable<OrderResponseDto?>> GetOrdersByCurrentClub()
+    {
+        var userId = _currentUserService.UserId;
+        if (userId == Guid.Empty)
+            throw new UnauthorizedAccessException("Người dùng chưa xác thực!");
+
+        var isClubManager = _currentUserService.Roles.Contains(Roles.ClubManager);
+        if (isClubManager)
+        {
+            //Lấy club theo approverId (Id của club manager)
+            Club? club = await _unitOfWork.Participations.GetClubByApproverId(userId); //đã bắt Exception trong ParticipationRepo
+            IEnumerable<OrderResponseDto?> orders = await GetOrdersByClubId(club.ClubID);
+            return orders;
+        }
+        else
+        {
+            throw new UnauthorizedAccessException("Chỉ quản lý câu lạc bộ (Club Manager) mới có quyền truy cập đơn hàng của câu lạc bộ!");
+        }
+    }
+
+    public async Task<IEnumerable<OrderResponseDto?>> GetOrdersByCurrentUser()
+    {
+        var userId = _currentUserService.UserId;
+        if (userId == Guid.Empty)
+            throw new UnauthorizedAccessException("Người dùng chưa xác thực!");
+
+        FilterDefinition<Order> filter = Builders<Order>.Filter.Eq(o => o.UserID, userId);
+        IEnumerable<Order?> orders = await _orderRepository.GetOrdersByCondition(filter);
+        IEnumerable<OrderResponseDto?> response = _mapper.Map<IEnumerable<OrderResponseDto?>>(orders);
+        return response;
     }
 }
 
