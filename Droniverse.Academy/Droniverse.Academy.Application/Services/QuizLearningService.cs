@@ -235,7 +235,7 @@ public class QuizLearningService : IQuizLearningService
         if (!isPassed)
             return null;
 
-        return await _learningService.CompleteLessonAsync(enrollmentId, lessonId);
+        return await _learningService.CompleteLessonByAssessmentAsync(enrollmentId, lessonId);
     }
 
     private async Task<float> GetBestScoreAsync(Guid quizId, float fallbackScore)

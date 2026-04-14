@@ -141,12 +141,22 @@ public class LearningService : ILearningService
 
     public async Task<CompleteLessonResultDTO> CompleteLessonAsync(Guid enrollmentId, Guid lessonId)
     {
+        return await CompleteLessonInternalAsync(enrollmentId, lessonId, CompletionMode.Direct);
+    }
+
+    public async Task<CompleteLessonResultDTO> CompleteLessonByAssessmentAsync(Guid enrollmentId, Guid lessonId)
+    {
+        return await CompleteLessonInternalAsync(enrollmentId, lessonId, CompletionMode.Assessment);
+    }
+
+    private async Task<CompleteLessonResultDTO> CompleteLessonInternalAsync(Guid enrollmentId, Guid lessonId, CompletionMode mode)
+    {
         return await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
             var now = _clock.Now;
             var context = await BuildCompletionContextAsync(enrollmentId, lessonId);
 
-            EnsureTheoryLesson(context.Lesson);
+            EnsureLessonCanBeCompletedInMode(context.Lesson, mode);
 
             EnsureLessonAccessible(context);
             var isAlreadyCompleted = await UpsertCompletedUserLessonAsync(context, now);
@@ -162,10 +172,13 @@ public class LearningService : ILearningService
         });
     }
 
-    private static void EnsureTheoryLesson(Lesson lesson)
+    private static void EnsureLessonCanBeCompletedInMode(Lesson lesson, CompletionMode mode)
     {
-        if (lesson.Type != LessonType.THEORY)
+        if (mode == CompletionMode.Direct && lesson.Type != LessonType.THEORY)
             throw new ForbiddenException("Chỉ lesson lý thuyết mới có thể hoàn thành trực tiếp.");
+
+        if (mode == CompletionMode.Assessment && lesson.Type is not (LessonType.QUIZ or LessonType.LAB))
+            throw new ForbiddenException("Chỉ lesson quiz hoặc lab mới có thể hoàn thành qua nộp bài.");
     }
 
     private async Task<CompletionContext> BuildCompletionContextAsync(Guid enrollmentId, Guid lessonId)
@@ -741,4 +754,10 @@ public class LearningService : ILearningService
         string? TitleVN,
         string? TitleEN,
         int? Duration);
+
+    private enum CompletionMode
+    {
+        Direct,
+        Assessment
+    }
 }
