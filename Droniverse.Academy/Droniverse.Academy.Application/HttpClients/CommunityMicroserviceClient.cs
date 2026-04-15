@@ -737,7 +737,7 @@ namespace Droniverse.Academy.Application.HttpClients
             var url = BuildCommunityPath(
                 $"clubs/{clubId}/participants/{userId}?status={status}");
 
-            var request = new HttpRequestMessage(HttpMethod.Head, url);
+            var request = new HttpRequestMessage(HttpMethod.Get, url);
 
             var response = await _httpClient.SendAsync(request, cancellationToken);
 
