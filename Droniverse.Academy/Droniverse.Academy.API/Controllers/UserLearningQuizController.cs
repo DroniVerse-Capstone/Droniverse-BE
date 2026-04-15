@@ -26,7 +26,7 @@ public class UserLearningQuizController : ControllerBase
 
     /// <summary>
     /// Lấy dữ liệu làm quiz của người học theo quiz.
-    /// Trả về cấu trúc gồm thông tin quiz và attempt mới nhất của người học (nếu có).
+    /// Trả về cấu trúc gồm thông tin quiz và attempt có điểm cao nhất của người học (nếu có).
     /// </summary>
     /// <param name="enrollmentId">Mã enrollment của người học.</param>
     /// <param name="quizId">Mã quiz.</param>

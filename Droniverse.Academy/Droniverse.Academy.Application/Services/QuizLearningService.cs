@@ -37,7 +37,10 @@ public class QuizLearningService : IQuizLearningService
 
         var latestAttemptResult = await _unitOfWork.QuizAttempts.GetAllAsync(
             filter: x => x.QuizID == quizId && x.UserID == _currentUser.UserId,
-            orderBy: q => q.OrderByDescending(x => x.StartTime),
+            orderBy: q => q
+                .OrderByDescending(x => x.Score)
+                .ThenByDescending(x => x.SubmitTime)
+                .ThenByDescending(x => x.StartTime),
             pageIndex: 1,
             pageSize: 1,
             includeProperties: "Quiz");
@@ -85,7 +88,7 @@ public class QuizLearningService : IQuizLearningService
 
     public async Task<IEnumerable<QuizQuestionLearningDTO>> GetQuizQuestionsForLearningAsync(Guid enrollmentId, Guid quizId)
     {
-        _ = await GetQuizAsync(quizId);
+        var quiz = await GetQuizAsync(quizId);
         var lesson = await GetQuizLessonAsync(quizId);
 
         await _learningService.ValidateLessonAccessAsync(enrollmentId, lesson.LessonID);
@@ -96,7 +99,7 @@ public class QuizLearningService : IQuizLearningService
             pageSize: 10000);
 
         var shuffledQuestions = questionsResult.Data
-            .Select(MapLearningQuestion)
+            .Select(x => MapLearningQuestion(x, quiz))
             .ToList();
 
         ShuffleInPlace(shuffledQuestions);
@@ -291,7 +294,7 @@ public class QuizLearningService : IQuizLearningService
         return true;
     }
 
-    private static QuizQuestionLearningDTO MapLearningQuestion(QuizQuestion question)
+    private static QuizQuestionLearningDTO MapLearningQuestion(QuizQuestion question, Quiz quiz)
     {
         var options = new List<QuizQuestionOptionLearningDTO>
         {
@@ -305,6 +308,9 @@ public class QuizLearningService : IQuizLearningService
 
         return new QuizQuestionLearningDTO
         {
+            TitleVN = quiz.TitleVN,
+            TitleEN = quiz.TitleEN,
+            TimeLimit = quiz.TimeLimit,
             QuestionID = question.QuestionID,
             ContentVN = question.ContentVN,
             ContentEN = question.ContentEN,
