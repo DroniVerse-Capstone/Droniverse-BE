@@ -5,7 +5,7 @@ public interface IUnitOfWork : IDisposable
 {
     IRoleRepository Roles { get; }
     IUserRepository Accounts { get; }
-    IUserInfoRepository UserInfos { get; }
+    IRepository<UserInfo> UserInfos { get; }
     IPermissionRepository Permissions { get; }
     ISysConfigRepository SysConfigs { get; }
     Task<int> SaveChangeAsync();

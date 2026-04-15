@@ -2,10 +2,8 @@
 using Droniverse.Community.Application.DTO.Response.Mongo;
 using Droniverse.Community.Application.IService.Mongo;
 using Droniverse.Shared.DTOs;
-using Droniverse.Shared.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using PayOS.Models.Webhooks;
 using System.Text.Json;
 
 namespace Droniverse.Community.API.Controllers
@@ -125,6 +123,10 @@ namespace Droniverse.Community.API.Controllers
                 bool result = await _paymentService.HandleWebhook(webhook);
                 _logger.LogInformation("Handle webhook result: {Result}", result);
                 
+
+
+                // Business logic:
+
                 // Always return 200 OK - PayOS just needs confirmation that endpoint received it
                 // Even if order not found, we return OK (may be a test webhook or delayed delivery)
                 return Ok();

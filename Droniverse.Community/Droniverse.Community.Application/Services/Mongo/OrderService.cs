@@ -10,6 +10,7 @@ using Droniverse.Community.Domain.IRepository;
 using Droniverse.Community.Domain.IRepository.Mongo;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs.Request;
+using Droniverse.Shared.Enums;
 using Droniverse.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -26,6 +27,7 @@ internal class OrderService : IOrderService
     private readonly ICurrentUserService _currentUserService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<OrderService> _logger;
+    private readonly IEmailService _emailService;
     public OrderService(
         IOrderRepository orderRepository,
         IMapper mapper,
@@ -33,12 +35,14 @@ internal class OrderService : IOrderService
         IPaymentService paymentService,
         ICurrentUserService currentUserService,
         IUnitOfWork unitOfWork,
-        ILogger<OrderService> logger)
+        ILogger<OrderService> logger,
+        IEmailService emailService)
     {
         _orderRepository = orderRepository;
         _mapper = mapper;
         _invoiceRepository = invoiceRepository;
         _paymentService = paymentService;
+        _emailService = emailService;
         _currentUserService = currentUserService;
         _unitOfWork = unitOfWork;
         _logger = logger;
@@ -60,7 +64,7 @@ internal class OrderService : IOrderService
 
         Club? club = await _unitOfWork.Clubs.GetByCondition(c => c.ClubID == clubId && c.Status == ClubStatus.ACTIVE, query => query.AsNoTracking());
         if (club == null)
-            throw new KeyNotFoundException("Không tìm thấy câu lạc bộ");
+            throw new KeyNotFoundException("Không tìm thấy câu lạc bộ.");
 
         var userRoles = _currentUserService.Roles;
         var isMember = userRoles.Contains(Roles.ClubMember);
@@ -73,6 +77,22 @@ internal class OrderService : IOrderService
         if (product == null)
             throw new KeyNotFoundException("Không tìm thấy thông tin của sản phẩm");
 
+        //------------------------------------------------------------------------------------------------------------------------------
+        // Check Remaining Quantity
+        ClubCourse? clubCourse = await _unitOfWork.ClubCourses.GetByCondition(cc => cc.ClubID == clubId && cc.CourseID == product.ReferenceID, query => query);
+        if (clubCourse == null)
+        {
+            //tạo mới ClubCourse nếu chưa tồn tại (trường hợp này chỉ xảy ra khi ClubManager tạo order nhập code vào kho mà chưa có ClubCourse nào cho khóa học đó)
+            clubCourse = ClubCourse.Create(clubId, product.ReferenceID, orderAddRequest.Item.Quantity, isMember ? ClubCourseProfit.PROFIT : ClubCourseProfit.NONPROFIT);
+            await _unitOfWork.ClubCourses.Add(clubCourse);
+
+        } else
+        {
+            clubCourse.IncreaseCapacity(orderAddRequest.Item.Quantity);
+        }
+
+        await _unitOfWork.SaveChangeAsync();
+        //------------------------------------------------------------------------------------------------------------------------------
         int quantity = orderAddRequest.Item.Quantity;
 
         // Tạo order item (chỉ có 1 item cho mỗi order
@@ -105,18 +125,6 @@ internal class OrderService : IOrderService
         Order? createdOrder = await _orderRepository.AddOrder(order) ?? throw new Exception("Create order failed");
         try
         {
-            // ===== MOCK PAYMENT - Skip PayOS for testing =====
-            //var mockPayment = new Payment
-            //{
-            //    TransactionID = order._id,
-            //    PaymentMethod = orderAddRequest.PaymentMethod,
-            //    PaymentStatus = PaymentStatus.PENDING,
-            //    TransactionDate = DateTime.UtcNow.AddHours(7),
-            //    PaymentUrl = "http://localhost:5125/community/payment-success"
-            //};
-            //await _orderRepository.AddPayment(createdOrder._id, mockPayment);
-            // ===== END MOCK =====
-
             // Gọi PayOS để tạo payment link
             var paymentCreateDto = new PaymentCreateDto
             {
@@ -124,6 +132,12 @@ internal class OrderService : IOrderService
                 PaymentMethod = orderAddRequest.PaymentMethod
             };
             await _paymentService.CreatePaymentLink(createdOrder._id, paymentCreateDto);
+
+            // ⚠️ FIX: Reload order from database to get the Payment data that was just added
+            // CreatePaymentLink() calls _orderRepository.AddPayment() to save Payment to MongoDB
+            // But the createdOrder object in memory is not automatically updated
+            FilterDefinition<Order>? reloadFilter = Builders<Order>.Filter.Eq(o => o._id, createdOrder._id);
+            createdOrder = await _orderRepository.GetOrderByCondition(reloadFilter) ?? createdOrder;
 
         }
         catch
@@ -134,27 +148,20 @@ internal class OrderService : IOrderService
             throw;
         }
 
-        //Add Invoice
-        //Invoice invoice = new Invoice();
-        //invoice._id = Guid.NewGuid();
-        //invoice.TotalAmount = order.TotalAmount;
-        //invoice.ContentVN =
-        //        $"Thanh toán {order.Item.ProductName} " +
-        //        $"(SL: {order.Item.Quantity}) " +
-        //        $"với tổng tiền {order.TotalAmount:N0} VND";
-        //invoice.ContentEN =
-        //        $"Payment for {order.Item.ProductName} " +
-        //        $"(Qty: {order.Item.Quantity}) " +
-        //        $"with total amount {order.TotalAmount:N0} VND";
-        //invoice.IssueAt = DateTime.UtcNow.AddHours(7);
-        //invoice.CustomerInfo = new CustomerInfo
-        //{
-        //    UserID = order.UserID,
-        //    FullName = _currentUserService.UserName!,
-        //    Email = _currentUserService.Email!,
-        //    TaxCode = null,
-        //};
-        //Invoice? responseInvoice = await _invoiceRepository.AddInvoice(invoice);
+        //Gửi email thông báo đến đặt hàng thành công
+        string? userName = _currentUserService.UserName;
+        string? email = _currentUserService.Email;
+        Guid productId = createdOrder.Item.ProductID;
+        string? proNameVN = createdOrder.Item.ProductNameVN;
+        string? proNameEN = createdOrder.Item.ProductNameEN;
+        string? type = createdOrder.Item.Type.ToString();
+        decimal unitOfPrice = createdOrder.Item.UnitOfPrice;
+        //createdOrder.CreateAt
+        //có quantity ở trên
+        //createdOrder.TotalAmount
+
+        await _emailService.SendOrderConfirmationEmailAsync(email!, userName!, createdOrder._id.ToString()!, createdOrder.CreateAt.ToString(), productId.ToString(), proNameVN, proNameEN, type, unitOfPrice, quantity, createdOrder.TotalAmount);
+        //---------------------------------------------------------------------------------------------------------------
 
         return _mapper.Map<OrderResponseDto?>(createdOrder);
     }

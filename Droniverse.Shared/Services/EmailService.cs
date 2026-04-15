@@ -25,6 +25,35 @@ public class EmailService : IEmailService
         _logger = logger;
     }
 
+    public async Task SendOrderConfirmationEmailAsync(
+        string email, string userName, 
+        string orderId, string orderDate, 
+        string productId, string productNameVN, string productNameEN, string type, decimal unitOfPrice, int quantity, decimal totalAmount)
+    {
+        try
+        {
+            string htmlContent = await LoadTemplateAsync("OrderConfirmationTemplate.html");
+            htmlContent = htmlContent
+                .Replace("{Email}", email)
+                .Replace("{UserName}", userName)
+                .Replace("{OrderId}", orderId)
+                .Replace("{OrderDate}", orderDate)
+                .Replace("{ProductId}", productId)
+                .Replace("{ProductNameVN}", productNameVN)
+                .Replace("{ProductNameEN}", productNameEN)
+                .Replace("{Type}", type)
+                .Replace("{UnitOfPrice}", unitOfPrice.ToString("N0"))
+                .Replace("{Quantity}", quantity.ToString())
+                .Replace("{TotalAmount}", totalAmount.ToString("N0"));
+            await SendEmailAsync(email, "Xác nhận đơn hàng của bạn tại Droniverse!", htmlContent);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Lỗi: {ex.Message}");
+            throw;
+        }
+    }
+
     public async Task SendRegistrationEmailAsync(
         string email, string fullName, string registrationDate, string confirmationUrl)
     {
