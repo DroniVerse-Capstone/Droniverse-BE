@@ -89,6 +89,9 @@ public class UserLessonService : IUserLessonService
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
+        if (request.Status.HasValue)
+            throw new ValidationException("Status được xác định tự động theo Progress.");
+
         if (request.Progress.HasValue && request.Progress is < 0 or > 100)
             throw new ValidationException("Progress phải nằm trong khoảng từ 0 đến 100.");
 
@@ -100,14 +103,13 @@ public class UserLessonService : IUserLessonService
         if (userLesson == null)
             throw new BaseException("Không tìm thấy user lesson.", "NOT_FOUND");
 
-        if (request.Status.HasValue)
-            userLesson.Status = request.Status.Value;
-
         if (request.Progress.HasValue)
+        {
             userLesson.Progress = request.Progress.Value;
-
-        if (userLesson.Progress >= 100)
-            userLesson.Status = UserLessonStatus.COMPLETED;
+            userLesson.Status = userLesson.Progress >= 100
+                ? UserLessonStatus.COMPLETED
+                : UserLessonStatus.INCOMPLETED;
+        }
 
         userLesson.LastAccessDate = request.LastAccessDate ?? _clock.Now;
 

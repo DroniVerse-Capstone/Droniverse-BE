@@ -17,23 +17,28 @@ public class QuizLearningService : IQuizLearningService
     private readonly ICurrentUserService _currentUser;
     private readonly IClock _clock;
     private readonly ILearningService _learningService;
+    private readonly LearningAssessmentAccessService _assessmentAccessService;
     private readonly IMapper _mapper;
 
-    public QuizLearningService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IClock clock, ILearningService learningService, IMapper mapper)
+    public QuizLearningService(
+        IUnitOfWork unitOfWork,
+        ICurrentUserService currentUser,
+        IClock clock,
+        ILearningService learningService,
+        LearningAssessmentAccessService assessmentAccessService,
+        IMapper mapper)
     {
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _clock = clock;
         _learningService = learningService;
+        _assessmentAccessService = assessmentAccessService;
         _mapper = mapper;
     }
 
     public async Task<QuizLearningStateDTO> GetQuizAttemptOrQuizAsync(Guid enrollmentId, Guid quizId)
     {
-        var quiz = await GetQuizAsync(quizId);
-        var lesson = await GetQuizLessonAsync(quizId);
-
-        await _learningService.ValidateLessonAccessAsync(enrollmentId, lesson.LessonID);
+        var (quiz, _) = await _assessmentAccessService.GetAccessibleQuizAsync(enrollmentId, quizId);
 
         var latestAttemptResult = await _unitOfWork.QuizAttempts.GetAllAsync(
             filter: x => x.QuizID == quizId && x.UserID == _currentUser.UserId,
@@ -57,10 +62,7 @@ public class QuizLearningService : IQuizLearningService
 
     public async Task<QuizAttemptReviewDTO> GetLatestQuizAttemptReviewAsync(Guid enrollmentId, Guid quizId)
     {
-        var quiz = await GetQuizAsync(quizId);
-        var lesson = await GetQuizLessonAsync(quizId);
-
-        await _learningService.ValidateLessonAccessAsync(enrollmentId, lesson.LessonID);
+        var (quiz, _) = await _assessmentAccessService.GetAccessibleQuizAsync(enrollmentId, quizId);
 
         var latestAttemptResult = await _unitOfWork.QuizAttempts.GetAllAsync(
             filter: x => x.QuizID == quizId && x.UserID == _currentUser.UserId,
@@ -88,10 +90,7 @@ public class QuizLearningService : IQuizLearningService
 
     public async Task<IEnumerable<QuizQuestionLearningDTO>> GetQuizQuestionsForLearningAsync(Guid enrollmentId, Guid quizId)
     {
-        var quiz = await GetQuizAsync(quizId);
-        var lesson = await GetQuizLessonAsync(quizId);
-
-        await _learningService.ValidateLessonAccessAsync(enrollmentId, lesson.LessonID);
+        var (quiz, _) = await _assessmentAccessService.GetAccessibleQuizAsync(enrollmentId, quizId);
 
         var questionsResult = await _unitOfWork.QuizQuestions.GetAllAsync(
             filter: x => x.QuizID == quizId,
@@ -110,10 +109,7 @@ public class QuizLearningService : IQuizLearningService
     {
         ValidateRequest(request);
 
-        var quiz = await GetQuizAsync(quizId);
-        var lesson = await GetQuizLessonAsync(quizId);
-
-        await _learningService.ValidateLessonAccessAsync(enrollmentId, lesson.LessonID);
+        var (quiz, lesson) = await _assessmentAccessService.GetAccessibleQuizAsync(enrollmentId, quizId);
 
         var questionMap = await GetQuizQuestionMapAsync(quizId, request.Answers.Count);
         var calculatedResult = CalculateQuizResult(request, questionMap, quizId);
@@ -134,18 +130,6 @@ public class QuizLearningService : IQuizLearningService
     private static void ValidateRequest(SubmitQuizRequestDTO request)
     {
         ArgumentNullException.ThrowIfNull(request);
-    }
-
-    private async Task<Quiz> GetQuizAsync(Guid quizId)
-    {
-        return await _unitOfWork.Quizs.GetByIdAsync(quizId)
-            ?? throw new NotFoundException("Không tìm thấy quiz.");
-    }
-
-    private async Task<Lesson> GetQuizLessonAsync(Guid quizId)
-    {
-        return await _unitOfWork.Lessons.GetByConditionAsync(x => x.Type == LessonType.QUIZ && x.ReferenceID == quizId)
-            ?? throw new NotFoundException("Không tìm thấy lesson của quiz.");
     }
 
     private async Task<Dictionary<Guid, QuizQuestion>> GetQuizQuestionMapAsync(Guid quizId, int answerCount)

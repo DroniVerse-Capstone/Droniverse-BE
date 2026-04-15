@@ -112,24 +112,24 @@ public class EnrollmentService : IEnrollmentService
         if (!request.Progress.HasValue && !request.LastAccessDate.HasValue && !request.ExpireDate.HasValue && !request.Status.HasValue)
             throw new ValidationException("Cần ít nhất một trường để cập nhật enrollment.");
 
+        if (request.Status.HasValue)
+            throw new ValidationException("Status được xác định tự động theo Progress.");
+
         if (request.Progress.HasValue && request.Progress is < 0 or > 100)
             throw new ValidationException("Progress phải nằm trong khoảng từ 0 đến 100.");
 
         var enrollment = await GetMyEnrollmentEntityOrThrowAsync(enrollmentId);
 
         if (request.Progress.HasValue)
+        {
             enrollment.Progress = request.Progress.Value;
-
-        if (enrollment.Progress >= 100)
-            enrollment.Status = EnrollStatus.COMPLETED;
+            enrollment.Status = enrollment.Progress >= 100 ? EnrollStatus.COMPLETED : EnrollStatus.ACTIVE;
+        }
 
         enrollment.LastAccessDate = request.LastAccessDate ?? _clock.Now;
 
         if (request.ExpireDate.HasValue)
             enrollment.ExpireDate = request.ExpireDate.Value;
-
-        if (request.Status.HasValue)
-            enrollment.Status = request.Status.Value;
 
         await _unitOfWork.Enrollments.UpdateAsync(enrollment);
         await _unitOfWork.SaveChangesAsync();
