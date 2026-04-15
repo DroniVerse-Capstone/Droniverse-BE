@@ -81,6 +81,45 @@ public class CloudinaryService : ICloudinaryService
         return uploadResult.SecureUrl.ToString();
     }
 
+    public async Task<string> UploadImageAsync(byte[] content, string fileName, string contentType, string folder = "droniverse")
+    {
+        if (content == null || content.Length == 0)
+            throw new ArgumentException("File content is null or empty.", nameof(content));
+
+        if (string.IsNullOrWhiteSpace(fileName))
+            throw new ArgumentException("File name is required.", nameof(fileName));
+
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+        var fileExtension = Path.GetExtension(fileName).ToLowerInvariant();
+
+        if (!allowedExtensions.Contains(fileExtension))
+            throw new ArgumentException($"Invalid file type. Allowed: {string.Join(", ", allowedExtensions)}");
+
+        if (content.Length > 10 * 1024 * 1024)
+            throw new ArgumentException("File size exceeds 10MB limit");
+
+        await using var stream = new MemoryStream(content);
+
+        var uploadParams = new ImageUploadParams
+        {
+            File = new FileDescription(fileName, stream),
+            Folder = folder,
+            Transformation = new Transformation()
+                .Quality("auto")
+                .FetchFormat("auto"),
+            UseFilename = true,
+            UniqueFilename = true,
+            Overwrite = false
+        };
+
+        var uploadResult = await _cloudinary.UploadAsync(uploadParams);
+
+        if (uploadResult.Error != null)
+            throw new Exception($"Cloudinary upload failed: {uploadResult.Error.Message}");
+
+        return uploadResult.SecureUrl.ToString();
+    }
+
     public async Task<List<string>> UploadMultipleImagesAsync(IEnumerable<IFormFile> files, string folder = "droniverse")
     {
         var urls = new List<string>();

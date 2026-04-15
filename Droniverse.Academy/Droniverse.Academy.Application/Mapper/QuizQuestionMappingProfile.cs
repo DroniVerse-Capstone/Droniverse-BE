@@ -27,5 +27,27 @@ public class QuizQuestionMappingProfile : Profile
             .ForMember(dest => dest.QuizQuestionAttempts, opt => opt.Ignore());
 
         CreateMap<QuizQuestion, QuizQuestionClientViewDTO>();
+
+        CreateMap<QuizQuestion, QuizQuestionLearningDTO>()
+            .ForMember(dest => dest.Options, opt => opt.MapFrom(src => BuildLearningOptions(src)));
+    }
+
+    private static IReadOnlyList<QuizQuestionOptionLearningDTO> BuildLearningOptions(QuizQuestion question)
+    {
+        var options = new List<QuizQuestionOptionLearningDTO>
+        {
+            new() { OptionKey = "A", ContentVN = question.AnswerA, ContentEN = question.AnswerA_EN },
+            new() { OptionKey = "B", ContentVN = question.AnswerB, ContentEN = question.AnswerB_EN },
+            new() { OptionKey = "C", ContentVN = question.AnswerC, ContentEN = question.AnswerC_EN },
+            new() { OptionKey = "D", ContentVN = question.AnswerD, ContentEN = question.AnswerD_EN }
+        };
+
+        for (var i = options.Count - 1; i > 0; i--)
+        {
+            var j = Random.Shared.Next(i + 1);
+            (options[i], options[j]) = (options[j], options[i]);
+        }
+
+        return options;
     }
 }

@@ -86,13 +86,15 @@ public sealed class LearningProgressService
     public async Task UpdateEnrollmentProgressAsync(
         Enrollment enrollment,
         IReadOnlyCollection<Module> modules,
+        IReadOnlyCollection<Lesson> lessons,
+        IReadOnlyDictionary<Guid, UserLesson> userLessons,
         IReadOnlyDictionary<Guid, UserModule> userModules,
         DateTime now)
     {
-        var completedModules = modules.Count(module =>
-            userModules.TryGetValue(module.ModuleID, out var userModule) && userModule.IsCompleted);
+        var completedLessons = lessons.Count(lesson =>
+            userLessons.TryGetValue(lesson.LessonID, out var userLesson) && IsCompletedUserLesson(userLesson));
 
-        enrollment.Progress = ProgressHelper.CalculateProgress(completedModules, modules.Count);
+        enrollment.Progress = ProgressHelper.CalculateProgress(completedLessons, lessons.Count);
         enrollment.LastAccessDate = now;
         enrollment.Status = enrollment.Progress >= 100 ? EnrollStatus.COMPLETED : EnrollStatus.ACTIVE;
 
