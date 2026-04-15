@@ -35,5 +35,8 @@ public class QuizMappingProfile : Profile
             .ForMember(dest => dest.UpdateBy, opt => opt.Ignore());
 
         CreateMap<Quiz, QuizClientViewDTO>();
+
+        CreateMap<Quiz, QuizLearningDTO>()
+            .ForMember(dest => dest.Questions, opt => opt.Ignore());
     }
 }
