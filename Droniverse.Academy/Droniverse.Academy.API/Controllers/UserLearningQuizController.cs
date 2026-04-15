@@ -76,7 +76,7 @@ public class UserLearningQuizController : ControllerBase
         try
         {
             var result = await _service.GetQuizQuestionsForLearningAsync(enrollmentId, quizId);
-            return Ok(SuccessResponse<IEnumerable<QuizQuestionLearningDTO>>.Create(result, "Lấy danh sách câu hỏi quiz thành công."));
+            return Ok(SuccessResponse<QuizLearningDTO>.Create(result, "Lấy danh sách câu hỏi quiz thành công."));
         }
         catch (Exception ex)
         {

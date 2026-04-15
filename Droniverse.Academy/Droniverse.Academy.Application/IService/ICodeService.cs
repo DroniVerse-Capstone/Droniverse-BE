@@ -1,10 +1,8 @@
 ﻿using Droniverse.Academy.Application.DTO.Extension;
 using Droniverse.Academy.Application.DTO.Request;
-using Droniverse.Academy.Application.DTO.Extension;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Request;
-using Droniverse.Shared.Enums;
 
 namespace Droniverse.Academy.Application.IService;
 
@@ -21,5 +19,6 @@ public interface ICodeService
     Task<BulkCodeAssignmentResponseDTO> BulkAssignCodesAsync(BulkAssignCodesRequest request);
     Task<PaginationResult<IEnumerable<MyCodeResponseDTO>>> GetCodesByUserAsync(GetCodesByUserSearchRequest request);
     Task<PaginationResult<IEnumerable<SimpleUserReponse>>> GetUsersCode(Guid clubId, Guid courseId, GetUsersNoCodesSearchRequest request);
+    Task<CodeResponseDTO> CreateWithAssignCodeAsync(GenerateWithAssignCodeRequestDTO request);
 }
 

@@ -249,7 +249,7 @@ public class AcademyMicroserviceClient
         try
         {
             var request = new HttpRequestMessage(
-                HttpMethod.Head,
+                HttpMethod.Get,
                 BuildAcademyPath($"labs/{labId}/exist"));
 
             var response = await _httpClient.SendAsync(request);

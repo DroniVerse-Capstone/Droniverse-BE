@@ -34,6 +34,7 @@ public static class DependencyInjection
         services.AddScoped<IDroneService, DroneService>();
         services.AddScoped<IRequiredDroneService, RequiredDroneService>();
         services.AddScoped<ICertificateService, CertificateService>();
+        services.AddScoped<ICertificateCreationService, CertificateCreationService>();
         services.AddScoped<ICertificateImageService, CertificateImageService>();
         services.AddScoped<IUserCertificateService, UserCertificateService>();
         services.AddScoped<IEnrollmentService, EnrollmentService>();

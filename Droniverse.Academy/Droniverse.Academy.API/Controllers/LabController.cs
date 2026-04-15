@@ -123,7 +123,7 @@ public class LabController : ControllerBase
     /// <summary>
     /// API nội bộ giữa các service để kiểm tra lab có tồn tại hay không.
     /// </summary>
-    [HttpHead("{labId:guid}/exist")]
+    [HttpGet("{labId:guid}/exist")]
     [Authorize(Roles = Roles.AllRoles)]
     public async Task<IActionResult> IsLabExist(Guid labId)
     {
