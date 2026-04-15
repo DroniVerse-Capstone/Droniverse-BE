@@ -1,4 +1,5 @@
 ﻿using Droniverse.Identity.Domain.Entities;
+using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Enums;
 
@@ -13,5 +14,6 @@ public interface IUserRepository : IRepository<Account>
         IUserSearchSpecification spec,
         int pageIndex,
         int pageSize);
+  
 }
 

@@ -12,7 +12,7 @@
 		<Folder Include="Middleware\" />
 		<EmbeddedResource Include="Templates/**/*.html" />
 		<PackageReference Include="CloudinaryDotNet" Version="1.27.8" />
-		<PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.1" />
+		<PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis"	 Version="10.0.1" />
 		<PackageReference Include="SendGrid" Version="9.29.1" />
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
 		<PackageReference Include="MySql.EntityFrameworkCore" Version="9.0.9" />

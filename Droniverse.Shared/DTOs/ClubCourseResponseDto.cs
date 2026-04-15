@@ -1,7 +1,6 @@
-﻿using Droniverse.Community.Domain.Enums;
-using Droniverse.Shared.Enums;
+﻿using Droniverse.Shared.Enums;
 
-namespace Droniverse.Community.Application.DTO.Response
+namespace Droniverse.Shared.DTOs
 {
     public record ClubCourseResponseDto
     {

@@ -8,7 +8,6 @@ public class Code
 {
     public required string CodeID { get; set; }
     public required Guid ClubID { get; set; }
-
     public Guid CourseID { get; set; }
     public Course Course { get; set; }
 

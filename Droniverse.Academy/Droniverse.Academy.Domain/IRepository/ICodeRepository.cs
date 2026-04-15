@@ -12,6 +12,7 @@ public interface ICodeRepository : IRepository<Code>
 
     Task<PaginationResult<IEnumerable<Code>>> GetCodesByClubAsync(
         Guid clubId,
+        Guid courseId,
         GetAllCodesByClubSearchRequest request,
         int pageIndex,
         int pageSize);
@@ -23,5 +24,10 @@ public interface ICodeRepository : IRepository<Code>
         bool? isUsed = null);
 
     Task<IEnumerable<Code>> GetByCodeIdsAsync(IEnumerable<string> codeIds);
+
+    Task<List<Guid>> GetOwnedUserIdsByClubAndCourseAsync(
+        Guid clubId,
+        Guid courseId,
+        CancellationToken cancellationToken = default);
 }
 

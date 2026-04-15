@@ -249,6 +249,37 @@ internal class ClubService : IClubService
         return response;
     }
 
+    public async Task<IEnumerable<SimpleClubResponse>> GetClubInfoBulk(GetClubSimpleInfoRequest request)
+    {
+
+        var distinctIds = request.ClubIds
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        if (distinctIds.Count == 0)
+            return [];
+
+        var clubs = await _unitOfWork.Clubs
+            .GetManyByConditionAsQueryable(c => distinctIds.Contains(c.ClubID), q => q.AsNoTracking())
+            .Select(c => new SimpleClubResponse
+            {
+                ClubId = c.ClubID,
+                ClubNameVN = c.NameVN,
+                ClubNameEN = c.NameEN,
+                ImageUrl = c.ImageUrl!,
+                ClubStatus = c.Status
+            })
+            .ToListAsync();
+
+        var clubById = clubs.ToDictionary(c => c.ClubId, c => c);
+
+        return distinctIds
+            .Where(clubById.ContainsKey)
+            .Select(id => clubById[id])
+            .ToList();
+    }
+
     public async Task<PaginationResult<IEnumerable<GetParticipantsResponse>>> GetClubParcitipations(Guid clubID, ParticipationSearchRequest searchRequest)
     {
         searchRequest ??= new ParticipationSearchRequest();
@@ -363,7 +394,7 @@ internal class ClubService : IClubService
         {
             return await _identityMicroserviceClient.GetUsersBulk(ids);
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             Console.WriteLine($"Không lấy được thông tin users khi gọi API. Error: {ex.Message}");
             Console.WriteLine($"Exception Type: {ex.GetType().Name}");
@@ -869,7 +900,7 @@ internal class ClubService : IClubService
             throw new KeyNotFoundException("Câu lạc bộ chưa sở hữu khóa học này");
 
         if (clubCourse.RemainingQuantity < request.Quantity)
-            throw new InvalidOperationException("Câu lạc bộ không sở hữu đủ code");
+            throw new InvalidOperationException("Số mã còn lại không đủ");
 
         var generateResponse = await _academyMicroserviceClient.GenerateCodes(new GenerateCodesRequestDTO
         {
@@ -1004,6 +1035,51 @@ internal class ClubService : IClubService
             pagedCourses.TotalItems,
             searchRequest.CurrentPage,
             searchRequest.PageSize);
+    }
+
+    public async Task<GetClubParticipantsResponse> GetClubParticipantIds(Guid clubId, GetClubParticipantIdsRequest request)
+    {
+        SimpleClubResponse? club = await _unitOfWork.Clubs.GetSimpleClubInfoById(clubId);
+
+        if (club == null)
+            throw new KeyNotFoundException("Không tìm thấy câu lạc bộ");
+
+        ValidateClubIsActive(club);
+
+        var participantIds = await _unitOfWork.Participations.GetParicipantIdsByClubId(clubId, request.ParticipantStatus);
+
+        return new GetClubParticipantsResponse { participantIds = participantIds ?? [] };
+    }
+
+    public async Task<bool> CheckParticipant(Guid clubId, Guid userId, ParticipationStatus status = ParticipationStatus.ACTIVE)
+    {
+        if (clubId == Guid.Empty)
+            throw new ArgumentException("ClubId không hợp lệ.");
+
+        if (userId == Guid.Empty)
+            throw new ArgumentException("UserId không hợp lệ.");
+
+        var clubExists = await _unitOfWork.Clubs
+            .GetManyByConditionAsQueryable(c => c.ClubID == clubId, q => q.AsNoTracking())
+            .AnyAsync();
+
+        if (!clubExists)
+            throw new KeyNotFoundException("Không tìm thấy câu lạc bộ");
+
+        return await _unitOfWork.Participations
+            .GetManyByConditionAsQueryable(
+                p => p.ClubID == clubId && p.UserID == userId && p.Status == status,
+                q => q.AsNoTracking())
+            .AnyAsync();
+    }
+
+    private static void ValidateClubIsActive(SimpleClubResponse club)
+    {
+        if (club.ClubStatus != ClubStatus.ACTIVE)
+        {
+            throw new InvalidOperationException(
+                $"Câu lạc bộ đang ở trạng thái {club.ClubStatus}, không thể thực hiện thao tác này.");
+        }
     }
 }
 

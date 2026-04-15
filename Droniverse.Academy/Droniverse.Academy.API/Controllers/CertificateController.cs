@@ -122,7 +122,7 @@ public class CertificateController : ControllerBase
     /// Lấy chứng chỉ của phiên bản khóa học.
     /// </summary>
     // GET /academy/courses/{courseId}/versions/{versionId}/certificates
-    [HttpGet("courses/{courseId:guid}/versions/{versionId:guid}/certificates")]
+    [HttpGet("versions/{versionId:guid}/certificates")]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> GetCertificate(Guid courseId, Guid versionId)
     {

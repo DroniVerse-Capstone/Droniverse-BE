@@ -1,4 +1,5 @@
 ﻿using Droniverse.Community.Domain.Entities;
+using Droniverse.Shared.Enums;
 
 namespace Droniverse.Community.Domain.IRepository;
 public interface IParticipationRepository : IRepository<Participation>
@@ -11,5 +12,7 @@ public interface IParticipationRepository : IRepository<Participation>
         int skip,
         int take,
         IEnumerable<Guid>? userIdsFilter = null);
+
+    Task<List<Guid>> GetParicipantIdsByClubId(Guid clubId, ParticipationStatus participationStatus);
 }
 

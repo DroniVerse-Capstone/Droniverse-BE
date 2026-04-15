@@ -11,4 +11,4 @@ namespace Droniverse.Shared.Enums
         NONPROFIT = 0,
         PROFIT = 1,
     }
-}
+}   

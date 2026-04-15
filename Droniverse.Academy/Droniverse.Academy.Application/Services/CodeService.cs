@@ -1,6 +1,8 @@
 ﻿using AutoMapper;
 using Droniverse.Academy.Application.DomainEvent;
+using Droniverse.Academy.Application.DTO.Extension;
 using Droniverse.Academy.Application.DTO.Request;
+using Droniverse.Academy.Application.DTO.Extension;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
@@ -58,12 +60,17 @@ public class CodeService : ICodeService
 
         var currentUserId = _currentUserService.UserId;
 
-        CourseInfoQueryModel? courseInfo = await _unitOfWork.Courses.GetCourseInfoByIdAsync(request.CourseId);
-
-        if (courseInfo is null)
-            throw new NotFoundException($"Không tìm thấy khóa học");
+        var courseInfo = await _unitOfWork.Courses.GetCourseInfoByIdAsync(request.CourseId)
+            ?? throw new NotFoundException("Không tìm thấy khóa học");
 
         var now = _clock.Now;
+
+        //  1. Consume trước
+        var clubCourseUpdated = await _communityMicroserviceClient
+            .ConsumeSlotCrossAsync(request.ClubId, request.CourseId, request.Quantity)
+            ?? throw new NotFoundException("Không tìm thấy club-course");
+
+        //  2. Generate code
         var courseNameForCode = !string.IsNullOrWhiteSpace(courseInfo.CourseNameEN)
             ? courseInfo.CourseNameEN
             : courseInfo.CourseNameVN;
@@ -74,20 +81,15 @@ public class CodeService : ICodeService
         while (codes.Count < request.Quantity)
         {
             var codeId = GenerateCodeId(courseNameForCode);
-            if (!generatedIds.Add(codeId))
-            {
-                continue;
-            }
+            if (!generatedIds.Add(codeId)) continue;
 
-            var code = new Code(
-                codeId: codeId,
-                clubId: request.ClubId,
-                courseId: request.CourseId,
-                expireDate: now.AddMonths(6),
-                createdBy: currentUserId,
-                now: now);
-
-            codes.Add(code);
+            codes.Add(new Code(
+                codeId,
+                request.ClubId,
+                request.CourseId,
+                now.AddMonths(6),
+                currentUserId,
+                now));
         }
 
         await _unitOfWork.Codes.AddRangeAsync(codes);
@@ -95,9 +97,9 @@ public class CodeService : ICodeService
 
         return new CreateCodesResponse
         {
-            CreatedCode = codes.Count
+            CreatedCode = codes.Count,
+            ClubCourse = clubCourseUpdated
         };
-
     }
 
     private string GenerateCodeId(string courseName)
@@ -181,24 +183,37 @@ public class CodeService : ICodeService
         throw new NotImplementedException();
     }
 
-    public async Task<ClubCodesResponse> GetCodesByClub(Guid clubId, GetAllCodesByClubSearchRequest request)
+    public async Task<ClubCodesResponse> GetCodesByClub(Guid clubId, Guid courseId, GetAllCodesByClubSearchRequest request)
     {
+        if (clubId == Guid.Empty)
+            throw new ValidationException("ClubId không hợp lệ.");
+
+        if (courseId == Guid.Empty)
+            throw new ValidationException("CourseId không hợp lệ.");
+
         request ??= new GetAllCodesByClubSearchRequest();
+
+        if (request.CodeOwnState == CodeOwnState.UnUserOwned && request.CodeUseState == CodeState.Used)
+            throw new InvalidOperationException("Không thể lọc code chưa có người sở hữu nhưng đã được sử dụng.");
 
         var pageIndex = request.CurrentPage;
         var pageSize = request.PageSize;
 
-        var pagedCodes = await _unitOfWork.Codes.GetCodesByClubAsync(clubId, request, pageIndex, pageSize);
+        var pagedCodes = await _unitOfWork.Codes.GetCodesByClubAsync(clubId, courseId, request, pageIndex, pageSize);
         var codes = pagedCodes.Data.ToList();
 
-        var usedUserIds = codes
-                 .Where(c => c.IsUsed())
-                 .Select(c => c.UsedByUserID!.Value)
+        var courseInfo = (await _unitOfWork.Courses.GetSimpleCoursesByIdsAsync([courseId])).FirstOrDefault()
+            ?? throw new NotFoundException("Không tìm thấy thông tin khóa học.");
+
+        var userIds = codes
+                 .SelectMany(c => new[] { c.OwnedUserID, c.UsedByUserID })
+                 .Where(x => x.HasValue && x.Value != Guid.Empty)
+                 .Select(x => x!.Value)
                  .Distinct()
                  .ToList();
 
-        var users = usedUserIds.Count > 0
-            ? await _identityMicroserviceClient.GetUsersBulk(usedUserIds)
+        var users = userIds.Count > 0
+            ? await _identityMicroserviceClient.GetUsersBulk(userIds)
             : [];
 
         var usersById = users.ToDictionary(
@@ -213,16 +228,18 @@ public class CodeService : ICodeService
 
         var codeItems = codes.Select(code =>
         {
-            var isUsed = code.IsUsed();
-            var consumer = isUsed && code.UsedByUserID.HasValue
+            var owner = code.OwnedUserID.HasValue
+                ? usersById.GetValueOrDefault(code.OwnedUserID.Value)
+                : null;
+
+            var consumer = code.IsUsed() && code.UsedByUserID.HasValue
                 ? usersById.GetValueOrDefault(code.UsedByUserID.Value)
                 : null;
 
             return new CodeEntryResponse
             {
                 Code = code.CodeID,
-                CourseID = code.CourseID.ToString(),
-                IsUsed = isUsed,
+                OwnerInfo = owner,
                 ComsumerInfo = consumer,
                 ExpireDate = code.ExpireDate
             };
@@ -231,8 +248,12 @@ public class CodeService : ICodeService
         return new ClubCodesResponse
         {
             ClubID = clubId.ToString(),
-            TotalItems = pagedCodes.TotalRecords,
-            CodesItem = codeItems
+            CourseInfo = courseInfo,
+            CodesItem = new PaginationResult<IEnumerable<CodeEntryResponse>>(
+                codeItems,
+                pagedCodes.TotalRecords,
+                pagedCodes.PageIndex,
+                pagedCodes.PageSize)
         };
     }
 
@@ -243,26 +264,29 @@ public class CodeService : ICodeService
     /// <returns></returns>
     /// <exception cref="UnauthorizedAccessException"></exception>
     /// <exception cref="ValidationException"></exception>
-    public async Task<CodeUsageResponseDTO> EnterCodeAsync(string codeId)
+    public async Task<CodeUsageResponseDTO> EnterCodeAsync(Guid clubId, string codeId)
     {
         try
         {
-            ClaimsPrincipal user = _currentUserService.User;
-            if (user is null)
-            {
-                throw new UnauthorizedAccessException("Người dùng chưa xác thực");
-            }
+            var currentUserId = _currentUserService.UserId;
+
+            var isParticipant = await _communityMicroserviceClient.CheckParticipantByClubAsync(clubId, currentUserId, ParticipationStatus.ACTIVE);
+
+            if (!isParticipant)
+                throw new ValidationException("Người dùng không phải thành viên của câu lạc bộ");
 
             Code? code = await _unitOfWork.Codes.GetByConditionAsync(c => c.CodeID == codeId);
             if (code is null)
-            {
                 throw new ValidationException("Mã code của khóa học chưa đúng! Vui lòng nhập lại");
-            }
+
+            if (code.Status == CodeStatus.Used)
+                throw new ValidationException("Mã code đã được sử dụng");
+
+            if (code.OwnedUserID is null)
+                throw new ValidationException("Mã code chưa được gán cho bất kỳ người dùng nào");
 
             if (code.OwnedUserID.HasValue && code.OwnedUserID.Value != _currentUserService.UserId)
-            {
                 throw new ValidationException("Mã code này đã được gán cho người dùng khác.");
-            }
 
             code.Redeem(_currentUserService.UserId, _clock.Now);
 
@@ -270,7 +294,7 @@ public class CodeService : ICodeService
             await _unitOfWork.SaveChangesAsync();
 
             //Gọi qua community để gọi hàm consumeslot
-            await _communityMicroserviceClient.ConsumeSlotForCodeAsync(code.ClubID, code.CourseID, 1);
+            //await _communityMicroserviceClient.ConsumeSlotForCodeAsync(code.ClubID, code.CourseID, 1);
 
             return new CodeUsageResponseDTO
             {
@@ -457,24 +481,68 @@ public class CodeService : ICodeService
         };
     }
 
-    public async Task<PaginationResult<IEnumerable<MyCodeResponseDTO>>> GetCodesByUserAsync(Guid userId, GetCodesByUserSearchRequest request)
+    public async Task<PaginationResult<IEnumerable<MyCodeResponseDTO>>> GetCodesByUserAsync(GetCodesByUserSearchRequest request)
     {
-        if (userId == Guid.Empty)
-            throw new ValidationException("UserId không hợp lệ.");
+        var currentUserId = _currentUserService.UserId;
 
         request ??= new GetCodesByUserSearchRequest();
 
-        var pageIndex = request.CurrentPage < 1 ? 1 : request.CurrentPage;
-        var pageSize = request.PageSize < 1 ? 5 : request.PageSize;
+        var pageIndex = request.CurrentPage;
+        var pageSize = request.PageSize;
 
-        var pagedCodes = await _unitOfWork.Codes.GetCodesByUserAsync(userId, pageIndex, pageSize, request.IsUsed);
+        var pagedCodes = await _unitOfWork.Codes.GetCodesByUserAsync(currentUserId, pageIndex, pageSize, request.IsUsed);
 
-        var items = pagedCodes.Data
+        var codes = pagedCodes.Data.ToList();
+
+        var clubIds = codes
+            .Select(c => c.ClubID)
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        var courseIds = codes
+            .Select(c => c.CourseID)
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        var clubsTask = _communityMicroserviceClient.GetClubInfoBulkAsync(clubIds);
+        var coursesTask = _unitOfWork.Courses.GetSimpleCoursesByIdsAsync(courseIds);
+
+        await Task.WhenAll(clubsTask, coursesTask);
+
+        var clubsById = (await clubsTask)
+            .Where(x => x != null && x.ClubId != Guid.Empty)
+            .GroupBy(x => x.ClubId)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        var coursesById = (await coursesTask)
+            .Where(x => x != null && x.CourseId != Guid.Empty)
+            .GroupBy(x => x.CourseId)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        var items = codes
             .Select(c => new MyCodeResponseDTO
             {
                 CodeId = c.CodeID,
-                ClubId = c.ClubID,
-                CourseId = c.CourseID,
+                ClubInfo = clubsById.TryGetValue(c.ClubID, out var club)
+                    ? club
+                    : new SimpleClubResponse
+                    {
+                        ClubId = c.ClubID,
+                        ClubNameVN = string.Empty,
+                        ClubNameEN = string.Empty,
+                        ImageUrl = string.Empty
+                    },
+                CourseId = coursesById.TryGetValue(c.CourseID, out var course)
+                    ? course
+                    : new SimpleCourseResponse
+                    {
+                        CourseId = c.CourseID,
+                        CourseNameVN = string.Empty,
+                        CourseNameEN = string.Empty,
+                        ImageUrl = string.Empty
+                    },
                 Status = c.Status,
                 ExpireDate = c.ExpireDate,
                 UsedDate = c.UsedDate
@@ -488,19 +556,133 @@ public class CodeService : ICodeService
             pagedCodes.PageSize);
     }
 
-    private async Task SendAssignEmailAsync(Guid userId, string codeId, Guid courseId)
+    public async Task<PaginationResult<IEnumerable<SimpleUserReponse>>> GetUsersCode(
+      Guid clubId,
+      Guid courseId,
+      GetUsersNoCodesSearchRequest request)
     {
-        var user = (await _identityMicroserviceClient.GetUsersBulk([userId])).FirstOrDefault();
-        if (user == null || string.IsNullOrWhiteSpace(user.Email))
+        if (clubId == Guid.Empty)
+            throw new ValidationException("ClubId không hợp lệ.");
+
+        if (courseId == Guid.Empty)
+            throw new ValidationException("CourseId không hợp lệ.");
+
+        request ??= new GetUsersNoCodesSearchRequest();
+
+        var pageIndex = request.CurrentPage;
+        var pageSize = request.PageSize;
+
+        var course = await _unitOfWork.Courses.GetByIdAsync(courseId)
+            ?? throw new NotFoundException("Không tìm thấy khóa học.");
+
+        var courseOwnership = await _communityMicroserviceClient
+            .GetRemainingQuantityRawAsync(clubId, courseId);
+
+        if (courseOwnership == null)
+            throw new ValidationException("Câu lạc bộ chưa sở hữu khóa học này.");
+
+        var ownedUserIds = await _unitOfWork.Codes
+            .GetOwnedUserIdsByClubAndCourseAsync(clubId, courseId);
+
+        IEnumerable<Guid> candidateUserIds;
+        var userCodesFilter = request.UserCodes ?? UserCodesEnum.User_Has_Codes;
+
+        if (userCodesFilter == UserCodesEnum.User_Has_Codes)
         {
-            return;
+            candidateUserIds = ownedUserIds;
+        }
+        else
+        {
+            var participantIds = await _communityMicroserviceClient
+                .GetClubParticipantIdsAsync(clubId, ParticipationStatus.ACTIVE);
+
+            var ownedSet = ownedUserIds.ToHashSet();
+
+            candidateUserIds = participantIds
+                .Where(x => x != Guid.Empty && !ownedSet.Contains(x));
         }
 
-        var fullName = AppHelper.GetFullName(user) ?? user.Username;
-        var subject = "Bạn vừa được cấp mã học khóa học";
-        var message = $"Xin chào {fullName},<br/>Bạn vừa được cấp mã <b>{codeId}</b> cho khóa học <b>{courseId}</b>.";
-        await _emailService.SendEmailAsync(user.Email, subject, message);
+        var candidateSet = candidateUserIds
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToHashSet();
+
+        // 4. SEARCH (dùng API pagination từ Identity)
+        if (!string.IsNullOrWhiteSpace(request.FullName) ||
+    !string.IsNullOrWhiteSpace(request.Email))
+        {
+            var searchResult = await _identityMicroserviceClient
+                .SearchUsersWithPaginationAsync(new SearchUsersWithPaginationRequest
+                {
+                    FullName = request.FullName,
+                    Email = request.Email,
+                    UserIds = candidateSet.ToList(),
+                    CurrentPage = pageIndex,
+                    PageSize = pageSize
+                });
+
+            return new PaginationResult<IEnumerable<SimpleUserReponse>>(
+                searchResult.Items,
+                searchResult.TotalItems,
+                pageIndex,
+                pageSize);
+        }
+
+        // 5. KHÔNG SEARCH → xử lý local pagination
+        var orderedIds = candidateSet.ToList();
+
+        var totalRecords = orderedIds.Count;
+
+        var pagedUserIds = orderedIds
+            .Skip((pageIndex - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        if (pagedUserIds.Count == 0)
+        {
+            return new PaginationResult<IEnumerable<SimpleUserReponse>>(
+                [],
+                totalRecords,
+                pageIndex,
+                pageSize);
+        }
+
+        var users = await _identityMicroserviceClient.GetUsersBulk(pagedUserIds);
+
+        var usersById = users.ToDictionary(x => x.UserId, x => x);
+
+        var items = pagedUserIds
+            .Where(usersById.ContainsKey)
+            .Select(id => usersById[id])
+            .Select(u => new SimpleUserReponse
+            {
+                UserId = u.UserId,
+                FullName = AppHelper.GetFullName(u) ?? u.Username,
+                Email = u.Email,
+                AvatarUrl = u.ImageUrl
+            })
+            .ToList();
+
+        return new PaginationResult<IEnumerable<SimpleUserReponse>>(
+            items,
+            totalRecords,
+            pageIndex,
+            pageSize);
     }
+
+    //private async Task SendAssignEmailAsync(Guid userId, string scodeId, Guid courseId)
+    //{
+    //    var user = (await _identityMicroserviceClient.GetUsersBulk([userId])).FirstOrDefault();
+    //    if (user == null || string.IsNullOrWhiteSpace(user.Email))
+    //    {
+    //        return;
+    //    }
+
+    //    var fullName = AppHelper.GetFullName(user) ?? user.Username;
+    //    var subject = "Bạn vừa được cấp mã học khóa học";
+    //    var message = $"Xin chào {fullName},<br/>Bạn vừa được cấp mã <b>{codeId}</b> cho khóa học <b>{courseId}</b>.";
+    //    await _emailService.SendEmailAsync(user.Email, subject, message);
+    //}
 
     private static CodeResponseDTO MapCodeResponse(Code code)
     {

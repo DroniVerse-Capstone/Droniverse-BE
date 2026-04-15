@@ -2,7 +2,9 @@
 using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Community.Infrastructure.Persistence.MySql;
+using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Response;
+using Droniverse.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace Droniverse.Community.Infrastructure.Repositories;
@@ -147,6 +149,21 @@ internal class ClubRepository : MySqlRepository<Club>, IClubRepository
             .GroupBy(cc => cc.ClubID)
             .Select(g => new { ClubID = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.ClubID, x => x.Count);
+    }
+
+    public async Task<SimpleClubResponse?> GetSimpleClubInfoById(Guid clubId)
+    {
+        return await _dbSet
+            .Where(c => c.ClubID == clubId)
+            .Select(c => new SimpleClubResponse
+            {
+                ClubId = c.ClubID,
+                ClubNameVN = c.NameVN,
+                ClubNameEN = c.NameEN,
+                ImageUrl = c.ImageUrl!,
+                ClubStatus = c.Status
+            })
+            .FirstOrDefaultAsync();
     }
 }
 

@@ -20,4 +20,17 @@ namespace Droniverse.Academy.Application.DTO.Extension
         ACTIVE = 0,
         COMPLETED = 1
     }
+
+    public class GetUsersNoCodesSearchRequest : SearchRequest
+    {
+        public string? FullName { get; set; }
+        public string? Email { get; set; }
+        public UserCodesEnum? UserCodes { get; set; } = UserCodesEnum.User_Has_Codes;
+    }
+
+    public enum UserCodesEnum
+    {
+        User_No_Codes,
+        User_Has_Codes
+    }
 }

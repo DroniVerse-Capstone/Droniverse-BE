@@ -1,9 +1,13 @@
-﻿using Droniverse.Shared.DTOs;
+﻿using Droniverse.Academy.Application.DTO.Request;
+using Droniverse.Shared.DTOs;
+using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.DTOs.Response;
+using Droniverse.Shared.Enums;
 using Droniverse.Shared.Helpers;
 using Droniverse.Shared.Services.IServices;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -187,6 +191,170 @@ namespace Droniverse.Academy.Application.HttpClients
                 throw;
             }
         }
+
+        public async Task<IEnumerable<Guid>> GetUserIdsBySearchName(UserInfoSearchRequestDTO request)
+        {
+            string normalizedSearch = request.SearchName?.Trim().ToLowerInvariant() ?? string.Empty;
+            var sortDirection = request.SortDirection ?? SortDirection.Asc;
+
+            string cacheKey = $"users:searchIds:{normalizedSearch}:{sortDirection}";
+
+            var cachedIds = await _cacheService.GetAsync<IEnumerable<Guid>>(cacheKey);
+            if (cachedIds != null)
+            {
+                _logger.LogInformation("Danh sách UserIds lấy từ cache.");
+                return cachedIds;
+            }
+
+            var query =
+                $"users/search-ids?SearchName={Uri.EscapeDataString(normalizedSearch)}" +
+                $"&SortDirection={sortDirection}";
+
+            HttpResponseMessage response = await _httpClient.GetAsync(BuildIdentityPath(query));
+
+            if (!response.IsSuccessStatusCode)
+            {
+                if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                {
+                    _logger.LogError("Identity service unavailable (search userIds).");
+                    throw new HttpRequestException(
+                        "Identity service unavailable",
+                        null,
+                        System.Net.HttpStatusCode.ServiceUnavailable);
+                }
+
+                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    throw new HttpRequestException(
+                        "Bad request when calling Identity search userIds API",
+                        null,
+                        System.Net.HttpStatusCode.BadRequest);
+                }
+
+                throw new HttpRequestException(
+                    $"Identity search userIds API error: {response.StatusCode}",
+                    null,
+                    response.StatusCode);
+            }
+
+            var userIds = await response.Content.ReadFromJsonAsync<IEnumerable<Guid>>(JsonOptions) ?? [];
+
+            try
+            {
+                await _cacheService.SetAsync(
+                    cacheKey,
+                    userIds,
+                    UserCacheAbsoluteExpirationSeconds,
+                    UserCacheSlidingExpirationSeconds);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Cache set failed (UserIds).");
+            }
+
+            return userIds;
+        }
+
+        public async Task<SearchUsersWithPaginationResponse> SearchUsersWithPaginationAsync(
+         SearchUsersWithPaginationRequest request,
+         CancellationToken cancellationToken = default)
+        {
+            request ??= new SearchUsersWithPaginationRequest();
+
+            var fullName = request.FullName?.Trim() ?? string.Empty;
+            var email = request.Email?.Trim() ?? string.Empty;
+            var pageIndex = request.CurrentPage < 1 ? 1 : request.CurrentPage;
+            var pageSize = request.PageSize < 1 ? 10 : request.PageSize;
+
+            // 🔥 include UserIds vào cache key
+            var userIdsKey = (request.UserIds != null && request.UserIds.Any())
+                ? string.Join(",", request.UserIds.OrderBy(x => x))
+                : "all";
+
+            var cacheKey = $"users:search:{fullName}:{email}:{userIdsKey}:{pageIndex}:{pageSize}";
+
+            var cached = await _cacheService.GetAsync<SearchUsersWithPaginationResponse>(cacheKey);
+            if (cached != null)
+            {
+                _logger.LogInformation("SearchUsersWithPagination lấy từ cache.");
+                return cached;
+            }
+
+            // 🔥 DÙNG POST thay vì GET
+            var response = await _httpClient.PostAsJsonAsync(
+                BuildIdentityPath("users/search-pagination"),
+                new SearchUsersWithPaginationRequest
+                {
+                    FullName = fullName,
+                    Email = email,
+                    UserIds = request.UserIds, // 👈 QUAN TRỌNG
+                    CurrentPage = pageIndex,
+                    PageSize = pageSize
+                },
+                cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync(cancellationToken);
+
+                if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                {
+                    _logger.LogError("Identity service unavailable (search users pagination).");
+                    throw new HttpRequestException(
+                        "Identity service unavailable",
+                        null,
+                        System.Net.HttpStatusCode.ServiceUnavailable);
+                }
+
+                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    _logger.LogWarning(
+                        "Bad request when calling search users pagination API. Response: {Response}",
+                        content);
+
+                    throw new HttpRequestException(
+                        "Bad request when calling Identity search pagination API",
+                        null,
+                        System.Net.HttpStatusCode.BadRequest);
+                }
+
+                _logger.LogError(
+                    "Error calling search users pagination API. Status: {StatusCode}, Response: {Response}",
+                    response.StatusCode,
+                    content);
+
+                throw new HttpRequestException(
+                    $"Identity search pagination API error: {response.StatusCode}",
+                    null,
+                    response.StatusCode);
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<SearchUsersWithPaginationResponse>(
+                JsonOptions,
+                cancellationToken);
+
+            if (result == null)
+            {
+                throw new HttpRequestException("Invalid response from Identity search pagination API");
+            }
+
+            // ✅ Cache lại
+            try
+            {
+                await _cacheService.SetAsync(
+                    cacheKey,
+                    result,
+                    UserCacheAbsoluteExpirationSeconds,
+                    UserCacheSlidingExpirationSeconds);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Cache set failed (SearchUsersWithPagination).");
+            }
+
+            return result;
+        }
+
 
         public async Task<CertificateTemplateResponse?> GetCertificateTemplate()
         {

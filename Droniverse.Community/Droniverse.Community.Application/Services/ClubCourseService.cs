@@ -1,9 +1,9 @@
 ﻿using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.IService;
-using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Domain.IRepository;
-using Droniverse.Shared.Services.IServices;
 using Microsoft.EntityFrameworkCore;
+using Droniverse.Shared.DTOs.Response;
+using Droniverse.Shared.DTOs;
 
 namespace Droniverse.Community.Application.Services
 {
@@ -114,7 +114,8 @@ namespace Droniverse.Community.Application.Services
             return new ClubCourseRemainingQuantityResponseDto
             {
                 RemainingQuantity = clubCourse.RemainingQuantity,
-                ProfitType = clubCourse.ProfitType
+                ProfitType = clubCourse.ProfitType,
+                TotalQuantity = clubCourse.TotalQuantity
             };
         }
 

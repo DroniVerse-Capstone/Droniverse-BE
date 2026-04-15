@@ -57,25 +57,35 @@ internal class CodeRepository : MySqlRepository<Code>, ICodeRepository
 
     public async Task<PaginationResult<IEnumerable<Code>>> GetCodesByClubAsync(
         Guid clubId,
+        Guid courseId,
         GetAllCodesByClubSearchRequest request,
         int pageIndex,
         int pageSize)
     {
         IQueryable<Code> query = _dbSet
             .AsNoTracking()
-            .Where(c => c.ClubID == clubId);
+            .Where(c => c.ClubID == clubId && c.CourseID == courseId);
 
-        if (request.CodeState == CodeState.Used)
+        if (request.CodeUseState == CodeState.Used)
         {
             query = query.Where(c =>
                 c.UsedByUserID.HasValue &&
                 c.UsedByUserID != Guid.Empty);
         }
-        else if (request.CodeState == CodeState.UnUse)
+        else if (request.CodeUseState == CodeState.UnUse)
         {
             query = query.Where(c =>
                 !c.UsedByUserID.HasValue ||
                 c.UsedByUserID == Guid.Empty);
+        }
+
+        if (request.CodeOwnState == CodeOwnState.UserOwned)
+        {
+            query = query.Where(c => c.OwnedUserID.HasValue && c.OwnedUserID != Guid.Empty);
+        }
+        else if (request.CodeOwnState == CodeOwnState.UnUserOwned)
+        {
+            query = query.Where(c => !c.OwnedUserID.HasValue || c.OwnedUserID == Guid.Empty);
         }
 
         var totalRecords = await query.CountAsync();
@@ -135,6 +145,27 @@ internal class CodeRepository : MySqlRepository<Code>, ICodeRepository
         return await _dbSet
             .Where(c => ids.Contains(c.CodeID))
             .ToListAsync();
+    }
+
+    public async Task<List<Guid>> GetOwnedUserIdsByClubAndCourseAsync(
+        Guid clubId,
+        Guid courseId,
+        CancellationToken cancellationToken = default)
+    {
+        if (clubId == Guid.Empty || courseId == Guid.Empty)
+        {
+            return [];
+        }
+
+        return await _dbSet
+            .AsNoTracking()
+            .Where(c => c.ClubID == clubId
+                        && c.CourseID == courseId
+                        && c.OwnedUserID.HasValue
+                        && c.OwnedUserID.Value != Guid.Empty)
+            .Select(c => c.OwnedUserID!.Value)
+            .Distinct()
+            .ToListAsync(cancellationToken);
     }
 }
 

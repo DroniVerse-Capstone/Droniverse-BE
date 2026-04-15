@@ -1,4 +1,6 @@
-﻿using Droniverse.Academy.Application.DTO.Request;
+﻿using Droniverse.Academy.Application.DTO.Extension;
+using Droniverse.Academy.Application.DTO.Request;
+using Droniverse.Academy.Application.DTO.Extension;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
@@ -54,11 +56,11 @@ public class CodeController : ControllerBase
     /// <summary>
     /// Lấy danh sách code theo club, có phân trang và lọc trạng thái sử dụng.
     /// </summary>
-    [HttpGet("{clubId:guid}/codes")]
+    [HttpGet("{clubId:guid}/courses/{courseId:guid}/codes")]
     [Authorize(Roles = Roles.SystemRoles)]
-    public async Task<IActionResult> GetCodesByClub(Guid clubId, [FromQuery] GetAllCodesByClubSearchRequest request)
+    public async Task<IActionResult> GetCodesByClub(Guid clubId, Guid courseId, [FromQuery] GetAllCodesByClubSearchRequest request)
     {
-        var result = await _codeService.GetCodesByClub(clubId, request);
+        var result = await _codeService.GetCodesByClub(clubId, courseId, request);
         return Ok(SuccessResponse<ClubCodesResponse>.Create(result, "Lấy danh sách code theo câu lạc bộ thành công."));
     }
 
@@ -77,11 +79,11 @@ public class CodeController : ControllerBase
     /// <summary>
     /// Club member nhập mã code để kích hoạt quyền truy cập khóa học.
     /// </summary>
-    [HttpPost("enter-code")]
+    [HttpPost("{clubId:guid}/enter-code")]
     [Authorize(Roles = Roles.ClubMember)]
-    public async Task<IActionResult> EnterCodes([FromQuery] string codeId)
+    public async Task<IActionResult> EnterCodes(Guid clubId, [FromBody] EnterCodeRequest request)
     {
-        CodeUsageResponseDTO result = await _codeService.EnterCodeAsync(codeId);
+        CodeUsageResponseDTO result = await _codeService.EnterCodeAsync(clubId, request.CodeId);
         return Ok(SuccessResponse<CodeUsageResponseDTO>.Create(result, "Truy cập khóa học thành công"));
     }
 
@@ -89,10 +91,10 @@ public class CodeController : ControllerBase
     /// Lấy danh sách code của người dùng hiện tại, có phân trang.
     /// </summary>
     [HttpGet("users/me/codes")]
-    [Authorize(Roles = Roles.AllRoles)]
+    [Authorize(Roles = Roles.ClubMember)]
     public async Task<IActionResult> GetCodesByUser([FromQuery] GetCodesByUserSearchRequest request)
     {
-        var result = await _codeService.GetCodesByUserAsync(_currentUserService.UserId, request);
+        var result = await _codeService.GetCodesByUserAsync(request);
         return Ok(SuccessResponse<PaginationResult<IEnumerable<MyCodeResponseDTO>>>.Create(result, "Lấy danh sách code của người dùng thành công."));
     }
 
@@ -118,4 +120,17 @@ public class CodeController : ControllerBase
         return Ok(SuccessResponse<BulkCodeAssignmentResponseDTO>.Create(result, "Gán hàng loạt code thành công."));
     }
 
+    /// <summary>
+    /// Lấy danh sách thành viên có/không có mã code theo câu lạc bộ và phiên bản khóa học.
+    /// </summary>
+    [HttpGet("clubs/{clubId:guid}/course/{courseId:guid}/users-codes")]
+    [Authorize(Roles = Roles.SystemRoles)]
+    public async Task<IActionResult> GetUsersCodes(
+        Guid clubId,
+        Guid courseId,
+        [FromQuery] GetUsersNoCodesSearchRequest request)
+    {
+        var result = await _codeService.GetUsersCode(clubId, courseId, request);
+        return Ok(SuccessResponse<PaginationResult<IEnumerable<SimpleUserReponse>>>.Create(result, "Lấy danh sách người dùng theo trạng thái sở hữu code thành công."));
+    }
 }

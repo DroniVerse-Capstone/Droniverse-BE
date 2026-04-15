@@ -1,7 +1,8 @@
-﻿using Droniverse.Identity.Application.DTO.Request;
-using Droniverse.Identity.Application.DTO.Extension;
+﻿using Droniverse.Identity.Application.DTO.Extension;
+using Droniverse.Identity.Application.DTO.Request;
 using Droniverse.Identity.Application.DTO.Response;
 using Droniverse.Shared.DTOs;
+using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.DTOs.Response;
 using Microsoft.AspNetCore.Http;
 
@@ -20,5 +21,6 @@ public interface IUserService
     Task<bool> DeleteUser(Guid id);
     Task<IEnumerable<UserResponse>> GetUsersByIds(IEnumerable<Guid> userIds);
     Task<IEnumerable<Guid>> GetUsersByUserInfo(UserInfoSearchRequest request);
+    Task<SearchUsersWithPaginationResponse> SearchUsersWithPagination(SearchUsersWithPaginationRequest request);
 }
 

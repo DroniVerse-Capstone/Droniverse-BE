@@ -1,4 +1,4 @@
-﻿namespace Droniverse.Community.Domain.Enums;
+﻿namespace Droniverse.Shared.Enums;
 public enum ParticipationStatus
 {
     BANNED = 0,
