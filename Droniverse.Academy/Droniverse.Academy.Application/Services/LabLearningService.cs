@@ -1,6 +1,7 @@
 ﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.Application.IService.Mongo;
 using AutoMapper;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.IRepository;
@@ -14,6 +15,7 @@ public class LabLearningService : ILabLearningService
     private readonly ICurrentUserService _currentUser;
     private readonly ILearningService _learningService;
     private readonly LearningAssessmentAccessService _assessmentAccessService;
+    private readonly ILabContentService _labContentService;
     private readonly IMapper _mapper;
 
     public LabLearningService(
@@ -21,18 +23,22 @@ public class LabLearningService : ILabLearningService
         ICurrentUserService currentUser,
         ILearningService learningService,
         LearningAssessmentAccessService assessmentAccessService,
+        ILabContentService labContentService,
         IMapper mapper)
     {
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _learningService = learningService;
         _assessmentAccessService = assessmentAccessService;
+        _labContentService = labContentService;
         _mapper = mapper;
     }
 
     public async Task<LabLearningStateDTO> GetLabLearningStateAsync(Guid enrollmentId, Guid labId)
     {
         var (lab, _) = await _assessmentAccessService.GetAccessibleLabAsync(enrollmentId, labId);
+        var labContent = await _labContentService.GetByLabIdAsync(labId)
+            ?? await _labContentService.CreateEmptyAsync(labId);
 
         var userLab = await _unitOfWork.UserLabs.GetByConditionAsync(
             x => x.UserID == _currentUser.UserId && x.LabID == labId);
@@ -40,6 +46,7 @@ public class LabLearningService : ILabLearningService
         return new LabLearningStateDTO
         {
             Lab = _mapper.Map<LabClientViewDTO>(lab),
+            LabContent = labContent,
             UserLab = userLab == null ? null : _mapper.Map<UserLabResponseDTO>(userLab)
         };
     }
