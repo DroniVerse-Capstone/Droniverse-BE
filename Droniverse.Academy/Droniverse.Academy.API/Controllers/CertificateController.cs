@@ -1,12 +1,9 @@
 ﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.IService;
-using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.API.Examples;
 using Droniverse.Shared.DTOs.Response;
-using Droniverse.Shared.Extensions;
-using Droniverse.Shared.Services.IServices;
-using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
+using Droniverse.Shared.Constants;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,22 +17,16 @@ public class CertificateController : ControllerBase
 {
     private readonly ILogger<CertificateController> _logger;
     private readonly ICertificateService _service;
-    private readonly ICertificateImageService _certificateImageService;
-    private readonly IdentityMicroserviceClient _identityMicroserviceClient;
-    private readonly ICloudinaryService _cloudinaryService;
+    private readonly ICertificateCreationService _certificateCreationService;
 
     public CertificateController(
         ILogger<CertificateController> logger,
         ICertificateService service,
-        ICertificateImageService certificateImageService,
-        IdentityMicroserviceClient identityMicroserviceClient,
-        ICloudinaryService cloudinaryService)
+        ICertificateCreationService certificateCreationService)
     {
         _logger = logger;
         _service = service;
-        _certificateImageService = certificateImageService;
-        _identityMicroserviceClient = identityMicroserviceClient;
-        _cloudinaryService = cloudinaryService;
+        _certificateCreationService = certificateCreationService;
     }
 
     /// <summary>
@@ -57,45 +48,11 @@ public class CertificateController : ControllerBase
     {
         try
         {
-            var courseVersionTitleVN = await _service.GetCourseVersionTitleVNAsync(courseId, versionId);
-
-            var certificateTemplate = await _identityMicroserviceClient.GetCertificateTemplate();
-            if (certificateTemplate == null || string.IsNullOrWhiteSpace(certificateTemplate.ImageUrl))
-            {
-                return NotFound(new { message = "Không tìm thấy mẫu chứng chỉ." });
-            }
-
-            var generatedImage = await _certificateImageService.GenerateImageFromTemplateAsync(
-                certificateTemplate.ImageUrl,
-                courseVersionTitleVN,
-                CertificateWriteFor.Course_Write,
+            var created = await _certificateCreationService.CreateCertificateWithGeneratedImageAsync(
+                courseId,
+                versionId,
+                request,
                 HttpContext.RequestAborted);
-
-            await using var imageStream = new MemoryStream(generatedImage.Content);
-            var generatedFile = new FormFile(imageStream, 0, imageStream.Length, "file", generatedImage.FileName)
-            {
-                Headers = new HeaderDictionary(),
-                ContentType = generatedImage.ContentType
-            };
-
-            var uploadResult = await this.UploadImageAsync(
-                _cloudinaryService,
-                new FileUploadDto { File = generatedFile },
-                "academy/certificates");
-
-            if (uploadResult is not OkObjectResult okUploadResult)
-            {
-                return uploadResult;
-            }
-
-            var uploadedUrl = GetUploadedImageUrl(okUploadResult);
-            if (string.IsNullOrWhiteSpace(uploadedUrl))
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError,
-                    new { message = "Không thể lấy URL ảnh chứng chỉ sau khi upload." });
-            }
-
-            var created = await _service.CreateCertificateAsync(courseId, versionId, request, uploadedUrl);
 
             return CreatedAtAction(
                 nameof(GetCertificate),
@@ -107,15 +64,6 @@ public class CertificateController : ControllerBase
             _logger.LogError(ex, "Tạo chứng chỉ thất bại.");
             throw;
         }
-    }
-
-    private static string? GetUploadedImageUrl(OkObjectResult okUploadResult)
-    {
-        return okUploadResult.Value?
-            .GetType()
-            .GetProperty("url")?
-            .GetValue(okUploadResult.Value)?
-            .ToString();
     }
 
     /// <summary>
