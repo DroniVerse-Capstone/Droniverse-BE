@@ -43,6 +43,27 @@ public class UserLearningLabController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy trạng thái học lab rút gọn của người dùng theo lab.
+    /// Trả về thông tin lab và dữ liệu user lab nếu đã có, không gồm nội dung lab.
+    /// </summary>
+    /// <param name="enrollmentId">Mã enrollment của người học.</param>
+    /// <param name="labId">Mã lab.</param>
+    [HttpGet("{labId:guid}/mini")]
+    public async Task<IActionResult> GetLabLearningMini(Guid enrollmentId, Guid labId)
+    {
+        try
+        {
+            var result = await _service.GetLabLearningMiniAsync(enrollmentId, labId);
+            return Ok(SuccessResponse<LabLearningMiniDTO>.Create(result, "Lấy dữ liệu lab rút gọn thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lấy dữ liệu lab rút gọn thất bại.");
+            throw;
+        }
+    }
+
     [HttpPost("{labId:guid}/submit")]
     public async Task<IActionResult> SubmitLab(Guid enrollmentId, Guid labId, [FromBody] SubmitLabRequestDTO request)
     {

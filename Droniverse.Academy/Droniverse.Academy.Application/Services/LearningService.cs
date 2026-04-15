@@ -196,6 +196,8 @@ public class LearningService : ILearningService
             await _learningProgressService.UpdateEnrollmentProgressAsync(
                 context.Enrollment,
                 context.Modules,
+                context.Lessons,
+                context.UserLessons,
                 context.UserModules,
                 now);
 

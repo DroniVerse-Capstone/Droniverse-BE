@@ -88,7 +88,7 @@ public class QuizLearningService : IQuizLearningService
         };
     }
 
-    public async Task<IEnumerable<QuizQuestionLearningDTO>> GetQuizQuestionsForLearningAsync(Guid enrollmentId, Guid quizId)
+    public async Task<QuizLearningDTO> GetQuizQuestionsForLearningAsync(Guid enrollmentId, Guid quizId)
     {
         var (quiz, _) = await _assessmentAccessService.GetAccessibleQuizAsync(enrollmentId, quizId);
 
@@ -97,12 +97,11 @@ public class QuizLearningService : IQuizLearningService
             pageIndex: 1,
             pageSize: 10000);
 
-        var shuffledQuestions = questionsResult.Data
-            .Select(x => MapLearningQuestion(x, quiz))
-            .ToList();
+        var response = _mapper.Map<QuizLearningDTO>(quiz);
+        var questions = _mapper.Map<List<QuizQuestionLearningDTO>>(questionsResult.Data);
+        response.Questions = Shuffle(questions);
 
-        ShuffleInPlace(shuffledQuestions);
-        return shuffledQuestions;
+        return response;
     }
 
     public async Task<SubmitQuizResultDTO> SubmitQuizAsync(Guid enrollmentId, Guid quizId, SubmitQuizRequestDTO request)
@@ -278,37 +277,17 @@ public class QuizLearningService : IQuizLearningService
         return true;
     }
 
-    private static QuizQuestionLearningDTO MapLearningQuestion(QuizQuestion question, Quiz quiz)
+    private static IReadOnlyList<T> Shuffle<T>(IEnumerable<T> source)
     {
-        var options = new List<QuizQuestionOptionLearningDTO>
-        {
-            new() { OptionKey = "A", ContentVN = question.AnswerA, ContentEN = question.AnswerA_EN },
-            new() { OptionKey = "B", ContentVN = question.AnswerB, ContentEN = question.AnswerB_EN },
-            new() { OptionKey = "C", ContentVN = question.AnswerC, ContentEN = question.AnswerC_EN },
-            new() { OptionKey = "D", ContentVN = question.AnswerD, ContentEN = question.AnswerD_EN }
-        };
+        var items = source.ToList();
 
-        ShuffleInPlace(options);
-
-        return new QuizQuestionLearningDTO
-        {
-            TitleVN = quiz.TitleVN,
-            TitleEN = quiz.TitleEN,
-            TimeLimit = quiz.TimeLimit,
-            QuestionID = question.QuestionID,
-            ContentVN = question.ContentVN,
-            ContentEN = question.ContentEN,
-            Options = options
-        };
-    }
-
-    private static void ShuffleInPlace<T>(IList<T> items)
-    {
         for (var i = items.Count - 1; i > 0; i--)
         {
             var j = Random.Shared.Next(i + 1);
             (items[i], items[j]) = (items[j], items[i]);
         }
+
+        return items;
     }
 
     private sealed record QuizCalculationResult(QuizAttempt Attempt, IReadOnlyCollection<QuizQuestionAttempt> Answers);

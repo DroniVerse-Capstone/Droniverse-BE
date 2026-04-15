@@ -51,6 +51,20 @@ public class LabLearningService : ILabLearningService
         };
     }
 
+    public async Task<LabLearningMiniDTO> GetLabLearningMiniAsync(Guid enrollmentId, Guid labId)
+    {
+        var (lab, _) = await _assessmentAccessService.GetAccessibleLabAsync(enrollmentId, labId);
+
+        var userLab = await _unitOfWork.UserLabs.GetByConditionAsync(
+            x => x.UserID == _currentUser.UserId && x.LabID == labId);
+
+        return new LabLearningMiniDTO
+        {
+            Lab = _mapper.Map<LabClientViewDTO>(lab),
+            UserLab = userLab == null ? null : _mapper.Map<UserLabResponseDTO>(userLab)
+        };
+    }
+
     public async Task<SubmitLabResultDTO> SubmitLabAsync(Guid enrollmentId, Guid labId, SubmitLabRequestDTO request)
     {
         ValidateRequest(request);
