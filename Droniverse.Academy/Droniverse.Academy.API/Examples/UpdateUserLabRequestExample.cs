@@ -18,7 +18,6 @@ public class UpdateUserLabRequestExample : IMultipleExamplesProvider<UpdateUserL
                 Length = 520.3f,
                 FeedbackVN = "Đã hoàn thành tốt.",
                 FeedbackEN = "Completed well.",
-                Rating = 5,
                 Point = 9.2m
             }
         );

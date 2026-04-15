@@ -92,7 +92,6 @@ public class UserLabService : IUserLabService
         userLab.Length = request.Length;
         userLab.FeedbackVN = request.FeedbackVN;
         userLab.FeedbackEN = request.FeedbackEN;
-        userLab.Rating = request.Rating;
         userLab.Point = request.Point;
 
         await _unitOfWork.UserLabs.UpdateAsync(userLab);

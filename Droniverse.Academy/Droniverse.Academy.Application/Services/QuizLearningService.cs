@@ -1,4 +1,5 @@
-﻿using Droniverse.Academy.Application.DTO.Request;
+﻿using AutoMapper;
+using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.Helpers;
 using Droniverse.Academy.Application.IService;
@@ -16,21 +17,80 @@ public class QuizLearningService : IQuizLearningService
     private readonly ICurrentUserService _currentUser;
     private readonly IClock _clock;
     private readonly ILearningService _learningService;
+    private readonly LearningAssessmentAccessService _assessmentAccessService;
+    private readonly IMapper _mapper;
 
-    public QuizLearningService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IClock clock, ILearningService learningService)
+    public QuizLearningService(
+        IUnitOfWork unitOfWork,
+        ICurrentUserService currentUser,
+        IClock clock,
+        ILearningService learningService,
+        LearningAssessmentAccessService assessmentAccessService,
+        IMapper mapper)
     {
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _clock = clock;
         _learningService = learningService;
+        _assessmentAccessService = assessmentAccessService;
+        _mapper = mapper;
+    }
+
+    public async Task<QuizLearningStateDTO> GetQuizAttemptOrQuizAsync(Guid enrollmentId, Guid quizId)
+    {
+        var (quiz, _) = await _assessmentAccessService.GetAccessibleQuizAsync(enrollmentId, quizId);
+
+        var latestAttemptResult = await _unitOfWork.QuizAttempts.GetAllAsync(
+            filter: x => x.QuizID == quizId && x.UserID == _currentUser.UserId,
+            orderBy: q => q
+                .OrderByDescending(x => x.Score)
+                .ThenByDescending(x => x.SubmitTime)
+                .ThenByDescending(x => x.StartTime),
+            pageIndex: 1,
+            pageSize: 1,
+            includeProperties: "Quiz");
+
+        var latestAttempt = latestAttemptResult.Data.FirstOrDefault();
+        return new QuizLearningStateDTO
+        {
+            Quiz = _mapper.Map<QuizClientViewDTO>(quiz),
+            Attempt = latestAttempt == null
+                ? null
+                : _mapper.Map<QuizAttemptDTO>(latestAttempt)
+        };
+    }
+
+    public async Task<QuizAttemptReviewDTO> GetLatestQuizAttemptReviewAsync(Guid enrollmentId, Guid quizId)
+    {
+        var (quiz, _) = await _assessmentAccessService.GetAccessibleQuizAsync(enrollmentId, quizId);
+
+        var latestAttemptResult = await _unitOfWork.QuizAttempts.GetAllAsync(
+            filter: x => x.QuizID == quizId && x.UserID == _currentUser.UserId,
+            orderBy: q => q.OrderByDescending(x => x.StartTime),
+            pageIndex: 1,
+            pageSize: 1);
+
+        var latestAttempt = latestAttemptResult.Data.FirstOrDefault()
+            ?? throw new NotFoundException("Chưa có bài làm quiz để xem lại.");
+
+        var questionAttemptsResult = await _unitOfWork.QuizQuestionAttempts.GetAllAsync(
+            filter: x => x.AttemptID == latestAttempt.AttemptID,
+            orderBy: q => q.OrderBy(x => x.AttemptAnswerID),
+            pageIndex: 1,
+            pageSize: 10000,
+            includeProperties: "QuizQuestion");
+
+        return new QuizAttemptReviewDTO
+        {
+            Quiz = _mapper.Map<QuizClientViewDTO>(quiz),
+            Attempt = _mapper.Map<QuizAttemptDTO>(latestAttempt),
+            Questions = _mapper.Map<List<QuizQuestionAttemptReviewDTO>>(questionAttemptsResult.Data)
+        };
     }
 
     public async Task<IEnumerable<QuizQuestionLearningDTO>> GetQuizQuestionsForLearningAsync(Guid enrollmentId, Guid quizId)
     {
-        _ = await GetQuizAsync(quizId);
-        var lesson = await GetQuizLessonAsync(quizId);
-
-        await _learningService.ValidateLessonAccessAsync(enrollmentId, lesson.LessonID);
+        var (quiz, _) = await _assessmentAccessService.GetAccessibleQuizAsync(enrollmentId, quizId);
 
         var questionsResult = await _unitOfWork.QuizQuestions.GetAllAsync(
             filter: x => x.QuizID == quizId,
@@ -38,7 +98,7 @@ public class QuizLearningService : IQuizLearningService
             pageSize: 10000);
 
         var shuffledQuestions = questionsResult.Data
-            .Select(MapLearningQuestion)
+            .Select(x => MapLearningQuestion(x, quiz))
             .ToList();
 
         ShuffleInPlace(shuffledQuestions);
@@ -49,10 +109,7 @@ public class QuizLearningService : IQuizLearningService
     {
         ValidateRequest(request);
 
-        var quiz = await GetQuizAsync(quizId);
-        var lesson = await GetQuizLessonAsync(quizId);
-
-        await _learningService.ValidateLessonAccessAsync(enrollmentId, lesson.LessonID);
+        var (quiz, lesson) = await _assessmentAccessService.GetAccessibleQuizAsync(enrollmentId, quizId);
 
         var questionMap = await GetQuizQuestionMapAsync(quizId, request.Answers.Count);
         var calculatedResult = CalculateQuizResult(request, questionMap, quizId);
@@ -73,18 +130,6 @@ public class QuizLearningService : IQuizLearningService
     private static void ValidateRequest(SubmitQuizRequestDTO request)
     {
         ArgumentNullException.ThrowIfNull(request);
-    }
-
-    private async Task<Quiz> GetQuizAsync(Guid quizId)
-    {
-        return await _unitOfWork.Quizs.GetByIdAsync(quizId)
-            ?? throw new NotFoundException("Không tìm thấy quiz.");
-    }
-
-    private async Task<Lesson> GetQuizLessonAsync(Guid quizId)
-    {
-        return await _unitOfWork.Lessons.GetByConditionAsync(x => x.Type == LessonType.QUIZ && x.ReferenceID == quizId)
-            ?? throw new NotFoundException("Không tìm thấy lesson của quiz.");
     }
 
     private async Task<Dictionary<Guid, QuizQuestion>> GetQuizQuestionMapAsync(Guid quizId, int answerCount)
@@ -120,7 +165,7 @@ public class QuizLearningService : IQuizLearningService
             if (!questionMap.TryGetValue(answer.QuestionID, out var question))
                 continue;
 
-            var selectedAnswer = NormalizeAnswer(answer, question);
+            var selectedAnswer = NormalizeAnswer(answer);
             var isCorrect = string.Equals(selectedAnswer, question.CorrectAnswer, StringComparison.OrdinalIgnoreCase);
             var answerScore = isCorrect ? question.Score : 0f;
 
@@ -177,7 +222,7 @@ public class QuizLearningService : IQuizLearningService
         if (!isPassed)
             return null;
 
-        return await _learningService.CompleteLessonAsync(enrollmentId, lessonId);
+        return await _learningService.CompleteLessonByAssessmentAsync(enrollmentId, lessonId);
     }
 
     private async Task<float> GetBestScoreAsync(Guid quizId, float fallbackScore)
@@ -206,23 +251,17 @@ public class QuizLearningService : IQuizLearningService
         };
     }
 
-    private static string NormalizeAnswer(SubmitQuizAnswerRequestDTO answer, QuizQuestion question)
+    private static string NormalizeAnswer(SubmitQuizAnswerRequestDTO answer)
     {
-        var selectedValue = !string.IsNullOrWhiteSpace(answer.SelectedOptionKey)
-            ? answer.SelectedOptionKey
-            : answer.SelectedAnswer;
+        var selectedValue = answer.SelectedOptionKey;
 
         if (string.IsNullOrWhiteSpace(selectedValue))
-            throw new BadRequestException("SelectedAnswer không được để trống.");
+            throw new BadRequestException("SelectedOptionKey không được để trống.");
 
         if (TryNormalizeOptionKey(selectedValue, out var normalized))
             return normalized;
 
-        var optionByContent = ResolveOptionKeyFromContent(question, selectedValue);
-        if (optionByContent is not null)
-            return optionByContent;
-
-        throw new BadRequestException("SelectedAnswer phải là A, B, C hoặc D.");
+        throw new BadRequestException("SelectedOptionKey phải là A, B, C hoặc D.");
     }
 
     private static bool TryNormalizeOptionKey(string? value, out string normalized)
@@ -239,30 +278,7 @@ public class QuizLearningService : IQuizLearningService
         return true;
     }
 
-    private static string? ResolveOptionKeyFromContent(QuizQuestion question, string selectedValue)
-    {
-        var value = selectedValue.Trim();
-
-        if (string.Equals(value, question.AnswerA, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(value, question.AnswerA_EN, StringComparison.OrdinalIgnoreCase))
-            return "A";
-
-        if (string.Equals(value, question.AnswerB, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(value, question.AnswerB_EN, StringComparison.OrdinalIgnoreCase))
-            return "B";
-
-        if (string.Equals(value, question.AnswerC, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(value, question.AnswerC_EN, StringComparison.OrdinalIgnoreCase))
-            return "C";
-
-        if (string.Equals(value, question.AnswerD, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(value, question.AnswerD_EN, StringComparison.OrdinalIgnoreCase))
-            return "D";
-
-        return null;
-    }
-
-    private static QuizQuestionLearningDTO MapLearningQuestion(QuizQuestion question)
+    private static QuizQuestionLearningDTO MapLearningQuestion(QuizQuestion question, Quiz quiz)
     {
         var options = new List<QuizQuestionOptionLearningDTO>
         {
@@ -276,6 +292,9 @@ public class QuizLearningService : IQuizLearningService
 
         return new QuizQuestionLearningDTO
         {
+            TitleVN = quiz.TitleVN,
+            TitleEN = quiz.TitleEN,
+            TimeLimit = quiz.TimeLimit,
             QuestionID = question.QuestionID,
             ContentVN = question.ContentVN,
             ContentEN = question.ContentEN,

@@ -25,6 +25,47 @@ public class UserLearningQuizController : ControllerBase
     }
 
     /// <summary>
+    /// Lấy dữ liệu làm quiz của người học theo quiz.
+    /// Trả về cấu trúc gồm thông tin quiz và attempt có điểm cao nhất của người học (nếu có).
+    /// </summary>
+    /// <param name="enrollmentId">Mã enrollment của người học.</param>
+    /// <param name="quizId">Mã quiz.</param>
+    [HttpGet("{quizId:guid}")]
+    public async Task<IActionResult> GetQuizAttemptOrQuiz(Guid enrollmentId, Guid quizId)
+    {
+        try
+        {
+            var result = await _service.GetQuizAttemptOrQuizAsync(enrollmentId, quizId);
+            return Ok(SuccessResponse<QuizLearningStateDTO>.Create(result, "Lấy dữ liệu quiz thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lấy dữ liệu quiz thất bại.");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Xem lại bài làm quiz gần nhất của người học, gồm thông tin attempt và các câu đã trả lời.
+    /// </summary>
+    /// <param name="enrollmentId">Mã enrollment của người học.</param>
+    /// <param name="quizId">Mã quiz.</param>
+    [HttpGet("{quizId:guid}/attempts/latest/review")]
+    public async Task<IActionResult> GetLatestQuizAttemptReview(Guid enrollmentId, Guid quizId)
+    {
+        try
+        {
+            var result = await _service.GetLatestQuizAttemptReviewAsync(enrollmentId, quizId);
+            return Ok(SuccessResponse<QuizAttemptReviewDTO>.Create(result, "Lấy dữ liệu xem lại bài quiz thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lấy dữ liệu xem lại bài quiz thất bại.");
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Lấy danh sách câu hỏi quiz cho người học, đã đảo thứ tự câu hỏi và đáp án để làm bài.
     /// </summary>
     /// <param name="enrollmentId">Mã enrollment của người học.</param>

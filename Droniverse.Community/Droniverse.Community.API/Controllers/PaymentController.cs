@@ -65,15 +65,37 @@ namespace Droniverse.Community.API.Controllers
         {
             try
             {
-                // Enable buffering to read request body multiple times
-                HttpContext.Request.EnableBuffering();
-                
-                // Read raw request body for signature verification
-                using var reader = new StreamReader(HttpContext.Request.Body);
-                string rawBody = await reader.ReadToEndAsync();
-                HttpContext.Request.Body.Position = 0; // Reset for deserialization
+                // Buffering is enabled in Program.cs middleware - stream should support seeking
+                // Try to seek to beginning (will work with buffered streams, may fail on raw Kestrel stream)
+                try
+                {
+                    HttpContext.Request.Body.Position = 0;
+                }
+                catch
+                {
+                    // If seek fails, it means stream is not seekable - likely not buffered
+                    _logger.LogWarning("Request body stream does not support seeking - buffering may not be enabled");
+                }
 
+                // Read raw request body
+                using var reader = new StreamReader(HttpContext.Request.Body, leaveOpen: true);
+                string rawBody = await reader.ReadToEndAsync();
+                
                 _logger.LogInformation("Received webhook: {RawBody}", rawBody);
+                
+                // Check if body is empty
+                if (string.IsNullOrWhiteSpace(rawBody))
+                {
+                    _logger.LogError("Webhook body is empty");
+                    return BadRequest("Webhook body is empty");
+                }
+
+                // Reset position for downstream
+                try
+                {
+                    HttpContext.Request.Body.Position = 0;
+                }
+                catch { }
 
                 // Deserialize webhook
                 var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
@@ -85,23 +107,37 @@ namespace Droniverse.Community.API.Controllers
                     return BadRequest("Invalid webhook format");
                 }
 
-                // Verify signature using raw body (this is what PayOS signed)
-                if (!await _paymentService.VerifyWebhookSignature(rawBody, webhook.Signature))
+                if (webhook.Data == null)
+                {
+                    _logger.LogError("Webhook data is null");
+                    return BadRequest("Webhook data is missing");
+                }
+
+                // Verify signature using data object (serialize with camelCase for proper signature computation)
+                if (!await _paymentService.VerifyWebhookSignature(webhook.Data, webhook.Signature))
                 {
                     _logger.LogError("Webhook signature invalid!");
                     return Unauthorized();
                 }
 
+                // Process webhook but always return 200 OK to acknowledge receipt
+                // PayOS requires 200 OK to confirm webhook was received
                 bool result = await _paymentService.HandleWebhook(webhook);
                 _logger.LogInformation("Handle webhook result: {Result}", result);
-                return result ? Ok() : BadRequest("Failed to process webhook");
+                
+                // Always return 200 OK - PayOS just needs confirmation that endpoint received it
+                // Even if order not found, we return OK (may be a test webhook or delayed delivery)
+                return Ok();
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing webhook");
-                return StatusCode(500, "Internal server error");
+                // Still return 200 OK on error to avoid webhook retry loop
+                // Errors are logged and can be reviewed later
+                return Ok();
             }
         }
+        
 
         /// <summary>
         /// Lấy danh sách các giao dịch thanh toán của người dùng hiện tại. 6#. Luồng thanh toán

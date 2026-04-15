@@ -11,6 +11,15 @@ internal class ParticipationRepository : MySqlRepository<Participation>, IPartic
     {
     }
 
+    public async Task<Club> GetClubByApproverId(Guid userId)
+    {
+        return await _context.Set<Participation>()
+            .AsNoTracking()
+            .Where(p => p.ApproverID == userId && p.Status == ParticipationStatus.ACTIVE)
+            .Select(p => p.Club)
+            .FirstOrDefaultAsync() ?? throw new InvalidOperationException($"No active club found for user ID: {userId}");
+    }
+
     public async Task<int> CountMembersByClubIdAsync(Guid clubId)
     {
         return await _context.Set<Participation>()

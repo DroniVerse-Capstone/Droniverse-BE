@@ -25,11 +25,6 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
 
-                    b.Property<string>("AuthorName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
-
                     b.Property<string>("CertificateNameEN")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -49,19 +44,7 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                     b.Property<Guid>("CreateBy")
                         .HasColumnType("char(36)");
 
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("ImageUrl")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("LogoCertificate")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Signature")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -84,14 +67,38 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                     b.Property<string>("CodeID")
                         .HasColumnType("varchar(50)");
 
+                    b.Property<Guid>("ClubID")
+                        .HasColumnType("char(36)");
+
                     b.Property<Guid>("CourseID")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<Guid>("CreatedBy")
                         .HasColumnType("char(36)");
 
                     b.Property<DateTime>("ExpireDate")
                         .HasColumnType("datetime");
 
+                    b.Property<Guid?>("OwnedUserID")
+                        .HasColumnType("char(36)");
+
                     b.Property<sbyte>("Status")
                         .HasColumnType("tinyint");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid?>("UsedByUserID")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("UsedDate")
+                        .HasColumnType("datetime");
 
                     b.HasKey("CodeID");
 
@@ -99,7 +106,7 @@ namespace Droniverse.Academy.Infrastructure.Migrations
 
                     b.ToTable("Code", null, t =>
                         {
-                            t.HasCheckConstraint("CK_Code_Status", "`Status` IN (0, 1)");
+                            t.HasCheckConstraint("CK_Code_Status", "Status IN (1,2,3,4)");
                         });
                 });
 
@@ -321,7 +328,7 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
 
-                    b.Property<Guid?>("ClubID")
+                    b.Property<Guid>("ClubID")
                         .HasColumnType("char(36)");
 
                     b.Property<Guid>("CourseID")
@@ -392,7 +399,7 @@ namespace Droniverse.Academy.Infrastructure.Migrations
 
                     b.ToTable("Feedback", null, t =>
                         {
-                            t.HasCheckConstraint("CK_Feedback_Rating", "`Rating` IN (1, 5)");
+                            t.HasCheckConstraint("CK_Feedback_Rating", "`Rating` BETWEEN 1 AND 5");
                         });
                 });
 
@@ -813,8 +820,9 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                     b.Property<DateTime>("AchievedDate")
                         .HasColumnType("date");
 
-                    b.Property<Guid>("SerialNumber")
-                        .HasColumnType("char(36)");
+                    b.Property<string>("CertificateUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<sbyte>("Status")
                         .HasColumnType("tinyint");
@@ -857,9 +865,6 @@ namespace Droniverse.Academy.Infrastructure.Migrations
 
                     b.Property<decimal>("Point")
                         .HasColumnType("decimal(10,2)");
-
-                    b.Property<int>("Rating")
-                        .HasColumnType("int");
 
                     b.Property<string>("Solution")
                         .IsRequired()
@@ -937,8 +942,48 @@ namespace Droniverse.Academy.Infrastructure.Migrations
 
                     b.ToTable("UserModule", null, t =>
                         {
-                            t.HasCheckConstraint("CK_UserModule_Progress", "`Progress` IN (0, 100)");
+                            t.HasCheckConstraint("CK_UserModule_Progress", "`Progress` >= 0 AND `Progress` <= 100");
                         });
+                });
+
+            modelBuilder.Entity("Droniverse.Academy.Infrastructure.Persistence.MySql.ReadModels.CourseStatsView", b =>
+                {
+                    b.Property<decimal?>("AverageRating")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("CourseID")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("CourseVersionID")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int?>("EstimatedDuration")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Level")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("ParticipantCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TitleEN")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("TitleVN")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime?>("UpdateAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.ToTable((string)null);
+
+                    b.ToView("vwCourseStats", (string)null);
                 });
 
             modelBuilder.Entity("Certificate", b =>

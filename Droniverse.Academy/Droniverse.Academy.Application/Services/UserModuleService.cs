@@ -100,10 +100,7 @@ public class UserModuleService : IUserModuleService
             throw new BaseException("Không tìm thấy user module.", "NOT_FOUND");
 
         userModule.Progress = request.Progress;
-        userModule.IsCompleted = request.IsCompleted;
-
-        if (userModule.Progress >= 100)
-            userModule.IsCompleted = true;
+        userModule.IsCompleted = userModule.Progress >= 100;
 
         userModule.CompleteDate = userModule.IsCompleted ? _clock.Now : null;
 

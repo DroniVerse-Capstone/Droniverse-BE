@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Droniverse.Community.Application.DTO.Extensions;
 using Droniverse.Community.Application.DTO.Request.Mongo;
 using Droniverse.Community.Application.DTO.Response.Mongo;
 using Droniverse.Community.Application.IService.Mongo;
@@ -8,7 +9,10 @@ using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Community.Domain.IRepository.Mongo;
 using Droniverse.Shared.Constants;
+using Droniverse.Shared.DTOs.Request;
+using Droniverse.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 
 namespace Droniverse.Community.Application.Services.Mongo;
@@ -21,13 +25,15 @@ internal class OrderService : IOrderService
     private readonly IPaymentService _paymentService;
     private readonly ICurrentUserService _currentUserService;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<OrderService> _logger;
     public OrderService(
         IOrderRepository orderRepository,
         IMapper mapper,
         IInvoiceRepository invoiceRepository,
         IPaymentService paymentService,
         ICurrentUserService currentUserService,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ILogger<OrderService> logger)
     {
         _orderRepository = orderRepository;
         _mapper = mapper;
@@ -35,6 +41,7 @@ internal class OrderService : IOrderService
         _paymentService = paymentService;
         _currentUserService = currentUserService;
         _unitOfWork = unitOfWork;
+        _logger = logger;
     }
 
     public async Task<OrderResponseDto?> AddOrder(Guid clubId, OrderCreateDto orderAddRequest)
@@ -77,10 +84,10 @@ internal class OrderService : IOrderService
             Type = orderAddRequest.Item.Type,
             UnitOfPrice = product.Price,
             Quantity = quantity,
-            Total = CalculateTotal(product.Price, quantity),
+            Total = isMember ? CalculateTotal(product.Price, quantity) * 1.1m : CalculateTotal(product.Price, quantity),
         };
 
-        //Tạo order
+        // Tạo order
         Order order = new Order
         {
             _id = Guid.NewGuid(),
@@ -157,17 +164,38 @@ internal class OrderService : IOrderService
         throw new NotImplementedException();
     }
 
+    public async Task<IEnumerable<OrderResponseDto?>>  GetOrdersByClubId(Guid clubId)
+    {
+        FilterDefinition<Order>? filter = Builders<Order>.Filter.Eq(o => o.ClubID, clubId);
+        IEnumerable<Order?> orders = await _orderRepository.GetOrdersByCondition(filter);
+        return _mapper.Map<IEnumerable<Order>, IEnumerable<OrderResponseDto?>>(orders);
+    }
+
+    public async Task<PaginationResult<IEnumerable<OrderResponseDto?>>> GetOrdersByClubIdWithPagination(Guid clubId, int currentPage, int pageSize)
+    {
+        FilterDefinition<Order>? filter = Builders<Order>.Filter.Eq(o => o.ClubID, clubId);
+        PaginationResult<IEnumerable<Order>> orders = await _orderRepository.GetOrdersByConditionWithPagination(filter, currentPage, pageSize);
+        return _mapper.Map<PaginationResult<IEnumerable<Order>>, PaginationResult<IEnumerable<OrderResponseDto?>>>(orders);
+    }
+
     public async Task<OrderResponseDto?> GetOrderByCondition(FilterDefinition<Order> filter)
     {
         var order = await _orderRepository.GetOrderByCondition(filter);
         return _mapper.Map<Order, OrderResponseDto?>(order);
     }
 
-    public async Task<List<OrderResponseDto?>> GetOrders()
+    public async Task<OrderResponseDto?> GetOrderByOrderId(Guid orderID)
     {
-        IEnumerable<Order> orders = await _orderRepository.GetOrders();
-        IEnumerable<OrderResponseDto?> orderDtos = _mapper.Map<IEnumerable<Order>, IEnumerable<OrderResponseDto?>>(orders);
-        return orderDtos.ToList();
+        FilterDefinition<Order>? filter = Builders<Order>.Filter.Eq(o => o._id, orderID);
+        Order order = await _orderRepository.GetOrderByCondition(filter) ?? throw new NotFoundException($"Không tìm thấy đơn hàng với mã đơn hàng #{orderID}");
+        return _mapper.Map<Order, OrderResponseDto?>(order);
+    }
+
+    public async Task<PaginationResult<IEnumerable<OrderResponseDto?>>> GetAllOrders(OrderSearchRequest searchRequest)
+    {
+        PaginationResult<IEnumerable<Order>> orders = await _orderRepository.GetOrders(searchRequest);
+        PaginationResult<IEnumerable<OrderResponseDto?>> orderDtos = _mapper.Map<PaginationResult<IEnumerable<Order>>, PaginationResult<IEnumerable<OrderResponseDto?>>>(orders);
+        return orderDtos;
 
     }
 
@@ -175,6 +203,12 @@ internal class OrderService : IOrderService
     {
         IEnumerable<Order?> orders = await _orderRepository.GetOrdersByCondition(filter);
         return _mapper.Map<IEnumerable<Order?>, IEnumerable<OrderResponseDto?>>(orders).ToList();
+    }
+
+    public async Task<PaginationResult<IEnumerable<OrderResponseDto?>>> GetOrdersByConditionWithPagination(FilterDefinition<Order> filter, int currentPage, int pageSize)
+    {
+        PaginationResult<IEnumerable<Order>> orders = await _orderRepository.GetOrdersByConditionWithPagination(filter, currentPage, pageSize);
+        return _mapper.Map<PaginationResult<IEnumerable<Order>>, PaginationResult<IEnumerable<OrderResponseDto?>>>(orders);
     }
 
     public Task<OrderResponseDto?> UpdateOrder(OrderUpdateDto orderUpdateRequest)
@@ -185,6 +219,103 @@ internal class OrderService : IOrderService
     private decimal CalculateTotal(decimal price, int quantity)
     {
         return price * quantity;
+    }
+
+    public async Task<IEnumerable<OrderResponseDto?>> GetOrdersByCurrentClub()
+    {
+        var userId = _currentUserService.UserId;
+        if (userId == Guid.Empty)
+            throw new UnauthorizedAccessException("Người dùng chưa xác thực!");
+
+        var isClubManager = _currentUserService.Roles.Contains(Roles.ClubManager);
+        if (isClubManager)
+        {
+            //Lấy club theo approverId (Id của club manager)
+            Club? club = await _unitOfWork.Participations.GetClubByApproverId(userId); //đã bắt Exception trong ParticipationRepo
+            IEnumerable<OrderResponseDto?> orders = await GetOrdersByClubId(club.ClubID);
+            return orders;
+        }
+        else
+        {
+            throw new UnauthorizedAccessException("Chỉ quản lý câu lạc bộ (Club Manager) mới có quyền truy cập đơn hàng của câu lạc bộ!");
+        }
+    }
+
+    public async Task<PaginationResult<IEnumerable<OrderResponseDto?>>> GetOrdersByCurrentClubWithPagination(int currentPage, int pageSize)
+    {
+        var userId = _currentUserService.UserId;
+        if (userId == Guid.Empty)
+            throw new UnauthorizedAccessException("Người dùng chưa xác thực!");
+
+        var isClubManager = _currentUserService.Roles.Contains(Roles.ClubManager);
+        if (isClubManager)
+        {
+            //Lấy club theo approverId (Id của club manager)
+            Club? club = await _unitOfWork.Participations.GetClubByApproverId(userId); //đã bắt Exception trong ParticipationRepo
+            return await GetOrdersByClubIdWithPagination(club.ClubID, currentPage, pageSize);
+        }
+        else
+        {
+            throw new UnauthorizedAccessException("Chỉ quản lý câu lạc bộ (Club Manager) mới có quyền truy cập đơn hàng của câu lạc bộ!");
+        }
+    }
+
+    public async Task<IEnumerable<OrderResponseDto?>> GetOrdersByCurrentUser()
+    {
+        var userId = _currentUserService.UserId;
+        if (userId == Guid.Empty)
+            throw new UnauthorizedAccessException("Người dùng chưa xác thực!");
+
+        FilterDefinition<Order> filter = Builders<Order>.Filter.Eq(o => o.UserID, userId);
+        IEnumerable<Order?> orders = await _orderRepository.GetOrdersByCondition(filter);
+        IEnumerable<OrderResponseDto?> response = _mapper.Map<IEnumerable<OrderResponseDto?>>(orders);
+        return response;
+    }
+
+    public async Task<PaginationResult<IEnumerable<OrderResponseDto?>>> GetOrdersByCurrentUserWithPagination(int currentPage, int pageSize)
+    {
+        var userId = _currentUserService.UserId;
+        if (userId == Guid.Empty)
+            throw new UnauthorizedAccessException("Người dùng chưa xác thực!");
+
+        FilterDefinition<Order> filter = Builders<Order>.Filter.Eq(o => o.UserID, userId);
+        return await GetOrdersByConditionWithPagination(filter, currentPage, pageSize);
+    }
+
+    public async Task<bool> CancelOrder(Guid orderId)
+    {
+        try
+        {
+            Order? order = await _orderRepository.GetOrderByCondition(Builders<Order>.Filter.Eq(o => o._id, orderId));
+            if (order == null)
+                throw new NotFoundException($"Không tìm thấy đơn hàng với mã đơn hàng #{orderId}");
+            order.Status = OrderStatus.CANCELLED;
+            await _orderRepository.UpdateOrder(order);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Lỗi khi HỦY đơn hàng với mã đơn hàng #{orderId}");
+            return false;
+        }
+    }
+
+    public async Task<bool> ReceiveOrder(Guid orderId)
+    {
+        try
+        {
+            Order? order = await _orderRepository.GetOrderByCondition(Builders<Order>.Filter.Eq(o => o._id, orderId));
+            if (order == null)
+                throw new NotFoundException($"Không tìm thấy đơn hàng với mã đơn hàng #{orderId}");
+            order.Status = OrderStatus.RECEIVED;
+            await _orderRepository.UpdateOrder(order);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Lỗi khi NHẬN đơn hàng với mã đơn hàng #{orderId}");
+            return false;
+        }
     }
 }
 
