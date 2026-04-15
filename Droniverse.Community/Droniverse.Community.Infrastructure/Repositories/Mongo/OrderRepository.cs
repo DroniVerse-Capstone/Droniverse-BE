@@ -19,28 +19,76 @@ internal class OrderRepository : IOrderRepository
 
     public async Task<PaginationResult<IEnumerable<Order>>> GetOrders(OrderSearchRequest searchRequest)
     {
-        //IAsyncCursor<Order> orderList = await _orders.FindAsync(Builders<Order>.Filter.Empty);
+        // Xây dựng bộ lọc từ các điều kiện tìm kiếm
+        var filters = new List<FilterDefinition<Order>>();
 
-        //int pageIndex = searchRequest.CurrentPage;
-        //int pageSize = searchRequest.PageSize;
+        // Lọc theo ClubId
+        if (searchRequest.ClubId.HasValue && searchRequest.ClubId != Guid.Empty)
+        {
+            filters.Add(Builders<Order>.Filter.Eq(o => o.ClubID, searchRequest.ClubId.Value));
+        }
 
-        //PaginationResult<IEnumerable<Order>> result = new PaginationResult<IEnumerable<Order>>(orderList.ToList(), orderList.ToList().Count, pageIndex, pageSize);
-        //return result;
+        // Lọc theo BuyerId
+        if (searchRequest.BuyerId.HasValue && searchRequest.BuyerId != Guid.Empty)
+        {
+            filters.Add(Builders<Order>.Filter.Eq(o => o.UserID, searchRequest.BuyerId.Value));
+        }
 
-        //tính số record bỏ qua
+        // Lọc theo CreateAt (ngày tạo)
+        if (searchRequest.CreateAt.HasValue)
+        {
+            var startDate = searchRequest.CreateAt.Value.Date;
+            var endDate = startDate.AddDays(1);
+            filters.Add(Builders<Order>.Filter.And(
+                Builders<Order>.Filter.Gte(o => o.CreateAt, startDate),
+                Builders<Order>.Filter.Lt(o => o.CreateAt, endDate)
+            ));
+        }
+
+        // Lọc theo ReceiveDate
+        if (searchRequest.ReceiveDate.HasValue)
+        {
+            var startDate = searchRequest.ReceiveDate.Value.Date;
+            var endDate = startDate.AddDays(1);
+            filters.Add(Builders<Order>.Filter.And(
+                Builders<Order>.Filter.Gte(o => o.ReceivedAt, startDate),
+                Builders<Order>.Filter.Lt(o => o.ReceivedAt, endDate)
+            ));
+        }
+
+        // Lọc theo Status
+        if (searchRequest.Status.HasValue)
+        {
+            var statusValue = (OrderStatus)(int)searchRequest.Status.Value;
+            filters.Add(Builders<Order>.Filter.Eq(o => o.Status, statusValue));
+        }
+
+        // Lọc theo Type (nếu không phải giá trị default)
+        if (searchRequest.Type != 0) // Giả sử 0 là giá trị mặc định không lọc
+        {
+            var typeValue = (OrderType)(int)searchRequest.Type;
+            filters.Add(Builders<Order>.Filter.Eq(o => o.OrderType, typeValue));
+        }
+
+        // Kết hợp tất cả các filter với AND logic
+        var combinedFilter = filters.Count > 0
+            ? Builders<Order>.Filter.And(filters)
+            : Builders<Order>.Filter.Empty;
+
+        // Tính số record bỏ qua
         int skip = (searchRequest.CurrentPage - 1) * searchRequest.PageSize;
 
-        //lấy data với phân trang (skip & take)
+        // Lấy data với phân trang (skip & take)
         var orders = await _orders
-            .Find(Builders<Order>.Filter.Empty)
+            .Find(combinedFilter)
             .Skip(skip)
             .Limit(searchRequest.PageSize)
             .ToListAsync();
 
-        //tính tổng số record
-        long totalRecords = await _orders.CountDocumentsAsync(Builders<Order>.Filter.Empty);
+        // Tính tổng số record theo filter
+        long totalRecords = await _orders.CountDocumentsAsync(combinedFilter);
 
-        //tạo kết quả phân trang
+        // Tạo kết quả phân trang
         PaginationResult<IEnumerable<Order>> result = new PaginationResult<IEnumerable<Order>>(
             orders, 
             (int)totalRecords, 
@@ -60,6 +108,26 @@ internal class OrderRepository : IOrderRepository
     {
         IAsyncCursor<Order> orderList = await _orders.FindAsync(filter);
         return orderList.ToList();
+    }
+
+    public async Task<PaginationResult<IEnumerable<Order>>> GetOrdersByConditionWithPagination(FilterDefinition<Order> filter, int currentPage, int pageSize)
+    {
+        int skip = (currentPage - 1) * pageSize;
+
+        var orders = await _orders
+            .Find(filter)
+            .Skip(skip)
+            .Limit(pageSize)
+            .ToListAsync();
+
+        long totalRecords = await _orders.CountDocumentsAsync(filter);
+
+        return new PaginationResult<IEnumerable<Order>>(
+            orders,
+            (int)totalRecords,
+            currentPage,
+            pageSize
+        );
     }
 
     public async Task<Order?> GetOrderByCondition(FilterDefinition<Order> filter)

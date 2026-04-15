@@ -19,6 +19,7 @@ public interface IOrderRepository
     Task<Order?> GetOrderByPaymentLinkId(string paymentLinkId);
     Task<Order?> GetOrderByOrderCode(long orderCode);
     Task<PaginationResult<IEnumerable<Order>>> GetOrders(OrderSearchRequest searchRequest);
+    Task<PaginationResult<IEnumerable<Order>>> GetOrdersByConditionWithPagination(FilterDefinition<Order> filter, int currentPage, int pageSize);
     Task<IEnumerable<Order?>> GetOrdersByCondition(FilterDefinition<Order> filter);
     Task<Order?> GetOrderByCondition(FilterDefinition<Order> filter);
     Task<Order?> AddOrder(Order order);

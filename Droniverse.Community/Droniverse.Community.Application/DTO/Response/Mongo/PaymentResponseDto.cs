@@ -7,4 +7,4 @@ public record PaymentResponseDto(Guid? OrderId, Guid TransactionId, string? Paym
     public PaymentResponseDto() : this(Guid.Empty, Guid.Empty, string.Empty, default, default, default)
     {
     }
-}
+} 
