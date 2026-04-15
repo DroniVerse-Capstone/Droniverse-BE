@@ -5,6 +5,7 @@ using Droniverse.Identity.Application.DTO.Response;
 using Droniverse.Identity.Application.IService;
 using Droniverse.Identity.Domain.Entities;
 using Droniverse.Shared.DTOs;
+using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.DTOs.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -119,6 +120,18 @@ namespace Droniverse.Identity.API.Controllers
         {
             var userIds = await _userService.GetUsersByUserInfo(request);
             return Ok(userIds);
+        }
+
+        /// <summary>
+        /// API call cross service
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [HttpPost("search-pagination")]
+        public async Task<IActionResult> SearchUsersWithPagination([FromBody] SearchUsersWithPaginationRequest request)
+        {
+            var result = await _userService.SearchUsersWithPagination(request);
+            return Ok(result); 
         }
     }
 }

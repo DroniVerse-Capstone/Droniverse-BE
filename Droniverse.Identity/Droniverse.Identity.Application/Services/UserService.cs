@@ -5,6 +5,7 @@ using Droniverse.Identity.Application.IService;
 using Droniverse.Identity.Domain.Entities;
 using Droniverse.Identity.Domain.Interfaces;
 using Droniverse.Shared.DTOs;
+using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Enums;
 using Droniverse.Shared.Helpers;
@@ -189,5 +190,28 @@ internal class UserService : IUserService
             sortDirection);
 
         return userIds;
+    }
+
+    public async Task<SearchUsersWithPaginationResponse> SearchUsersWithPagination(
+      SearchUsersWithPaginationRequest request)
+    {
+        request ??= new SearchUsersWithPaginationRequest();
+
+        var pageIndex = request.CurrentPage < 1 ? 1 : request.CurrentPage;
+        var pageSize = request.PageSize < 1 ? 10 : request.PageSize;
+
+        var (totalItems, users) = await _unitOfWork.UserInfos
+              .SearchUsersWithPaginationAsync(
+                  request.FullName,
+                  request.Email,
+                  request.UserIds,
+                  pageIndex,
+                  pageSize);
+
+        return new SearchUsersWithPaginationResponse
+        {
+            TotalItems = totalItems,
+            Items = users
+        };
     }
 }

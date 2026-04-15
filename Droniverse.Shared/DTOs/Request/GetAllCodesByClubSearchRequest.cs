@@ -1,19 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Droniverse.Shared.DTOs.Request
+﻿namespace Droniverse.Shared.DTOs.Request
 {
     public class GetAllCodesByClubSearchRequest : SearchRequest
     {
-        public CodeState? CodeState { get; set; }
+        public CodeState? CodeUseState { get; set; } = Request.CodeState.Used;
+        public CodeOwnState? CodeOwnState { get; set; } = Request.CodeOwnState.UserOwned;
     }
 
     public enum CodeState
     {
         UnUse,
         Used
+    }
+
+    public enum CodeOwnState
+    {
+        UnUserOwned,
+        UserOwned
     }
 }

@@ -6,6 +6,7 @@ using Droniverse.Community.Domain.Enums;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.DTOs.Response;
+using Droniverse.Shared.Enums;
 
 namespace Droniverse.Community.Application.IService;
 public interface IClubService
@@ -22,7 +23,10 @@ public interface IClubService
     Task<PaginationResult<IEnumerable<ManagerCoursesBulkResponseDTO>>> GetClubCoursesManagement(Guid clubId, ManagerCourseBulkSearchRequest searchRequest);
     Task<PaginationResult<IEnumerable<CourseBulkResponseDTO>>> GetHotCoursesByClub(Guid clubId, HotCoursesSearchRequest searchRequest);
     Task<IEnumerable<ClubResponseDto>> GetClubsByCurrentUsersID(ClubStatus? status = null);
+    Task<IEnumerable<SimpleClubResponse>> GetClubInfoBulk(GetClubSimpleInfoRequest request);
     Task<ClubResponseDto> UpdateClubStatus(Guid clubId, ClubUpdateStatusDto dto);
     Task<CreateCodesResponse> GenerateCodesByManager(Guid clubId, CreateCodesRequestDTO request);
+    Task<GetClubParticipantsResponse> GetClubParticipantIds(Guid clubId, GetClubParticipantIdsRequest request);
+    Task<bool> CheckParticipant(Guid clubId, Guid userId, ParticipationStatus status = ParticipationStatus.ACTIVE);
 }
 

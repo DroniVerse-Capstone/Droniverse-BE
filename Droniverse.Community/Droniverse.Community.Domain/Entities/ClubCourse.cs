@@ -48,10 +48,10 @@ public class ClubCourse
     public void Consume(int quantity = 1)
     {
         if (quantity <= 0)
-            throw new ArgumentException("Quantity must be greater than 0");
+            throw new ArgumentException("Số lượng mã phải lớn hơn 0");
 
         if (RemainingQuantity < quantity)
-            throw new InvalidOperationException("Not enough remaining quantity");
+            throw new InvalidOperationException("Số mã còn lại không đủ");
 
         RemainingQuantity -= quantity;
         EnsureValidState();

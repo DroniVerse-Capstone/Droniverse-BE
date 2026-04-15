@@ -8,6 +8,8 @@ using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.DTOs.Response;
+using Droniverse.Shared.Enums;
+using Droniverse.Shared.Enums; // Added for ParticipationStatus
 using Droniverse.Shared.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -476,22 +478,68 @@ namespace Droniverse.Community.API.Controllers
         //    var result = await _clubService.GetAll
         //}
 
+        //[HttpPost("{clubId}/codes/generate")]
+        //[Authorize(Roles = Roles.SystemRoles)]
+        //public async Task<ApiResponse> GenerateCodesByManager(Guid clubId, [FromBody] CreateCodesRequestDTO request)
+        //{
+        //    var result = await _clubService.GenerateCodesByManager(clubId, request);
+        //    return SuccessResponse<CreateCodesResponse>.Create(result, $"Khởi tạo {result.CreatedCode} mã thành công");
+        //}
+
         /// <summary>
-        /// Api dành cho generate để tạo mã cho
+        /// Lấy nhanh thông tin cơ bản của nhiều câu lạc bộ theo danh sách ID.
         /// </summary>
+        /// <param name="request">Danh sách ID câu lạc bộ cần lấy thông tin.</param>
         /// <remarks>
-        /// Được sử dụng cho : <br>CLUB_MANAGER</br>
+        /// Tối ưu hiệu năng:
+        /// - Tự động loại bỏ ID trùng và ID rỗng.
+        /// - Chỉ truy vấn các trường cần thiết để trả về dữ liệu nhẹ.
+        /// - Trả kết quả theo đúng thứ tự ID đầu vào (sau khi loại trùng).
         /// </remarks>
-        /// <param name="request">yêu cầu tạo</param>
-        /// <param name="clubId">ID câu lạc bộ</param>
-        /// <returns>200 : ok</returns>
-        [HttpPost("{clubId}/codes/generate")]
-        [Authorize(Roles = Roles.SystemRoles)]
-        public async Task<ApiResponse> GenerateCodesByManager(Guid clubId, [FromBody] CreateCodesRequestDTO request)
+        /// <returns>Danh sách thông tin rút gọn của câu lạc bộ.</returns>
+        [HttpPost("clubIds/bulk")]
+        [ProducesResponseType(typeof(IEnumerable<SimpleClubResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> GetClubInfo([FromBody] GetClubSimpleInfoRequest request)
         {
-            var result = await _clubService.GenerateCodesByManager(clubId, request);
-            return SuccessResponse<CreateCodesResponse>.Create(result, $"Khởi tạo {result.CreatedCode} mã thành công");
+            if (request.ClubIds == null || request.ClubIds.Count == 0)
+                throw new ArgumentException("Danh sách ID câu lạc bộ không được để trống.");
+
+            var result = await _clubService.GetClubInfoBulk(request);
+
+            return Ok(result);
         }
 
+        /// <summary>
+        /// API để call chéo service 
+        /// </summary>
+        /// <param name="clubId">ID của câu lạc bộ</param>
+        /// <param name="request">query param</param>
+        /// <returns>200 : ok</returns>
+        [HttpGet("{clubId:guid}/participantIds")]
+        public async Task<IActionResult> GetClubParticipantResponse(Guid clubId, [FromQuery] GetClubParticipantIdsRequest request)
+        {
+            var result = await _clubService.GetClubParticipantIds(clubId, request);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Api call chéo service để check participant
+        /// </summary>
+        /// <param name="clubId">ID của câu lạc bộ</param>
+        /// <param name="userId">ID của user</param>
+        /// <param name="status">Trạng thái của người tham gia</param>
+        /// <returns></returns>
+        [HttpHead("{clubId:guid}/participants/{userId:guid}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> CheckParticipantByClub(
+            Guid clubId,
+            Guid userId,
+            [FromQuery] ParticipationStatus status = ParticipationStatus.ACTIVE)
+        {
+            var result = await _clubService.CheckParticipant(clubId, userId, status);
+            return result ? Ok() : NotFound();
+        }
     }
 }

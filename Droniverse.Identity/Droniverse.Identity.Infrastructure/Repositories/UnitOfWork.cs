@@ -8,7 +8,7 @@ internal class UnitOfWork : IUnitOfWork
     private readonly IdentityDbContext _context;
     private IRoleRepository _role;
     private IUserRepository _account;
-    private IRepository<UserInfo> _userInfo;
+    private IUserInfoRepository _userInfo;
     private IPermissionRepository _permission;
     private ISysConfigRepository _sysConfig;
 
@@ -22,7 +22,7 @@ internal class UnitOfWork : IUnitOfWork
 
     public IUserRepository Accounts => _account ??= new UserRepository(_context);
 
-    public IRepository<UserInfo> UserInfos => _userInfo ??= new Repository<UserInfo>(_context);
+    public IUserInfoRepository UserInfos => _userInfo ??= new UserInfoRepository(_context);
 
     public IPermissionRepository Permissions => _permission ??= new PermissionRepository(_context);
     public ISysConfigRepository SysConfigs => _sysConfig ??= new SysConfigRepository(_context);

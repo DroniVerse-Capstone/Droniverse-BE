@@ -6,9 +6,7 @@ using System.Threading.Tasks;
 
 namespace Droniverse.Shared.DTOs
 {
-    public record CreateCodesResponse
+    public class GetClubCourseInfo
     {
-        public int CreatedCode { get; set; }
-        public required ClubCourseResponseDto ClubCourse { get; set; }
     }
 }

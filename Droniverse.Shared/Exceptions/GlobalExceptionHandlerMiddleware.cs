@@ -87,6 +87,10 @@ public class GlobalExceptionHandlerMiddleware
                 ErrorResponse.Create(ex.Message, ex.ErrorCode)
             ),
             MySqlException ex => HandleMySqlException(ex),
+            HttpRequestException ex when ex.StatusCode.HasValue => (
+                (int)ex.StatusCode.Value,
+                ErrorResponse.Create(ex.Message, "HTTP_REQUEST_ERROR")
+            ),
 
             _ => (
                 StatusCodes.Status500InternalServerError,

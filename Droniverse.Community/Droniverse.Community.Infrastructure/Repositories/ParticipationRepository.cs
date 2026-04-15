@@ -1,7 +1,7 @@
 ﻿using Droniverse.Community.Domain.Entities;
-using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Community.Infrastructure.Persistence.MySql;
+using Droniverse.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace Droniverse.Community.Infrastructure.Repositories;
@@ -77,6 +77,14 @@ internal class ParticipationRepository : MySqlRepository<Participation>, IPartic
             .ToListAsync();
 
         return (totalRecords, participations);
+
+
+
+    }
+
+    public async Task<List<Guid>> GetParicipantIdsByClubId(Guid clubId, ParticipationStatus participationStatus)
+    {
+        return await _dbSet.Where(p => p.ClubID == clubId && p.Status == participationStatus).Select(p => p.UserID).ToListAsync();
     }
 }
 
