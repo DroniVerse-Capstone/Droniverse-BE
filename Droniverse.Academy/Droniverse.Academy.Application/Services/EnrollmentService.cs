@@ -213,6 +213,7 @@ public class EnrollmentService : IEnrollmentService
         var userModules = modulesResult.Data
             .Select(module => new UserModule
             {
+                UserModuleID = Guid.NewGuid(),
                 UserID = _currentUser.UserId,
                 ModuleID = module.ModuleID,
                 EnrollDate = enrollDate,
