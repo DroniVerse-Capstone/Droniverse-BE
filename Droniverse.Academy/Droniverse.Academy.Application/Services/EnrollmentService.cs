@@ -38,7 +38,7 @@ public class EnrollmentService : IEnrollmentService
         var userId = _currentUser.UserId;
 
         var existing = await _unitOfWork.Enrollments.GetByConditionAsync(
-            x => x.UserID == userId && x.CourseVersionID == request.CourseVersionID);
+            x => x.UserID == userId && x.CourseVersionID == request.CourseVersionID && x.ClubID == request.ClubID);
 
         if (existing != null)
             throw new ValidationException("Người dùng đã đăng ký phiên bản khóa học này.");
