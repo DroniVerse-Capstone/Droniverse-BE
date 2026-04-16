@@ -19,8 +19,18 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                 name: "UserModuleID",
                 table: "UserModule",
                 type: "char(36)",
+                nullable: true);
+
+            migrationBuilder.Sql("UPDATE `UserModule` SET `UserModuleID` = UUID() WHERE `UserModuleID` IS NULL;");
+
+            migrationBuilder.AlterColumn<Guid>(
+                name: "UserModuleID",
+                table: "UserModule",
+                type: "char(36)",
                 nullable: false,
-                defaultValue: new Guid("00000000-0000-0000-0000-000000000000"));
+                oldClrType: typeof(Guid),
+                oldType: "char(36)",
+                oldNullable: true);
 
             migrationBuilder.AddPrimaryKey(
                 name: "PK_UserModule",
