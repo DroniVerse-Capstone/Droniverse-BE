@@ -225,7 +225,7 @@ internal class AuthService : IAuthService
         };
         var tokenHandler = new JwtSecurityTokenHandler();
         SecurityToken securityToken;
-        ClaimsPrincipal principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out securityToken);
+        ClaimsPrincipal? principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out securityToken);
         JwtSecurityToken jwtSecurityToken = securityToken as JwtSecurityToken;
         if (jwtSecurityToken == null || !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
         {

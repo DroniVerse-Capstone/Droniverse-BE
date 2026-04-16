@@ -145,6 +145,8 @@ internal class UserService : IUserService
         try
         {
             Account? account = await _unitOfWork.Accounts.GetByCondition(a => a.UserID == id);
+            if (account == null)
+                return false;
             bool isDelete = await _unitOfWork.Accounts.Delete(account);
             await _unitOfWork.SaveChangeAsync();
             if (isDelete)
@@ -169,7 +171,7 @@ internal class UserService : IUserService
         }
     }
 
-    public async Task<string> UploadUserAvatar(Guid userId, IFormFile imageFile)
+    public Task<string> UploadUserAvatar(Guid userId, IFormFile imageFile)
     {
         throw new NotImplementedException();
     }
