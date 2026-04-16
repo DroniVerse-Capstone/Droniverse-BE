@@ -90,14 +90,13 @@ internal class OrderService : IOrderService
             if (clubCourse == null)
             {
                 //tạo mới ClubCourse nếu chưa tồn tại (trường hợp này chỉ xảy ra khi ClubManager tạo order nhập code vào kho mà chưa có ClubCourse nào cho khóa học đó)
-                clubCourse = ClubCourse.Create(clubId, product.ReferenceID, orderAddRequest.Item.Quantity, isMember ? ClubCourseProfit.PROFIT : ClubCourseProfit.NONPROFIT);
+                clubCourse = ClubCourse.Create(clubId, product.ReferenceID, orderAddRequest.Item.Quantity, ClubCourseProfit.PROFIT);
                 await _unitOfWork.ClubCourses.Add(clubCourse);
             }
             else
             {
                 clubCourse.IncreaseCapacity(orderAddRequest.Item.Quantity);
             }
-            await _unitOfWork.SaveChangeAsync();
         }
         else // club member
         {
@@ -105,8 +104,9 @@ internal class OrderService : IOrderService
             {
                 throw new Exception("Thành viên câu lạc bộ chỉ được mua 1 mã code cho sản phẩm mỗi đơn hàng.");
             }
+            clubCourse.Consume(orderAddRequest.Item.Quantity);
         }
-
+        await _unitOfWork.SaveChangeAsync();
         //------------------------------------------------------------------------------------------------------------------------------
         int quantity = orderAddRequest.Item.Quantity;
 
@@ -132,7 +132,7 @@ internal class OrderService : IOrderService
             OrderType = isMember ? OrderType.USER_PURCHASE : OrderType.CLUB_IMPORT,
             Item = orderItem,
             Status = OrderStatus.PENDING,
-            TotalAmount = CalculateTotal(product.Price, quantity),
+            TotalAmount = isMember ? CalculateTotal(product.Price, quantity) * 1.1m : CalculateTotal(product.Price, quantity),
             Payment = null // Chưa có payment khi tạo order
         };
 
