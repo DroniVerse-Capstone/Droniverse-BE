@@ -670,6 +670,75 @@ public class CodeService : ICodeService
             pageSize);
     }
 
+    public async Task<CodeResponseDTO> CreateWithAssignCodeAsync(GenerateWithAssignCodeRequestDTO request)
+    {
+        if (request is null)
+            throw new ValidationException("Dữ liệu tạo mã code không hợp lệ.");
+
+        if (request.ClubId == Guid.Empty)
+            throw new ValidationException("ClubId không hợp lệ.");
+
+        if (request.CourseId == Guid.Empty)
+            throw new ValidationException("CourseId không hợp lệ.");
+
+        if (request.Quantity <= 0)
+            throw new ValidationException("Số lượng mã code phải lớn hơn 0.");
+
+        if (request.Quantity != 1)
+            throw new ValidationException("API này chỉ hỗ trợ tạo và gán 1 mã code cho người dùng hiện tại.");
+
+        var currentUserId = _currentUserService.UserId;
+
+        var courseInfo = await _unitOfWork.Courses.GetCourseInfoByIdAsync(request.CourseId)
+            ?? throw new NotFoundException("Không tìm thấy khóa học");
+
+        var now = _clock.Now;
+
+        var courseNameForCode = !string.IsNullOrWhiteSpace(courseInfo.CourseNameEN)
+            ? courseInfo.CourseNameEN
+            : courseInfo.CourseNameVN;
+
+        var code = new Code(
+            GenerateCodeId(courseNameForCode),
+            request.ClubId,
+            request.CourseId,
+            now.AddMonths(6),
+            currentUserId,
+            now);
+
+        code.AssignToUser(currentUserId, now);
+
+        await _unitOfWork.Codes.AddAsync(code);
+        await _unitOfWork.SaveChangesAsync();
+
+        if (request.Email != null && !string.IsNullOrWhiteSpace(request.Email))
+        {
+            var @event = new CodeAssignedEvent(
+                code: code.CodeID,
+                userId: currentUserId,
+                courseId: code.CourseID,
+                email: request.Email,
+                fullName: request.FullName,
+                courseNameVN: courseInfo.CourseNameVN,
+                courseNameEN: courseInfo.CourseNameEN);
+
+            await _mediator.Publish(@event);
+        }
+        else
+        {
+            _logger.LogWarning(
+                "Không gửi được email khi tạo và gán code cho user hiện tại. UserId: {UserId}",
+                currentUserId);
+        }
+
+        _logger.LogInformation(
+            "Đã tạo và gán mã code {CodeId} cho người dùng hiện tại {UserId}: ",
+            code.CodeID,
+            currentUserId);
+
+        return MapCodeResponse(code);
+    }
+
     //private async Task SendAssignEmailAsync(Guid userId, string scodeId, Guid courseId)
     //{
     //    var user = (await _identityMicroserviceClient.GetUsersBulk([userId])).FirstOrDefault();

@@ -77,6 +77,17 @@ public class CodeController : ControllerBase
     }
 
     /// <summary>
+    /// Api để call chéo service
+    /// </summary>
+    [HttpPost("generate-assign")]
+    [Authorize(Roles = Roles.SystemRoles)]
+    public async Task<IActionResult> GenerateCode([FromBody] GenerateWithAssignCodeRequestDTO request)
+    {
+        var response = await _codeService.CreateWithAssignCodeAsync(request);
+        return Ok(response);
+    }
+
+    /// <summary>
     /// Club member nhập mã code để kích hoạt quyền truy cập khóa học.
     /// </summary>
     [HttpPost("{clubId:guid}/enter-code")]

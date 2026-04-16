@@ -530,7 +530,7 @@ namespace Droniverse.Community.API.Controllers
         /// <param name="userId">ID của user</param>
         /// <param name="status">Trạng thái của người tham gia</param>
         /// <returns></returns>
-        [HttpHead("{clubId:guid}/participants/{userId:guid}")]
+        [HttpGet("{clubId:guid}/participants/{userId:guid}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> CheckParticipantByClub(
