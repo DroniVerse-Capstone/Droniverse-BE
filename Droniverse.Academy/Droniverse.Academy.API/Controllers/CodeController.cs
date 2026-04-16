@@ -81,7 +81,7 @@ public class CodeController : ControllerBase
     /// </summary>
     [HttpPost("generate-assign")]
     [Authorize(Roles = Roles.ClubMember)]
-    public async Task<IActionResult> GenerateCode([FromBody] GenerateWithAssignCodeRequestDTO request)
+    public async Task<IActionResult> GenerateCode([FromBody] Shared.DTOs.Request.GenerateWithAssignCodeRequestDTO request)
     {
         var response = await _codeService.CreateWithAssignCodeAsync(request);
         return Ok(response);

@@ -26,7 +26,7 @@
         }
       ],
       "UpstreamPathTemplate": "/api/community/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS", ],
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH" ],
       "SwaggerKey": "community"
     },
     {
@@ -39,7 +39,7 @@
         }
       ],
       "UpstreamPathTemplate": "/api/identity/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD" ],
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
       "TimeoutInMilliseconds": 30000,
       "SwaggerKey": "identity"
     }

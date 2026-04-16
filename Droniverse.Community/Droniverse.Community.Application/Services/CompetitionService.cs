@@ -901,7 +901,8 @@ namespace Droniverse.Community.Application.Services
             {
                 UserId = userId,
                 FullName = AppHelper.GetFullName(user) ?? string.Empty,
-                Email = user?.Email ?? string.Empty
+                Email = user?.Email ?? string.Empty,
+                AvatarUrl = user?.ImageUrl
             };
         }
 
