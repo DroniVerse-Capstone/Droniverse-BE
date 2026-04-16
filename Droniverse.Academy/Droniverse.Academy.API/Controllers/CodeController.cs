@@ -144,4 +144,16 @@ public class CodeController : ControllerBase
         var result = await _codeService.GetUsersCode(clubId, courseId, request);
         return Ok(SuccessResponse<PaginationResult<IEnumerable<SimpleUserReponse>>>.Create(result, "Lấy danh sách người dùng theo trạng thái sở hữu code thành công."));
     }
+
+
+    /// <summary>
+    /// Thành viên nhận mã code miễn phí của khóa học trong câu lạc bộ.
+    /// </summary>
+    [HttpPost("clubs/{clubId:guid}/courses/{courseId:guid}/get-code")]
+    [Authorize(Roles = Roles.ClubMember)]
+    public async Task<IActionResult> GetCodeByUsers(Guid clubId, Guid courseId)
+    {
+        var result = await _codeService.GetCodeByUsers(clubId, courseId);
+        return Ok(SuccessResponse<GetCodeByUsersResponseDTO>.Create(result, "Nhận mã code thành công."));
+    }
 }

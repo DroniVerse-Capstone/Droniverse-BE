@@ -20,5 +20,6 @@ public interface ICodeService
     Task<PaginationResult<IEnumerable<MyCodeResponseDTO>>> GetCodesByUserAsync(GetCodesByUserSearchRequest request);
     Task<PaginationResult<IEnumerable<SimpleUserReponse>>> GetUsersCode(Guid clubId, Guid courseId, GetUsersNoCodesSearchRequest request);
     Task<CodeResponseDTO> CreateWithAssignCodeAsync(GenerateWithAssignCodeRequestDTO request);
+    Task<GetCodeByUsersResponseDTO> GetCodeByUsers(Guid clubId, Guid courseId);
 }
 

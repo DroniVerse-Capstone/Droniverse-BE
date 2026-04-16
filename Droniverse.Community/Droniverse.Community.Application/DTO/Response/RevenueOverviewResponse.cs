@@ -8,9 +8,25 @@ namespace Droniverse.Community.Application.DTO.Response
 {
     public record RevenueOverviewResponse
     {
-        public decimal TotalRevenue { get; set; }        // tổng toàn bộ
-        public decimal RevenueThisMonth { get; set; }    // tháng hiện tại
-        public decimal RevenueLastMonth { get; set; }    // tháng trước
-        public double GrowthRate { get; set; }           // % tăng trưởng GrowthRate = (thisMonthlastMonth) / lastMonth * 100
+        // ===== REVENUE =====
+        public decimal TotalRevenue { get; set; }
+        public decimal RevenueThisMonth { get; set; }
+        public decimal RevenueLastMonth { get; set; }
+        public double RevenueGrowthRate { get; set; }
+
+        // ===== EXPENSE =====
+        public decimal TotalExpense { get; set; }
+        public decimal ExpenseThisMonth { get; set; }
+        public decimal ExpenseLastMonth { get; set; }
+
+        // ===== PROFIT =====
+        public decimal NetProfit { get; set; }
+        public decimal ProfitThisMonth { get; set; }
+        public decimal ProfitLastMonth { get; set; }
+        public double ProfitGrowthRate { get; set; }
+
+        // ===== KPI =====
+        public int TotalTransactions { get; set; }
+        public int TransactionsThisMonth { get; set; }
     }
 }

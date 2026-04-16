@@ -12,7 +12,6 @@ public class OrderItem
     public ProductType Type { get; set; } // CODE, DRONE
     public decimal UnitOfPrice { get; set; }
     public int Quantity { get; set; }
-
     public decimal Total { get; set; }
 }
 

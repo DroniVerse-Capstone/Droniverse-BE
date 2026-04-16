@@ -16,7 +16,9 @@ public class Order // Document trong NoSql ~~ Table trong SequenceSql
     public decimal TotalAmount { get; set; }
     [BsonRepresentation(BsonType.String)]
     public OrderStatus Status { get; set; } // PENDING, SUCCESS, FAILED
+    [BsonRepresentation(BsonType.DateTime)]
     public DateTime CreateAt { get; set; }
+    [BsonRepresentation(BsonType.DateTime)]
     public DateTime ReceivedAt { get; set; }
     public OrderItem Item { get; set; }
     public Payment Payment { get; set; }

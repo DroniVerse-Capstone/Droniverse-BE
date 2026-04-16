@@ -9,7 +9,6 @@ using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Enums;
-using Droniverse.Shared.Enums; // Added for ParticipationStatus
 using Droniverse.Shared.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

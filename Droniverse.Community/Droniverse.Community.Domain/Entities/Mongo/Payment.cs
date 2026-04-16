@@ -10,6 +10,7 @@ public class Payment
     public PaymentMethod PaymentMethod { get; set; }
     [BsonRepresentation(BsonType.String)]
     public PaymentStatus PaymentStatus { get; set; }
+    [BsonRepresentation(BsonType.DateTime)]
     public DateTime TransactionDate { get; set; }
     public string? PaymentUrl { get; set; }
     public string Reference { get; set; } // Mã tham chiếu PayOs
