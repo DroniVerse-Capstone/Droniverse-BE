@@ -282,7 +282,7 @@ namespace Droniverse.Academy.Application.HttpClients
             }
 
             var response = await _httpClient.GetAsync(
-                BuildCommunityPath($"clubs/{clubId}/courses/{courseId}/remaining-quantity"),
+                BuildCommunityPath($"clubs/{clubId}/courses/{courseId}"),
                 cancellationToken);
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
