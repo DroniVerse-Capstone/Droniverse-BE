@@ -7,12 +7,12 @@ using Droniverse.Shared.Enums;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using System.ComponentModel.DataAnnotations;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Droniverse.Shared.Services.IServices;
 
 namespace Droniverse.Community.Application.HttpClients;
 
@@ -36,6 +36,7 @@ public class AcademyMicroserviceClient
     private readonly ILogger<AcademyMicroserviceClient> _logger;
     private readonly IDistributedCache _distributedCache; //Redis Cache
     private readonly IHostEnvironment _environment;
+    private readonly ICurrentUserService _currentUserService;
     private static readonly DistributedCacheEntryOptions CourseCacheOptions =
     new DistributedCacheEntryOptions()
         .SetAbsoluteExpiration(TimeSpan.FromMinutes(5))
@@ -57,13 +58,15 @@ public class AcademyMicroserviceClient
         HttpClient httpClient,
         ILogger<AcademyMicroserviceClient> logger,
         IDistributedCache distributedCache,
-        IHostEnvironment environment
+        IHostEnvironment environment,
+        ICurrentUserService currentUserService
         )
     {
         _httpClient = httpClient;
         _logger = logger;
         _distributedCache = distributedCache;
         _environment = environment;
+        _currentUserService = currentUserService;
     }
 
     public async Task<CodeResponse> GenerateAssignCodesAsync(GenerateCodesRequestDTO request)
@@ -72,9 +75,27 @@ public class AcademyMicroserviceClient
             throw new ArgumentNullException(nameof(request));
         try
         {
+            // Get user email and name from current user context
+            var email = _currentUserService.Email;
+            if (string.IsNullOrWhiteSpace(email))
+                throw new InvalidOperationException("Không thể lấy email của người dùng hiện tại.");
+
+            var fullName = _currentUserService.UserName ?? "User";
+
+            // Build the correct request DTO for generate-assign endpoint
+            var generateWithAssignRequest = new GenerateWithAssignCodeRequestDTO
+            {
+                ClubId = request.ClubId,
+                CourseId = request.CourseId,
+                Quantity = request.Quantity,
+                Email = email,
+                FullName = fullName
+            };
+
             var response = await _httpClient.PostAsJsonAsync(
                 BuildAcademyPath("codes/generate-assign"),
-                request);
+                generateWithAssignRequest);
+
             if (!response.IsSuccessStatusCode)
             {
                 if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -94,9 +115,9 @@ public class AcademyMicroserviceClient
                 throw new InvalidOperationException("Không nhận được phản hồi hợp lệ từ Academy service khi gán code.");
             return result;
         }
-        catch (Exception ex) when (ex is not HttpRequestException && ex is not KeyNotFoundException)
+        catch (Exception ex) when (ex is not HttpRequestException && ex is not KeyNotFoundException && ex is not InvalidOperationException)
         {
-            _logger.LogError(ex, "Lỗi khi gọi Academy API codes/bulk-assign.");
+            _logger.LogError(ex, "Lỗi khi gọi Academy API codes/generate-assign.");
             throw;
         }
     }
