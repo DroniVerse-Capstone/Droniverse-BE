@@ -10,7 +10,7 @@ namespace Droniverse.Community.Application.IService
         Task<ClubCourseRevenueResponse> GetRevenueByCourseByClub(Guid clubId, int top);
 
         // Admin & System Manager Dashboard
-        Task<RevenueOverviewResponse> GetAdminRevenueOverview();
+        Task<AdminRevenueOverviewResponse> GetAdminRevenueOverview();
         Task<RevenueGrowthResponse> GetRevenueGrowthByAllClubs(int months);
         Task<ClubCourseRevenueResponse> GetRevenueByCourseByAllClubs(int top);
         Task<AdminClubRankingResponse> GetAdminClubRankingBySpent(int top = 10);

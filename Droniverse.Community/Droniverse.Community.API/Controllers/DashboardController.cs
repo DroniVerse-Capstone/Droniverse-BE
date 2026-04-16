@@ -21,22 +21,16 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
-        /// Lấy dữ liệu tổng quan tài chính của câu lạc bộ theo các giao dịch đã thanh toán thành công.
+        /// Lấy dữ liệu tổng quan chi phí và KPI giao dịch của câu lạc bộ theo các giao dịch đã thanh toán thành công.
         /// </summary>
         /// <remarks>
-        /// Bao gồm nhóm chỉ số doanh thu, chi phí, lợi nhuận và KPI giao dịch.
-        /// - Doanh thu: <b>TotalRevenue</b>, <b>RevenueThisMonth</b>, <b>RevenueLastMonth</b>, <b>RevenueGrowthRate</b>.
+        /// Bao gồm nhóm chỉ số chi phí và KPI giao dịch.
         /// - Chi phí: <b>TotalExpense</b>, <b>ExpenseThisMonth</b>, <b>ExpenseLastMonth</b>.
-        /// - Lợi nhuận: <b>NetProfit</b>, <b>ProfitThisMonth</b>, <b>ProfitLastMonth</b>, <b>ProfitGrowthRate</b>.
         /// - KPI giao dịch: <b>TotalTransactions</b>, <b>TransactionsThisMonth</b>.
-        /// Trong đó:
-        /// - RevenueGrowthRate = ((RevenueThisMonth - RevenueLastMonth) / RevenueLastMonth) * 100.
-        /// - ProfitGrowthRate = ((ProfitThisMonth - ProfitLastMonth) / ProfitLastMonth) * 100.
-        /// - Nếu mẫu số bằng 0 thì tăng trưởng trả về 100 khi giá trị tháng hiện tại &gt; 0, ngược lại trả về 0.
         /// </remarks>
         /// <param name="clubId">ID câu lạc bộ.</param>
         /// <returns>
-        /// 200 OK - Trả về đầy đủ các chỉ số doanh thu/chi phí/lợi nhuận/KPI giao dịch của câu lạc bộ.
+        /// 200 OK - Trả về chỉ số chi phí và KPI giao dịch của câu lạc bộ.
         /// 404 NotFound - Không tìm thấy câu lạc bộ.
         /// </returns>
         [HttpGet("revenue/clubs/{clubId:guid}/overview")]
@@ -50,15 +44,15 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
-        /// Lấy biểu đồ tăng trưởng doanh thu theo tháng của câu lạc bộ.
+        /// Lấy biểu đồ tăng trưởng chi phí theo tháng của câu lạc bộ.
         /// </summary>
         /// <param name="clubId">ID câu lạc bộ.</param>
         /// <param name="months">Số tháng cần lấy dữ liệu (mặc định 12).</param>
         /// <returns>
-        /// 200 OK - Trả về danh sách doanh thu theo tháng.
+        /// 200 OK - Trả về danh sách chi phí theo tháng.
         /// 404 NotFound - Không tìm thấy câu lạc bộ.
         /// </returns>
-        [HttpGet("revenue/clubs/{clubId:guid}/growth")]
+        [HttpGet("expense/clubs/{clubId:guid}/growth")]
         [ProducesResponseType(typeof(SuccessResponse<RevenueGrowthResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [Authorize(Roles = Roles.SystemRoles)]
@@ -69,15 +63,15 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
-        /// Lấy doanh thu theo khóa học của câu lạc bộ.
+        /// Lấy chi phí theo khóa học của câu lạc bộ.
         /// </summary>
         /// <param name="clubId">ID câu lạc bộ.</param>
-        /// <param name="top">Số lượng khóa học doanh thu cao nhất cần lấy (mặc định 10).</param>
+        /// <param name="top">Số lượng khóa học có chi phí cao nhất cần lấy (mặc định 10).</param>
         /// <returns>
-        /// 200 OK - Trả về doanh thu theo khóa học.
+        /// 200 OK - Trả về chi phí theo khóa học.
         /// 404 NotFound - Không tìm thấy câu lạc bộ.
         /// </returns>
-        [HttpGet("revenue/clubs/{clubId:guid}/by-course")]
+        [HttpGet("expense/clubs/{clubId:guid}/by-course")]
         [ProducesResponseType(typeof(SuccessResponse<ClubCourseRevenueResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [Authorize(Roles = Roles.SystemRoles)]
@@ -93,7 +87,6 @@ namespace Droniverse.Community.API.Controllers
         /// <remarks>
         /// Bao gồm nhóm chỉ số doanh thu, chi phí, lợi nhuận và KPI giao dịch.
         /// - Doanh thu: <b>TotalRevenue</b>, <b>RevenueThisMonth</b>, <b>RevenueLastMonth</b>, <b>RevenueGrowthRate</b>.
-        /// - Chi phí: <b>TotalExpense</b>, <b>ExpenseThisMonth</b>, <b>ExpenseLastMonth</b>.
         /// - Lợi nhuận: <b>NetProfit</b>, <b>ProfitThisMonth</b>, <b>ProfitLastMonth</b>, <b>ProfitGrowthRate</b>.
         /// - KPI giao dịch: <b>TotalTransactions</b>, <b>TransactionsThisMonth</b>.
         /// Trong đó:
@@ -103,17 +96,16 @@ namespace Droniverse.Community.API.Controllers
         /// </remarks>
         /// <param name="clubId">ID câu lạc bộ.</param>
         /// <returns>
-        /// 200 OK - Trả về đầy đủ các chỉ số doanh thu/chi phí/lợi nhuận/KPI giao dịch của câu lạc bộ.
-        /// 404 NotFound - Không tìm thấy câu lạc bộ.
+        /// 200 OK - Trả về đầy đủ các chỉ số doanh thu/lợi nhuận/KPI giao dịch của hệ thống (không có chi phí).
         /// </returns>
         [HttpGet("revenue/admin/overview")]
-        [ProducesResponseType(typeof(SuccessResponse<RevenueOverviewResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(SuccessResponse<AdminRevenueOverviewResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [Authorize(Roles = Roles.AdminOrSystemManager)]
         public async Task<ApiResponse> GetAdminRevenueOverview()
         {
             var data = await _dashboardService.GetAdminRevenueOverview();
-            return SuccessResponse<RevenueOverviewResponse>.Create(data, "Lấy tổng quan doanh thu admin thành công!");
+            return SuccessResponse<AdminRevenueOverviewResponse>.Create(data, "Lấy tổng quan doanh thu admin thành công!");
         }
 
         /// <summary>

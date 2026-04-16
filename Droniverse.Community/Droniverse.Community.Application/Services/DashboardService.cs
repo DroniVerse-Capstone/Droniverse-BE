@@ -46,28 +46,11 @@ namespace Droniverse.Community.Application.Services
                 startThisMonth,
                 startNextMonth);
 
-            var netProfit = aggregate.TotalRevenue - aggregate.TotalExpense;
-            var profitThisMonth = aggregate.RevenueThisMonth - aggregate.ExpenseThisMonth;
-            var profitLastMonth = aggregate.RevenueLastMonth - aggregate.ExpenseLastMonth;
-
-            var revenueGrowthRate = CalculateGrowthRate(aggregate.RevenueThisMonth, aggregate.RevenueLastMonth);
-            var profitGrowthRate = CalculateGrowthRate(profitThisMonth, profitLastMonth);
-
             return new RevenueOverviewResponse
             {
-                TotalRevenue = aggregate.TotalRevenue,
-                RevenueThisMonth = aggregate.RevenueThisMonth,
-                RevenueLastMonth = aggregate.RevenueLastMonth,
-                RevenueGrowthRate = revenueGrowthRate,
-
                 TotalExpense = aggregate.TotalExpense,
                 ExpenseThisMonth = aggregate.ExpenseThisMonth,
                 ExpenseLastMonth = aggregate.ExpenseLastMonth,
-
-                NetProfit = netProfit,
-                ProfitThisMonth = profitThisMonth,
-                ProfitLastMonth = profitLastMonth,
-                ProfitGrowthRate = profitGrowthRate,
 
                 TotalTransactions = aggregate.TotalTransactions,
                 TransactionsThisMonth = aggregate.TransactionsThisMonth
@@ -88,11 +71,21 @@ namespace Droniverse.Community.Application.Services
             var fromMonth = startCurrentMonth.AddMonths(-(months - 1));
             var toExclusive = startCurrentMonth.AddMonths(1);
 
-            var revenueData = await _orderRepository.GetSuccessfulRevenueDataByClubId(clubId, fromMonth, toExclusive);
+            var allOrders = await _orderRepository.GetAllSuccessfulOrders();
+            if (allOrders == null)
+                allOrders = [];
 
-            var valueByMonth = revenueData
-                .GroupBy(x => new DateTime(x.PaidAt.Year, x.PaidAt.Month, 1))
-                .ToDictionary(g => g.Key, g => g.Sum(x => x.Revenue));
+            // Filter for CLUB_IMPORT orders for this club (club's spending/expense)
+            var clubImportOrders = allOrders
+                .Where(o => o.ClubID == clubId 
+                    && o.OrderType == Domain.Enums.OrderType.CLUB_IMPORT
+                    && o.Payment?.TransactionDate >= fromMonth
+                    && o.Payment?.TransactionDate < toExclusive)
+                .ToList();
+
+            var valueByMonth = clubImportOrders
+                .GroupBy(x => new DateTime(x.Payment.TransactionDate.Year, x.Payment.TransactionDate.Month, 1))
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.TotalAmount));
 
             var growth = Enumerable.Range(0, months)
                 .Select(i => fromMonth.AddMonths(i))
@@ -125,24 +118,34 @@ namespace Droniverse.Community.Application.Services
             if (productIds.Count == 0)
                 return new ClubCourseRevenueResponse { RevenueByCourse = [] };
 
-            var revenueData = await _orderRepository.GetSuccessfulRevenueDataByClubId(clubId);
+            var allOrders = await _orderRepository.GetAllSuccessfulOrders();
+            if (allOrders == null)
+                allOrders = [];
 
-            var revenueByCourseId = revenueData
-                .Where(x => courseIdByProductId.ContainsKey(x.ProductId))
-                .GroupBy(x => courseIdByProductId[x.ProductId])
-                .ToDictionary(g => g.Key, g => g.Sum(x => x.Revenue));
+            // Filter for CLUB_IMPORT orders for this club (club's spending/expense)
+            var clubImportOrders = allOrders
+                .Where(o => o.ClubID == clubId && o.OrderType == Domain.Enums.OrderType.CLUB_IMPORT)
+                .ToList();
 
-            if (revenueByCourseId.Count == 0)
+            if (clubImportOrders.Count == 0)
                 return new ClubCourseRevenueResponse { RevenueByCourse = [] };
 
-            var courseIds = revenueByCourseId.Keys.ToList();
+            var expenseByCourseId = clubImportOrders
+                .Where(x => x.Item?.ProductID != null && courseIdByProductId.ContainsKey(x.Item.ProductID))
+                .GroupBy(x => courseIdByProductId[x.Item.ProductID])
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.TotalAmount));
+
+            if (expenseByCourseId.Count == 0)
+                return new ClubCourseRevenueResponse { RevenueByCourse = [] };
+
+            var courseIds = expenseByCourseId.Keys.ToList();
             var academyCourses = await _academyMicroserviceClient.GetCoursesByIdsSimple(courseIds);
 
             var courseById = academyCourses
                 .GroupBy(c => c.CourseId)
                 .ToDictionary(g => g.Key, g => g.First());
 
-            var stats = revenueByCourseId
+            var stats = expenseByCourseId
                 .Select(kvp =>
                 {
                     courseById.TryGetValue(kvp.Key, out var course);
@@ -198,20 +201,17 @@ namespace Droniverse.Community.Application.Services
             return Math.Round((double)((currentValue - previousValue) / previousValue * 100), 2);
         }
 
-        public async Task<RevenueOverviewResponse> GetAdminRevenueOverview()
+        public async Task<AdminRevenueOverviewResponse> GetAdminRevenueOverview()
         {
             IEnumerable<Club> clubList = await _unitOfWork.Clubs.GetAll();
 
             if (clubList == null || !clubList.Any())
-                return new RevenueOverviewResponse
+                return new AdminRevenueOverviewResponse
                 {
                     TotalRevenue = 0,
                     RevenueThisMonth = 0,
                     RevenueLastMonth = 0,
                     RevenueGrowthRate = 0,
-                    TotalExpense = 0,
-                    ExpenseThisMonth = 0,
-                    ExpenseLastMonth = 0,
                     NetProfit = 0,
                     ProfitThisMonth = 0,
                     ProfitLastMonth = 0,
@@ -236,9 +236,6 @@ namespace Droniverse.Community.Application.Services
                 {
                     var clubRevenue = await GetRevenueOverviewByClub(club.ClubID);
 
-                    totalRevenue += clubRevenue.TotalRevenue;
-                    revenueThisMonth += clubRevenue.RevenueThisMonth;
-                    revenueLastMonth += clubRevenue.RevenueLastMonth;
                     totalExpense += clubRevenue.TotalExpense;
                     expenseThisMonth += clubRevenue.ExpenseThisMonth;
                     expenseLastMonth += clubRevenue.ExpenseLastMonth;
@@ -252,6 +249,24 @@ namespace Droniverse.Community.Application.Services
                 }
             }
 
+            // Get aggregate data for all clubs from orders
+            var now = _clock.Now;
+            var startThisMonth = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+            var startNextMonth = startThisMonth.AddMonths(1);
+            var startLastMonth = startThisMonth.AddMonths(-1);
+
+            // Get all successful revenue data across all clubs
+            var allOrders = await _orderRepository.GetAllSuccessfulOrders();
+            if (allOrders != null && allOrders.Any())
+            {
+                var ordersThisMonth = allOrders.Where(o => o.Payment?.TransactionDate >= startThisMonth && o.Payment?.TransactionDate < startNextMonth).ToList();
+                var ordersLastMonth = allOrders.Where(o => o.Payment?.TransactionDate >= startLastMonth && o.Payment?.TransactionDate < startThisMonth).ToList();
+
+                totalRevenue = allOrders.Sum(o => o.TotalAmount);
+                revenueThisMonth = ordersThisMonth.Sum(o => o.TotalAmount);
+                revenueLastMonth = ordersLastMonth.Sum(o => o.TotalAmount);
+            }
+
             var netProfit = totalRevenue - totalExpense;
             var profitThisMonth = revenueThisMonth - expenseThisMonth;
             var profitLastMonth = revenueLastMonth - expenseLastMonth;
@@ -259,16 +274,12 @@ namespace Droniverse.Community.Application.Services
             var revenueGrowthRate = CalculateGrowthRate(revenueThisMonth, revenueLastMonth);
             var profitGrowthRate = CalculateGrowthRate(profitThisMonth, profitLastMonth);
 
-            return new RevenueOverviewResponse
+            return new AdminRevenueOverviewResponse
             {
                 TotalRevenue = totalRevenue,
                 RevenueThisMonth = revenueThisMonth,
                 RevenueLastMonth = revenueLastMonth,
                 RevenueGrowthRate = revenueGrowthRate,
-
-                TotalExpense = totalExpense,
-                ExpenseThisMonth = expenseThisMonth,
-                ExpenseLastMonth = expenseLastMonth,
 
                 NetProfit = netProfit,
                 ProfitThisMonth = profitThisMonth,
