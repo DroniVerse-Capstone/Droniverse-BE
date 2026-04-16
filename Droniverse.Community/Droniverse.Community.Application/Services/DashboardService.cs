@@ -1,13 +1,9 @@
-﻿using Droniverse.Community.Application.IService;
-using Droniverse.Academy.Application.Enums;
-using Droniverse.Community.Application.DTO.Response;
+﻿using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
-using Droniverse.Community.Domain.Enums;
+using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Community.Domain.IRepository.Mongo;
-using Droniverse.Shared.DTOs.Request;
-using Droniverse.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace Droniverse.Community.Application.Services
@@ -33,37 +29,46 @@ namespace Droniverse.Community.Application.Services
 
         public async Task<RevenueOverviewResponse> GetRevenueOverviewByClub(Guid clubId)
         {
-            var (productIds, _) = await GetClubProductContext(clubId);
-            if (productIds.Count == 0)
-                return new RevenueOverviewResponse();
-
-            var revenueData = (await _orderRepository.GetSuccessfulRevenueDataByProductIds(productIds)).ToList();
-            if (revenueData.Count == 0)
-                return new RevenueOverviewResponse();
+            var clubExists = await _unitOfWork.Clubs.GetByCondition(c => c.ClubID == clubId, q => q.AsNoTracking());
+            if (clubExists == null)
+                throw new KeyNotFoundException($"Không tìm thấy câu lạc bộ với ID [{clubId}].");
 
             var now = _clock.Now;
-            var startThisMonth = new DateTime(now.Year, now.Month, 1);
+            var startThisMonth = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
             var startNextMonth = startThisMonth.AddMonths(1);
             var startLastMonth = startThisMonth.AddMonths(-1);
 
-            var totalRevenue = revenueData.Sum(x => x.Revenue);
-            var revenueThisMonth = revenueData
-                .Where(x => x.PaidAt >= startThisMonth && x.PaidAt < startNextMonth)
-                .Sum(x => x.Revenue);
-            var revenueLastMonth = revenueData
-                .Where(x => x.PaidAt >= startLastMonth && x.PaidAt < startThisMonth)
-                .Sum(x => x.Revenue);
+            var aggregate = await _orderRepository.GetRevenueOverviewOrderAggregateByClubId(
+                clubId,
+                startLastMonth,
+                startThisMonth,
+                startNextMonth);
 
-            var growthRate = revenueLastMonth == 0
-                ? (revenueThisMonth > 0 ? 100 : 0)
-                : (double)((revenueThisMonth - revenueLastMonth) / revenueLastMonth * 100);
+            var netProfit = aggregate.TotalRevenue - aggregate.TotalExpense;
+            var profitThisMonth = aggregate.RevenueThisMonth - aggregate.ExpenseThisMonth;
+            var profitLastMonth = aggregate.RevenueLastMonth - aggregate.ExpenseLastMonth;
+
+            var revenueGrowthRate = CalculateGrowthRate(aggregate.RevenueThisMonth, aggregate.RevenueLastMonth);
+            var profitGrowthRate = CalculateGrowthRate(profitThisMonth, profitLastMonth);
 
             return new RevenueOverviewResponse
             {
-                TotalRevenue = totalRevenue,
-                RevenueThisMonth = revenueThisMonth,
-                RevenueLastMonth = revenueLastMonth,
-                GrowthRate = Math.Round(growthRate, 2)
+                TotalRevenue = aggregate.TotalRevenue,
+                RevenueThisMonth = aggregate.RevenueThisMonth,
+                RevenueLastMonth = aggregate.RevenueLastMonth,
+                RevenueGrowthRate = revenueGrowthRate,
+
+                TotalExpense = aggregate.TotalExpense,
+                ExpenseThisMonth = aggregate.ExpenseThisMonth,
+                ExpenseLastMonth = aggregate.ExpenseLastMonth,
+
+                NetProfit = netProfit,
+                ProfitThisMonth = profitThisMonth,
+                ProfitLastMonth = profitLastMonth,
+                ProfitGrowthRate = profitGrowthRate,
+
+                TotalTransactions = aggregate.TotalTransactions,
+                TransactionsThisMonth = aggregate.TransactionsThisMonth
             };
         }
 
@@ -72,24 +77,16 @@ namespace Droniverse.Community.Application.Services
             if (months <= 0)
                 months = 12;
 
-            var (productIds, _) = await GetClubProductContext(clubId);
+            var clubExists = await _unitOfWork.Clubs.GetByCondition(c => c.ClubID == clubId, q => q.AsNoTracking());
+            if (clubExists == null)
+                throw new KeyNotFoundException($"Không tìm thấy câu lạc bộ với ID [{clubId}].");
+
             var now = _clock.Now;
             var startCurrentMonth = new DateTime(now.Year, now.Month, 1);
             var fromMonth = startCurrentMonth.AddMonths(-(months - 1));
             var toExclusive = startCurrentMonth.AddMonths(1);
 
-            if (productIds.Count == 0)
-            {
-                return new RevenueGrowthResponse
-                {
-                    RevenueGrowth = Enumerable.Range(0, months)
-                        .Select(i => fromMonth.AddMonths(i))
-                        .Select(m => new MonthlyStat { Month = m.ToString("yyyy-MM"), Value = 0 })
-                        .ToList()
-                };
-            }
-
-            var revenueData = await _orderRepository.GetSuccessfulRevenueDataByProductIds(productIds, fromMonth, toExclusive);
+            var revenueData = await _orderRepository.GetSuccessfulRevenueDataByClubId(clubId, fromMonth, toExclusive);
 
             var valueByMonth = revenueData
                 .GroupBy(x => new DateTime(x.PaidAt.Year, x.PaidAt.Month, 1))
@@ -99,7 +96,7 @@ namespace Droniverse.Community.Application.Services
                 .Select(i => fromMonth.AddMonths(i))
                 .Select(m => new MonthlyStat
                 {
-                    Month = m.ToString("yyyy-MM"),
+                    Month = m,
                     Value = valueByMonth.TryGetValue(m, out var value) ? value : 0
                 })
                 .ToList();
@@ -116,7 +113,7 @@ namespace Droniverse.Community.Application.Services
             if (productIds.Count == 0)
                 return new ClubCourseRevenueResponse { RevenueByCourse = [] };
 
-            var revenueData = await _orderRepository.GetSuccessfulRevenueDataByProductIds(productIds);
+            var revenueData = await _orderRepository.GetSuccessfulRevenueDataByClubId(clubId);
 
             var revenueByCourseId = revenueData
                 .Where(x => courseIdByProductId.ContainsKey(x.ProductId))
@@ -179,6 +176,96 @@ namespace Droniverse.Community.Application.Services
                 .ToDictionary(g => g.Key, g => g.First().ReferenceID);
 
             return (courseIdByProductId.Keys.ToList(), courseIdByProductId);
+        }
+
+        private static double CalculateGrowthRate(decimal currentValue, decimal previousValue)
+        {
+            if (previousValue == 0)
+                return currentValue > 0 ? 100 : 0;
+
+            return Math.Round((double)((currentValue - previousValue) / previousValue * 100), 2);
+        }
+
+        public async Task<RevenueOverviewResponse> GetAdminRevenueOverview()
+        {
+            IEnumerable<Club> clubList = await _unitOfWork.Clubs.GetAll();
+
+            if (clubList == null || !clubList.Any())
+                return new RevenueOverviewResponse
+                {
+                    TotalRevenue = 0,
+                    RevenueThisMonth = 0,
+                    RevenueLastMonth = 0,
+                    RevenueGrowthRate = 0,
+                    TotalExpense = 0,
+                    ExpenseThisMonth = 0,
+                    ExpenseLastMonth = 0,
+                    NetProfit = 0,
+                    ProfitThisMonth = 0,
+                    ProfitLastMonth = 0,
+                    ProfitGrowthRate = 0,
+                    TotalTransactions = 0,
+                    TransactionsThisMonth = 0
+                };
+
+            // Aggregate all club data
+            decimal totalRevenue = 0;
+            decimal revenueThisMonth = 0;
+            decimal revenueLastMonth = 0;
+            decimal totalExpense = 0;
+            decimal expenseThisMonth = 0;
+            decimal expenseLastMonth = 0;
+            int totalTransactions = 0;
+            int transactionsThisMonth = 0;
+
+            foreach (var club in clubList)
+            {
+                try
+                {
+                    var clubRevenue = await GetRevenueOverviewByClub(club.ClubID);
+
+                    totalRevenue += clubRevenue.TotalRevenue;
+                    revenueThisMonth += clubRevenue.RevenueThisMonth;
+                    revenueLastMonth += clubRevenue.RevenueLastMonth;
+                    totalExpense += clubRevenue.TotalExpense;
+                    expenseThisMonth += clubRevenue.ExpenseThisMonth;
+                    expenseLastMonth += clubRevenue.ExpenseLastMonth;
+                    totalTransactions += clubRevenue.TotalTransactions;
+                    transactionsThisMonth += clubRevenue.TransactionsThisMonth;
+                }
+                catch (Exception ex)
+                {
+                    // Log error but continue with other clubs
+                    continue;
+                }
+            }
+
+            var netProfit = totalRevenue - totalExpense;
+            var profitThisMonth = revenueThisMonth - expenseThisMonth;
+            var profitLastMonth = revenueLastMonth - expenseLastMonth;
+
+            var revenueGrowthRate = CalculateGrowthRate(revenueThisMonth, revenueLastMonth);
+            var profitGrowthRate = CalculateGrowthRate(profitThisMonth, profitLastMonth);
+
+            return new RevenueOverviewResponse
+            {
+                TotalRevenue = totalRevenue,
+                RevenueThisMonth = revenueThisMonth,
+                RevenueLastMonth = revenueLastMonth,
+                RevenueGrowthRate = revenueGrowthRate,
+
+                TotalExpense = totalExpense,
+                ExpenseThisMonth = expenseThisMonth,
+                ExpenseLastMonth = expenseLastMonth,
+
+                NetProfit = netProfit,
+                ProfitThisMonth = profitThisMonth,
+                ProfitLastMonth = profitLastMonth,
+                ProfitGrowthRate = profitGrowthRate,
+
+                TotalTransactions = totalTransactions,
+                TransactionsThisMonth = transactionsThisMonth
+            };
         }
     }
 }

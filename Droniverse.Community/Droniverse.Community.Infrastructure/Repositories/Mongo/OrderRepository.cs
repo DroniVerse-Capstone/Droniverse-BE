@@ -90,9 +90,9 @@ internal class OrderRepository : IOrderRepository
 
         // Tạo kết quả phân trang
         PaginationResult<IEnumerable<Order>> result = new PaginationResult<IEnumerable<Order>>(
-            orders, 
-            (int)totalRecords, 
-            searchRequest.CurrentPage, 
+            orders,
+            (int)totalRecords,
+            searchRequest.CurrentPage,
             searchRequest.PageSize
         );
         return result;
@@ -291,21 +291,115 @@ internal class OrderRepository : IOrderRepository
         return order;
     }
 
-    public async Task<IEnumerable<OrderRevenueData>> GetSuccessfulRevenueDataByProductIds(
-        IEnumerable<Guid> productIds,
+    public async Task<RevenueOverviewOrderAggregateData> GetRevenueOverviewOrderAggregateByClubId(
+     Guid clubId,
+     DateTime startLastMonth,
+     DateTime startThisMonth,
+     DateTime startNextMonth)
+    {
+        if (clubId == Guid.Empty)
+            return new RevenueOverviewOrderAggregateData();
+
+        var filter = Builders<Order>.Filter.And(
+            Builders<Order>.Filter.Eq(o => o.ClubID, clubId),
+            Builders<Order>.Filter.Eq(o => o.Status, OrderStatus.SUCCESS),
+            Builders<Order>.Filter.Ne(o => o.Payment, null),
+            Builders<Order>.Filter.Eq(o => o.Payment.PaymentStatus, PaymentStatus.SUCCESS)
+        );
+
+        var rawOrders = await _orders
+                .Aggregate()
+                .Match(filter)
+                .ToListAsync();
+
+        foreach (var o in rawOrders)
+        {
+            Console.WriteLine(o.TotalAmount.GetType());
+            Console.WriteLine(
+                "OrderId={0} | ClubId={1} | UserId={2} | Type={3} | Status={4} | Amount={5} | CreateAt={6} | " +
+                "PaymentStatus={7} | PaymentMethod={8} | TransactionDate={9} | PaymentRef={10}",
+
+                o._id,
+                o.ClubID,
+                o.UserID,
+                o.OrderType,
+                o.Status,
+                o.TotalAmount,
+                o.CreateAt,
+                o.Payment?.PaymentStatus,
+                o.Payment?.PaymentMethod,
+                o.Payment?.TransactionDate,
+                o.Payment?.Reference
+            );
+        }
+
+        var aggregate = await _orders
+            .Aggregate()
+            .Match(filter)
+            .Group(_ => 1, g => new RevenueOverviewOrderAggregateData
+            {
+                TotalRevenue = g.Sum(x =>
+                    x.OrderType == OrderType.USER_PURCHASE
+                        ? x.TotalAmount
+                        : 0),
+
+                RevenueThisMonth = g.Sum(x =>
+                    x.OrderType == OrderType.USER_PURCHASE &&
+                    x.CreateAt >= startThisMonth &&
+                    x.CreateAt < startNextMonth
+                        ? x.TotalAmount
+                        : 0),
+
+                RevenueLastMonth = g.Sum(x =>
+                    x.OrderType == OrderType.USER_PURCHASE &&
+                    x.CreateAt >= startLastMonth &&
+                    x.CreateAt < startThisMonth
+                        ? x.TotalAmount
+                        : 0),
+
+                TotalExpense = g.Sum(x =>
+                    x.OrderType == OrderType.CLUB_IMPORT
+                        ? x.TotalAmount
+                        : 0),
+
+                ExpenseThisMonth = g.Sum(x =>
+                    x.OrderType == OrderType.CLUB_IMPORT &&
+                    x.CreateAt >= startThisMonth &&
+                    x.CreateAt < startNextMonth
+                        ? x.TotalAmount
+                        : 0),
+
+                ExpenseLastMonth = g.Sum(x =>
+                    x.OrderType == OrderType.CLUB_IMPORT &&
+                    x.CreateAt >= startLastMonth &&
+                    x.CreateAt < startThisMonth
+                        ? x.TotalAmount
+                        : 0),
+
+                TotalTransactions = g.Sum(_ => 1),
+
+                TransactionsThisMonth = g.Sum(x =>
+                    x.CreateAt >= startThisMonth &&
+                    x.CreateAt < startNextMonth
+                        ? 1
+                        : 0)
+            })
+            .FirstOrDefaultAsync();
+
+        return aggregate ?? new RevenueOverviewOrderAggregateData();
+    }
+
+    public async Task<IEnumerable<OrderRevenueData>> GetSuccessfulRevenueDataByClubId(
+        Guid clubId,
         DateTime? fromInclusive = null,
         DateTime? toExclusive = null)
     {
-        var ids = productIds?
-            .Where(x => x != Guid.Empty)
-            .Distinct()
-            .ToList() ?? [];
-
-        if (ids.Count == 0)
+        if (clubId == Guid.Empty)
             return [];
 
         var filter = Builders<Order>.Filter.And(
-            Builders<Order>.Filter.In(o => o.Item.ProductID, ids),
+            Builders<Order>.Filter.Eq(o => o.ClubID, clubId),
+            Builders<Order>.Filter.Eq(o => o.Status, OrderStatus.SUCCESS),
             Builders<Order>.Filter.Ne(o => o.Payment, null),
             Builders<Order>.Filter.Eq(o => o.Payment.PaymentStatus, PaymentStatus.SUCCESS));
 

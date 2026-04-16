@@ -29,5 +29,12 @@ public interface ICodeRepository : IRepository<Code>
         Guid clubId,
         Guid courseId,
         CancellationToken cancellationToken = default);
+
+    Task<bool> HasActiveUnusedOwnedCodeAsync(
+        Guid clubId,
+        Guid courseId,
+        Guid userId,
+        DateTime now,
+        CancellationToken cancellationToken = default);
 }
 

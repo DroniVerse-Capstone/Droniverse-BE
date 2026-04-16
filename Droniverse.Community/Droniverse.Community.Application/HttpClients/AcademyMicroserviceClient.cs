@@ -1,14 +1,16 @@
-﻿using Droniverse.Community.Application.DTO.Response;
-using Droniverse.Academy.Application.Enums;
+﻿using Droniverse.Academy.Application.Enums;
+using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.DTOs.Response;
+using Droniverse.Shared.Enums;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.ComponentModel.DataAnnotations;
+using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
-using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -34,6 +36,7 @@ public class AcademyMicroserviceClient
     private readonly ILogger<AcademyMicroserviceClient> _logger;
     private readonly IDistributedCache _distributedCache; //Redis Cache
     private readonly IHostEnvironment _environment;
+    private readonly ICurrentUserService _currentUserService;
     private static readonly DistributedCacheEntryOptions CourseCacheOptions =
     new DistributedCacheEntryOptions()
         .SetAbsoluteExpiration(TimeSpan.FromMinutes(5))
@@ -55,13 +58,68 @@ public class AcademyMicroserviceClient
         HttpClient httpClient,
         ILogger<AcademyMicroserviceClient> logger,
         IDistributedCache distributedCache,
-        IHostEnvironment environment
+        IHostEnvironment environment,
+        ICurrentUserService currentUserService
         )
     {
         _httpClient = httpClient;
         _logger = logger;
         _distributedCache = distributedCache;
         _environment = environment;
+        _currentUserService = currentUserService;
+    }
+
+    public async Task<CodeResponse> GenerateAssignCodesAsync(GenerateCodesRequestDTO request)
+    {
+        if (request == null)
+            throw new ArgumentNullException(nameof(request));
+        try
+        {
+            // Get user email and name from current user context
+            var email = _currentUserService.Email;
+            if (string.IsNullOrWhiteSpace(email))
+                throw new InvalidOperationException("Không thể lấy email của người dùng hiện tại.");
+
+            var fullName = _currentUserService.UserName ?? "User";
+
+            // Build the correct request DTO for generate-assign endpoint
+            var generateWithAssignRequest = new GenerateWithAssignCodeRequestDTO
+            {
+                ClubId = request.ClubId,
+                CourseId = request.CourseId,
+                Quantity = request.Quantity,
+                Email = email,
+                FullName = fullName
+            };
+
+            var response = await _httpClient.PostAsJsonAsync(
+                BuildAcademyPath("codes/generate-assign"),
+                generateWithAssignRequest);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    _logger.LogWarning("Không tìm thấy dữ liệu khi gọi Academy API codes/generate-assign.");
+                    throw new KeyNotFoundException("Không tìm thấy dữ liệu để gán code.");
+                }
+                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                    throw new HttpRequestException("Yêu cầu không hợp lệ khi gọi Academy service.", null, System.Net.HttpStatusCode.BadRequest);
+                throw new HttpRequestException(
+                    $"Academy service lỗi khi gọi codes/generate-assign: {response.StatusCode}",
+                    null,
+                    response.StatusCode);
+            }
+            var result = await response.Content.ReadFromJsonAsync<CodeResponse>(_jsonOptions);
+            if (result == null)
+                throw new InvalidOperationException("Không nhận được phản hồi hợp lệ từ Academy service khi gán code.");
+            return result;
+        }
+        catch (Exception ex) when (ex is not HttpRequestException && ex is not KeyNotFoundException && ex is not InvalidOperationException)
+        {
+            _logger.LogError(ex, "Lỗi khi gọi Academy API codes/generate-assign.");
+            throw;
+        }
     }
 
     public async Task<CreateCodesResponse> GenerateCodes(GenerateCodesRequestDTO request)
@@ -840,3 +898,37 @@ public class CertificateDetailResponse
     public DateTime UpdateAt { get; set; }
 }
 
+public class BulkCodeAssignmentResponse
+{
+    public int TotalAssigned { get; set; }
+    public List<CodeAssignmentResponse> AssignedItems { get; set; } = [];
+}
+
+public class CodeAssignmentResponse
+{
+    public string CodeId { get; set; } = string.Empty;
+    public Guid UserId { get; set; }
+    public DateTime AssignedAt { get; set; }
+}
+
+public class CodeResponse
+{
+    public string CodeID { get; set; }
+    public string CourseID { get; set; }
+    public string ClubID { get; set; }
+    public Guid? OwnedUserID { get; set; }
+    public Guid? UsedByUserID { get; set; }
+    public DateTime? UsedDate { get; set; }
+    public DateTime ExpireDate { get; set; }
+    public CodeStatusEnum Status { get; set; }
+}
+
+public record GenerateCodesRequestDTO
+{
+    [Required(ErrorMessage = "Không thể thiếu mã câu lạc bộ")]
+    public required Guid ClubId { get; set; }
+    [Required(ErrorMessage = "Không thể thiếu mã khóa học")]
+    public required Guid CourseId { get; set; }
+    [Range(1, 50, ErrorMessage = "Tạo từ 1 tới 50 mã")]
+    public int Quantity { get; set; }
+}

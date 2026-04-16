@@ -167,5 +167,29 @@ internal class CodeRepository : MySqlRepository<Code>, ICodeRepository
             .Distinct()
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<bool> HasActiveUnusedOwnedCodeAsync(
+        Guid clubId,
+        Guid courseId,
+        Guid userId,
+        DateTime now,
+        CancellationToken cancellationToken = default)
+    {
+        if (clubId == Guid.Empty || courseId == Guid.Empty || userId == Guid.Empty)
+        {
+            return false;
+        }
+
+        return await _dbSet
+            .AsNoTracking()
+            .AnyAsync(c =>
+                c.ClubID == clubId &&
+                c.CourseID == courseId &&
+                c.OwnedUserID == userId &&
+                c.Status == CodeStatus.Active &&
+                !c.UsedByUserID.HasValue &&
+                c.ExpireDate >= now,
+                cancellationToken);
+    }
 }
 

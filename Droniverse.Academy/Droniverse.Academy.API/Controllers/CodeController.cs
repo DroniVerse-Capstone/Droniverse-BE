@@ -1,6 +1,5 @@
 ﻿using Droniverse.Academy.Application.DTO.Extension;
 using Droniverse.Academy.Application.DTO.Request;
-using Droniverse.Academy.Application.DTO.Extension;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
@@ -80,10 +79,10 @@ public class CodeController : ControllerBase
     /// Api để call chéo service
     /// </summary>
     [HttpPost("generate-assign")]
-    [Authorize(Roles = Roles.SystemRoles)]
-    public async Task<IActionResult> GenerateCode([FromBody] GenerateWithAssignCodeRequestDTO request)
+    [Authorize(Roles = Roles.ClubMember)]
+    public async Task<IActionResult> GenerateCode([FromBody] Shared.DTOs.Request.GenerateWithAssignCodeRequestDTO request)
     {
-        var response = await _codeService.CreateWithAssignCodeAsync(request);
+        CodeResponseDTO response = await _codeService.CreateWithAssignCodeAsync(request);
         return Ok(response);
     }
 
@@ -143,5 +142,17 @@ public class CodeController : ControllerBase
     {
         var result = await _codeService.GetUsersCode(clubId, courseId, request);
         return Ok(SuccessResponse<PaginationResult<IEnumerable<SimpleUserReponse>>>.Create(result, "Lấy danh sách người dùng theo trạng thái sở hữu code thành công."));
+    }
+
+
+    /// <summary>
+    /// Thành viên nhận mã code miễn phí của khóa học trong câu lạc bộ.
+    /// </summary>
+    [HttpPost("clubs/{clubId:guid}/courses/{courseId:guid}/get-code")]
+    [Authorize(Roles = Roles.ClubMember)]
+    public async Task<IActionResult> GetCodeByUsers(Guid clubId, Guid courseId)
+    {
+        var result = await _codeService.GetCodeByUsers(clubId, courseId);
+        return Ok(SuccessResponse<GetCodeByUsersResponseDTO>.Create(result, "Nhận mã code thành công."));
     }
 }

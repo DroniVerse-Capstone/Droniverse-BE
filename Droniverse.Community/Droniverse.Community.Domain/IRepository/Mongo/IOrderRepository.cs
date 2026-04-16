@@ -26,9 +26,15 @@ public interface IOrderRepository
     Task<Order?> UpdateOrder(Order order);
     Task<bool?> DeleteOrder(Guid orderID);
 
-    Task<IEnumerable<OrderRevenueData>> GetSuccessfulRevenueDataByProductIds(
-        IEnumerable<Guid> productIds,
+    Task<IEnumerable<OrderRevenueData>> GetSuccessfulRevenueDataByClubId(
+        Guid clubId,
         DateTime? fromInclusive = null,
         DateTime? toExclusive = null);
+
+    Task<RevenueOverviewOrderAggregateData> GetRevenueOverviewOrderAggregateByClubId(
+        Guid clubId,
+        DateTime startLastMonth,
+        DateTime startThisMonth,
+        DateTime startNextMonth);
 }
 

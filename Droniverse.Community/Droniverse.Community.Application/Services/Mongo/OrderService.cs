@@ -2,6 +2,7 @@
 using Droniverse.Community.Application.DTO.Extensions;
 using Droniverse.Community.Application.DTO.Request.Mongo;
 using Droniverse.Community.Application.DTO.Response.Mongo;
+using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService.Mongo;
 using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.Entities.Mongo;
@@ -28,6 +29,7 @@ internal class OrderService : IOrderService
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<OrderService> _logger;
     private readonly IEmailService _emailService;
+    private readonly AcademyMicroserviceClient _academyMicroserviceClient;
     public OrderService(
         IOrderRepository orderRepository,
         IMapper mapper,
@@ -36,7 +38,8 @@ internal class OrderService : IOrderService
         ICurrentUserService currentUserService,
         IUnitOfWork unitOfWork,
         ILogger<OrderService> logger,
-        IEmailService emailService)
+        IEmailService emailService,
+        AcademyMicroserviceClient academyMicroserviceClient)
     {
         _orderRepository = orderRepository;
         _mapper = mapper;
@@ -46,6 +49,7 @@ internal class OrderService : IOrderService
         _currentUserService = currentUserService;
         _unitOfWork = unitOfWork;
         _logger = logger;
+        _academyMicroserviceClient = academyMicroserviceClient;
     }
 
     public async Task<OrderResponseDto?> AddOrder(Guid clubId, OrderCreateDto orderAddRequest)
@@ -78,20 +82,15 @@ internal class OrderService : IOrderService
             throw new KeyNotFoundException("Không tìm thấy thông tin của sản phẩm");
 
         //------------------------------------------------------------------------------------------------------------------------------
-        // Check Remaining Quantity
-        ClubCourse? clubCourse = await _unitOfWork.ClubCourses.GetByCondition(cc => cc.ClubID == clubId && cc.CourseID == product.ReferenceID, query => query);
-        if (clubCourse == null)
+        
+        // Validation for club member
+        if (isMember)
         {
-            //tạo mới ClubCourse nếu chưa tồn tại (trường hợp này chỉ xảy ra khi ClubManager tạo order nhập code vào kho mà chưa có ClubCourse nào cho khóa học đó)
-            clubCourse = ClubCourse.Create(clubId, product.ReferenceID, orderAddRequest.Item.Quantity, isMember ? ClubCourseProfit.PROFIT : ClubCourseProfit.NONPROFIT);
-            await _unitOfWork.ClubCourses.Add(clubCourse);
-
-        } else
-        {
-            clubCourse.IncreaseCapacity(orderAddRequest.Item.Quantity);
+            if (orderAddRequest.Item.Quantity != 1 && orderAddRequest.Item.Type.Equals(ProductType.COURSE))
+            {
+                throw new Exception("Thành viên câu lạc bộ chỉ được mua 1 mã code cho sản phẩm mỗi đơn hàng.");
+            }
         }
-
-        await _unitOfWork.SaveChangeAsync();
         //------------------------------------------------------------------------------------------------------------------------------
         int quantity = orderAddRequest.Item.Quantity;
 
@@ -117,7 +116,7 @@ internal class OrderService : IOrderService
             OrderType = isMember ? OrderType.USER_PURCHASE : OrderType.CLUB_IMPORT,
             Item = orderItem,
             Status = OrderStatus.PENDING,
-            TotalAmount = CalculateTotal(product.Price, quantity),
+            TotalAmount = isMember ? CalculateTotal(product.Price, quantity) * 1.1m : CalculateTotal(product.Price, quantity),
             Payment = null // Chưa có payment khi tạo order
         };
 
@@ -133,7 +132,7 @@ internal class OrderService : IOrderService
             };
             await _paymentService.CreatePaymentLink(createdOrder._id, paymentCreateDto);
 
-            // ⚠️ FIX: Reload order from database to get the Payment data that was just added
+            // FIX: Reload order from database to get the Payment data that was just added
             // CreatePaymentLink() calls _orderRepository.AddPayment() to save Payment to MongoDB
             // But the createdOrder object in memory is not automatically updated
             FilterDefinition<Order>? reloadFilter = Builders<Order>.Filter.Eq(o => o._id, createdOrder._id);
@@ -148,21 +147,6 @@ internal class OrderService : IOrderService
             throw;
         }
 
-        //Gửi email thông báo đến đặt hàng thành công
-        string? userName = _currentUserService.UserName;
-        string? email = _currentUserService.Email;
-        Guid productId = createdOrder.Item.ProductID;
-        string? proNameVN = createdOrder.Item.ProductNameVN;
-        string? proNameEN = createdOrder.Item.ProductNameEN;
-        string? type = createdOrder.Item.Type.ToString();
-        decimal unitOfPrice = createdOrder.Item.UnitOfPrice;
-        //createdOrder.CreateAt
-        //có quantity ở trên
-        //createdOrder.TotalAmount
-
-        await _emailService.SendOrderConfirmationEmailAsync(email!, userName!, createdOrder._id.ToString()!, createdOrder.CreateAt.ToString(), productId.ToString(), proNameVN, proNameEN, type, unitOfPrice, quantity, createdOrder.TotalAmount);
-        //---------------------------------------------------------------------------------------------------------------
-
         return _mapper.Map<OrderResponseDto?>(createdOrder);
     }
 
@@ -171,7 +155,7 @@ internal class OrderService : IOrderService
         throw new NotImplementedException();
     }
 
-    public async Task<IEnumerable<OrderResponseDto?>>  GetOrdersByClubId(Guid clubId)
+    public async Task<IEnumerable<OrderResponseDto?>> GetOrdersByClubId(Guid clubId)
     {
         FilterDefinition<Order>? filter = Builders<Order>.Filter.Eq(o => o.ClubID, clubId);
         IEnumerable<Order?> orders = await _orderRepository.GetOrdersByCondition(filter);

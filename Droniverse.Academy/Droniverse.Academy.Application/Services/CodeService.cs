@@ -670,7 +670,7 @@ public class CodeService : ICodeService
             pageSize);
     }
 
-    public async Task<CodeResponseDTO> CreateWithAssignCodeAsync(GenerateWithAssignCodeRequestDTO request)
+    public async Task<CodeResponseDTO> CreateWithAssignCodeAsync(Shared.DTOs.Request.GenerateWithAssignCodeRequestDTO request)
     {
         if (request is null)
             throw new ValidationException("Dữ liệu tạo mã code không hợp lệ.");
@@ -737,6 +737,103 @@ public class CodeService : ICodeService
             currentUserId);
 
         return MapCodeResponse(code);
+    }
+
+    public async Task<GetCodeByUsersResponseDTO> GetCodeByUsers(Guid clubId, Guid courseId)
+    {
+        if (clubId == Guid.Empty)
+            throw new ValidationException("ClubId không hợp lệ.");
+
+        if (courseId == Guid.Empty)
+            throw new ValidationException("CourseId không hợp lệ.");
+
+        var currentUserId = _currentUserService.UserId;
+        if (currentUserId == Guid.Empty)
+            throw new UnauthorizedAccessException("Người dùng chưa xác thực.");
+
+        var now = _clock.Now;
+
+        var checkParticipantTask = _communityMicroserviceClient
+            .CheckParticipantByClubAsync(clubId, currentUserId);
+
+        var clubCourseTask = _communityMicroserviceClient
+            .GetRemainingQuantityRawAsync(clubId, courseId);
+
+        await Task.WhenAll(checkParticipantTask, clubCourseTask);
+
+        var isParticipant = await checkParticipantTask;
+        if (!isParticipant)
+            throw new NotFoundException("Người dùng chưa tham gia câu lạc bộ này");
+
+        var clubCourse = await clubCourseTask;
+        if (clubCourse is null)
+            throw new NotFoundException("Không tìm thấy thông tin sở hữu khóa học của câu lạc bộ.");
+
+        if (clubCourse.ProfitType == ClubCourseProfit.PROFIT)
+            throw new ValidationException("Khóa học này đang tính phí, không thể nhận mã miễn phí.");
+
+        if (clubCourse.RemainingQuantity <= 0)
+            throw new InvalidOperationException("Không còn đủ mã để nhận.");
+
+        var hasOwnedCode = await _unitOfWork.Codes
+            .HasActiveUnusedOwnedCodeAsync(clubId, courseId, currentUserId, now);
+
+        if (hasOwnedCode)
+            throw new ValidationException("Bạn đã có mã code chưa sử dụng cho khóa học này.");
+
+        var courseInfo = await _unitOfWork.Courses
+            .GetCourseInfoByIdAsync(courseId)
+            ?? throw new NotFoundException("Không tìm thấy khóa học.");
+
+        var consumed = await _communityMicroserviceClient
+            .ConsumeSlotCrossAsync(clubId, courseId, quantity: 1)
+            ?? throw new NotFoundException("Không tìm thấy khóa học và câu lạc bộ.");
+
+        var courseNameForCode = !string.IsNullOrWhiteSpace(courseInfo.CourseNameEN)
+            ? courseInfo.CourseNameEN
+            : courseInfo.CourseNameVN;
+
+        var code = new Code(
+            GenerateCodeId(courseNameForCode),
+            clubId,
+            courseId,
+            now.AddMonths(6),
+            currentUserId,
+            now
+        );
+
+        code.AssignToUser(currentUserId, now);
+
+        await _unitOfWork.Codes.AddAsync(code);
+        await _unitOfWork.SaveChangesAsync();
+
+        var currentUser = (await _identityMicroserviceClient
+            .GetUsersBulk([currentUserId]))
+            .FirstOrDefault();
+
+        if (currentUser != null && !string.IsNullOrWhiteSpace(currentUser.Email))
+        {
+            var @event = new CodeAssignedEvent(
+                code: code.CodeID,
+                userId: currentUserId,
+                courseId: courseId,
+                email: currentUser.Email,
+                fullName: AppHelper.GetFullName(currentUser) ?? currentUser.Username,
+                courseNameVN: courseInfo.CourseNameVN,
+                courseNameEN: courseInfo.CourseNameEN
+            );
+
+            await _mediator.Publish(@event);
+        }
+        else
+        {
+            _logger.LogWarning("Không gửi được email nhận code cho user {UserId}", currentUserId);
+        }
+
+        return new GetCodeByUsersResponseDTO
+        {
+            RemainingCode = consumed.RemainingQuantity
+        };
     }
 
     //private async Task SendAssignEmailAsync(Guid userId, string scodeId, Guid courseId)

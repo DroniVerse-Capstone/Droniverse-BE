@@ -21,11 +21,22 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
-        /// Lấy tổng quan doanh thu của câu lạc bộ.
+        /// Lấy dữ liệu tổng quan tài chính của câu lạc bộ theo các giao dịch đã thanh toán thành công.
         /// </summary>
+        /// <remarks>
+        /// Bao gồm nhóm chỉ số doanh thu, chi phí, lợi nhuận và KPI giao dịch.
+        /// - Doanh thu: <b>TotalRevenue</b>, <b>RevenueThisMonth</b>, <b>RevenueLastMonth</b>, <b>RevenueGrowthRate</b>.
+        /// - Chi phí: <b>TotalExpense</b>, <b>ExpenseThisMonth</b>, <b>ExpenseLastMonth</b>.
+        /// - Lợi nhuận: <b>NetProfit</b>, <b>ProfitThisMonth</b>, <b>ProfitLastMonth</b>, <b>ProfitGrowthRate</b>.
+        /// - KPI giao dịch: <b>TotalTransactions</b>, <b>TransactionsThisMonth</b>.
+        /// Trong đó:
+        /// - RevenueGrowthRate = ((RevenueThisMonth - RevenueLastMonth) / RevenueLastMonth) * 100.
+        /// - ProfitGrowthRate = ((ProfitThisMonth - ProfitLastMonth) / ProfitLastMonth) * 100.
+        /// - Nếu mẫu số bằng 0 thì tăng trưởng trả về 100 khi giá trị tháng hiện tại &gt; 0, ngược lại trả về 0.
+        /// </remarks>
         /// <param name="clubId">ID câu lạc bộ.</param>
         /// <returns>
-        /// 200 OK - Trả về tổng doanh thu, doanh thu tháng này, tháng trước và tốc độ tăng trưởng.
+        /// 200 OK - Trả về đầy đủ các chỉ số doanh thu/chi phí/lợi nhuận/KPI giao dịch của câu lạc bộ.
         /// 404 NotFound - Không tìm thấy câu lạc bộ.
         /// </returns>
         [HttpGet("revenue/clubs/{clubId:guid}/overview")]
@@ -74,6 +85,20 @@ namespace Droniverse.Community.API.Controllers
         {
             var data = await _dashboardService.GetRevenueByCourseByClub(clubId, top);
             return SuccessResponse<ClubCourseRevenueResponse>.Create(data, "Lấy doanh thu theo khóa học của câu lạc bộ thành công!");
+        }
+
+        /// <summary>
+        /// Tổng doanh thu của hệ thống
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("revenue/admin/overview")]
+        [ProducesResponseType(typeof(SuccessResponse<RevenueOverviewResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Authorize(Roles = Roles.AdminOrSystemManager)]
+        public async Task<ApiResponse> GetAdminRevenueOverview()
+        {
+            var data = await _dashboardService.GetAdminRevenueOverview();
+            return SuccessResponse<RevenueOverviewResponse>.Create(data, "Lấy tổng quan doanh thu admin thành công!");
         }
     }
 }
