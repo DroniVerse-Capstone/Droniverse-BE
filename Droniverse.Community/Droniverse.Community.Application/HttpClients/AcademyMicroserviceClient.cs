@@ -64,6 +64,41 @@ public class AcademyMicroserviceClient
         _environment = environment;
     }
 
+    public async Task<BulkCodeAssignmentResponse> BulkAssignCodesAsync(BulkAssignCodesRequest request)
+    {
+        if (request == null)
+            throw new ArgumentNullException(nameof(request));
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync(
+                BuildAcademyPath("codes/bulk-assign"),
+                request);
+            if (!response.IsSuccessStatusCode)
+            {
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    _logger.LogWarning("Không tìm thấy dữ liệu khi gọi Academy API codes/bulk-assign.");
+                    throw new KeyNotFoundException("Không tìm thấy dữ liệu để gán code.");
+                }
+                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                    throw new HttpRequestException("Yêu cầu không hợp lệ khi gọi Academy service.", null, System.Net.HttpStatusCode.BadRequest);
+                throw new HttpRequestException(
+                    $"Academy service lỗi khi gọi codes/bulk-assign: {response.StatusCode}",
+                    null,
+                    response.StatusCode);
+            }
+            var result = await response.Content.ReadFromJsonAsync<BulkCodeAssignmentResponse>(_jsonOptions);
+            if (result == null)
+                throw new InvalidOperationException("Không nhận được phản hồi hợp lệ từ Academy service khi gán code.");
+            return result;
+        }
+        catch (Exception ex) when (ex is not HttpRequestException && ex is not KeyNotFoundException)
+        {
+            _logger.LogError(ex, "Lỗi khi gọi Academy API codes/bulk-assign.");
+            throw;
+        }
+    }
+
     public async Task<CreateCodesResponse> GenerateCodes(GenerateCodesRequestDTO request)
     {
         if (request == null)
@@ -838,5 +873,18 @@ public class CertificateDetailResponse
     public Guid CreateBy { get; set; }
     public Guid UpdateBy { get; set; }
     public DateTime UpdateAt { get; set; }
+}
+
+public class BulkCodeAssignmentResponse
+{
+    public int TotalAssigned { get; set; }
+    public List<CodeAssignmentResponse> AssignedItems { get; set; } = [];
+}
+
+public class CodeAssignmentResponse
+{
+    public string CodeId { get; set; } = string.Empty;
+    public Guid UserId { get; set; }
+    public DateTime AssignedAt { get; set; }
 }
 

@@ -1,12 +1,14 @@
 ﻿using Droniverse.Community.Application.DTO.Request.Mongo;
 using Droniverse.Community.Application.DTO.Response.Mongo;
 using Droniverse.Community.Application.IService.Mongo;
+using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Domain.Entities.Mongo;
 using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Community.Domain.IRepository.Mongo;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Services;
+using Droniverse.Shared.Services.IServices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
@@ -16,6 +18,7 @@ using PayOS.Models.V2.PaymentRequests;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Droniverse.Shared.Helpers;
 
 namespace Droniverse.Community.Application.Services.Mongo;
 
@@ -28,6 +31,8 @@ internal class PaymentService : IPaymentService
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUserService;
     private readonly IInvoiceRepository _invoiceRepository;
+    private readonly IdentityMicroserviceClient _identityMicroserviceClient;
+    private readonly IEmailService _emailService;
     private readonly string _checksumKey;
     public PaymentService(
         IConfiguration configuration,
@@ -35,13 +40,17 @@ internal class PaymentService : IPaymentService
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUserService,
         IOrderRepository orderRepository,
-        IInvoiceRepository invoiceRepository)
+        IInvoiceRepository invoiceRepository,
+        IdentityMicroserviceClient identityMicroserviceClient,
+        IEmailService emailService)
     {
         _orderRepository = orderRepository;
         _configuration = configuration;
         _logger = logger;
         _unitOfWork = unitOfWork;
         _currentUserService = currentUserService;
+        _identityMicroserviceClient = identityMicroserviceClient;
+        _emailService = emailService;
 
         var clientId = _configuration["PAYOS_CLIENT_ID"];
         var apiKey = _configuration["PAYOS_API_KEY"];
@@ -344,6 +353,19 @@ internal class PaymentService : IPaymentService
                 payment.WebhookReceivedAt = DateTime.UtcNow;
 
                 order.Status = OrderStatus.SUCCESS;
+                
+                // Get user info from Identity microservice to obtain email
+                UserResponse? user = null;
+                try
+                {
+                    user = await _identityMicroserviceClient.GetUserByUserID(order.UserID);
+                    _logger.LogInformation("Retrieved user info for UserId: {UserId}, Email: {Email}", order.UserID, user?.Email);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to retrieve user info from Identity service for UserId: {UserId}", order.UserID);
+                }
+
                 //Add Invoice
                 Invoice invoice = new Invoice();
                 invoice._id = Guid.NewGuid();
@@ -360,8 +382,8 @@ internal class PaymentService : IPaymentService
                 invoice.CustomerInfo = new CustomerInfo
                 {
                     UserID = order.UserID,
-                    FullName = _currentUserService.UserName!,
-                    Email = _currentUserService.Email!,
+                    FullName = AppHelper.GetFullName(user),
+                    Email = user?.Email ?? string.Empty,
                     TaxCode = null,
                 };
                 invoice.Item = new InvoiceItem
@@ -376,6 +398,35 @@ internal class PaymentService : IPaymentService
                 };
 
                 Invoice? responseInvoice = await _invoiceRepository.AddInvoice(invoice);
+
+                // Send payment confirmation email to user
+                if (user?.Email != null)
+                {
+                    try
+                    {
+                        await _emailService.SendOrderConfirmationEmailAsync(
+                            email: user.Email,
+                            userName: user.Username ?? "User",
+                            orderId: order._id.ToString(),
+                            orderDate: order.CreateAt.ToString("dd/MM/yyyy HH:mm:ss"),
+                            productId: order.Item.ProductID.ToString(),
+                            productNameVN: order.Item.ProductNameVN,
+                            productNameEN: order.Item.ProductNameEN,
+                            type: order.OrderType.ToString(),
+                            unitOfPrice: order.Item.UnitOfPrice,
+                            quantity: order.Item.Quantity,
+                            totalAmount: order.TotalAmount);
+                        _logger.LogInformation("Payment confirmation email sent to {Email} for OrderId: {OrderId}", user.Email, order._id);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to send payment confirmation email to {Email} for OrderId: {OrderId}", user.Email, order._id);
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning("Cannot send payment confirmation email - user email not found for UserId: {UserId}", order.UserID);
+                }
 
                 _logger.LogInformation("Payment SUCCESS for orderId: {OrderId}", order._id);
             }

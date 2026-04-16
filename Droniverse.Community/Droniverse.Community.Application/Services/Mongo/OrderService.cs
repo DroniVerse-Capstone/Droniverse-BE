@@ -2,6 +2,7 @@
 using Droniverse.Community.Application.DTO.Extensions;
 using Droniverse.Community.Application.DTO.Request.Mongo;
 using Droniverse.Community.Application.DTO.Response.Mongo;
+using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService.Mongo;
 using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.Entities.Mongo;
@@ -28,6 +29,7 @@ internal class OrderService : IOrderService
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<OrderService> _logger;
     private readonly IEmailService _emailService;
+    private readonly AcademyMicroserviceClient _academyMicroserviceClient;
     public OrderService(
         IOrderRepository orderRepository,
         IMapper mapper,
@@ -36,7 +38,8 @@ internal class OrderService : IOrderService
         ICurrentUserService currentUserService,
         IUnitOfWork unitOfWork,
         ILogger<OrderService> logger,
-        IEmailService emailService)
+        IEmailService emailService,
+        AcademyMicroserviceClient academyMicroserviceClient)
     {
         _orderRepository = orderRepository;
         _mapper = mapper;
@@ -46,6 +49,7 @@ internal class OrderService : IOrderService
         _currentUserService = currentUserService;
         _unitOfWork = unitOfWork;
         _logger = logger;
+        _academyMicroserviceClient = academyMicroserviceClient;
     }
 
     public async Task<OrderResponseDto?> AddOrder(Guid clubId, OrderCreateDto orderAddRequest)
@@ -162,6 +166,21 @@ internal class OrderService : IOrderService
 
         await _emailService.SendOrderConfirmationEmailAsync(email!, userName!, createdOrder._id.ToString()!, createdOrder.CreateAt.ToString(), productId.ToString(), proNameVN, proNameEN, type, unitOfPrice, quantity, createdOrder.TotalAmount);
         //---------------------------------------------------------------------------------------------------------------
+        if (isMember) {
+            BulkAssignCodesRequest request = new BulkAssignCodesRequest
+            {
+                Items = new List<BulkAssignCodeItemRequest>
+                {
+                    new BulkAssignCodeItemRequest
+                    {
+                        //CodeId = ...,
+                        UserId = currentUserId
+                    }
+                },
+                SendEmail = false //đã gửi email ở trên rồi nên không cần gửi thêm email nữa
+            };
+            await _academyMicroserviceClient.BulkAssignCodesAsync(request);
+        }
 
         return _mapper.Map<OrderResponseDto?>(createdOrder);
     }
