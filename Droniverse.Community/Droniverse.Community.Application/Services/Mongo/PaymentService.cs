@@ -520,7 +520,7 @@ internal class PaymentService : IPaymentService
         try
         {
             _logger.LogInformation("Fetching user email from Identity service for UserId: {UserId}", userId);
-            var user = await _identityMicroserviceClient.GetUserByUserID(userId.ToString());
+            var user = await _identityMicroserviceClient.GetUserByUserID(userId);
             if (user != null && !string.IsNullOrWhiteSpace(user.Email))
             {
                 _logger.LogInformation("Successfully retrieved email for UserId: {UserId}", userId);
