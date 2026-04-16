@@ -80,7 +80,7 @@ public class CodeController : ControllerBase
     /// Api để call chéo service
     /// </summary>
     [HttpPost("generate-assign")]
-    [Authorize(Roles = Roles.SystemRoles)]
+    [Authorize(Roles = Roles.ClubMember)]
     public async Task<IActionResult> GenerateCode([FromBody] GenerateWithAssignCodeRequestDTO request)
     {
         var response = await _codeService.CreateWithAssignCodeAsync(request);

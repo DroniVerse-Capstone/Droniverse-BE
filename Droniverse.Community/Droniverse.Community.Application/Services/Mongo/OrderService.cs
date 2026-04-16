@@ -82,20 +82,31 @@ internal class OrderService : IOrderService
             throw new KeyNotFoundException("Không tìm thấy thông tin của sản phẩm");
 
         //------------------------------------------------------------------------------------------------------------------------------
+
         // Check Remaining Quantity
         ClubCourse? clubCourse = await _unitOfWork.ClubCourses.GetByCondition(cc => cc.ClubID == clubId && cc.CourseID == product.ReferenceID, query => query);
-        if (clubCourse == null)
+        if (!isMember)
         {
-            //tạo mới ClubCourse nếu chưa tồn tại (trường hợp này chỉ xảy ra khi ClubManager tạo order nhập code vào kho mà chưa có ClubCourse nào cho khóa học đó)
-            clubCourse = ClubCourse.Create(clubId, product.ReferenceID, orderAddRequest.Item.Quantity, isMember ? ClubCourseProfit.PROFIT : ClubCourseProfit.NONPROFIT);
-            await _unitOfWork.ClubCourses.Add(clubCourse);
-
-        } else
+            if (clubCourse == null)
+            {
+                //tạo mới ClubCourse nếu chưa tồn tại (trường hợp này chỉ xảy ra khi ClubManager tạo order nhập code vào kho mà chưa có ClubCourse nào cho khóa học đó)
+                clubCourse = ClubCourse.Create(clubId, product.ReferenceID, orderAddRequest.Item.Quantity, isMember ? ClubCourseProfit.PROFIT : ClubCourseProfit.NONPROFIT);
+                await _unitOfWork.ClubCourses.Add(clubCourse);
+            }
+            else
+            {
+                clubCourse.IncreaseCapacity(orderAddRequest.Item.Quantity);
+            }
+            await _unitOfWork.SaveChangeAsync();
+        }
+        else // club member
         {
-            clubCourse.IncreaseCapacity(orderAddRequest.Item.Quantity);
+            if (orderAddRequest.Item.Quantity != 1 && orderAddRequest.Item.Type.Equals(ProductType.COURSE))
+            {
+                throw new Exception("Thành viên câu lạc bộ chỉ được mua 1 mã code cho sản phẩm mỗi đơn hàng.");
+            }
         }
 
-        await _unitOfWork.SaveChangeAsync();
         //------------------------------------------------------------------------------------------------------------------------------
         int quantity = orderAddRequest.Item.Quantity;
 
@@ -137,7 +148,7 @@ internal class OrderService : IOrderService
             };
             await _paymentService.CreatePaymentLink(createdOrder._id, paymentCreateDto);
 
-            // ⚠️ FIX: Reload order from database to get the Payment data that was just added
+            // FIX: Reload order from database to get the Payment data that was just added
             // CreatePaymentLink() calls _orderRepository.AddPayment() to save Payment to MongoDB
             // But the createdOrder object in memory is not automatically updated
             FilterDefinition<Order>? reloadFilter = Builders<Order>.Filter.Eq(o => o._id, createdOrder._id);
@@ -166,20 +177,20 @@ internal class OrderService : IOrderService
 
         await _emailService.SendOrderConfirmationEmailAsync(email!, userName!, createdOrder._id.ToString()!, createdOrder.CreateAt.ToString(), productId.ToString(), proNameVN, proNameEN, type, unitOfPrice, quantity, createdOrder.TotalAmount);
         //---------------------------------------------------------------------------------------------------------------
-        if (isMember) {
-            BulkAssignCodesRequest request = new BulkAssignCodesRequest
+        if (isMember)
+        {
+            GenerateCodesRequestDTO request = new GenerateCodesRequestDTO
             {
-                Items = new List<BulkAssignCodeItemRequest>
-                {
-                    new BulkAssignCodeItemRequest
-                    {
-                        //CodeId = ...,
-                        UserId = currentUserId
-                    }
-                },
-                SendEmail = false //đã gửi email ở trên rồi nên không cần gửi thêm email nữa
+                ClubId = clubId,
+                CourseId = product.ReferenceID,
+                Quantity = orderAddRequest.Item.Quantity
             };
-            await _academyMicroserviceClient.BulkAssignCodesAsync(request);
+            CodeResponse codeResponse = await _academyMicroserviceClient.GenerateAssignCodesAsync(request);
+            if (codeResponse == null || codeResponse.CodeID == null)
+            {
+                _logger.LogError($"Lỗi khi tạo mã cho đơn hàng #{createdOrder._id}. Không nhận được mã từ Academy Microservice.");
+                throw new Exception("Gán mã cho thành viên clb thất bại. Vui lòng liên hệ hỗ trợ.");
+            }
         }
 
         return _mapper.Map<OrderResponseDto?>(createdOrder);
@@ -190,7 +201,7 @@ internal class OrderService : IOrderService
         throw new NotImplementedException();
     }
 
-    public async Task<IEnumerable<OrderResponseDto?>>  GetOrdersByClubId(Guid clubId)
+    public async Task<IEnumerable<OrderResponseDto?>> GetOrdersByClubId(Guid clubId)
     {
         FilterDefinition<Order>? filter = Builders<Order>.Filter.Eq(o => o.ClubID, clubId);
         IEnumerable<Order?> orders = await _orderRepository.GetOrdersByCondition(filter);

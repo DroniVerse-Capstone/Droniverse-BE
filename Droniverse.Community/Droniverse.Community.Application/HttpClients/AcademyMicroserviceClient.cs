@@ -1,14 +1,16 @@
-﻿using Droniverse.Community.Application.DTO.Response;
-using Droniverse.Academy.Application.Enums;
+﻿using Droniverse.Academy.Application.Enums;
+using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.DTOs.Response;
+using Droniverse.Shared.Enums;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.ComponentModel.DataAnnotations;
+using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
-using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -64,30 +66,30 @@ public class AcademyMicroserviceClient
         _environment = environment;
     }
 
-    public async Task<BulkCodeAssignmentResponse> BulkAssignCodesAsync(BulkAssignCodesRequest request)
+    public async Task<CodeResponse> GenerateAssignCodesAsync(GenerateCodesRequestDTO request)
     {
         if (request == null)
             throw new ArgumentNullException(nameof(request));
         try
         {
             var response = await _httpClient.PostAsJsonAsync(
-                BuildAcademyPath("codes/bulk-assign"),
+                BuildAcademyPath("codes/generate-assign"),
                 request);
             if (!response.IsSuccessStatusCode)
             {
                 if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 {
-                    _logger.LogWarning("Không tìm thấy dữ liệu khi gọi Academy API codes/bulk-assign.");
+                    _logger.LogWarning("Không tìm thấy dữ liệu khi gọi Academy API codes/generate-assign.");
                     throw new KeyNotFoundException("Không tìm thấy dữ liệu để gán code.");
                 }
                 if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
                     throw new HttpRequestException("Yêu cầu không hợp lệ khi gọi Academy service.", null, System.Net.HttpStatusCode.BadRequest);
                 throw new HttpRequestException(
-                    $"Academy service lỗi khi gọi codes/bulk-assign: {response.StatusCode}",
+                    $"Academy service lỗi khi gọi codes/generate-assign: {response.StatusCode}",
                     null,
                     response.StatusCode);
             }
-            var result = await response.Content.ReadFromJsonAsync<BulkCodeAssignmentResponse>(_jsonOptions);
+            var result = await response.Content.ReadFromJsonAsync<CodeResponse>(_jsonOptions);
             if (result == null)
                 throw new InvalidOperationException("Không nhận được phản hồi hợp lệ từ Academy service khi gán code.");
             return result;
@@ -888,3 +890,14 @@ public class CodeAssignmentResponse
     public DateTime AssignedAt { get; set; }
 }
 
+public class CodeResponse
+{
+    public string CodeID { get; set; }
+    public string CourseID { get; set; }
+    public string ClubID { get; set; }
+    public Guid? OwnedUserID { get; set; }
+    public Guid? UsedByUserID { get; set; }
+    public DateTime? UsedDate { get; set; }
+    public DateTime ExpireDate { get; set; }
+    public CodeStatusEnum Status { get; set; }
+}
