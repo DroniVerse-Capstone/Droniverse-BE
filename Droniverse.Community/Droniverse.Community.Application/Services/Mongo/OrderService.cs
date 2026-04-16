@@ -147,21 +147,6 @@ internal class OrderService : IOrderService
             throw;
         }
 
-        //Gửi email thông báo đến đặt hàng thành công
-        string? userName = _currentUserService.UserName;
-        string? email = _currentUserService.Email;
-        Guid productId = createdOrder.Item.ProductID;
-        string? proNameVN = createdOrder.Item.ProductNameVN;
-        string? proNameEN = createdOrder.Item.ProductNameEN;
-        string? type = createdOrder.Item.Type.ToString();
-        decimal unitOfPrice = createdOrder.Item.UnitOfPrice;
-        //createdOrder.CreateAt
-        //có quantity ở trên
-        //createdOrder.TotalAmount
-
-        await _emailService.SendOrderConfirmationEmailAsync(email!, userName!, createdOrder._id.ToString()!, createdOrder.CreateAt.ToString(), productId.ToString(), proNameVN, proNameEN, type, unitOfPrice, quantity, createdOrder.TotalAmount);
-        //---------------------------------------------------------------------------------------------------------------
-
         return _mapper.Map<OrderResponseDto?>(createdOrder);
     }
 

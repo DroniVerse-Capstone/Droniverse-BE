@@ -86,5 +86,19 @@ namespace Droniverse.Community.API.Controllers
             var data = await _dashboardService.GetRevenueByCourseByClub(clubId, top);
             return SuccessResponse<ClubCourseRevenueResponse>.Create(data, "Lấy doanh thu theo khóa học của câu lạc bộ thành công!");
         }
+
+        /// <summary>
+        /// Tổng doanh thu của hệ thống
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("revenue/admin/overview")]
+        [ProducesResponseType(typeof(SuccessResponse<RevenueOverviewResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Authorize(Roles = Roles.AdminOrSystemManager)]
+        public async Task<ApiResponse> GetAdminRevenueOverview()
+        {
+            var data = await _dashboardService.GetAdminRevenueOverview();
+            return SuccessResponse<RevenueOverviewResponse>.Create(data, "Lấy tổng quan doanh thu admin thành công!");
+        }
     }
 }

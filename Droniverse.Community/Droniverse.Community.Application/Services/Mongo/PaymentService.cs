@@ -171,7 +171,7 @@ internal class PaymentService : IPaymentService
                 throw new Exception("PayOs không trả về kết quả.");
             }
 
-            // 🔍 DEBUG: Log đầy đủ response
+            // Log đầy đủ response
             var responseJson = JsonSerializer.Serialize(response);
             _logger.LogInformation("PayOS CreatePaymentLink Response: {Response}", responseJson);
 
@@ -360,8 +360,8 @@ internal class PaymentService : IPaymentService
 
                 order.Status = OrderStatus.SUCCESS;
                 
-                // Get user email from Identity service for email sending
-                var userEmail = await GetUserEmailAsync(order.UserID);
+                // Get user info from Identity service for email sending
+                var (userEmail, userName) = await GetUserInfoAsync(order.UserID);
                 _logger.LogInformation("Payment SUCCESS for orderId: {OrderId}, Email: {Email}", order._id, userEmail);
 
                 //Add Invoice
@@ -404,7 +404,7 @@ internal class PaymentService : IPaymentService
                     {
                         await _emailService.SendOrderConfirmationEmailAsync(
                             email: userEmail,
-                            userName: "User", // Using default name since we don't have full user info from current context
+                            userName: userName ?? "User",
                             orderId: order._id.ToString(),
                             orderDate: order.CreateAt.ToString("dd/MM/yyyy HH:mm:ss"),
                             productId: order.Item.ProductID.ToString(),
@@ -589,6 +589,30 @@ internal class PaymentService : IPaymentService
         {
             _logger.LogError(ex, "Lỗi hủy thanh toán cho order {OrderId}", orderId);
             return false;
+        }
+    }
+
+    /// <summary>
+    /// Get user info (email and name) from Identity service
+    /// </summary>
+    private async Task<(string? Email, string? UserName)> GetUserInfoAsync(Guid userId)
+    {
+        try
+        {
+            _logger.LogInformation("Fetching user info from Identity service for UserId: {UserId}", userId);
+            var user = await _identityMicroserviceClient.GetUserByUserID(userId);
+            if (user != null)
+            {
+                _logger.LogInformation("Successfully retrieved user info for UserId: {UserId}", userId);
+                return (user.Email, user.Username);
+            }
+            _logger.LogWarning("User not found for UserId: {UserId}", userId);
+            return (null, null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching user info from Identity service for UserId: {UserId}", userId);
+            return (null, null);
         }
     }
 
