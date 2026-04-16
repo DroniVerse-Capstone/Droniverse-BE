@@ -1,8 +1,10 @@
 ﻿using Droniverse.Academy.API.Enums;
+using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
+using Droniverse.Shared.DTOs.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,7 +14,7 @@ namespace Droniverse.Academy.API.Controllers;
 [ApiController]
 [Authorize(Roles = Roles.AllRoles)]
 /// <summary>
-/// Xem chứng chỉ của người dùng hiện tại.
+/// Quản lý chứng chỉ của người dùng hiện tại.
 /// </summary>
 public class UserCertificateController : ControllerBase
 {
@@ -32,7 +34,8 @@ public class UserCertificateController : ControllerBase
     /// <param name="pageSize">Số bản ghi trên mỗi trang.</param>
     /// <param name="status">Bộ lọc trạng thái chứng chỉ.</param>
     [HttpGet]
-    public async Task<IActionResult> GetMyCertificates(
+    [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<UserCertificateResponseDTO>>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetUserCertificates(
         [FromQuery] int pageIndex = 1,
         [FromQuery] int pageSize = 50,
         [FromQuery] UserCertificateStatusFilter status = UserCertificateStatusFilter.All)
@@ -40,11 +43,13 @@ public class UserCertificateController : ControllerBase
         try
         {
             var result = await _service.GetMyCertificatesAsync(pageIndex, pageSize, MapUserCertificateStatus(status));
-            return Ok(SuccessResponse<object>.Create(result, "Lấy danh sách chứng chỉ của tôi thành công."));
+            return Ok(SuccessResponse<PaginationResult<IEnumerable<UserCertificateResponseDTO>>>.Create(
+                result,
+                "Lấy danh sách chứng chỉ thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Lấy danh sách chứng chỉ của tôi thất bại.");
+            _logger.LogError(ex, "Lấy danh sách chứng chỉ thất bại.");
             throw;
         }
     }
@@ -54,16 +59,17 @@ public class UserCertificateController : ControllerBase
     /// </summary>
     /// <param name="certificateId">Mã chứng chỉ.</param>
     [HttpGet("{certificateId:guid}")]
-    public async Task<IActionResult> GetMyCertificate(Guid certificateId)
+    [ProducesResponseType(typeof(SuccessResponse<UserCertificateResponseDTO>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetUserCertificate(Guid certificateId)
     {
         try
         {
             var result = await _service.GetMyCertificateAsync(certificateId);
-            return Ok(SuccessResponse<object>.Create(result, "Lấy chi tiết chứng chỉ của tôi thành công."));
+            return Ok(SuccessResponse<UserCertificateResponseDTO>.Create(result, "Lấy chi tiết chứng chỉ thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Lấy chi tiết chứng chỉ của tôi thất bại.");
+            _logger.LogError(ex, "Lấy chi tiết chứng chỉ thất bại.");
             throw;
         }
     }

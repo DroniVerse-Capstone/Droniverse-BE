@@ -2,6 +2,8 @@
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
+using AutoMapper;
+using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Services.IServices;
@@ -17,6 +19,7 @@ public sealed class LearningCertificateService
     private readonly IUserDisplayNameService _userDisplayNameService;
     private readonly ICloudinaryService _cloudinaryService;
     private readonly IEmailService _emailService;
+    private readonly IMapper _mapper;
     private readonly ILogger<LearningCertificateService> _logger;
 
     public LearningCertificateService(
@@ -25,6 +28,7 @@ public sealed class LearningCertificateService
         IUserDisplayNameService userDisplayNameService,
         ICloudinaryService cloudinaryService,
         IEmailService emailService,
+        IMapper mapper,
         ILogger<LearningCertificateService> logger)
     {
         _unitOfWork = unitOfWork;
@@ -32,6 +36,7 @@ public sealed class LearningCertificateService
         _userDisplayNameService = userDisplayNameService;
         _cloudinaryService = cloudinaryService;
         _emailService = emailService;
+        _mapper = mapper;
         _logger = logger;
     }
 
@@ -66,14 +71,15 @@ public sealed class LearningCertificateService
             generatedImage.FileName,
             generatedImage.ContentType,
             "academy/certificates");
-        var userCertificate = new UserCertificate
+        var userCertificateDto = new UserCertificateResponseDTO
         {
-            UserID = userId,
             CertificateID = certificate.CertificateID,
+            UserID = userId,
             CertificateUrl = uploadedUrl,
             AchievedDate = now,
             Status = UserCertificateStatus.ACHIEVED
         };
+        var userCertificate = _mapper.Map<UserCertificate>(userCertificateDto);
 
         await _unitOfWork.UserCertificates.AddAsync(userCertificate);
 

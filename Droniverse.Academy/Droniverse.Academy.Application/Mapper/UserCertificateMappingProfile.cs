@@ -17,7 +17,8 @@ public class UserCertificateMappingProfile : Profile
             .ForMember(dest => dest.Status, opt => opt.Ignore())
             .ForMember(dest => dest.Certificate, opt => opt.Ignore());
 
-        CreateMap<UserCertificate, UserCertificateResponseDTO>();
+        CreateMap<UserCertificate, UserCertificateResponseDTO>().ReverseMap()
+            .ForMember(dest => dest.Certificate, opt => opt.Ignore());
 
         CreateMap<Certificate, CertificateResponseDTO>();
     }
