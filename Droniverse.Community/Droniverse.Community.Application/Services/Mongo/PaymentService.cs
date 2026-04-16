@@ -19,6 +19,9 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Droniverse.Shared.Helpers;
+using Droniverse.Community.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+using Droniverse.Shared.Enums;
 
 namespace Droniverse.Community.Application.Services.Mongo;
 
@@ -32,6 +35,7 @@ internal class PaymentService : IPaymentService
     private readonly ICurrentUserService _currentUserService;
     private readonly IInvoiceRepository _invoiceRepository;
     private readonly IdentityMicroserviceClient _identityMicroserviceClient;
+    private readonly AcademyMicroserviceClient _academyMicroserviceClient;
     private readonly IEmailService _emailService;
     private readonly string _checksumKey;
     public PaymentService(
@@ -42,7 +46,8 @@ internal class PaymentService : IPaymentService
         IOrderRepository orderRepository,
         IInvoiceRepository invoiceRepository,
         IdentityMicroserviceClient identityMicroserviceClient,
-        IEmailService emailService)
+        IEmailService emailService,
+        AcademyMicroserviceClient academyMicroserviceClient)
     {
         _orderRepository = orderRepository;
         _configuration = configuration;
@@ -51,6 +56,7 @@ internal class PaymentService : IPaymentService
         _currentUserService = currentUserService;
         _identityMicroserviceClient = identityMicroserviceClient;
         _emailService = emailService;
+        _academyMicroserviceClient = academyMicroserviceClient;
 
         var clientId = _configuration["PAYOS_CLIENT_ID"];
         var apiKey = _configuration["PAYOS_API_KEY"];
@@ -421,6 +427,80 @@ internal class PaymentService : IPaymentService
                 }
 
                 _logger.LogInformation("Payment SUCCESS for orderId: {OrderId}", order._id);
+
+                // ===== Handle ClubCourse and Generate Codes for successful payment =====
+                try
+                {
+                    // Get product info to access ReferenceID (CourseID)
+                    Product? product = await _unitOfWork.Products.GetByCondition(
+                        p => p.ProductID == order.Item.ProductID && p.Status == ProductStatus.ACTIVE,
+                        query => query.AsNoTracking());
+
+                    if (product != null)
+                    {
+                        bool isMember = order.OrderType == OrderType.USER_PURCHASE;
+
+                        if (!isMember) // ClubManager import
+                        {
+                            // Update ClubCourse - create or increase capacity
+                            ClubCourse? clubCourse = await _unitOfWork.ClubCourses.GetByCondition(
+                                cc => cc.ClubID == order.ClubID && cc.CourseID == product.ReferenceID, 
+                                query => query);
+
+                            if (clubCourse == null)
+                            {
+                                clubCourse = ClubCourse.Create(order.ClubID, product.ReferenceID, order.Item.Quantity, ClubCourseProfit.PROFIT);
+                                await _unitOfWork.ClubCourses.Add(clubCourse);
+                            }
+                            else
+                            {
+                                clubCourse.IncreaseCapacity(order.Item.Quantity);
+                            }
+                            await _unitOfWork.SaveChangeAsync();
+                            _logger.LogInformation("Updated ClubCourse capacity for ClubId: {ClubId}, CourseId: {CourseId}, Quantity: {Quantity}", 
+                                order.ClubID, product.ReferenceID, order.Item.Quantity);
+                        }
+                        else // Club member - generate and assign codes
+                        {
+                            // Consume from club course
+                            ClubCourse? clubCourse = await _unitOfWork.ClubCourses.GetByCondition(
+                                cc => cc.ClubID == order.ClubID && cc.CourseID == product.ReferenceID, 
+                                query => query);
+                            
+                            if (clubCourse != null)
+                            {
+                                clubCourse.Consume(order.Item.Quantity);
+                                await _unitOfWork.SaveChangeAsync();
+                                _logger.LogInformation("Consumed from ClubCourse for member - ClubId: {ClubId}, CourseId: {CourseId}, Quantity: {Quantity}", 
+                                    order.ClubID, product.ReferenceID, order.Item.Quantity);
+                            }
+
+                            // Generate and assign codes to member
+                            HttpClients.GenerateCodesRequestDTO codeRequest = new HttpClients.GenerateCodesRequestDTO
+                            {
+                                ClubId = order.ClubID,
+                                CourseId = product.ReferenceID,
+                                Quantity = order.Item.Quantity
+                            };
+                            
+                            CodeResponse codeResponse = await _academyMicroserviceClient.GenerateAssignCodesAsync(codeRequest);
+                            
+                            if (codeResponse == null || codeResponse.CodeID == null)
+                            {
+                                _logger.LogError("Error generating codes for order {OrderId}. No response from Academy Microservice.", order._id);
+                                throw new Exception("Gán mã cho thành viên clb thất bại. Vui lòng liên hệ hỗ trợ.");
+                            }
+                            
+                            _logger.LogInformation("Generated and assigned codes for member - OrderId: {OrderId}, CodeId: {CodeId}", 
+                                order._id, codeResponse.CodeID);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error processing ClubCourse/Codes for successful payment - OrderId: {OrderId}", order._id);
+                    // Don't throw here - payment is already successful, just log the error
+                }
             }
             else if (webhook.Code == "05")
             {
