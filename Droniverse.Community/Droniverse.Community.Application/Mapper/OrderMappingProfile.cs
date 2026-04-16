@@ -11,6 +11,7 @@ public class OrderMappingProfile : Profile
     {
         CreateMap<Order, OrderResponseDto>()
             .ForMember(dest => dest.OrderID, opt => opt.MapFrom(src => src._id))
+            .ForMember(dest => dest.Type, opt => opt.MapFrom(src => src.OrderType))
             .ForMember(dest => dest.Item, opt => opt.MapFrom(src => src.Item))
             .ForMember(dest => dest.CreateAt, opt => opt.MapFrom(src => src.CreateAt))
             .ForMember(dest => dest.TotalAmount, opt => opt.MapFrom(src => src.TotalAmount))

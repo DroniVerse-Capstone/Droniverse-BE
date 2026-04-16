@@ -34,6 +34,13 @@ public class UserLearningController : ControllerBase
     /// <summary>
     /// Lấy learning path hiện tại của người học theo enrollment.
     /// </summary>
+    /// <remarks>
+    /// Enrollment <b>Status</b> có thể là:
+    /// - <b>ACTIVE</b>: Đang học.
+    /// - <b>COMPLETED</b>: Đã hoàn thành.
+    /// - <b>DROPPED</b>: Đã hủy/bỏ học.
+    /// - <b>LIMITED_ACCESS</b>: Quyền truy cập bị giới hạn.
+    /// </remarks>
     /// <param name="enrollmentId">Mã enrollment.</param>
     /// <example>/academy/user/enrollments/{enrollmentId}/learning-path</example>
     [HttpGet]

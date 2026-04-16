@@ -11,5 +11,6 @@ namespace Droniverse.Identity.Domain.Interfaces
     public interface ISysConfigRepository : IRepository<SysConfig>
     {
         Task<CertificateTemplateQueryModel> GetCertificateTemplate();
+        Task<SystemEstimateTimeQueryModel> GetSystemEstimateTime();
     }
 }

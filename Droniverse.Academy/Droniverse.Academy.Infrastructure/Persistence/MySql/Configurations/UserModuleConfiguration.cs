@@ -9,13 +9,15 @@ public class UserModuleConfiguration : IEntityTypeConfiguration<UserModule>
     {
         builder.ToTable("UserModule");
 
-        builder.HasKey(um => new { um.ModuleID, um.UserID});
+        builder.HasKey(um => um.UserModuleID);
+        builder.HasIndex(um => new { um.ModuleID, um.UserID }).IsUnique();
 
         builder.HasOne(um => um.Module)
             .WithMany(m => m.UserModules)
             .HasForeignKey(um => um.ModuleID)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.Property(um => um.UserModuleID).HasColumnType("char(36)");
         builder.Property(um => um.UserID).HasColumnType("char(36)");
         builder.Property(um => um.ModuleID).HasColumnType("char(36)");
         builder.Property(um => um.EnrollDate).HasColumnType("datetime");

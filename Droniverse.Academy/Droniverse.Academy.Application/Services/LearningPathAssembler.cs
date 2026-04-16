@@ -27,7 +27,8 @@ public sealed class LearningPathAssembler
         IReadOnlyDictionary<Guid, UserModule> userModules)
     {
         var lessonMetadataLookup = await GetLessonMetadataLookupAsync(lessons);
-        return BuildLearningPath(enrollment, courseVersion, modules, lessons, userLessons, userModules, lessonMetadataLookup);
+        var userCertificate = await GetUserCertificateAsync(enrollment.UserID, enrollment.CourseVersionID);
+        return BuildLearningPath(enrollment, courseVersion, modules, lessons, userLessons, userModules, lessonMetadataLookup, userCertificate);
     }
 
     private LearningPathDTO BuildLearningPath(
@@ -37,7 +38,8 @@ public sealed class LearningPathAssembler
         IReadOnlyCollection<Lesson> lessons,
         IReadOnlyDictionary<Guid, UserLesson> userLessons,
         IReadOnlyDictionary<Guid, UserModule> userModules,
-        IReadOnlyDictionary<Guid, LessonMetadata> lessonMetadataLookup)
+        IReadOnlyDictionary<Guid, LessonMetadata> lessonMetadataLookup,
+        UserCertificateResponseDTO? userCertificate)
     {
         var lessonsByModule = BuildLessonsByModule(lessons);
 
@@ -71,8 +73,21 @@ public sealed class LearningPathAssembler
         response.TotalLessons = moduleDTOs.Sum(x => x.TotalLessons);
         response.Duration = courseVersion.EstimatedDuration ?? SumDuration(moduleDTOs.Select(x => x.Duration));
         response.Progress = enrollmentProgress;
+        response.UserCertificate = userCertificate;
         response.Modules = moduleDTOs;
         return response;
+    }
+
+    private async Task<UserCertificateResponseDTO?> GetUserCertificateAsync(Guid userId, Guid courseVersionId)
+    {
+        var certificate = await _unitOfWork.Certificates.GetByConditionAsync(x => x.CourseVersionID == courseVersionId);
+        if (certificate == null)
+            return null;
+
+        var userCertificate = await _unitOfWork.UserCertificates.GetByConditionAsync(
+            x => x.UserID == userId && x.CertificateID == certificate.CertificateID);
+
+        return userCertificate == null ? null : _mapper.Map<UserCertificateResponseDTO>(userCertificate);
     }
 
     private (LearningPathModuleDTO ModuleDTO, bool IsCompleted) BuildModuleDTO(

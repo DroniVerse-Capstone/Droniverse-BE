@@ -729,10 +729,10 @@ namespace Droniverse.Academy.Application.HttpClients
         }
 
         public async Task<bool> CheckParticipantByClubAsync(
-    Guid clubId,
-    Guid userId,
-    ParticipationStatus status = ParticipationStatus.ACTIVE,
-    CancellationToken cancellationToken = default)
+                Guid clubId,
+                Guid userId,
+                ParticipationStatus status = ParticipationStatus.ACTIVE,
+                CancellationToken cancellationToken = default)
         {
             var url = BuildCommunityPath(
                 $"clubs/{clubId}/participants/{userId}?status={status}");
@@ -799,10 +799,6 @@ namespace Droniverse.Academy.Application.HttpClients
             return $"product:reference:{referenceId}";
         }
 
-        private string GetCacheKeyForCode(Guid codeId)
-        {
-            return $"code:{codeId}";
-        }
 
         private string BuildCommunityPath(string relativePath)
         {

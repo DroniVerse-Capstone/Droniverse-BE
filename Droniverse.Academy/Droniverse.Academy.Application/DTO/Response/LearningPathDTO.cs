@@ -7,11 +7,16 @@ public class LearningPathDTO
     public Guid EnrollmentID { get; set; }
     public Guid CourseID { get; set; }
     public Guid CourseVersionID { get; set; }
+    /// <summary>
+    /// Trạng thái enrollment. Giá trị: ACTIVE | COMPLETED | DROPPED | LIMITED_ACCESS.
+    /// </summary>
+    public EnrollStatus Status { get; set; }
     public string TitleVN { get; set; } = string.Empty;
     public string TitleEN { get; set; } = string.Empty;
     public int TotalLessons { get; set; }
     public int? Duration { get; set; }
     public float Progress { get; set; }
+    public UserCertificateResponseDTO? UserCertificate { get; set; } = null;
     public IReadOnlyCollection<LearningPathModuleDTO> Modules { get; set; } = [];
 }
 

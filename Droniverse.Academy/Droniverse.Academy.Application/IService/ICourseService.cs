@@ -19,7 +19,7 @@ public interface ICourseService
 
     Task<CourseOverviewResponseDTO> GetCourseOverviewAsync(
         Guid clubId,
-        Guid courseVersionId,
+        Guid courseId,
         CancellationToken cancellationToken = default);
 
     Task<CourseDetailResponseDTO> CreateCourseAsync();

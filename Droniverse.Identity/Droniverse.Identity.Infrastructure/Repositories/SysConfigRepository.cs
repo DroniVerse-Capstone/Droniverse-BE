@@ -28,5 +28,15 @@ namespace Droniverse.Identity.Infrastructure.Repositories
                 })
                 .FirstAsync();
         }
+        public async Task<SystemEstimateTimeQueryModel> GetSystemEstimateTime()
+        {
+            return await _context.SysConfig
+                .AsNoTracking()
+                .Select(s => new SystemEstimateTimeQueryModel
+                {
+                    BufferEstimatedDuration = s.BufferEstimatedDuration
+                })
+                .FirstAsync();
+        }
     }
-}
+    }

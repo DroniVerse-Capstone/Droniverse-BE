@@ -2,6 +2,7 @@
 
 public class UserModuleResponseDTO
 {
+    public Guid UserModuleID { get; set; }
     public Guid UserID { get; set; }
     public Guid ModuleID { get; set; }
     public DateTime EnrollDate { get; set; }

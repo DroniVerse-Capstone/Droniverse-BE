@@ -13,6 +13,7 @@ public class LearningMappingProfile : Profile
             .ForMember(dest => dest.TitleEN, opt => opt.Ignore())
             .ForMember(dest => dest.TotalLessons, opt => opt.Ignore())
             .ForMember(dest => dest.Duration, opt => opt.Ignore())
+            .ForMember(dest => dest.UserCertificate, opt => opt.Ignore())
             .ForMember(dest => dest.Modules, opt => opt.Ignore());
 
         CreateMap<Module, LearningPathModuleDTO>()

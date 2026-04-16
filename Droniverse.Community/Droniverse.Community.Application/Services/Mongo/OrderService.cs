@@ -82,31 +82,15 @@ internal class OrderService : IOrderService
             throw new KeyNotFoundException("Không tìm thấy thông tin của sản phẩm");
 
         //------------------------------------------------------------------------------------------------------------------------------
-
-        // Check Remaining Quantity
-        ClubCourse? clubCourse = await _unitOfWork.ClubCourses.GetByCondition(cc => cc.ClubID == clubId && cc.CourseID == product.ReferenceID, query => query);
-        if (!isMember)
-        {
-            if (clubCourse == null)
-            {
-                //tạo mới ClubCourse nếu chưa tồn tại (trường hợp này chỉ xảy ra khi ClubManager tạo order nhập code vào kho mà chưa có ClubCourse nào cho khóa học đó)
-                clubCourse = ClubCourse.Create(clubId, product.ReferenceID, orderAddRequest.Item.Quantity, isMember ? ClubCourseProfit.PROFIT : ClubCourseProfit.NONPROFIT);
-                await _unitOfWork.ClubCourses.Add(clubCourse);
-            }
-            else
-            {
-                clubCourse.IncreaseCapacity(orderAddRequest.Item.Quantity);
-            }
-            await _unitOfWork.SaveChangeAsync();
-        }
-        else // club member
+        
+        // Validation for club member
+        if (isMember)
         {
             if (orderAddRequest.Item.Quantity != 1 && orderAddRequest.Item.Type.Equals(ProductType.COURSE))
             {
                 throw new Exception("Thành viên câu lạc bộ chỉ được mua 1 mã code cho sản phẩm mỗi đơn hàng.");
             }
         }
-
         //------------------------------------------------------------------------------------------------------------------------------
         int quantity = orderAddRequest.Item.Quantity;
 
@@ -132,7 +116,7 @@ internal class OrderService : IOrderService
             OrderType = isMember ? OrderType.USER_PURCHASE : OrderType.CLUB_IMPORT,
             Item = orderItem,
             Status = OrderStatus.PENDING,
-            TotalAmount = CalculateTotal(product.Price, quantity),
+            TotalAmount = isMember ? CalculateTotal(product.Price, quantity) * 1.1m : CalculateTotal(product.Price, quantity),
             Payment = null // Chưa có payment khi tạo order
         };
 
@@ -161,36 +145,6 @@ internal class OrderService : IOrderService
             createdOrder.Status = OrderStatus.FAILED;
             await _orderRepository.UpdateOrder(createdOrder);
             throw;
-        }
-
-        //Gửi email thông báo đến đặt hàng thành công
-        string? userName = _currentUserService.UserName;
-        string? email = _currentUserService.Email;
-        Guid productId = createdOrder.Item.ProductID;
-        string? proNameVN = createdOrder.Item.ProductNameVN;
-        string? proNameEN = createdOrder.Item.ProductNameEN;
-        string? type = createdOrder.Item.Type.ToString();
-        decimal unitOfPrice = createdOrder.Item.UnitOfPrice;
-        //createdOrder.CreateAt
-        //có quantity ở trên
-        //createdOrder.TotalAmount
-
-        await _emailService.SendOrderConfirmationEmailAsync(email!, userName!, createdOrder._id.ToString()!, createdOrder.CreateAt.ToString(), productId.ToString(), proNameVN, proNameEN, type, unitOfPrice, quantity, createdOrder.TotalAmount);
-        //---------------------------------------------------------------------------------------------------------------
-        if (isMember)
-        {
-            GenerateCodesRequestDTO request = new GenerateCodesRequestDTO
-            {
-                ClubId = clubId,
-                CourseId = product.ReferenceID,
-                Quantity = orderAddRequest.Item.Quantity
-            };
-            CodeResponse codeResponse = await _academyMicroserviceClient.GenerateAssignCodesAsync(request);
-            if (codeResponse == null || codeResponse.CodeID == null)
-            {
-                _logger.LogError($"Lỗi khi tạo mã cho đơn hàng #{createdOrder._id}. Không nhận được mã từ Academy Microservice.");
-                throw new Exception("Gán mã cho thành viên clb thất bại. Vui lòng liên hệ hỗ trợ.");
-            }
         }
 
         return _mapper.Map<OrderResponseDto?>(createdOrder);

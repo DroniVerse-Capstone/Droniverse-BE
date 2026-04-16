@@ -419,5 +419,18 @@ internal class OrderRepository : IOrderRepository
             })
             .ToListAsync();
     }
+
+    public async Task<IEnumerable<Order>> GetAllSuccessfulOrders()
+    {
+        var filter = Builders<Order>.Filter.And(
+            Builders<Order>.Filter.Eq(o => o.Status, OrderStatus.SUCCESS),
+            Builders<Order>.Filter.Ne(o => o.Payment, null),
+            Builders<Order>.Filter.Eq(o => o.Payment.PaymentStatus, PaymentStatus.SUCCESS));
+
+        return await _orders
+            .Find(filter)
+            .ToListAsync();
+    }
 }
+
 

@@ -146,10 +146,16 @@ public class CourseService : ICourseService
 
     public async Task<CourseOverviewResponseDTO> GetCourseOverviewAsync(
         Guid clubId,
-        Guid courseVersionId,
+        Guid courseId,
         CancellationToken cancellationToken = default)
     {
         var currentUserId = _currentUser.UserId;
+
+        var course = await _unitOfWork.Courses.GetByIdWithCurrentVersionAsync(courseId)
+            ?? throw new NotFoundException($"Không tìm thấy khóa học với id {courseId}.");
+
+        var courseVersionId = course.CurrentVersionID
+            ?? throw new NotFoundException($"Khóa học {courseId} chưa có phiên bản hiện tại.");
 
         var overviewData = await _unitOfWork.CourseVersions
             .GetCourseOverviewDataAsync(courseVersionId, currentUserId, cancellationToken);

@@ -10,6 +10,7 @@ public class UserModuleMappingProfile : Profile
     public UserModuleMappingProfile()
     {
         CreateMap<CreateUserModuleRequestDTO, UserModule>()
+            .ForMember(dest => dest.UserModuleID, opt => opt.Ignore())
             .ForMember(dest => dest.UserID, opt => opt.Ignore())
             .ForMember(dest => dest.EnrollDate, opt => opt.Ignore())
             .ForMember(dest => dest.CompleteDate, opt => opt.Ignore())

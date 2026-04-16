@@ -127,6 +127,7 @@ public class LearningService : ILearningService
         {
             userModule = new UserModule
             {
+                UserModuleID = Guid.NewGuid(),
                 UserID = _currentUser.UserId,
                 ModuleID = moduleId,
                 EnrollDate = _clock.Now,
@@ -278,6 +279,7 @@ public class LearningService : ILearningService
     {
         return new UserModule
         {
+            UserModuleID = Guid.NewGuid(),
             UserID = _currentUser.UserId,
             ModuleID = moduleId,
             EnrollDate = now,

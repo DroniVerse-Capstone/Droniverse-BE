@@ -407,6 +407,52 @@ namespace Droniverse.Academy.Application.HttpClients
             }
         }
 
+        public async Task<SystemEstimatetime?> GetSystemEstimatetimeAsync()
+        {
+            try 
+            {
+                HttpResponseMessage response = await _httpClient.GetAsync(BuildIdentityPath("system-configs/estimatetime"));
+                if (!response.IsSuccessStatusCode)
+                {
+                    if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                    {
+                        _logger.LogError("Identity service unavailable when getting system estimatetime.");
+                        return null;
+                    }
+                    else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    {
+                        _logger.LogWarning("System estimatetime not found.");
+                        return null;
+                    }
+                    else if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                    {
+                        throw new HttpRequestException(
+                            "Bad request when calling system estimatetime API",
+                            null,
+                            System.Net.HttpStatusCode.BadRequest);
+                    }
+                    else
+                    {
+                        throw new HttpRequestException(
+                            $"Identity service error: {response.StatusCode}",
+                            null,
+                            response.StatusCode);
+                    }
+                }
+                var result = await response.Content
+                    .ReadFromJsonAsync<SystemEstimatetime>(JsonOptions);
+                if (result == null)
+                {
+                    throw new ArgumentException("Invalid system estimatetime response");
+                }
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calling system estimatetime API");
+                throw;
+            }
+        }
 
         private string BuildIdentityPath(string relativePath)
         {

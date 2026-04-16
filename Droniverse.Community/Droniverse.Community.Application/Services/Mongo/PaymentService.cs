@@ -19,6 +19,9 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Droniverse.Shared.Helpers;
+using Droniverse.Community.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+using Droniverse.Shared.Enums;
 
 namespace Droniverse.Community.Application.Services.Mongo;
 
@@ -32,6 +35,7 @@ internal class PaymentService : IPaymentService
     private readonly ICurrentUserService _currentUserService;
     private readonly IInvoiceRepository _invoiceRepository;
     private readonly IdentityMicroserviceClient _identityMicroserviceClient;
+    private readonly AcademyMicroserviceClient _academyMicroserviceClient;
     private readonly IEmailService _emailService;
     private readonly string _checksumKey;
     public PaymentService(
@@ -42,7 +46,8 @@ internal class PaymentService : IPaymentService
         IOrderRepository orderRepository,
         IInvoiceRepository invoiceRepository,
         IdentityMicroserviceClient identityMicroserviceClient,
-        IEmailService emailService)
+        IEmailService emailService,
+        AcademyMicroserviceClient academyMicroserviceClient)
     {
         _orderRepository = orderRepository;
         _configuration = configuration;
@@ -51,6 +56,7 @@ internal class PaymentService : IPaymentService
         _currentUserService = currentUserService;
         _identityMicroserviceClient = identityMicroserviceClient;
         _emailService = emailService;
+        _academyMicroserviceClient = academyMicroserviceClient;
 
         var clientId = _configuration["PAYOS_CLIENT_ID"];
         var apiKey = _configuration["PAYOS_API_KEY"];
@@ -165,7 +171,7 @@ internal class PaymentService : IPaymentService
                 throw new Exception("PayOs không trả về kết quả.");
             }
 
-            // 🔍 DEBUG: Log đầy đủ response
+            // Log đầy đủ response
             var responseJson = JsonSerializer.Serialize(response);
             _logger.LogInformation("PayOS CreatePaymentLink Response: {Response}", responseJson);
 
@@ -354,17 +360,9 @@ internal class PaymentService : IPaymentService
 
                 order.Status = OrderStatus.SUCCESS;
                 
-                // Get user info from Identity microservice to obtain email
-                UserResponse? user = null;
-                try
-                {
-                    user = await _identityMicroserviceClient.GetUserByUserID(order.UserID);
-                    _logger.LogInformation("Retrieved user info for UserId: {UserId}, Email: {Email}", order.UserID, user?.Email);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to retrieve user info from Identity service for UserId: {UserId}", order.UserID);
-                }
+                // Get user info from Identity service for email sending
+                var (userEmail, userName) = await GetUserInfoAsync(order.UserID);
+                _logger.LogInformation("Payment SUCCESS for orderId: {OrderId}, Email: {Email}", order._id, userEmail);
 
                 //Add Invoice
                 Invoice invoice = new Invoice();
@@ -382,8 +380,8 @@ internal class PaymentService : IPaymentService
                 invoice.CustomerInfo = new CustomerInfo
                 {
                     UserID = order.UserID,
-                    FullName = AppHelper.GetFullName(user),
-                    Email = user?.Email ?? string.Empty,
+                    FullName = "User", // Fallback, full name từ Identity service không cần thiết cho invoice
+                    Email = userEmail ?? string.Empty,
                     TaxCode = null,
                 };
                 invoice.Item = new InvoiceItem
@@ -400,13 +398,13 @@ internal class PaymentService : IPaymentService
                 Invoice? responseInvoice = await _invoiceRepository.AddInvoice(invoice);
 
                 // Send payment confirmation email to user
-                if (user?.Email != null)
+                if (!string.IsNullOrWhiteSpace(userEmail))
                 {
                     try
                     {
                         await _emailService.SendOrderConfirmationEmailAsync(
-                            email: user.Email,
-                            userName: user.Username ?? "User",
+                            email: userEmail,
+                            userName: userName ?? "User",
                             orderId: order._id.ToString(),
                             orderDate: order.CreateAt.ToString("dd/MM/yyyy HH:mm:ss"),
                             productId: order.Item.ProductID.ToString(),
@@ -416,11 +414,11 @@ internal class PaymentService : IPaymentService
                             unitOfPrice: order.Item.UnitOfPrice,
                             quantity: order.Item.Quantity,
                             totalAmount: order.TotalAmount);
-                        _logger.LogInformation("Payment confirmation email sent to {Email} for OrderId: {OrderId}", user.Email, order._id);
+                        _logger.LogInformation("Payment confirmation email sent to {Email} for OrderId: {OrderId}", userEmail, order._id);
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "Failed to send payment confirmation email to {Email} for OrderId: {OrderId}", user.Email, order._id);
+                        _logger.LogError(ex, "Failed to send payment confirmation email to {Email} for OrderId: {OrderId}", userEmail, order._id);
                     }
                 }
                 else
@@ -429,6 +427,80 @@ internal class PaymentService : IPaymentService
                 }
 
                 _logger.LogInformation("Payment SUCCESS for orderId: {OrderId}", order._id);
+
+                // ===== Handle ClubCourse and Generate Codes for successful payment =====
+                try
+                {
+                    // Get product info to access ReferenceID (CourseID)
+                    Product? product = await _unitOfWork.Products.GetByCondition(
+                        p => p.ProductID == order.Item.ProductID && p.Status == ProductStatus.ACTIVE,
+                        query => query.AsNoTracking());
+
+                    if (product != null)
+                    {
+                        bool isMember = order.OrderType == OrderType.USER_PURCHASE;
+
+                        if (!isMember) // ClubManager import
+                        {
+                            // Update ClubCourse - create or increase capacity
+                            ClubCourse? clubCourse = await _unitOfWork.ClubCourses.GetByCondition(
+                                cc => cc.ClubID == order.ClubID && cc.CourseID == product.ReferenceID, 
+                                query => query);
+
+                            if (clubCourse == null)
+                            {
+                                clubCourse = ClubCourse.Create(order.ClubID, product.ReferenceID, order.Item.Quantity, ClubCourseProfit.PROFIT);
+                                await _unitOfWork.ClubCourses.Add(clubCourse);
+                            }
+                            else
+                            {
+                                clubCourse.IncreaseCapacity(order.Item.Quantity);
+                            }
+                            await _unitOfWork.SaveChangeAsync();
+                            _logger.LogInformation("Updated ClubCourse capacity for ClubId: {ClubId}, CourseId: {CourseId}, Quantity: {Quantity}", 
+                                order.ClubID, product.ReferenceID, order.Item.Quantity);
+                        }
+                        else // Club member - generate and assign codes
+                        {
+                            // Consume from club course
+                            ClubCourse? clubCourse = await _unitOfWork.ClubCourses.GetByCondition(
+                                cc => cc.ClubID == order.ClubID && cc.CourseID == product.ReferenceID, 
+                                query => query);
+                            
+                            if (clubCourse != null)
+                            {
+                                clubCourse.Consume(order.Item.Quantity);
+                                await _unitOfWork.SaveChangeAsync();
+                                _logger.LogInformation("Consumed from ClubCourse for member - ClubId: {ClubId}, CourseId: {CourseId}, Quantity: {Quantity}", 
+                                    order.ClubID, product.ReferenceID, order.Item.Quantity);
+                            }
+
+                            // Generate and assign codes to member
+                            HttpClients.GenerateCodesRequestDTO codeRequest = new HttpClients.GenerateCodesRequestDTO
+                            {
+                                ClubId = order.ClubID,
+                                CourseId = product.ReferenceID,
+                                Quantity = order.Item.Quantity
+                            };
+                            
+                            CodeResponse codeResponse = await _academyMicroserviceClient.GenerateAssignCodesAsync(codeRequest);
+                            
+                            if (codeResponse == null || codeResponse.CodeID == null)
+                            {
+                                _logger.LogError("Error generating codes for order {OrderId}. No response from Academy Microservice.", order._id);
+                                throw new Exception("Gán mã cho thành viên clb thất bại. Vui lòng liên hệ hỗ trợ.");
+                            }
+                            
+                            _logger.LogInformation("Generated and assigned codes for member - OrderId: {OrderId}, CodeId: {CodeId}", 
+                                order._id, codeResponse.CodeID);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error processing ClubCourse/Codes for successful payment - OrderId: {OrderId}", order._id);
+                    // Don't throw here - payment is already successful, just log the error
+                }
             }
             else if (webhook.Code == "05")
             {
@@ -518,8 +590,54 @@ internal class PaymentService : IPaymentService
             _logger.LogError(ex, "Lỗi hủy thanh toán cho order {OrderId}", orderId);
             return false;
         }
+    }
 
+    /// <summary>
+    /// Get user info (email and name) from Identity service
+    /// </summary>
+    private async Task<(string? Email, string? UserName)> GetUserInfoAsync(Guid userId)
+    {
+        try
+        {
+            _logger.LogInformation("Fetching user info from Identity service for UserId: {UserId}", userId);
+            var user = await _identityMicroserviceClient.GetUserByUserID(userId);
+            if (user != null)
+            {
+                _logger.LogInformation("Successfully retrieved user info for UserId: {UserId}", userId);
+                return (user.Email, user.Username);
+            }
+            _logger.LogWarning("User not found for UserId: {UserId}", userId);
+            return (null, null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching user info from Identity service for UserId: {UserId}", userId);
+            return (null, null);
+        }
+    }
 
+    /// <summary>
+    /// Get user email from Identity service for webhook email sending
+    /// </summary>
+    private async Task<string?> GetUserEmailAsync(Guid userId)
+    {
+        try
+        {
+            _logger.LogInformation("Fetching user email from Identity service for UserId: {UserId}", userId);
+            var user = await _identityMicroserviceClient.GetUserByUserID(userId);
+            if (user != null && !string.IsNullOrWhiteSpace(user.Email))
+            {
+                _logger.LogInformation("Successfully retrieved email for UserId: {UserId}", userId);
+                return user.Email;
+            }
+            _logger.LogWarning("User not found or email is null for UserId: {UserId}", userId);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching user email from Identity service for UserId: {UserId}", userId);
+            return null;
+        }
     }
 }
 
