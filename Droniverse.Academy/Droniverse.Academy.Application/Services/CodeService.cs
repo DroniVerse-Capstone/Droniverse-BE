@@ -670,7 +670,7 @@ public class CodeService : ICodeService
             pageSize);
     }
 
-    public async Task<CodeResponseDTO> CreateWithAssignCodeAsync(GenerateWithAssignCodeRequestDTO request)
+    public async Task<CodeResponseDTO> CreateWithAssignCodeAsync(Shared.DTOs.Request.GenerateWithAssignCodeRequestDTO request)
     {
         if (request is null)
             throw new ValidationException("Dữ liệu tạo mã code không hợp lệ.");

@@ -7,12 +7,12 @@ using Droniverse.Shared.Enums;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.ComponentModel.DataAnnotations;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Droniverse.Shared.Services.IServices;
 
 namespace Droniverse.Community.Application.HttpClients;
 
@@ -921,4 +921,14 @@ public class CodeResponse
     public DateTime? UsedDate { get; set; }
     public DateTime ExpireDate { get; set; }
     public CodeStatusEnum Status { get; set; }
+}
+
+public record GenerateCodesRequestDTO
+{
+    [Required(ErrorMessage = "Không thể thiếu mã câu lạc bộ")]
+    public required Guid ClubId { get; set; }
+    [Required(ErrorMessage = "Không thể thiếu mã khóa học")]
+    public required Guid CourseId { get; set; }
+    [Range(1, 50, ErrorMessage = "Tạo từ 1 tới 50 mã")]
+    public int Quantity { get; set; }
 }

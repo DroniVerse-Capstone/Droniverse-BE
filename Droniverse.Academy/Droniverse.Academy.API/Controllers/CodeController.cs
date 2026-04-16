@@ -1,6 +1,5 @@
 ﻿using Droniverse.Academy.Application.DTO.Extension;
 using Droniverse.Academy.Application.DTO.Request;
-using Droniverse.Academy.Application.DTO.Extension;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
@@ -81,9 +80,9 @@ public class CodeController : ControllerBase
     /// </summary>
     [HttpPost("generate-assign")]
     [Authorize(Roles = Roles.ClubMember)]
-    public async Task<IActionResult> GenerateCode([FromBody] GenerateWithAssignCodeRequestDTO request)
+    public async Task<IActionResult> GenerateCode([FromBody] Shared.DTOs.Request.GenerateWithAssignCodeRequestDTO request)
     {
-        var response = await _codeService.CreateWithAssignCodeAsync(request);
+        CodeResponseDTO response = await _codeService.CreateWithAssignCodeAsync(request);
         return Ok(response);
     }
 

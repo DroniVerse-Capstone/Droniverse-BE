@@ -902,7 +902,7 @@ internal class ClubService : IClubService
         if (clubCourse.RemainingQuantity < request.Quantity)
             throw new InvalidOperationException("Số mã còn lại không đủ");
 
-        var generateResponse = await _academyMicroserviceClient.GenerateCodes(new GenerateCodesRequestDTO
+        var generateResponse = await _academyMicroserviceClient.GenerateCodes(new HttpClients.GenerateCodesRequestDTO
         {
             ClubId = clubId,
             CourseId = request.CourseId,

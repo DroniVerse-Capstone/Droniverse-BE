@@ -19,7 +19,7 @@ public interface ICodeService
     Task<BulkCodeAssignmentResponseDTO> BulkAssignCodesAsync(BulkAssignCodesRequest request);
     Task<PaginationResult<IEnumerable<MyCodeResponseDTO>>> GetCodesByUserAsync(GetCodesByUserSearchRequest request);
     Task<PaginationResult<IEnumerable<SimpleUserReponse>>> GetUsersCode(Guid clubId, Guid courseId, GetUsersNoCodesSearchRequest request);
-    Task<CodeResponseDTO> CreateWithAssignCodeAsync(GenerateWithAssignCodeRequestDTO request);
+    Task<CodeResponseDTO> CreateWithAssignCodeAsync(Shared.DTOs.Request.GenerateWithAssignCodeRequestDTO request);
     Task<GetCodeByUsersResponseDTO> GetCodeByUsers(Guid clubId, Guid courseId);
 }
 

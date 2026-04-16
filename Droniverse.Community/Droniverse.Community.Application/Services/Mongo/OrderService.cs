@@ -179,7 +179,7 @@ internal class OrderService : IOrderService
         //---------------------------------------------------------------------------------------------------------------
         if (isMember)
         {
-            GenerateCodesRequestDTO request = new GenerateCodesRequestDTO
+            HttpClients.GenerateCodesRequestDTO request = new HttpClients.GenerateCodesRequestDTO
             {
                 ClubId = clubId,
                 CourseId = product.ReferenceID,
