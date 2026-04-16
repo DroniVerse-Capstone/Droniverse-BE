@@ -2,6 +2,7 @@
 using Droniverse.Identity.Application.IService;
 using Droniverse.Identity.Domain.Interfaces;
 using Droniverse.Shared.DTOs;
+using Droniverse.Shared.DTOs.Response;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,6 +22,13 @@ namespace Droniverse.Identity.Application.Services
         {
             var certificateTemplate = await _unitOfWork.SysConfigs.GetCertificateTemplate();
             return new CertificateTemplateResponse { ImageUrl = certificateTemplate.ImageUrl };
+        }
+
+        public async Task<SystemEstimatetime> GetSystemEstimateTime()
+        {
+            var systemEstimateTime = await _unitOfWork.SysConfigs.GetSystemEstimateTime();
+            return new SystemEstimatetime { BufferEstimatedDuration = systemEstimateTime.BufferEstimatedDuration };
+
         }
     }
 }

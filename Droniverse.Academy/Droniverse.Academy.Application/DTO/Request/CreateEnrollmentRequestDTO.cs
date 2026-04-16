@@ -4,5 +4,4 @@ public class CreateEnrollmentRequestDTO
 {
     public Guid CourseVersionID { get; set; }
     public Guid? ClubID { get; set; }
-    public DateTime? ExpireDate { get; set; }
 }

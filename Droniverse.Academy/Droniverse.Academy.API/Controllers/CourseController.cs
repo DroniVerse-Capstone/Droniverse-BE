@@ -196,20 +196,20 @@ namespace Droniverse.Academy.API.Controllers
         }
 
         /// <summary>
-        /// Lấy tổng quan của một phiên bản khóa học.
+        /// Lấy tổng quan khóa học theo phiên bản hiện tại.
         /// </summary>
-        // GET academy/courses/{courseVersionId}/overview
-        [HttpGet("{courseVersionId:guid}/overview")]
+        // GET academy/courses/{courseId}/overview
+        [HttpGet("{courseId:guid}/overview")]
         [SwaggerResponseExample(StatusCodes.Status200OK, typeof(CourseOverviewSuccessResponseExample))]
         [ProducesResponseType(typeof(SuccessResponse<CourseOverviewResponseDTO>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetCourseOverview(
             [FromQuery] Guid clubId,
-            Guid courseVersionId,
+            Guid courseId,
             CancellationToken cancellationToken)
         {
             try
             {
-                var overview = await _courseService.GetCourseOverviewAsync(clubId, courseVersionId, cancellationToken);
+                var overview = await _courseService.GetCourseOverviewAsync(clubId, courseId, cancellationToken);
                 return Ok(SuccessResponse<CourseOverviewResponseDTO>.Create(overview, "Lấy tổng quan khóa học thành công."));
             }
             catch (Exception ex)

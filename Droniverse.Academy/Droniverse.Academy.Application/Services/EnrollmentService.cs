@@ -49,7 +49,7 @@ public class EnrollmentService : IEnrollmentService
         enrollment.UserID = userId;
         enrollment.EnrollDate = _clock.Now;
         enrollment.LastAccessDate = _clock.Now;
-        enrollment.ExpireDate = request.ExpireDate ?? _clock.Now.AddMonths(6);
+        enrollment.ExpireDate = _clock.Now.AddMonths(6);
         enrollment.Progress = 0;
         enrollment.Status = EnrollStatus.ACTIVE;
 
