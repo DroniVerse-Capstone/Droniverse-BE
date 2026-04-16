@@ -354,17 +354,9 @@ internal class PaymentService : IPaymentService
 
                 order.Status = OrderStatus.SUCCESS;
                 
-                // Get user info from Identity microservice to obtain email
-                UserResponse? user = null;
-                try
-                {
-                    user = await _identityMicroserviceClient.GetUserByUserID(order.UserID);
-                    _logger.LogInformation("Retrieved user info for UserId: {UserId}, Email: {Email}", order.UserID, user?.Email);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to retrieve user info from Identity service for UserId: {UserId}", order.UserID);
-                }
+                // Get user email from Identity service for email sending
+                var userEmail = await GetUserEmailAsync(order.UserID);
+                _logger.LogInformation("Payment SUCCESS for orderId: {OrderId}, Email: {Email}", order._id, userEmail);
 
                 //Add Invoice
                 Invoice invoice = new Invoice();
@@ -382,8 +374,8 @@ internal class PaymentService : IPaymentService
                 invoice.CustomerInfo = new CustomerInfo
                 {
                     UserID = order.UserID,
-                    FullName = AppHelper.GetFullName(user),
-                    Email = user?.Email ?? string.Empty,
+                    FullName = "User", // Fallback, full name từ Identity service không cần thiết cho invoice
+                    Email = userEmail ?? string.Empty,
                     TaxCode = null,
                 };
                 invoice.Item = new InvoiceItem
@@ -400,13 +392,13 @@ internal class PaymentService : IPaymentService
                 Invoice? responseInvoice = await _invoiceRepository.AddInvoice(invoice);
 
                 // Send payment confirmation email to user
-                if (user?.Email != null)
+                if (!string.IsNullOrWhiteSpace(userEmail))
                 {
                     try
                     {
                         await _emailService.SendOrderConfirmationEmailAsync(
-                            email: user.Email,
-                            userName: user.Username ?? "User",
+                            email: userEmail,
+                            userName: "User", // Using default name since we don't have full user info from current context
                             orderId: order._id.ToString(),
                             orderDate: order.CreateAt.ToString("dd/MM/yyyy HH:mm:ss"),
                             productId: order.Item.ProductID.ToString(),
@@ -416,11 +408,11 @@ internal class PaymentService : IPaymentService
                             unitOfPrice: order.Item.UnitOfPrice,
                             quantity: order.Item.Quantity,
                             totalAmount: order.TotalAmount);
-                        _logger.LogInformation("Payment confirmation email sent to {Email} for OrderId: {OrderId}", user.Email, order._id);
+                        _logger.LogInformation("Payment confirmation email sent to {Email} for OrderId: {OrderId}", userEmail, order._id);
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "Failed to send payment confirmation email to {Email} for OrderId: {OrderId}", user.Email, order._id);
+                        _logger.LogError(ex, "Failed to send payment confirmation email to {Email} for OrderId: {OrderId}", userEmail, order._id);
                     }
                 }
                 else
@@ -518,8 +510,30 @@ internal class PaymentService : IPaymentService
             _logger.LogError(ex, "Lỗi hủy thanh toán cho order {OrderId}", orderId);
             return false;
         }
+    }
 
-
+    /// <summary>
+    /// Get user email from Identity service for webhook email sending
+    /// </summary>
+    private async Task<string?> GetUserEmailAsync(Guid userId)
+    {
+        try
+        {
+            _logger.LogInformation("Fetching user email from Identity service for UserId: {UserId}", userId);
+            var user = await _identityMicroserviceClient.GetUserByUserID(userId.ToString());
+            if (user != null && !string.IsNullOrWhiteSpace(user.Email))
+            {
+                _logger.LogInformation("Successfully retrieved email for UserId: {UserId}", userId);
+                return user.Email;
+            }
+            _logger.LogWarning("User not found or email is null for UserId: {UserId}", userId);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching user email from Identity service for UserId: {UserId}", userId);
+            return null;
+        }
     }
 }
 
