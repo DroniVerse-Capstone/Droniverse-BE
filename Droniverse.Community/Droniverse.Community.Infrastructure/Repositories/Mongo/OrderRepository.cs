@@ -345,15 +345,15 @@ internal class OrderRepository : IOrderRepository
 
                 RevenueThisMonth = g.Sum(x =>
                     x.OrderType == OrderType.USER_PURCHASE &&
-                    x.CreateAt >= startThisMonth &&
-                    x.CreateAt < startNextMonth
+                    x.Payment.TransactionDate >= startThisMonth &&
+                    x.Payment.TransactionDate < startNextMonth
                         ? x.TotalAmount
                         : 0),
 
                 RevenueLastMonth = g.Sum(x =>
                     x.OrderType == OrderType.USER_PURCHASE &&
-                    x.CreateAt >= startLastMonth &&
-                    x.CreateAt < startThisMonth
+                    x.Payment.TransactionDate >= startLastMonth &&
+                    x.Payment.TransactionDate < startThisMonth
                         ? x.TotalAmount
                         : 0),
 
@@ -364,23 +364,23 @@ internal class OrderRepository : IOrderRepository
 
                 ExpenseThisMonth = g.Sum(x =>
                     x.OrderType == OrderType.CLUB_IMPORT &&
-                    x.CreateAt >= startThisMonth &&
-                    x.CreateAt < startNextMonth
+                    x.Payment.TransactionDate >= startThisMonth &&
+                    x.Payment.TransactionDate < startNextMonth
                         ? x.TotalAmount
                         : 0),
 
                 ExpenseLastMonth = g.Sum(x =>
                     x.OrderType == OrderType.CLUB_IMPORT &&
-                    x.CreateAt >= startLastMonth &&
-                    x.CreateAt < startThisMonth
+                    x.Payment.TransactionDate >= startLastMonth &&
+                    x.Payment.TransactionDate < startThisMonth
                         ? x.TotalAmount
                         : 0),
 
                 TotalTransactions = g.Sum(_ => 1),
 
                 TransactionsThisMonth = g.Sum(x =>
-                    x.CreateAt >= startThisMonth &&
-                    x.CreateAt < startNextMonth
+                    x.Payment.TransactionDate >= startThisMonth &&
+                    x.Payment.TransactionDate < startNextMonth
                         ? 1
                         : 0)
             })
@@ -391,6 +391,7 @@ internal class OrderRepository : IOrderRepository
 
     public async Task<IEnumerable<OrderRevenueData>> GetSuccessfulRevenueDataByClubId(
         Guid clubId,
+        OrderType orderType = OrderType.USER_PURCHASE,
         DateTime? fromInclusive = null,
         DateTime? toExclusive = null)
     {
@@ -401,7 +402,8 @@ internal class OrderRepository : IOrderRepository
             Builders<Order>.Filter.Eq(o => o.ClubID, clubId),
             Builders<Order>.Filter.Eq(o => o.Status, OrderStatus.SUCCESS),
             Builders<Order>.Filter.Ne(o => o.Payment, null),
-            Builders<Order>.Filter.Eq(o => o.Payment.PaymentStatus, PaymentStatus.SUCCESS));
+            Builders<Order>.Filter.Eq(o => o.Payment.PaymentStatus, PaymentStatus.SUCCESS),
+            Builders<Order>.Filter.Eq(o => o.OrderType, orderType)); // Filter by specified OrderType (USER_PURCHASE for revenue, CLUB_IMPORT for expenses)
 
         if (fromInclusive.HasValue)
             filter &= Builders<Order>.Filter.Gte(o => o.Payment.TransactionDate, fromInclusive.Value);
@@ -429,6 +431,14 @@ internal class OrderRepository : IOrderRepository
 
         return await _orders
             .Find(filter)
+            .ToListAsync();
+    }
+
+    // Debug method to get all orders regardless of status
+    public async Task<IEnumerable<Order>> GetAllOrdersDebug()
+    {
+        return await _orders
+            .Find(Builders<Order>.Filter.Empty)
             .ToListAsync();
     }
 }

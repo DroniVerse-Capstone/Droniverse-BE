@@ -6,18 +6,31 @@ using System.Threading.Tasks;
 
 namespace Droniverse.Community.Application.DTO.Response
 {
+    /// <summary>
+    /// Response cho Club overview - chỉ chứa Chi phí và KPI giao dịch
+    /// </summary>
     public record RevenueOverviewResponse
+    {
+        // ===== EXPENSE =====
+        public decimal TotalExpense { get; set; }
+        public decimal ExpenseThisMonth { get; set; }
+        public decimal ExpenseLastMonth { get; set; }
+
+        // ===== KPI =====
+        public int TotalTransactions { get; set; }
+        public int TransactionsThisMonth { get; set; }
+    }
+
+    /// <summary>
+    /// Response cho Admin overview - chứa Doanh thu, Lợi nhuận và KPI giao dịch (không có Chi phí)
+    /// </summary>
+    public record AdminRevenueOverviewResponse
     {
         // ===== REVENUE =====
         public decimal TotalRevenue { get; set; }
         public decimal RevenueThisMonth { get; set; }
         public decimal RevenueLastMonth { get; set; }
         public double RevenueGrowthRate { get; set; }
-
-        // ===== EXPENSE =====
-        public decimal TotalExpense { get; set; }
-        public decimal ExpenseThisMonth { get; set; }
-        public decimal ExpenseLastMonth { get; set; }
 
         // ===== PROFIT =====
         public decimal NetProfit { get; set; }

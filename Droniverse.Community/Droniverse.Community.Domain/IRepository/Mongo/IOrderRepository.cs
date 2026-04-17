@@ -28,6 +28,7 @@ public interface IOrderRepository
 
     Task<IEnumerable<OrderRevenueData>> GetSuccessfulRevenueDataByClubId(
         Guid clubId,
+        OrderType orderType = OrderType.USER_PURCHASE,
         DateTime? fromInclusive = null,
         DateTime? toExclusive = null);
 
