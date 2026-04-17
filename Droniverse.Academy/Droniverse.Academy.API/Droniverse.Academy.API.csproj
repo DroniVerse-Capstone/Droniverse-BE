@@ -33,6 +33,12 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Content Update="wwwroot\quizquestion_template.xlsx">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </Content>
+	</ItemGroup>
+
+	<ItemGroup>
 	  <None Update="fonts\arialbd.ttf">
 	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	  </None>
