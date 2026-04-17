@@ -445,8 +445,8 @@ public class Competition
                 if (!hasPrizes)
                     throw new InvalidOperationException("Cuộc thi chưa cấu hình giải thưởng.");
 
-                if (now > VisibleAt)
-                    throw new InvalidOperationException("Cuộc thi đã qua thời gian để công bố, vui lòng chỉnh thời gian trước");
+                if (now > RegistrationStartDate)
+                    throw new InvalidOperationException("Cuộc thi đã qua thời gian để công bố, vui lòng chỉnh thời gian bắt đầu trước");
 
                 Status = CompetitionStatus.PUBLISHED;
                 break;
