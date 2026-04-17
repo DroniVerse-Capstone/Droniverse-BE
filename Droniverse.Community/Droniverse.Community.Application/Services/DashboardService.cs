@@ -3,6 +3,7 @@ using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.Entities.Mongo;
+using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Community.Domain.IRepository.Mongo;
 using Droniverse.Shared.DTOs;
@@ -220,59 +221,57 @@ namespace Droniverse.Community.Application.Services
                     TransactionsThisMonth = 0
                 };
 
-            // Aggregate all club data
-            decimal totalRevenue = 0;
-            decimal revenueThisMonth = 0;
-            decimal revenueLastMonth = 0;
-            decimal totalExpense = 0;
-            decimal expenseThisMonth = 0;
-            decimal expenseLastMonth = 0;
-            int totalTransactions = 0;
-            int transactionsThisMonth = 0;
-
-            foreach (var club in clubList)
-            {
-                try
-                {
-                    var clubRevenue = await GetRevenueOverviewByClub(club.ClubID);
-
-                    totalExpense += clubRevenue.TotalExpense;
-                    expenseThisMonth += clubRevenue.ExpenseThisMonth;
-                    expenseLastMonth += clubRevenue.ExpenseLastMonth;
-                    totalTransactions += clubRevenue.TotalTransactions;
-                    transactionsThisMonth += clubRevenue.TransactionsThisMonth;
-                }
-                catch (Exception ex)
-                {
-                    // Log error but continue with other clubs
-                    continue;
-                }
-            }
-
-            // Get aggregate data for all clubs from orders
+            // Get timestamp ranges
             var now = _clock.Now;
             var startThisMonth = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
             var startNextMonth = startThisMonth.AddMonths(1);
             var startLastMonth = startThisMonth.AddMonths(-1);
 
-            // Get all successful revenue data across all clubs
+            // Get all successful orders across all clubs
             var allOrders = await _orderRepository.GetAllSuccessfulOrders();
-            if (allOrders != null && allOrders.Any())
-            {
-                var ordersThisMonth = allOrders.Where(o => o.Payment?.TransactionDate >= startThisMonth && o.Payment?.TransactionDate < startNextMonth).ToList();
-                var ordersLastMonth = allOrders.Where(o => o.Payment?.TransactionDate >= startLastMonth && o.Payment?.TransactionDate < startThisMonth).ToList();
+            if (allOrders == null)
+                allOrders = [];
+            
+            var allOrdersList = allOrders.ToList();
 
-                totalRevenue = allOrders.Sum(o => o.TotalAmount);
-                revenueThisMonth = ordersThisMonth.Sum(o => o.TotalAmount);
-                revenueLastMonth = ordersLastMonth.Sum(o => o.TotalAmount);
-            }
+            // Calculate Revenue and Profit from CLUB_IMPORT orders (clubs' spending on course codes)
+            var clubImportOrders = allOrdersList.Where(o => o.OrderType == Domain.Enums.OrderType.CLUB_IMPORT).ToList();
+            var totalRevenue = clubImportOrders.Sum(o => o.TotalAmount);
+            var revenueThisMonth = clubImportOrders
+                .Where(o => o.Payment != null 
+                    && o.Payment.TransactionDate >= startThisMonth 
+                    && o.Payment.TransactionDate < startNextMonth)
+                .Sum(o => o.TotalAmount);
+            var revenueLastMonth = clubImportOrders
+                .Where(o => o.Payment != null 
+                    && o.Payment.TransactionDate >= startLastMonth 
+                    && o.Payment.TransactionDate < startThisMonth)
+                .Sum(o => o.TotalAmount);
 
-            var netProfit = totalRevenue - totalExpense;
-            var profitThisMonth = revenueThisMonth - expenseThisMonth;
-            var profitLastMonth = revenueLastMonth - expenseLastMonth;
+            // Profit is also based on CLUB_IMPORT orders
+            var netProfit = clubImportOrders.Sum(o => o.TotalAmount);
+            var profitThisMonth = clubImportOrders
+                .Where(o => o.Payment != null 
+                    && o.Payment.TransactionDate >= startThisMonth 
+                    && o.Payment.TransactionDate < startNextMonth)
+                .Sum(o => o.TotalAmount);
+            var profitLastMonth = clubImportOrders
+                .Where(o => o.Payment != null 
+                    && o.Payment.TransactionDate >= startLastMonth 
+                    && o.Payment.TransactionDate < startThisMonth)
+                .Sum(o => o.TotalAmount);
 
+            // Calculate growth rates
             var revenueGrowthRate = CalculateGrowthRate(revenueThisMonth, revenueLastMonth);
             var profitGrowthRate = CalculateGrowthRate(profitThisMonth, profitLastMonth);
+
+            // Count transactions - all successful orders regardless of type
+            var totalTransactions = allOrdersList.Count;
+            var transactionsThisMonth = allOrdersList
+                .Where(o => o.Payment != null 
+                    && o.Payment.TransactionDate >= startThisMonth 
+                    && o.Payment.TransactionDate < startNextMonth)
+                .Count();
 
             return new AdminRevenueOverviewResponse
             {
@@ -307,12 +306,12 @@ namespace Droniverse.Community.Application.Services
 
             var allRevenueData = new List<OrderRevenueData>();
 
-            // Aggregate revenue data from all clubs
+            // Aggregate revenue data from all clubs using CLUB_IMPORT orders (admin's revenue)
             foreach (var club in clubList)
             {
                 try
                 {
-                    var revenueData = await _orderRepository.GetSuccessfulRevenueDataByClubId(club.ClubID, fromMonth, toExclusive);
+                    var revenueData = await _orderRepository.GetSuccessfulRevenueDataByClubId(club.ClubID, OrderType.CLUB_IMPORT, fromMonth, toExclusive);
                     allRevenueData.AddRange(revenueData);
                 }
                 catch (Exception ex)
@@ -363,12 +362,12 @@ namespace Droniverse.Community.Application.Services
             var allRevenueData = new List<OrderRevenueData>();
             var allCourseIdByProductId = new Dictionary<Guid, Guid>();
 
-            // Aggregate revenue data and product context from all clubs
+            // Aggregate revenue data and product context from all clubs using CLUB_IMPORT orders (admin's revenue)
             foreach (var club in clubList)
             {
                 try
                 {
-                    var revenueData = await _orderRepository.GetSuccessfulRevenueDataByClubId(club.ClubID);
+                    var revenueData = await _orderRepository.GetSuccessfulRevenueDataByClubId(club.ClubID, OrderType.CLUB_IMPORT);
                     allRevenueData.AddRange(revenueData);
 
                     var (productIds, courseIdByProductId) = await GetClubProductContext(club.ClubID);

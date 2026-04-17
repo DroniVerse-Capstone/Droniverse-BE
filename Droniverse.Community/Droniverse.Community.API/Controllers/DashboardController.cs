@@ -85,18 +85,20 @@ namespace Droniverse.Community.API.Controllers
         /// Lấy dữ liệu tổng quan tài chính của tất cả các câu lạc bộ theo các giao dịch đã thanh toán thành công.
         /// </summary>
         /// <remarks>
-        /// Bao gồm nhóm chỉ số doanh thu, chi phí, lợi nhuận và KPI giao dịch.
+        /// Bao gồm nhóm chỉ số doanh thu, lợi nhuận và KPI giao dịch.
         /// - Doanh thu: <b>TotalRevenue</b>, <b>RevenueThisMonth</b>, <b>RevenueLastMonth</b>, <b>RevenueGrowthRate</b>.
         /// - Lợi nhuận: <b>NetProfit</b>, <b>ProfitThisMonth</b>, <b>ProfitLastMonth</b>, <b>ProfitGrowthRate</b>.
         /// - KPI giao dịch: <b>TotalTransactions</b>, <b>TransactionsThisMonth</b>.
+        /// 
+        /// Tất cả các chỉ số đều dựa trên các order có trạng thái <b>Status = SUCCESS</b>.
+        /// 
         /// Trong đó:
         /// - RevenueGrowthRate = ((RevenueThisMonth - RevenueLastMonth) / RevenueLastMonth) * 100.
         /// - ProfitGrowthRate = ((ProfitThisMonth - ProfitLastMonth) / ProfitLastMonth) * 100.
         /// - Nếu mẫu số bằng 0 thì tăng trưởng trả về 100 khi giá trị tháng hiện tại &gt; 0, ngược lại trả về 0.
         /// </remarks>
-        /// <param name="clubId">ID câu lạc bộ.</param>
         /// <returns>
-        /// 200 OK - Trả về đầy đủ các chỉ số doanh thu/lợi nhuận/KPI giao dịch của hệ thống (không có chi phí).
+        /// 200 OK - Trả về đầy đủ các chỉ số doanh thu/lợi nhuận/KPI giao dịch của hệ thống.
         /// </returns>
         [HttpGet("revenue/admin/overview")]
         [ProducesResponseType(typeof(SuccessResponse<AdminRevenueOverviewResponse>), StatusCodes.Status200OK)]
@@ -111,6 +113,9 @@ namespace Droniverse.Community.API.Controllers
         /// <summary>
         /// Lấy biểu đồ tăng trưởng doanh thu theo tháng của toàn bộ hệ thống.
         /// </summary>
+        /// <remarks>
+        /// Tất cả các chỉ số đều dựa trên các order có trạng thái <b>Status = SUCCESS</b>.
+        /// </remarks>
         /// <param name="months">Số tháng cần lấy dữ liệu (mặc định 12).</param>
         /// <returns>
         /// 200 OK - Trả về danh sách doanh thu theo tháng của tất cả club.
@@ -127,6 +132,9 @@ namespace Droniverse.Community.API.Controllers
         /// <summary>
         /// Lấy doanh thu theo khóa học của toàn bộ hệ thống.
         /// </summary>
+        /// <remarks>
+        /// Tất cả các chỉ số đều dựa trên các order có trạng thái <b>Status = SUCCESS</b>.
+        /// </remarks>
         /// <param name="top">Số lượng khóa học doanh thu cao nhất cần lấy (mặc định 10).</param>
         /// <returns>
         /// 200 OK - Trả về doanh thu theo khóa học của tất cả club.
@@ -145,6 +153,7 @@ namespace Droniverse.Community.API.Controllers
         /// </summary>
         /// <remarks>
         /// Trả về danh sách các câu lạc bộ được sắp xếp giảm dần theo tổng số tiền họ bỏ ra để mua khóa học (dựa vào CLUB_IMPORT).
+        /// Tất cả các chỉ số đều dựa trên các order có trạng thái <b>Status = SUCCESS</b>.
         /// </remarks>
         /// <param name="top">Số lượng club hàng đầu cần lấy (mặc định 10).</param>
         /// <returns>
