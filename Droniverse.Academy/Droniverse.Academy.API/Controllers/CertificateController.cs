@@ -34,7 +34,7 @@ public class CertificateController : ControllerBase
     /// Lấy danh sách chứng chỉ (admin) có hỗ trợ tìm kiếm theo tên và phân trang.
     /// </summary>
     [HttpGet("certificates")]
-    [Authorize(Roles = Roles.AdminOrSystemManager)]
+    [Authorize(Roles = Roles.AdminOrManagerRoles)]
     public async Task<IActionResult> GetAllCertificates([FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 50, [FromQuery] string? search = null)
     {
         try
