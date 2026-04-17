@@ -42,6 +42,7 @@ public class UserModuleService : IUserModuleService
             throw new ValidationException("Người dùng đã có dữ liệu module này.");
 
         var userModule = _mapper.Map<UserModule>(request);
+        userModule.UserModuleID = Guid.NewGuid();
         userModule.UserID = userId;
         userModule.Progress = 0;
         userModule.IsCompleted = false;

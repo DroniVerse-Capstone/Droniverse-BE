@@ -64,8 +64,10 @@ public sealed class LearningPathAssembler
             moduleDTOs.Add(moduleDTO);
         }
 
-        var completedModules = moduleDTOs.Count(x => x.IsCompleted);
-        var enrollmentProgress = ProgressHelper.CalculateProgress(completedModules, moduleDTOs.Count);
+        var completedLessons = lessons.Count(lesson =>
+       userLessons.TryGetValue(lesson.LessonID, out var userLesson) && IsCompletedUserLesson(userLesson));
+
+        var enrollmentProgress = ProgressHelper.CalculateProgress(completedLessons, lessons.Count);
 
         var response = _mapper.Map<LearningPathDTO>(enrollment);
         response.TitleVN = courseVersion.TitleVN;
