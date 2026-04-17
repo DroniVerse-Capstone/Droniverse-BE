@@ -28,6 +28,7 @@ internal class AuthService : IAuthService
     private readonly JwtSettings _jwtSettings;
     private readonly ICurrentUserService _currentUserService;
     private readonly IEmailService _emailService;
+    private readonly INotificationService _notificationService;
     private readonly ILogger<AuthService> _logger;
 
     public AuthService(
@@ -36,6 +37,7 @@ internal class AuthService : IAuthService
         IOptions<JwtSettings> jwtSettings,
         ICurrentUserService currentUserService,
         IEmailService emailService,
+        INotificationService notificationService,
         ILogger<AuthService> logger)
     {
         _unitOfWork = unitOfWork;
@@ -43,6 +45,7 @@ internal class AuthService : IAuthService
         _jwtSettings = jwtSettings.Value;
         _currentUserService = currentUserService;
         _emailService = emailService;
+        _notificationService = notificationService;
         _logger = logger;
     }
     public async Task<AuthResponse> RefreshToken(string accessToken, string refreshToken)
@@ -93,6 +96,23 @@ internal class AuthService : IAuthService
         newAccount.PasswordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password);
         await _unitOfWork.Accounts.Add(newAccount);
         await _unitOfWork.SaveChangeAsync();
+
+        // Tạo và gửi notification ngay khi register thành công (Real-time)
+        try
+        {
+            await _notificationService.SendAndCreateNotificationAsync(
+                newAccount.UserID,
+                "Đăng ký thành công",
+                $"Chào mừng {newAccount.Username}! Bạn đã đăng ký thành công vào Droniverse.",
+                Domain.Enums.NotificationType.EMAIL,
+                newAccount.Email
+            );
+        }
+        catch (Exception notificationEx)
+        {
+            _logger.LogError($"Failed to send notification: {notificationEx.Message}");
+        }
+
         try
         {
             //gửi mail xác nhận register thành công
