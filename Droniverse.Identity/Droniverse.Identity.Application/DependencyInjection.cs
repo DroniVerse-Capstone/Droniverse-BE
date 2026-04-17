@@ -18,6 +18,7 @@ public static class DependencyInjection
         services.AddScoped<IRoleService, RoleService>();
         services.AddScoped<ISysConfigService, SysConfigService>();
         services.AddScoped<IEmailService, EmailService>();
+        services.AddScoped<INotificationService, NotificationService>();
         services.AddAutoMapper(typeof(AccountMappingProfile).Assembly);
         services.AddAutoMapper(typeof(PermissionMappingProfile).Assembly);
 

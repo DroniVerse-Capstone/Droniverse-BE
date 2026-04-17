@@ -8,5 +8,6 @@ public interface IUnitOfWork : IDisposable
     IUserInfoRepository UserInfos { get; }
     IPermissionRepository Permissions { get; }
     ISysConfigRepository SysConfigs { get; }
+    INotificationRepository Notifications { get; }
     Task<int> SaveChangeAsync();
 }
