@@ -30,6 +30,11 @@ public class QuizQuestionMappingProfile : Profile
 
         CreateMap<QuizQuestion, QuizQuestionLearningDTO>()
             .ForMember(dest => dest.Options, opt => opt.MapFrom(src => BuildLearningOptions(src)));
+        
+        CreateMap<ImportQuizQuestionDTO, QuizQuestion>()
+            .ForMember(dest => dest.QuestionID, opt => opt.Ignore())
+            .ForMember(dest => dest.Quiz, opt => opt.Ignore())
+            .ForMember(dest => dest.QuizQuestionAttempts, opt => opt.Ignore());
     }
 
     private static IReadOnlyList<QuizQuestionOptionLearningDTO> BuildLearningOptions(QuizQuestion question)

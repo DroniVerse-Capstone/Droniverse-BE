@@ -70,6 +70,7 @@ public static class DependencyInjection
         services.AddScoped<ILabContentSyncService, LabContentSyncService>();
 
         services.AddScoped<ICodeService, CodeService>();
+        services.AddScoped<IImportService, ImportService>();
         services.AddScoped<ICacheService, CacheService>();
 
         services.AddTransient<AuthorizationDelegatingHandler>();
