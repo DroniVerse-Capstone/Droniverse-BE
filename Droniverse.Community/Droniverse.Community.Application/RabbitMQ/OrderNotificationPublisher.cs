@@ -1,0 +1,176 @@
+﻿using Droniverse.Shared.Messages.Notification;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using RabbitMQ.Client;
+using System.Text;
+using System.Text.Json;
+
+namespace Droniverse.Community.Application.RabbitMQ;
+
+internal class OrderNotificationPublisher : IOrderNotificationPublisher, IDisposable
+{
+    private readonly IConfiguration _configuration;
+    private readonly ILogger<OrderNotificationPublisher> _logger;
+
+    private IModel? _channel;
+    private IConnection? _connection;
+    private bool _isConnected;
+
+    private readonly ConnectionFactory _factory;
+
+    public OrderNotificationPublisher(IConfiguration configuration, ILogger<OrderNotificationPublisher> logger)
+    {
+        _configuration = configuration;
+        _logger = logger;
+
+        string hostName = _configuration["RabbitMQ_HostName"] ?? "localhost";
+        string userName = _configuration["RabbitMQ_UserName"] ?? "guest";
+        string password = _configuration["RabbitMQ_Password"] ?? "guest";
+        string port = _configuration["RabbitMQ_Port"] ?? "5672";
+
+        _factory = new ConnectionFactory()
+        {
+            HostName = hostName,
+            UserName = userName,
+            Password = password,
+            Port = int.Parse(port),
+            RequestedConnectionTimeout = TimeSpan.FromSeconds(1),
+            AutomaticRecoveryEnabled = true,
+            NetworkRecoveryInterval = TimeSpan.FromSeconds(10)
+        };
+
+        _isConnected = false;
+    }
+
+    private void EnsureConnection()
+    {
+        if (_isConnected && _connection != null && _channel != null)
+            return;
+
+        try
+        {
+            _connection = _factory.CreateConnection();
+            _channel = _connection.CreateModel();
+            _isConnected = true;
+
+            _logger.LogInformation("RabbitMQ connection established successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "RabbitMQ not available");
+            _isConnected = false;
+            _connection = null;
+            _channel = null;
+        }
+    }
+
+    public void Publish<T>(string exchange, string routingKey, T message)
+    {
+        EnsureConnection();
+
+        if (!_isConnected || _channel == null)
+        {
+            _logger.LogWarning("RabbitMQ not connected, skip publish");
+            return;
+        }
+
+        try
+        {
+            string messageJson = JsonSerializer.Serialize(message);
+            byte[] messageBodyInBytes = Encoding.UTF8.GetBytes(messageJson);
+
+            _channel.ExchangeDeclare(
+                exchange: exchange,
+                type: ExchangeType.Direct,
+                durable: true);
+
+            _channel.BasicPublish(
+                exchange: exchange,
+                routingKey: routingKey,
+                basicProperties: null,
+                body: messageBodyInBytes);
+
+            _logger.LogInformation($"Message published to {exchange} with routing key {routingKey}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Publish failed");
+        }
+    }
+
+    public void Publish<T>(Dictionary<string, object> headers, T message)
+    {
+        EnsureConnection();
+
+        if (!_isConnected || _channel == null)
+        {
+            _logger.LogWarning("RabbitMQ not connected, skip publish");
+            return;
+        }
+
+        try
+        {
+            string messageJson = JsonSerializer.Serialize(message);
+            byte[] messageBodyInBytes = Encoding.UTF8.GetBytes(messageJson);
+
+            string exchangeName = _configuration["RabbitMQ_Notification_Exchange"] ?? "order.notification.exchange";
+
+            _channel.ExchangeDeclare(
+                exchange: exchangeName,
+                type: ExchangeType.Headers,
+                durable: true);
+
+            var basicProperties = _channel.CreateBasicProperties();
+            basicProperties.Headers = headers;
+
+            _channel.BasicPublish(
+                exchange: exchangeName,
+                routingKey: string.Empty,
+                basicProperties: basicProperties,
+                body: messageBodyInBytes);
+
+            _logger.LogInformation($"Message published to {exchangeName} with headers");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Publish failed");
+        }
+    }
+
+    public async Task PublishOrderCreatedAsync(OrderCreatedNotificationMessage message)
+    {
+        await Task.Run(() =>
+        {
+            Publish(
+                exchange: "order.notification.exchange",
+                routingKey: "order.created",
+                message: message
+            );
+        });
+    }
+
+    public async Task PublishPaymentSuccessfulAsync(PaymentSuccessfulNotificationMessage message)
+    {
+        await Task.Run(() =>
+        {
+            Publish(
+                exchange: "order.notification.exchange",
+                routingKey: "payment.successful",
+                message: message
+            );
+        });
+    }
+
+    public void Dispose()
+    {
+        try
+        {
+            _channel?.Dispose();
+            _connection?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Dispose failed");
+        }
+    }
+}

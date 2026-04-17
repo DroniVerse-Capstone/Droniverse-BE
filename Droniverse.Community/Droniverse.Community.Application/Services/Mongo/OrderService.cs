@@ -13,6 +13,7 @@ using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.Enums;
 using Droniverse.Shared.Exceptions;
+using Droniverse.Shared.Messages.Notification;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
@@ -30,6 +31,7 @@ internal class OrderService : IOrderService
     private readonly ILogger<OrderService> _logger;
     private readonly IEmailService _emailService;
     private readonly AcademyMicroserviceClient _academyMicroserviceClient;
+    private readonly IOrderNotificationPublisher _orderNotificationPublisher;
     public OrderService(
         IOrderRepository orderRepository,
         IMapper mapper,
@@ -39,7 +41,8 @@ internal class OrderService : IOrderService
         IUnitOfWork unitOfWork,
         ILogger<OrderService> logger,
         IEmailService emailService,
-        AcademyMicroserviceClient academyMicroserviceClient)
+        AcademyMicroserviceClient academyMicroserviceClient,
+        IOrderNotificationPublisher orderNotificationPublisher)
     {
         _orderRepository = orderRepository;
         _mapper = mapper;
@@ -50,6 +53,7 @@ internal class OrderService : IOrderService
         _unitOfWork = unitOfWork;
         _logger = logger;
         _academyMicroserviceClient = academyMicroserviceClient;
+        _orderNotificationPublisher = orderNotificationPublisher;
     }
 
     public async Task<OrderResponseDto?> AddOrder(Guid clubId, OrderCreateDto orderAddRequest)
@@ -138,6 +142,32 @@ internal class OrderService : IOrderService
             FilterDefinition<Order>? reloadFilter = Builders<Order>.Filter.Eq(o => o._id, createdOrder._id);
             createdOrder = await _orderRepository.GetOrderByCondition(reloadFilter) ?? createdOrder;
 
+            // Publish notification event after order is successfully created
+            try
+            {
+                var userEmail = _currentUserService.Email;
+                var userName = _currentUserService.UserName;
+                
+                if (createdOrder != null && !string.IsNullOrWhiteSpace(userEmail))
+                {
+                    var notificationEvent = new OrderCreatedNotificationMessage(
+                        UserId: createdOrder.UserID,
+                        OrderId: createdOrder._id,
+                        UserEmail: userEmail,
+                        UserName: userName ?? "User",
+                        Total: createdOrder.TotalAmount,
+                        CreatedAt: DateTime.UtcNow
+                    );
+                    
+                    await _orderNotificationPublisher.PublishOrderCreatedAsync(notificationEvent);
+                    _logger.LogInformation($"Order created notification published for order {createdOrder._id}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to publish order created notification");
+                // Don't throw - order creation should succeed even if notification fails
+            }
         }
         catch
         {

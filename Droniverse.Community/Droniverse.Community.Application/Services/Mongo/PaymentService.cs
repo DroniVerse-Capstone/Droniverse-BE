@@ -9,6 +9,7 @@ using Droniverse.Community.Domain.IRepository.Mongo;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Services;
 using Droniverse.Shared.Services.IServices;
+using Droniverse.Shared.Messages.Notification;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
@@ -37,6 +38,7 @@ internal class PaymentService : IPaymentService
     private readonly IdentityMicroserviceClient _identityMicroserviceClient;
     private readonly AcademyMicroserviceClient _academyMicroserviceClient;
     private readonly IEmailService _emailService;
+    private readonly IOrderNotificationPublisher _orderNotificationPublisher;
     private readonly string _checksumKey;
     public PaymentService(
         IConfiguration configuration,
@@ -47,7 +49,8 @@ internal class PaymentService : IPaymentService
         IInvoiceRepository invoiceRepository,
         IdentityMicroserviceClient identityMicroserviceClient,
         IEmailService emailService,
-        AcademyMicroserviceClient academyMicroserviceClient)
+        AcademyMicroserviceClient academyMicroserviceClient,
+        IOrderNotificationPublisher orderNotificationPublisher)
     {
         _orderRepository = orderRepository;
         _configuration = configuration;
@@ -57,6 +60,7 @@ internal class PaymentService : IPaymentService
         _identityMicroserviceClient = identityMicroserviceClient;
         _emailService = emailService;
         _academyMicroserviceClient = academyMicroserviceClient;
+        _orderNotificationPublisher = orderNotificationPublisher;
 
         var clientId = _configuration["PAYOS_CLIENT_ID"];
         var apiKey = _configuration["PAYOS_API_KEY"];
@@ -427,6 +431,30 @@ internal class PaymentService : IPaymentService
                 }
 
                 _logger.LogInformation("Payment SUCCESS for orderId: {OrderId}", order._id);
+
+                // 🟢 Publish notification event after successful payment
+                try
+                {
+                    if (!string.IsNullOrWhiteSpace(userEmail))
+                    {
+                        var notificationEvent = new PaymentSuccessfulNotificationMessage(
+                            UserId: order.UserID,
+                            OrderId: order._id,
+                            UserEmail: userEmail,
+                            UserName: userName ?? "User",
+                            Amount: order.TotalAmount,
+                            PaidAt: DateTime.UtcNow
+                        );
+                        
+                        await _orderNotificationPublisher.PublishPaymentSuccessfulAsync(notificationEvent);
+                        _logger.LogInformation($"Payment successful notification published for order {order._id}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to publish payment successful notification");
+                    // Don't throw - payment is already successful, notification failure shouldn't fail the flow
+                }
 
                 // ===== Handle ClubCourse and Generate Codes for successful payment =====
                 try

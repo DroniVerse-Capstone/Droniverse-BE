@@ -3,10 +3,12 @@ using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
 using Droniverse.Community.Application.IService.Mongo;
 using Droniverse.Community.Application.Mapper;
+using Droniverse.Community.Application.RabbitMQ;
 using Droniverse.Community.Application.Services;
 using Droniverse.Community.Application.Services.Mongo;
 using Droniverse.Community.Application.States.CompetitionState;
 using Droniverse.Community.Application.States.RoundState;
+using Droniverse.Shared.Messages.Notification;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -37,6 +39,9 @@ public static class DependencyInjection
         services.AddScoped<IClubCourseService, ClubCourseService>();
         services.AddScoped<IProductCategoryService, ProductCategoryService>();
         services.AddScoped<ICompetitionState, DraftState>();
+        
+        // Đăng ký RabbitMQ Publisher cho notification
+        services.AddScoped<IOrderNotificationPublisher, OrderNotificationPublisher>();
         services.AddScoped<ICompetitionState, PublishedState>();
         services.AddScoped<ICompetitionState, ResultPublishedState>();
         services.AddScoped<ICompetitionState, CancelledState>();
