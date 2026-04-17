@@ -21,4 +21,6 @@ public interface ICertificateService
     Task<IEnumerable<CertificateResponseDTO>> GetCertificatesByIdsAsync(IEnumerable<Guid> certificateIds);
 
     Task<IEnumerable<SimpleCertificateResponse>> GetCertificatesBulkAsync(IEnumerable<Guid> certificateIds, CancellationToken cancellationToken = default);
+
+    Task<PaginationResult<IEnumerable<CertificateResponseDTO>>> GetAllCertificatesAsync(int pageIndex = 1, int pageSize = 50, string? search = null);
 }

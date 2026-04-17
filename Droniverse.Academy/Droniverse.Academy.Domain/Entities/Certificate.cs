@@ -1,4 +1,4 @@
-﻿using Droniverse.Academy.Domain.Entities;
+﻿                 using Droniverse.Academy.Domain.Entities;
 
 public class Certificate
 {

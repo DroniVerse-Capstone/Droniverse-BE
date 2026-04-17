@@ -1,5 +1,6 @@
 ﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.API.Examples;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.DTOs;
@@ -27,6 +28,25 @@ public class CertificateController : ControllerBase
         _logger = logger;
         _service = service;
         _certificateCreationService = certificateCreationService;
+    }
+
+    /// <summary>
+    /// Lấy danh sách chứng chỉ (admin) có hỗ trợ tìm kiếm theo tên và phân trang.
+    /// </summary>
+    [HttpGet("certificates")]
+    [Authorize(Roles = Roles.AdminOrSystemManager)]
+    public async Task<IActionResult> GetAllCertificates([FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 50, [FromQuery] string? search = null)
+    {
+        try
+        {
+            var result = await _service.GetAllCertificatesAsync(pageIndex, pageSize, search);
+            return Ok(SuccessResponse<PaginationResult<IEnumerable<CertificateResponseDTO>>>.Create(result, "Lấy danh sách chứng chỉ thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lấy danh sách chứng chỉ thất bại.");
+            throw;
+        }
     }
 
     /// <summary>
