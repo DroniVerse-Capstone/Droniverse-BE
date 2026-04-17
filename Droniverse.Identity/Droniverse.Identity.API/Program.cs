@@ -1,6 +1,7 @@
 ﻿using DotNetEnv;
 using Droniverse.Identity.API.Swagger;
 using Droniverse.Identity.Application;
+using Droniverse.Identity.Application.RabbitMQ;
 using Droniverse.Identity.Infrastructure;
 using Droniverse.Shared;
 using Droniverse.Shared.Exceptions;
@@ -156,6 +157,10 @@ builder.Services.AddHangfireServer();
 var app = builder.Build();
 
 Console.Title = "Identity Service";
+
+// Start RabbitMQ OrderNotificationConsumer
+var orderNotificationConsumer = app.Services.GetRequiredService<OrderNotificationConsumer>();
+orderNotificationConsumer.Start();
 
 // Configure the HTTP request pipeline.
 //if (app.Environment.IsDevelopment())

@@ -25,6 +25,9 @@ public static class DependencyInjection
         //rabbitmq
         services.AddTransient<IPublisher, UserPublisher>();
         services.AddTransient<IUserPublisher, UserPublisher>();
+        
+        // Đăng ký RabbitMQ Consumer cho notification
+        services.AddSingleton<OrderNotificationConsumer>();
 
         return services;
     }
