@@ -1,4 +1,4 @@
-using Droniverse.Identity.Application.IService;
+﻿using Droniverse.Identity.Application.IService;
 using Droniverse.Identity.Domain.Enums;
 using Droniverse.Shared.Messages.Notification;
 using Microsoft.Extensions.Configuration;
@@ -21,7 +21,7 @@ public class OrderNotificationConsumer : IDisposable
     public OrderNotificationConsumer(
         INotificationService notificationService,
         IConfiguration configuration,
-        ILogger< > logger)
+        ILogger<OrderNotificationConsumer> logger)
     {
         _notificationService = notificationService;
         _configuration = configuration;
