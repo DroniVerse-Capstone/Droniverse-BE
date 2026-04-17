@@ -8,6 +8,8 @@ using Droniverse.Academy.Domain.IRepository;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Services.IServices;
+using System.Linq.Expressions;
+using System.Linq;
 
 namespace Droniverse.Academy.Application.Services;
 
@@ -146,6 +148,32 @@ public class CertificateService : ICertificateService
     public async Task<IEnumerable<SimpleCertificateResponse>> GetCertificatesBulkAsync(IEnumerable<Guid> certificateIds, CancellationToken cancellationToken = default)
     {
         return await _unitOfWork.Certificates.GetSimpleCertificatesByIdsAsync(certificateIds, cancellationToken);
+    }
+
+    public async Task<PaginationResult<IEnumerable<CertificateResponseDTO>>> GetAllCertificatesAsync(int pageIndex = 1, int pageSize = 50, string? search = null)
+    {
+        Expression<Func<Certificate, bool>>? filter = null;
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Trim();
+            filter = c => (c.CertificateNameVN != null && c.CertificateNameVN.Contains(s))
+                       || (c.CertificateNameEN != null && c.CertificateNameEN.Contains(s));
+        }
+
+        var result = await _unitOfWork.Certificates.GetAllAsync(
+            filter: filter,
+            orderBy: q => q.OrderByDescending(c => ((Certificate)(object)c).CreateAt),
+            pageIndex: pageIndex,
+            pageSize: pageSize);
+
+        var entities = result.Data.ToList();
+        var dtos = entities.Select(c => _mapper.Map<CertificateResponseDTO>(c)).ToList();
+
+        var userLookup = await BuildUserLookupAsync(entities);
+        dtos = MapCertificatesUsers(entities, dtos, userLookup);
+
+        return new PaginationResult<IEnumerable<CertificateResponseDTO>>(dtos, result.TotalRecords, result.PageIndex, result.PageSize);
     }
 
     private async Task<(SimpleUserReponse? Creator, SimpleUserReponse? Updater)> ResolveUsersAsync(Guid createBy, Guid updateBy)

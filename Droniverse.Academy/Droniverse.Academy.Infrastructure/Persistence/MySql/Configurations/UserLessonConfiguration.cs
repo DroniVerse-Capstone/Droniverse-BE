@@ -19,7 +19,7 @@ public class UserLessonConfiguration : IEntityTypeConfiguration<UserLesson>
 
         builder.Property(e => e.UserLessonID).HasColumnType("char(36)");
         builder.Property(e => e.LessonID).HasColumnType("char(36)");
-        builder.Property(e => e.UserID).HasColumnType("char(36)");
+        builder.Property(e => e.UserID).HasColumnType("char(36)");            
         builder.Property(e => e.Status)
             .HasColumnType("tinyint")
             .HasConversion<byte>()

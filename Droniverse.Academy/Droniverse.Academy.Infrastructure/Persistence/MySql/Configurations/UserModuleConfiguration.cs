@@ -10,7 +10,7 @@ public class UserModuleConfiguration : IEntityTypeConfiguration<UserModule>
         builder.ToTable("UserModule");
 
         builder.HasKey(um => um.UserModuleID);
-        builder.HasIndex(um => new { um.ModuleID, um.UserID }).IsUnique();
+        builder.HasIndex(um => new { um.ModuleID, um.UserID });
 
         builder.HasOne(um => um.Module)
             .WithMany(m => m.UserModules)
