@@ -2,6 +2,7 @@
 using Droniverse.Identity.Domain.Enums;
 using Droniverse.Shared.Messages.Notification;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -12,32 +13,40 @@ namespace Droniverse.Identity.Application.RabbitMQ;
 
 public class OrderNotificationConsumer : IDisposable
 {
-    private readonly INotificationService _notificationService;
+    private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<OrderNotificationConsumer> _logger;
     private readonly IConfiguration _configuration;
     private IModel? _channel;
     private IConnection? _connection;
 
     public OrderNotificationConsumer(
-        INotificationService notificationService,
+        IServiceProvider serviceProvider,
         IConfiguration configuration,
         ILogger<OrderNotificationConsumer> logger)
     {
-        _notificationService = notificationService;
+        _serviceProvider = serviceProvider;
         _configuration = configuration;
         _logger = logger;
     }
 
-    public void Start()
+    public void Consume()
     {
         try
         {
+            var hostName = _configuration["RabbitMQ_HostName"] ?? "localhost";
+            var userName = _configuration["RabbitMQ_UserName"] ?? "guest";
+            var password = _configuration["RabbitMQ_Password"] ?? "guest";
+            var port = int.Parse(_configuration["RabbitMQ_Port"] ?? "5672");
+
+            _logger.LogInformation("🔧 RabbitMQ Config - Host: {HostName}, Port: {Port}, User: {UserName}", 
+                hostName, port, userName);
+
             var factory = new ConnectionFactory()
             {
-                HostName = _configuration["RabbitMQ_HostName"] ?? "localhost",
-                UserName = _configuration["RabbitMQ_UserName"] ?? "guest",
-                Password = _configuration["RabbitMQ_Password"] ?? "guest",
-                Port = int.Parse(_configuration["RabbitMQ_Port"] ?? "5672"),
+                HostName = hostName,
+                UserName = userName,
+                Password = password,
+                Port = port,
                 AutomaticRecoveryEnabled = true,
                 NetworkRecoveryInterval = TimeSpan.FromSeconds(10)
             };
@@ -48,74 +57,79 @@ public class OrderNotificationConsumer : IDisposable
             string exchangeName = "order.notification.exchange";
             string queueName = "identity.notification.queue";
 
+            _logger.LogInformation("📌 Declaring exchange: {ExchangeName}", exchangeName);
             _channel.ExchangeDeclare(
                 exchange: exchangeName,
                 type: ExchangeType.Direct,
                 durable: true);
 
+            _logger.LogInformation("📌 Declaring queue: {QueueName}", queueName);
             _channel.QueueDeclare(
                 queue: queueName,
                 durable: true,
                 exclusive: false,
                 autoDelete: false);
 
+            _logger.LogInformation("📌 Binding queue to exchange with routing key: order.created");
             _channel.QueueBind(
                 queue: queueName,
                 exchange: exchangeName,
                 routingKey: "order.created");
 
+            _logger.LogInformation("📌 Binding queue to exchange with routing key: payment.successful");
             _channel.QueueBind(
                 queue: queueName,
                 exchange: exchangeName,
                 routingKey: "payment.successful");
 
-            var consumer = new AsyncEventingBasicConsumer(_channel);
+            _logger.LogInformation("📌 Creating EventingBasicConsumer (synchronous)...");
+            EventingBasicConsumer consumer = new EventingBasicConsumer(_channel);
 
-            consumer.Received += async (model, ea) =>
+            consumer.Received += async (sender, args) =>
             {
+                byte[] body = args.Body.ToArray();
+                string message = Encoding.UTF8.GetString(body);
+                string routingKey = args.RoutingKey;
+
+                _logger.LogInformation("✅ MESSAGE RECEIVED - RoutingKey: {RoutingKey}", routingKey);
+                _logger.LogInformation("📦 Payload: {Message}", message);
+
                 try
                 {
-                    var body = ea.Body.ToArray();
-                    var message = Encoding.UTF8.GetString(body);
-
-                    string routingKey = ea.RoutingKey;
-
-                    _logger.LogInformation($"Message received with routing key: {routingKey}");
-
                     if (routingKey == "order.created")
                     {
+                        _logger.LogInformation("🔄 Processing order.created...");
                         var orderMsg = JsonSerializer.Deserialize<OrderCreatedNotificationMessage>(message);
                         if (orderMsg != null)
                         {
                             await HandleOrderCreatedAsync(orderMsg);
+                            _logger.LogInformation("✅ Order created notification processed for order {OrderId}", orderMsg.OrderId);
                         }
                     }
                     else if (routingKey == "payment.successful")
                     {
+                        _logger.LogInformation("🔄 Processing payment.successful...");
                         var paymentMsg = JsonSerializer.Deserialize<PaymentSuccessfulNotificationMessage>(message);
                         if (paymentMsg != null)
                         {
                             await HandlePaymentSuccessfulAsync(paymentMsg);
+                            _logger.LogInformation("✅ Payment successful notification processed for order {OrderId}", paymentMsg.OrderId);
                         }
                     }
-
-                    _channel.BasicAck(ea.DeliveryTag, false);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error processing message");
-                    _channel.BasicNack(ea.DeliveryTag, false, true); // Requeue on error
+                    _logger.LogError(ex, "❌ Error processing message with routing key {RoutingKey}", routingKey);
                 }
             };
 
-            _channel.BasicQos(0, 1, false); // Process one message at a time
-            _channel.BasicConsume(queue: queueName, autoAck: false, consumer: consumer);
-
-            _logger.LogInformation("Order notification consumer started successfully");
+            _logger.LogInformation("🔄 Starting BasicConsume on queue: {QueueName}", queueName);
+            _channel.BasicConsume(queue: queueName, consumer: consumer, autoAck: true);
+            _logger.LogInformation("✅ Order notification consumer started successfully - waiting for messages...");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error starting consumer");
+            _logger.LogError(ex, "❌ Error starting order notification consumer");
         }
     }
 
@@ -123,19 +137,29 @@ public class OrderNotificationConsumer : IDisposable
     {
         try
         {
-            _logger.LogInformation($"Processing order created notification for user {message.UserId}");
+            _logger.LogInformation($"🔄 Processing order created notification for user {message.UserId}");
 
-            // Tạo notification pending cho order mới
-            await _notificationService.SendAndCreateNotificationAsync(
-                message.UserId,
-                "Đơn hàng đang chờ thanh toán",
-                $"Bạn vừa tạo đơn hàng #{message.OrderId}. Tổng tiền: {FormatCurrency(message.Total)}. Vui lòng thực hiện thanh toán để hoàn tất đơn hàng.",
-                NotificationType.EMAIL,
-                message.UserEmail,
-                message.OrderId.ToString()
-            );
+            // Create a scope to resolve scoped services
+            using (var scope = _serviceProvider.CreateScope())
+            {
+                var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
 
-            _logger.LogInformation($"Order created notification sent for order {message.OrderId}");
+                // Add timeout to prevent hanging
+                using (var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(30)))
+                {
+                    // Tạo notification pending cho order mới
+                    await notificationService.SendAndCreateNotificationAsync(
+                        message.UserId,
+                        "Đơn hàng đang chờ thanh toán",
+                        $"Bạn vừa tạo đơn hàng #{message.OrderId}. Tổng tiền: {FormatCurrency(message.Total)}. Vui lòng thực hiện thanh toán để hoàn tất đơn hàng.",
+                        NotificationType.EMAIL,
+                        message.UserEmail,
+                        message.OrderId.ToString()
+                    );
+                }
+            }
+
+            _logger.LogInformation($"✅ Order created notification processed successfully for order {message.OrderId}");
         }
         catch (Exception ex)
         {
@@ -148,20 +172,30 @@ public class OrderNotificationConsumer : IDisposable
     {
         try
         {
-            _logger.LogInformation($"Processing payment successful notification for user {message.UserId}");
+            _logger.LogInformation($"🔄 Processing payment successful notification for user {message.UserId}");
 
-            // Mark previous pending notification as read (nếu có)
-            // Tạo notification mới về thanh toán thành công
-            await _notificationService.SendAndCreateNotificationAsync(
-                message.UserId,
-                "Thanh toán thành công",
-                $"Đơn hàng #{message.OrderId} của bạn đã được thanh toán thành công. Số tiền: {FormatCurrency(message.Amount)}. Cảm ơn bạn đã mua hàng!",
-                NotificationType.EMAIL,
-                message.UserEmail,
-                message.OrderId.ToString()
-            );
+            // Create a scope to resolve scoped services
+            using (var scope = _serviceProvider.CreateScope())
+            {
+                var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
 
-            _logger.LogInformation($"Payment successful notification sent for order {message.OrderId}");
+                // Add timeout to prevent hanging
+                using (var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(30)))
+                {
+                    // Mark previous pending notification as read (nếu có)
+                    // Tạo notification mới về thanh toán thành công
+                    await notificationService.SendAndCreateNotificationAsync(
+                        message.UserId,
+                        "Thanh toán thành công",
+                        $"Đơn hàng #{message.OrderId} của bạn đã được thanh toán thành công. Số tiền: {FormatCurrency(message.Amount)}. Cảm ơn bạn đã mua hàng!",
+                        NotificationType.EMAIL,
+                        message.UserEmail,
+                        message.OrderId.ToString()
+                    );
+                }
+            }
+
+            _logger.LogInformation($"✅ Payment successful notification processed successfully for order {message.OrderId}");
         }
         catch (Exception ex)
         {

@@ -42,6 +42,9 @@ public static class DependencyInjection
         
         // Đăng ký RabbitMQ Publisher cho notification
         services.AddScoped<IOrderNotificationPublisher, OrderNotificationPublisher>();
+        
+        // Đăng ký RabbitMQ Consumer cho user updates
+        services.AddSingleton<UserNameUpdateConsumer>();
         services.AddScoped<ICompetitionState, PublishedState>();
         services.AddScoped<ICompetitionState, ResultPublishedState>();
         services.AddScoped<ICompetitionState, CancelledState>();

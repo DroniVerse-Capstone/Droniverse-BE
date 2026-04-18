@@ -19,10 +19,16 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Transactions;
 
+// Load .env for JWT, Cloudinary, PayOS settings
 Env.Load("../../.env");
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Configuration.AddEnvironmentVariables();
+
+// If Development: reload appsettings.Development.json to override RabbitMQ settings locally
+if (builder.Environment.IsDevelopment())
+{
+    builder.Configuration.AddJsonFile("appsettings.Development.json", optional: false, reloadOnChange: true);
+}
 
 // Add services to the container.
 
@@ -160,7 +166,7 @@ Console.Title = "Identity Service";
 
 // Start RabbitMQ OrderNotificationConsumer
 var orderNotificationConsumer = app.Services.GetRequiredService<OrderNotificationConsumer>();
-orderNotificationConsumer.Start();
+orderNotificationConsumer.Consume();
 
 // Configure the HTTP request pipeline.
 //if (app.Environment.IsDevelopment())
