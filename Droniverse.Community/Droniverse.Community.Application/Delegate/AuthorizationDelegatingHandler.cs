@@ -41,6 +41,9 @@ namespace Droniverse.Community.Application.Delegate
                     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
                 }
             }
+            // If no HTTP context (e.g., in background jobs or webhook handlers), continue without auth
+            // The gateway should allow internal service-to-service calls or use alternative auth mechanisms
+            
             return await base.SendAsync(request, cancellationToken);
         }
     }

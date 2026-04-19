@@ -365,10 +365,19 @@ internal class PaymentService : IPaymentService
                 order.Status = OrderStatus.SUCCESS;
                 
                 // Get user info from Identity service for email sending
-                //var (userEmail, userName) = await GetUserInfoAsync(order.UserID);
-                UserResponse? user = await _identityMicroserviceClient.GetUserByUserID(order.UserID);
-                string userEmail = user?.Email ?? "User email không khả dụng";
-                string userName = user?.Username ?? "Username không khả dụng.";
+                // Note: This may fail with 401 in webhook context, so we make it non-critical
+                UserResponse? user = null;
+                try
+                {
+                    user = await _identityMicroserviceClient.GetUserByUserID(order.UserID);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Could not fetch user info for payment confirmation notification");
+                }
+
+                string userEmail = user?.Email ?? "no-reply@droniverse.io.vn";
+                string userName = user?.Username ?? "User";
 
                 _logger.LogInformation("Payment SUCCESS for orderId: {OrderId}, Email: {Email}", order._id, userEmail);
 
