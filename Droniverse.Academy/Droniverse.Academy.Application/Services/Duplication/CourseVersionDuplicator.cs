@@ -30,10 +30,6 @@ public class CourseVersionDuplicator : ICourseVersionDuplicator
         var duplicatedVersion = BuildDuplicatedVersion(course, sourceVersion, nextVersion, currentUserId, now);
         await _unitOfWork.CourseVersions.AddAsync(duplicatedVersion);
 
-        // Sao chép các bảng liên quan: Category, RequiredDrone
-        await DuplicateCategoriesAsync(sourceVersion.CourseVersionID, duplicatedVersion.CourseVersionID);
-        await DuplicateRequiredDronesAsync(sourceVersion.CourseVersionID, duplicatedVersion.CourseVersionID);
-
         var context = new CourseVersionDuplicationContext
         {
             SourceVersion = sourceVersion,
@@ -65,39 +61,5 @@ public class CourseVersionDuplicator : ICourseVersionDuplicator
         duplicatedVersion.SetAuditOnCreate(currentUserId, now);
 
         return duplicatedVersion;
-    }
-
-    private async Task DuplicateCategoriesAsync(Guid sourceVersionId, Guid duplicatedVersionId)
-    {
-        var sourceCategories = await _unitOfWork.CourseVersionCategories.GetAllAsync(
-            filter: x => x.CourseVersionID == sourceVersionId,
-            pageIndex: 1,
-            pageSize: int.MaxValue);
-
-        foreach (var categoryId in sourceCategories.Data.Select(x => x.CategoryID).Distinct())
-        {
-            await _unitOfWork.CourseVersionCategories.AddAsync(new CourseVersionCategory
-            {
-                CourseVersionID = duplicatedVersionId,
-                CategoryID = categoryId
-            });
-        }
-    }
-
-    private async Task DuplicateRequiredDronesAsync(Guid sourceVersionId, Guid duplicatedVersionId)
-    {
-        var sourceRequiredDrones = await _unitOfWork.RequiredDrones.GetAllAsync(
-            filter: x => x.CourseVersionID == sourceVersionId,
-            pageIndex: 1,
-            pageSize: int.MaxValue);
-
-        foreach (var droneId in sourceRequiredDrones.Data.Select(x => x.DroneID).Distinct())
-        {
-            await _unitOfWork.RequiredDrones.AddAsync(new RequiredDrone
-            {
-                CourseVersionID = duplicatedVersionId,
-                DroneID = droneId
-            });
-        }
     }
 }

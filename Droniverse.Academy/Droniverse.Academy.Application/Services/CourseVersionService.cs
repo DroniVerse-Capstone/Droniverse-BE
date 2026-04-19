@@ -115,15 +115,15 @@ public class CourseVersionService : ICourseVersionService
 
     public async Task<CourseVersionResponseDTO> GetCourseVersionByIdAsync(Guid courseId, Guid versionId)
     {
-        var cv = await _unitOfWork.CourseVersions.GetByConditionAsync(v => v.CourseVersionID == versionId && v.CourseID == courseId, includeProperties: "CourseVersionCategories,RequiredDrones.Drone.DroneType,Certificate");
+        var cv = await _unitOfWork.CourseVersions.GetByConditionAsync(v => v.CourseVersionID == versionId && v.CourseID == courseId, includeProperties: "Certificate");
         if (cv == null)
             throw new BaseException("Không tìm thấy phiên bản khóa học.", "NOT_FOUND");
 
         var response = _mapper.Map<CourseVersionResponseDTO>(cv);
         response.Certificate = _mapper.Map<CertificateVersionResponseDTO?>(cv.Certificate);
         response.Updater = await ResolveUpdaterAsync(cv.UpdateBy);
-        response.Categories = await ResolveCategoriesAsync(cv.CourseVersionCategories);
-        response.RequiredDrones = _mapper.Map<IEnumerable<DroneClientViewDTO>>(cv.RequiredDrones);
+        response.Categories = [];
+        response.RequiredDrones = [];
 
         return response;
     }
@@ -185,7 +185,7 @@ public class CourseVersionService : ICourseVersionService
             filter = v => v.CourseID == courseId && v.Status == s;
         }
 
-        var result = await _unitOfWork.CourseVersions.GetAllAsync(filter, null, pageIndex, pageSize, includeProperties: "CourseVersionCategories,RequiredDrones.Drone.DroneType,Certificate");
+        var result = await _unitOfWork.CourseVersions.GetAllAsync(filter, null, pageIndex, pageSize, includeProperties: "Certificate");
         var entities = result.Data.ToList();
         var mapped = entities.Select(v => _mapper.Map<CourseVersionResponseDTO>(v)).ToList();
 
@@ -251,7 +251,7 @@ public class CourseVersionService : ICourseVersionService
         if (cv.Status == CourseVersionStatus.INACTIVE)
             throw new ValidationException("Phiên bản đã xóa mềm chỉ được xem, không thể thao tác.");
 
-        cv.UpdateContent(request.TitleVN, request.TitleEN, request.DescriptionVN, request.DescriptionEN, request.ContextVN, request.ContextEN, request.ImageUrl, request.Level, request.EstimatedDuration, request.ChangeLog, _currentUser.UserId, _clock.Now);
+        cv.UpdateContent(request.TitleVN, request.TitleEN, request.DescriptionVN, request.DescriptionEN, request.ContextVN, request.ContextEN, request.ImageUrl, request.EstimatedDuration, request.ChangeLog, _currentUser.UserId, _clock.Now);
 
         await _unitOfWork.CourseVersions.UpdateAsync(cv);
         await _unitOfWork.SaveChangesAsync();
@@ -317,27 +317,6 @@ public class CourseVersionService : ICourseVersionService
         }
 
         return dtos;
-    }
-
-    private async Task<IEnumerable<CategoryResponseDTO>> ResolveCategoriesAsync(IEnumerable<CourseVersionCategory>? courseVersionCategories)
-    {
-        var categoryIds = courseVersionCategories?
-            .Select(x => x.CategoryID)
-            .Where(id => id != Guid.Empty)
-            .Distinct()
-            .ToList() ?? [];
-
-        if (categoryIds.Count == 0)
-        {
-            return [];
-        }
-
-        var categories = await _communityMicroserviceClient.GetCategoriesBulk(categoryIds);
-        var categoryMap = categories.ToDictionary(x => x.CategoryID, x => x);
-        return categoryIds
-            .Where(id => categoryMap.ContainsKey(id))
-            .Select(id => categoryMap[id])
-            .ToList();
     }
 
 }

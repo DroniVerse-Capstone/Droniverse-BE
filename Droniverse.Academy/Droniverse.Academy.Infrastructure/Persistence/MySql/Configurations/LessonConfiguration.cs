@@ -24,7 +24,7 @@ public class LessonConfiguration : IEntityTypeConfiguration<Lesson>
         builder.Property(e => e.OrderIndex).HasColumnType("int").IsRequired();
         builder.Property(e => e.ReferenceID).HasColumnType("char(36)");
         builder.Property(e => e.Type).HasMaxLength(20).HasConversion<string>();
-        builder.ToTable(t => t.HasCheckConstraint("CK_Lesson_Type", "`Type` IN ('THEORY', 'QUIZ', 'LAB')"));
+        builder.ToTable(t => t.HasCheckConstraint("CK_Lesson_Type", "`Type` IN ('THEORY', 'QUIZ', 'LAB', 'STRUCTURE_SIMULATOR', 'FLIGHT_SIMULATOR')"));
         builder.ToTable(t => t.HasCheckConstraint("CK_Lesson_OrderIndex", "`OrderIndex` > 0"));
         builder.HasIndex(e => new { e.ModuleID, e.OrderIndex }).IsUnique();
 

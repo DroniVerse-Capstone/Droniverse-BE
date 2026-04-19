@@ -33,7 +33,7 @@ internal class CourseVersionRepository : MySqlRepository<CourseVersion>, ICourse
                 ContextVN = cv.ContextVN,
                 ContextEN = cv.ContextEN,
                 ImageUrl = cv.ImageUrl,
-                Level = cv.Level,
+                Level = default,
                 EstimatedDuration = cv.EstimatedDuration,
                 AverageRating = cv.Feedbacks
                     .Select(f => (decimal?)f.Rating)

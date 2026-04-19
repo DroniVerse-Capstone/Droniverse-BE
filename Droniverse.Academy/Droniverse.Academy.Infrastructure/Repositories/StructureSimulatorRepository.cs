@@ -4,10 +4,9 @@ using Droniverse.Academy.Infrastructure.Persistence.MySql;
 
 namespace Droniverse.Academy.Infrastructure.Repositories;
 
-internal class CodeUsageRepository : MySqlRepository<CodeUsage>, ICodeUsageRepository
+internal class StructureSimulatorRepository : MySqlRepository<StructureSimulator>, IStructureSimulatorRepository
 {
-    public CodeUsageRepository(MySqlDbContext context) : base(context)
+    public StructureSimulatorRepository(MySqlDbContext context) : base(context)
     {
     }
 }
-

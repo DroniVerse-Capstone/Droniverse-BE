@@ -3,6 +3,7 @@ using System;
 using Droniverse.Academy.Infrastructure.Persistence.MySql;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Droniverse.Academy.Infrastructure.Migrations
 {
     [DbContext(typeof(MySqlDbContext))]
-    partial class MySqlDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260419161603_Big_Update")]
+    partial class Big_Update
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -235,7 +238,7 @@ namespace Droniverse.Academy.Infrastructure.Migrations
 
                     b.Property<string>("ImgURL")
                         .IsRequired()
-                        .HasColumnType("char(255)")
+                        .HasColumnType("text")
                         .HasColumnName("ImgURL");
 
                     b.Property<string>("Manufacturer")

@@ -1,5 +1,4 @@
 ﻿using Droniverse.Academy.Domain.Entities;
-using Droniverse.Academy.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -69,11 +68,6 @@ public class CourseVersionConfiguration
         builder.Property(cv => cv.ImageUrl)
             .HasColumnType("text");
 
-        builder.Property(cv => cv.Level)
-            .HasConversion<string>()
-            .HasMaxLength(10)
-            .IsRequired();
-
         builder.Property(cv => cv.EstimatedDuration)
             .HasColumnType("int");
 
@@ -97,17 +91,9 @@ public class CourseVersionConfiguration
             .WithOne(m => m.CourseVersion)
             .HasForeignKey(m => m.CourseVersionID);
 
-        builder.HasMany(cv => cv.CourseVersionCategories)
-            .WithOne(cvc => cvc.CourseVersion)
-            .HasForeignKey(cvc => cvc.CourseVersionID);
-
         builder.HasMany(cv => cv.Feedbacks)
             .WithOne(f => f.CourseVersion)
             .HasForeignKey(f => f.CourseVersionID);
-
-        builder.HasMany(cv => cv.RequiredDrones)
-            .WithOne(rd => rd.CourseVersion)
-            .HasForeignKey(rd => rd.CourseVersionID);
 
         builder.HasMany(cv => cv.Enrollments)
             .WithOne(e => e.CourseVersion)
@@ -138,10 +124,6 @@ public class CourseVersionConfiguration
                 "`Status` IN (0,1,2,3)"
             );
 
-            t.HasCheckConstraint(
-                "CK_CourseVersion_Level",
-                "`Level` IN ('EASY','MEDIUM','HARD')"
-            );
         });
     }
 }

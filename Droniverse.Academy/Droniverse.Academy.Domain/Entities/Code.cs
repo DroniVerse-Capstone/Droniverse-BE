@@ -14,19 +14,11 @@ public class Code
     public DateTime ExpireDate { get; set; }
     public CodeStatus Status { get; set; } = CodeStatus.Active;
 
-    // Ownership
-    public Guid? OwnedUserID { get; set; }
-
     // Usage
     public Guid? UsedByUserID { get; set; }
     public DateTime? UsedDate { get; set; }
-    public ICollection<CodeUsage> CodeUsages { get; set; } = [];
-
-    // Audit
     public DateTime CreatedAt { get; set; }
-    public DateTime? UpdatedAt { get; set; }
     public Guid CreatedBy { get; set; }
-    public Guid? UpdatedBy { get; set; }
 
     [SetsRequiredMembers]
     public Code(
@@ -59,20 +51,6 @@ public class Code
     // DDD BEHAVIOR METHODS
     // =========================
 
-    public void AssignToUser(Guid userId, DateTime now)
-    {
-        if (Status != CodeStatus.Active)
-            throw new InvalidOperationException("Code không thể sử dụng.");
-
-        if (IsExpired(now))
-            throw new InvalidOperationException("Code đã quá hạn sử dụng.");
-
-        if (OwnedUserID != null)
-            throw new InvalidOperationException("Code đã được gán cho người dùng rồi.");
-
-        OwnedUserID = userId;
-        UpdatedAt = now;
-    }
 
     public void Redeem(Guid userId, DateTime now)
     {
@@ -89,21 +67,13 @@ public class Code
         UsedDate = now;
         Status = CodeStatus.Used;
 
-        UpdatedAt = now;
     }
 
     public void Expire(DateTime now)
     {
         Status = CodeStatus.Expired;
-        UpdatedAt = now;
     }
 
-    public void Disable(Guid adminId, DateTime now)
-    {
-        Status = CodeStatus.Disabled;
-        UpdatedBy = adminId;
-        UpdatedAt = now;
-    }
 
     public bool IsExpired(DateTime now)
     {

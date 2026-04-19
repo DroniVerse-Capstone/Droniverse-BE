@@ -10,15 +10,21 @@ public class LessonReferenceDuplicator : ILessonReferenceDuplicator
     private readonly ITheoryDuplicator _theoryDuplicator;
     private readonly IQuizDuplicator _quizDuplicator;
     private readonly ILabDuplicator _labDuplicator;
+    private readonly IStructureSimulatorDuplicator _structureSimulatorDuplicator;
+    private readonly IFlightSimulatorDuplicator _flightSimulatorDuplicator;
 
     public LessonReferenceDuplicator(
         ITheoryDuplicator theoryDuplicator,
         IQuizDuplicator quizDuplicator,
-        ILabDuplicator labDuplicator)
+        ILabDuplicator labDuplicator,
+        IStructureSimulatorDuplicator structureSimulatorDuplicator,
+        IFlightSimulatorDuplicator flightSimulatorDuplicator)
     {
         _theoryDuplicator = theoryDuplicator;
         _quizDuplicator = quizDuplicator;
         _labDuplicator = labDuplicator;
+        _structureSimulatorDuplicator = structureSimulatorDuplicator;
+        _flightSimulatorDuplicator = flightSimulatorDuplicator;
     }
 
     public async Task<Guid> DuplicateAsync(Lesson sourceLesson, CourseVersionDuplicationContext context)
@@ -32,6 +38,8 @@ public class LessonReferenceDuplicator : ILessonReferenceDuplicator
             LessonType.THEORY => await _theoryDuplicator.DuplicateAsync(sourceLesson.ReferenceID, context),
             LessonType.QUIZ => await _quizDuplicator.DuplicateAsync(sourceLesson.ReferenceID, context),
             LessonType.LAB => await _labDuplicator.DuplicateAsync(sourceLesson.ReferenceID, context),
+            LessonType.STRUCTURE_SIMULATOR => await _structureSimulatorDuplicator.DuplicateAsync(sourceLesson.ReferenceID, context),
+            LessonType.FLIGHT_SIMULATOR => await _flightSimulatorDuplicator.DuplicateAsync(sourceLesson.ReferenceID, context),
             _ => sourceLesson.ReferenceID
         };
     }

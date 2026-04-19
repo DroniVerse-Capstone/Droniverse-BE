@@ -145,9 +145,9 @@ public class DroneTypeController : ControllerBase
         return status switch
         {
             DroneStatusFilter.All => null,
-            DroneStatusFilter.Draft => DroneStatus.DRAFT,
-            DroneStatusFilter.Available => DroneStatus.AVAILABLE,
-            DroneStatusFilter.Maintenance => DroneStatus.MAINTENANCE,
+            DroneStatusFilter.Active => DroneStatus.ACTIVE,
+            DroneStatusFilter.Inactive => DroneStatus.INACTIVE,
+            DroneStatusFilter.Deprecated => DroneStatus.DEPRECATED,
             _ => null
         };
     }

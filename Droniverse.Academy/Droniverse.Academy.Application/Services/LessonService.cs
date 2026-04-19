@@ -180,6 +180,20 @@ public class LessonService : ILessonService
                     MapLabToDto(lab, dto);
                 }
                 break;
+            case LessonType.STRUCTURE_SIMULATOR:
+                var structureSimulator = await _unitOfWork.StructureSimulators.GetByIdAsync(lesson.ReferenceID);
+                if (structureSimulator != null)
+                {
+                    MapStructureSimulatorToDto(structureSimulator, dto);
+                }
+                break;
+            case LessonType.FLIGHT_SIMULATOR:
+                var flightSimulator = await _unitOfWork.FlightSimulators.GetByIdAsync(lesson.ReferenceID);
+                if (flightSimulator != null)
+                {
+                    MapFlightSimulatorToDto(flightSimulator, dto);
+                }
+                break;
         }
     }
 
@@ -188,12 +202,16 @@ public class LessonService : ILessonService
         var theoryIds = GetReferenceIdsByType(lessons, LessonType.THEORY);
         var quizIds = GetReferenceIdsByType(lessons, LessonType.QUIZ);
         var labIds = GetReferenceIdsByType(lessons, LessonType.LAB);
+        var structureSimulatorIds = GetReferenceIdsByType(lessons, LessonType.STRUCTURE_SIMULATOR);
+        var flightSimulatorIds = GetReferenceIdsByType(lessons, LessonType.FLIGHT_SIMULATOR);
 
         var theoryLookup = await GetTheoryLookupAsync(theoryIds);
         var quizLookup = await GetQuizLookupAsync(quizIds);
         var labLookup = await GetLabLookupAsync(labIds);
+        var structureSimulatorLookup = await GetStructureSimulatorLookupAsync(structureSimulatorIds);
+        var flightSimulatorLookup = await GetFlightSimulatorLookupAsync(flightSimulatorIds);
 
-        return new ReferenceLookups(theoryLookup, quizLookup, labLookup);
+        return new ReferenceLookups(theoryLookup, quizLookup, labLookup, structureSimulatorLookup, flightSimulatorLookup);
     }
 
     private static HashSet<Guid> GetReferenceIdsByType(IEnumerable<Lesson> lessons, LessonType type)
@@ -268,6 +286,18 @@ public class LessonService : ILessonService
                     MapLabToDto(lab, dto);
                 }
                 break;
+            case LessonType.STRUCTURE_SIMULATOR:
+                if (lookups.StructureSimulators.TryGetValue(lesson.ReferenceID, out var structureSimulator))
+                {
+                    MapStructureSimulatorToDto(structureSimulator, dto);
+                }
+                break;
+            case LessonType.FLIGHT_SIMULATOR:
+                if (lookups.FlightSimulators.TryGetValue(lesson.ReferenceID, out var flightSimulator))
+                {
+                    MapFlightSimulatorToDto(flightSimulator, dto);
+                }
+                break;
         }
     }
 
@@ -286,10 +316,48 @@ public class LessonService : ILessonService
         _mapper.Map(lab, dto);
     }
 
+    private void MapStructureSimulatorToDto(StructureSimulator structureSimulator, LessonClientViewDTO dto)
+    {
+        _mapper.Map(structureSimulator, dto);
+    }
+
+    private void MapFlightSimulatorToDto(FlightSimulator flightSimulator, LessonClientViewDTO dto)
+    {
+        _mapper.Map(flightSimulator, dto);
+    }
+
     private sealed record ReferenceLookups(
         IReadOnlyDictionary<Guid, Theory> Theories,
         IReadOnlyDictionary<Guid, Quiz> Quizs,
-        IReadOnlyDictionary<Guid, Lab> Labs);
+        IReadOnlyDictionary<Guid, Lab> Labs,
+        IReadOnlyDictionary<Guid, StructureSimulator> StructureSimulators,
+        IReadOnlyDictionary<Guid, FlightSimulator> FlightSimulators);
+
+    private async Task<Dictionary<Guid, StructureSimulator>> GetStructureSimulatorLookupAsync(IReadOnlySet<Guid> structureSimulatorIds)
+    {
+        if (structureSimulatorIds.Count == 0)
+            return [];
+
+        var result = await _unitOfWork.StructureSimulators.GetAllAsync(
+            filter: x => structureSimulatorIds.Contains(x.StructureID),
+            pageIndex: 1,
+            pageSize: int.MaxValue);
+
+        return result.Data.ToDictionary(x => x.StructureID);
+    }
+
+    private async Task<Dictionary<Guid, FlightSimulator>> GetFlightSimulatorLookupAsync(IReadOnlySet<Guid> flightSimulatorIds)
+    {
+        if (flightSimulatorIds.Count == 0)
+            return [];
+
+        var result = await _unitOfWork.FlightSimulators.GetAllAsync(
+            filter: x => flightSimulatorIds.Contains(x.FlightID),
+            pageIndex: 1,
+            pageSize: int.MaxValue);
+
+        return result.Data.ToDictionary(x => x.FlightID);
+    }
 
     public async Task DeleteLessonAsync(Guid moduleId, Guid lessonId)
     {
@@ -323,6 +391,20 @@ public class LessonService : ILessonService
                         }
 
                         await _unitOfWork.Quizs.DeleteAsync(quiz);
+                    }
+                    break;
+                case LessonType.STRUCTURE_SIMULATOR:
+                    var structureSimulator = await _unitOfWork.StructureSimulators.GetByIdAsync(lesson.ReferenceID);
+                    if (structureSimulator != null)
+                    {
+                        await _unitOfWork.StructureSimulators.DeleteAsync(structureSimulator);
+                    }
+                    break;
+                case LessonType.FLIGHT_SIMULATOR:
+                    var flightSimulator = await _unitOfWork.FlightSimulators.GetByIdAsync(lesson.ReferenceID);
+                    if (flightSimulator != null)
+                    {
+                        await _unitOfWork.FlightSimulators.DeleteAsync(flightSimulator);
                     }
                     break;
             }
@@ -387,6 +469,14 @@ public class LessonService : ILessonService
 
                 if (lab.Status != LabStatus.ACTIVE)
                     throw new ValidationException("Chỉ có thể thêm bài lab ở trạng thái Active vào lesson.");
+                break;
+            case LessonType.STRUCTURE_SIMULATOR:
+                if (await _unitOfWork.StructureSimulators.GetByIdAsync(referenceId) == null)
+                    throw new ValidationException("Không tìm thấy tham chiếu structure simulator.");
+                break;
+            case LessonType.FLIGHT_SIMULATOR:
+                if (await _unitOfWork.FlightSimulators.GetByIdAsync(referenceId) == null)
+                    throw new ValidationException("Không tìm thấy tham chiếu flight simulator.");
                 break;
             default:
                 throw new ValidationException("Loại bài học không hợp lệ.");

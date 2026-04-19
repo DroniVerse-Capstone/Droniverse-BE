@@ -3,7 +3,7 @@
 public enum DroneStatusFilter
 {
     All = 0,
-    Draft = 1,
-    Available = 2,
-    Maintenance = 3
+    Active = 1,
+    Inactive = 2,
+    Deprecated = 3
 }

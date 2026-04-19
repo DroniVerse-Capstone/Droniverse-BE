@@ -3,5 +3,7 @@ public enum LessonType
 {
     THEORY,
     QUIZ,
-    LAB
+    LAB,
+    STRUCTURE_SIMULATOR,
+    FLIGHT_SIMULATOR
 }

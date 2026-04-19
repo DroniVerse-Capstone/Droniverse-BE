@@ -17,5 +17,7 @@ public class CourseVersionDuplicationContext
     public Dictionary<Guid, Guid> TheoryIdMap { get; } = new();
     public Dictionary<Guid, Guid> QuizIdMap { get; } = new();
     public Dictionary<Guid, Guid> LabIdMap { get; } = new();
+    public Dictionary<Guid, Guid> StructureSimulatorIdMap { get; } = new();
+    public Dictionary<Guid, Guid> FlightSimulatorIdMap { get; } = new();
     public List<(Guid SourceLabId, Guid NewLabId)> LabContentSyncQueue { get; } = new();
 }

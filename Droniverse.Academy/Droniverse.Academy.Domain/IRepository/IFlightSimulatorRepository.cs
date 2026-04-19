@@ -1,7 +1,7 @@
 ﻿using Droniverse.Academy.Domain.Entities;
 
 namespace Droniverse.Academy.Domain.IRepository;
-public interface ICourseVersionCategoryRepository : IRepository<CourseVersionCategory>
+
+public interface IFlightSimulatorRepository : IRepository<FlightSimulator>
 {
 }
-

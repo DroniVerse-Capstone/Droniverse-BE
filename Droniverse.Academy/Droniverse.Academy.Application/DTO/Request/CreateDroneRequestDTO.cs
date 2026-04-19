@@ -1,4 +1,4 @@
-using Droniverse.Academy.Domain.Enums;
+﻿using Droniverse.Academy.Domain.Enums;
 
 namespace Droniverse.Academy.Application.DTO.Request;
 
@@ -12,5 +12,5 @@ public class CreateDroneRequestDTO
     public float Height { get; set; }
     public float Weight { get; set; }
     public DroneStatus Status { get; set; }
-    public string Model3DLink { get; set; } = null!;
+    public string ImgURL { get; set; } = null!;
 }

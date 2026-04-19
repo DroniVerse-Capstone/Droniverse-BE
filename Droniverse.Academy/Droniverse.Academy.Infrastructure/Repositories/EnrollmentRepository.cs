@@ -63,12 +63,6 @@ internal class EnrollmentRepository : MySqlRepository<Enrollment>, IEnrollmentRe
             query = query.Where(e => e.Status == status);
         }
 
-        if (level.HasValue)
-        {
-            var courseLevel = level.Value;
-            query = query.Where(e => e.CourseVersion.Level == courseLevel);
-        }
-
         if (!string.IsNullOrWhiteSpace(keyword))
         {
             query = query.Where(e =>
@@ -88,7 +82,7 @@ internal class EnrollmentRepository : MySqlRepository<Enrollment>, IEnrollmentRe
                 CourseNameVN = e.CourseVersion.TitleVN,
                 CourseNameEN = e.CourseVersion.TitleEN,
                 ImageUrl = e.CourseVersion.ImageUrl,
-                Level = e.CourseVersion.Level,
+                Level = default,
                 EstimatedDuration = e.CourseVersion.EstimatedDuration,
                 Progress = e.Progress,
                 EnrollStatus = e.Status

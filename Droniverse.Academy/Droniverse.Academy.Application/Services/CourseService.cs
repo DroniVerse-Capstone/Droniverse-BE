@@ -265,7 +265,6 @@ public class CourseService : ICourseService
         Expression<Func<Course, bool>> filter = c =>
             c.CurrentVersion != null &&
             c.Status == CourseStatus.PUBLISH &&
-            (!searchRequest.Level.HasValue || c.CurrentVersion.Level == searchRequest.Level.Value) &&
             (
                 string.IsNullOrWhiteSpace(normalizedCourseName) ||
                 (c.CurrentVersion.TitleEN != null && c.CurrentVersion.TitleEN.Contains(normalizedCourseName)) ||
@@ -322,7 +321,7 @@ public class CourseService : ICourseService
                     CourseVersionId = versionId,
                     TitleVN = currentVersion.TitleVN,
                     TitleEN = currentVersion.TitleEN,
-                    Level = currentVersion.Level,
+                    Level = default,
                     EstimatedDuration = currentVersion.EstimatedDuration,
                     Price = null,
                     ClubCourseOwned = new ClubCourseOwnedResponse(),
@@ -578,8 +577,7 @@ public class CourseService : ICourseService
 
         Expression<Func<Course, bool>> filter = c =>
             c.CurrentVersion != null &&
-            filteredCourseIds.Contains(c.CourseID) &&
-            (!searchRequest.Level.HasValue || c.CurrentVersion.Level == searchRequest.Level.Value);
+            filteredCourseIds.Contains(c.CourseID);
 
         var orderBy = BuildManagerCoursesOrderBy(searchRequest);
 
@@ -622,7 +620,7 @@ public class CourseService : ICourseService
                     TitleVN = currentVersion.TitleVN,
                     TitleEN = currentVersion.TitleEN,
                     ImageUrl = currentVersion.ImageUrl ?? string.Empty,
-                    Level = currentVersion.Level,
+                    Level = default,
                     ClubCourseInfo = null,
                     NumberOfParticipants = participants,
                     EstimatedDuration = currentVersion.EstimatedDuration,

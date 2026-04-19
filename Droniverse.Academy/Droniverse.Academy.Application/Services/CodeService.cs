@@ -193,9 +193,6 @@ public class CodeService : ICodeService
 
         request ??= new GetAllCodesByClubSearchRequest();
 
-        if (request.CodeOwnState == CodeOwnState.UnUserOwned && request.CodeUseState == CodeState.Used)
-            throw new InvalidOperationException("Không thể lọc code chưa có người sở hữu nhưng đã được sử dụng.");
-
         var pageIndex = request.CurrentPage;
         var pageSize = request.PageSize;
 
@@ -206,7 +203,7 @@ public class CodeService : ICodeService
             ?? throw new NotFoundException("Không tìm thấy thông tin khóa học.");
 
         var userIds = codes
-                 .SelectMany(c => new[] { c.OwnedUserID, c.UsedByUserID })
+                 .Select(c => c.UsedByUserID)
                  .Where(x => x.HasValue && x.Value != Guid.Empty)
                  .Select(x => x!.Value)
                  .Distinct()
@@ -228,10 +225,6 @@ public class CodeService : ICodeService
 
         var codeItems = codes.Select(code =>
         {
-            var owner = code.OwnedUserID.HasValue
-                ? usersById.GetValueOrDefault(code.OwnedUserID.Value)
-                : null;
-
             var consumer = code.IsUsed() && code.UsedByUserID.HasValue
                 ? usersById.GetValueOrDefault(code.UsedByUserID.Value)
                 : null;
@@ -239,7 +232,7 @@ public class CodeService : ICodeService
             return new CodeEntryResponse
             {
                 Code = code.CodeID,
-                OwnerInfo = owner,
+                OwnerInfo = null,
                 ComsumerInfo = consumer,
                 ExpireDate = code.ExpireDate
             };
@@ -282,12 +275,6 @@ public class CodeService : ICodeService
             if (code.Status == CodeStatus.Used)
                 throw new ValidationException("Mã code đã được sử dụng");
 
-            if (code.OwnedUserID is null)
-                throw new ValidationException("Mã code chưa được gán cho bất kỳ người dùng nào");
-
-            if (code.OwnedUserID.HasValue && code.OwnedUserID.Value != _currentUserService.UserId)
-                throw new ValidationException("Mã code này đã được gán cho người dùng khác.");
-
             code.Redeem(_currentUserService.UserId, _clock.Now);
 
             await _unitOfWork.Codes.UpdateAsync(code);
@@ -321,7 +308,7 @@ public class CodeService : ICodeService
         var code = await _unitOfWork.Codes.GetByIdAsync(request.CodeId.Trim())
             ?? throw new NotFoundException("Không tìm thấy mã code.");
 
-        code.AssignToUser(request.UserId, _clock.Now);
+        code.Redeem(request.UserId, _clock.Now);
 
         await _unitOfWork.Codes.UpdateAsync(code);
         await _unitOfWork.SaveChangesAsync();
@@ -364,7 +351,7 @@ public class CodeService : ICodeService
         {
             CodeId = code.CodeID,
             UserId = request.UserId,
-            AssignedAt = code.UpdatedAt ?? _clock.Now
+            AssignedAt = code.UsedDate ?? _clock.Now
         };
     }
 
@@ -412,13 +399,13 @@ public class CodeService : ICodeService
             foreach (var item in items)
             {
                 var code = codeById[item.CodeId];
-                code.AssignToUser(item.UserId, _clock.Now);
+                code.Redeem(item.UserId, _clock.Now);
 
                 assignedItems.Add(new CodeAssignmentResponseDTO
                 {
                     CodeId = code.CodeID,
                     UserId = item.UserId,
-                    AssignedAt = code.UpdatedAt ?? _clock.Now
+                    AssignedAt = code.UsedDate ?? _clock.Now
                 });
             }
 
@@ -706,7 +693,7 @@ public class CodeService : ICodeService
             currentUserId,
             now);
 
-        code.AssignToUser(currentUserId, now);
+        code.Redeem(currentUserId, now);
 
         await _unitOfWork.Codes.AddAsync(code);
         await _unitOfWork.SaveChangesAsync();
@@ -802,7 +789,7 @@ public class CodeService : ICodeService
             now
         );
 
-        code.AssignToUser(currentUserId, now);
+        code.Redeem(currentUserId, now);
 
         await _unitOfWork.Codes.AddAsync(code);
         await _unitOfWork.SaveChangesAsync();
@@ -857,7 +844,7 @@ public class CodeService : ICodeService
             CodeID = code.CodeID,
             CourseID = code.CourseID.ToString(),
             ClubID = code.ClubID.ToString(),
-            OwnedUserID = code.OwnedUserID,
+            OwnedUserID = null,
             UsedByUserID = code.UsedByUserID,
             UsedDate = code.UsedDate,
             ExpireDate = code.ExpireDate,

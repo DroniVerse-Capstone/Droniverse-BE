@@ -19,8 +19,8 @@ public class CreateDroneRequestExample : IMultipleExamplesProvider<CreateDroneRe
                 DescriptionEN = "Drone for surveying and basic flight training.",
                 Height = 0.42f,
                 Weight = 1.35f,
-                Status = DroneStatus.DRAFT,
-                Model3DLink = "https://cdn-media.sforum.vn/storage/app/media/wp-content/uploads/2024/04/drone-light-la-gi-6.jpeg"
+                Status = DroneStatus.ACTIVE,
+                ImgURL = "https://cdn-media.sforum.vn/storage/app/media/wp-content/uploads/2024/04/drone-light-la-gi-6.jpeg"
             }
         );
     }

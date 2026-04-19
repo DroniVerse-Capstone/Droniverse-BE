@@ -80,10 +80,6 @@ public class DroneService : IDroneService
         if (drone == null)
             throw new BaseException("Không tìm thấy drone.", "NOT_FOUND");
 
-        var inUse = await _unitOfWork.RequiredDrones.GetByConditionAsync(rd => rd.DroneID == droneId);
-        if (inUse != null)
-            throw new ValidationException("Không thể xóa drone vì DroneID đang tồn tại trong RequiredDrone.");
-
         await _unitOfWork.Drones.DeleteAsync(drone);
         await _unitOfWork.SaveChangesAsync();
     }

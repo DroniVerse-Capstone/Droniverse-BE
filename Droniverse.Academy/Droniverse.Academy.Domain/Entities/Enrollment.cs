@@ -8,7 +8,7 @@ public class Enrollment
     public Guid CourseID { get; set; }              // FK -> Course
     public Guid CourseVersionID { get; set; }       // FK -> CourseVersion
     public Guid UserID { get; set; }                // FK -> User
-    public Guid ClubID { get; set; }               // FK -> Club (nullable)
+    public Guid ClubID { get; set; }               // FK -> Club 
     public DateTime EnrollDate { get; set; }
     public DateTime LastAccessDate { get; set; }
     public DateTime ExpireDate { get; set; }
