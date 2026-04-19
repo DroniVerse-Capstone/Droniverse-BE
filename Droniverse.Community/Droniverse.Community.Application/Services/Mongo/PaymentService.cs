@@ -364,20 +364,10 @@ internal class PaymentService : IPaymentService
 
                 order.Status = OrderStatus.SUCCESS;
                 
-                // Get user info from Identity service for email sending
-                // Note: This may fail with 401 in webhook context, so we make it non-critical
-                UserResponse? user = null;
-                try
-                {
-                    user = await _identityMicroserviceClient.GetUserByUserID(order.UserID);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Could not fetch user info for payment confirmation notification");
-                }
-
-                string userEmail = user?.Email ?? "no-reply@droniverse.io.vn";
-                string userName = user?.Username ?? "User";
+                // Use cached email and username from order (saved when order was created)
+                // No need to call Identity service in webhook context where HTTP context is not available
+                string userEmail = order.UserEmail ?? string.Empty;
+                string userName = order.UserName ?? "User";
 
                 _logger.LogInformation("Payment SUCCESS for orderId: {OrderId}, Email: {Email}", order._id, userEmail);
 
@@ -397,7 +387,7 @@ internal class PaymentService : IPaymentService
                 invoice.CustomerInfo = new CustomerInfo
                 {
                     UserID = order.UserID,
-                    FullName = AppHelper.GetFullName(user), // Fallback, full name từ Identity service không cần thiết cho invoice
+                    FullName = userName,  // Use cached username from order
                     Email = userEmail ?? string.Empty,
                     TaxCode = null,
                 };

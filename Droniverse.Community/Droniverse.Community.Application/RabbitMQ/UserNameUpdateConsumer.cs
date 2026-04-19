@@ -28,12 +28,32 @@ public class UserNameUpdateConsumer : IDisposable, IUserNameUpdateConsumer
     {
         try
         {
+            var hostName = _configuration["RabbitMQ_HostName"] ?? "localhost";
+            var userName = _configuration["RabbitMQ_UserName"] ?? "guest";
+            var password = _configuration["RabbitMQ_Password"] ?? "guest";
+            var portStr = _configuration["RabbitMQ_Port"] ?? "5672";
+
+            // Handle cases where port is embedded in a full connection string (e.g., "tcp://10.109.19.235:15672")
+            int port = 5672;
+            if (Uri.TryCreate($"amqp://{portStr}", UriKind.Absolute, out var uri) && uri.Port > 0)
+            {
+                port = uri.Port;
+                if (string.IsNullOrEmpty(hostName) || hostName == "localhost")
+                {
+                    hostName = uri.Host;
+                }
+            }
+            else if (int.TryParse(portStr, out int parsedPort))
+            {
+                port = parsedPort;
+            }
+
             var factory = new ConnectionFactory()
             {
-                HostName = _configuration["RabbitMQ_HostName"] ?? "localhost",
-                UserName = _configuration["RabbitMQ_UserName"] ?? "guest",
-                Password = _configuration["RabbitMQ_Password"] ?? "guest",
-                Port = int.Parse(_configuration["RabbitMQ_Port"] ?? "5672"),
+                HostName = hostName,
+                UserName = userName,
+                Password = password,
+                Port = port,
                 AutomaticRecoveryEnabled = true,
                 NetworkRecoveryInterval = TimeSpan.FromSeconds(10)
             };

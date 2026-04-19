@@ -118,6 +118,8 @@ internal class OrderService : IOrderService
         {
             _id = Guid.NewGuid(),
             UserID = currentUserId,
+            UserEmail = _currentUserService.Email ?? string.Empty,
+            UserName = _currentUserService.UserName ?? string.Empty,
             ClubID = clubId,
             CreateAt = DateTime.UtcNow.AddHours(7),
             OrderType = isMember ? OrderType.USER_PURCHASE : OrderType.CLUB_IMPORT,

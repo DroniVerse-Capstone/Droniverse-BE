@@ -36,7 +36,22 @@ public class OrderNotificationConsumer : IDisposable
             var hostName = _configuration["RabbitMQ_HostName"] ?? "localhost";
             var userName = _configuration["RabbitMQ_UserName"] ?? "guest";
             var password = _configuration["RabbitMQ_Password"] ?? "guest";
-            var port = int.Parse(_configuration["RabbitMQ_Port"] ?? "5672");
+            var portStr = _configuration["RabbitMQ_Port"] ?? "5672";
+
+            // Handle cases where port is embedded in a full connection string (e.g., "tcp://10.109.19.235:15672")
+            int port = 5672;
+            if (Uri.TryCreate($"amqp://{portStr}", UriKind.Absolute, out var uri) && uri.Port > 0)
+            {
+                port = uri.Port;
+                if (string.IsNullOrEmpty(hostName) || hostName == "localhost")
+                {
+                    hostName = uri.Host;
+                }
+            }
+            else if (int.TryParse(portStr, out int parsedPort))
+            {
+                port = parsedPort;
+            }
 
             _logger.LogInformation("🔧 RabbitMQ Config - Host: {HostName}, Port: {Port}, User: {UserName}", 
                 hostName, port, userName);
