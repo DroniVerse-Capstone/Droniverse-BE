@@ -8,6 +8,7 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Droniverse.Identity.Application.RabbitMQ;
 
@@ -114,22 +115,48 @@ public class OrderNotificationConsumer : IDisposable
                     if (routingKey == "order.created")
                     {
                         _logger.LogInformation("🔄 Processing order.created...");
-                        var orderMsg = JsonSerializer.Deserialize<OrderCreatedNotificationMessage>(message);
-                        if (orderMsg != null)
+                        try
                         {
-                            await HandleOrderCreatedAsync(orderMsg);
-                            _logger.LogInformation("✅ Order created notification processed for order {OrderId}", orderMsg.OrderId);
+                            var orderMsg = JsonSerializer.Deserialize<OrderCreatedNotificationMessage>(message);
+                            if (orderMsg != null)
+                            {
+                                await HandleOrderCreatedAsync(orderMsg);
+                                _logger.LogInformation("✅ Order created notification processed for order {OrderId}", orderMsg.OrderId);
+                            }
+                            else
+                            {
+                                _logger.LogWarning("⚠️ Failed to deserialize OrderCreatedNotificationMessage. Payload: {Payload}", message);
+                            }
+                        }
+                        catch (JsonException jsonEx)
+                        {
+                            _logger.LogError(jsonEx, "❌ JSON deserialization error for order.created. Payload: {Payload}", message);
                         }
                     }
                     else if (routingKey == "payment.successful")
                     {
                         _logger.LogInformation("🔄 Processing payment.successful...");
-                        var paymentMsg = JsonSerializer.Deserialize<PaymentSuccessfulNotificationMessage>(message);
-                        if (paymentMsg != null)
+                        try
                         {
-                            await HandlePaymentSuccessfulAsync(paymentMsg);
-                            _logger.LogInformation("✅ Payment successful notification processed for order {OrderId}", paymentMsg.OrderId);
+                            var paymentMsg = JsonSerializer.Deserialize<PaymentSuccessfulNotificationMessage>(message);
+                            if (paymentMsg != null)
+                            {
+                                await HandlePaymentSuccessfulAsync(paymentMsg);
+                                _logger.LogInformation("✅ Payment successful notification processed for order {OrderId}", paymentMsg.OrderId);
+                            }
+                            else
+                            {
+                                _logger.LogWarning("⚠️ Failed to deserialize PaymentSuccessfulNotificationMessage. Payload: {Payload}", message);
+                            }
                         }
+                        catch (JsonException jsonEx)
+                        {
+                            _logger.LogError(jsonEx, "❌ JSON deserialization error for payment.successful. Payload: {Payload}", message);
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogWarning("⚠️ Unknown routing key: {RoutingKey}", routingKey);
                     }
                 }
                 catch (Exception ex)

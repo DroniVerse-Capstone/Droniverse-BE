@@ -150,8 +150,8 @@ internal class OrderService : IOrderService
             // Publish notification event after order is successfully created
             try
             {
-                var userEmail = _currentUserService.Email;
-                var userName = _currentUserService.UserName;
+                var userEmail = createdOrder?.UserEmail;
+                var userName = createdOrder?.UserName;
 
                 if (createdOrder != null && !string.IsNullOrWhiteSpace(userEmail))
                 {
@@ -166,6 +166,10 @@ internal class OrderService : IOrderService
 
                     await _orderNotificationPublisher.PublishOrderCreatedAsync(notificationEvent);
                     _logger.LogInformation($"Order created notification published for order {createdOrder._id}");
+                }
+                else
+                {
+                    _logger.LogWarning($"Skipped publishing order.created notification - createdOrder: {createdOrder != null}, userEmail: {userEmail}");
                 }
             }
             catch (Exception ex)
