@@ -365,7 +365,11 @@ internal class PaymentService : IPaymentService
                 order.Status = OrderStatus.SUCCESS;
                 
                 // Get user info from Identity service for email sending
-                var (userEmail, userName) = await GetUserInfoAsync(order.UserID);
+                //var (userEmail, userName) = await GetUserInfoAsync(order.UserID);
+                UserResponse? user = await _identityMicroserviceClient.GetUserByUserID(order.UserID);
+                string userEmail = user?.Email ?? "User email không khả dụng";
+                string userName = user?.Username ?? "Username không khả dụng.";
+
                 _logger.LogInformation("Payment SUCCESS for orderId: {OrderId}, Email: {Email}", order._id, userEmail);
 
                 //Add Invoice
@@ -384,7 +388,7 @@ internal class PaymentService : IPaymentService
                 invoice.CustomerInfo = new CustomerInfo
                 {
                     UserID = order.UserID,
-                    FullName = "User", // Fallback, full name từ Identity service không cần thiết cho invoice
+                    FullName = AppHelper.GetFullName(user), // Fallback, full name từ Identity service không cần thiết cho invoice
                     Email = userEmail ?? string.Empty,
                     TaxCode = null,
                 };
