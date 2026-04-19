@@ -628,7 +628,7 @@ internal class PaymentService : IPaymentService
         try
         {
             _logger.LogInformation("Fetching user info from Identity service for UserId: {UserId}", userId);
-            var user = await _identityMicroserviceClient.GetUserByUserID(userId);
+            UserResponse user = await _identityMicroserviceClient.GetUserByUserID(userId);
             if (user != null)
             {
                 _logger.LogInformation("Successfully retrieved user info for UserId: {UserId}", userId);
