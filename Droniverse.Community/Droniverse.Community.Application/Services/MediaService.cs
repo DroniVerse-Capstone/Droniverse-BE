@@ -104,7 +104,7 @@ public class MediaService : IMediaService
         {
             MediaID = mediaId,
             MediaTypeID = mediaType.MediaTypeID,
-            ImageUrl = imageUrl,
+            Url = imageUrl,
             CreatedAt = _clock.Now,
             UpdatedAt = _clock.Now
         };
@@ -118,7 +118,7 @@ public class MediaService : IMediaService
             MediaID = media.MediaID,
             MediaTypeID = media.MediaTypeID,
             MediaType = mediaType.TypeNameVN,
-            ImageUrl = media.ImageUrl,
+            Url = media.Url,
             CreatedAt = media.CreatedAt
         };
     }

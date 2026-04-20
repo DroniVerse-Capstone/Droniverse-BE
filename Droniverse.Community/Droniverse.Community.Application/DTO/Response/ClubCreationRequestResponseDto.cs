@@ -24,4 +24,5 @@ public class ClubCreationRequestResponseDto
     public string? RequesterName { get; set; }
     public string? RequesterEmail { get; set; }
     public ClubCreationRequestStatus Status { get; set; }
+    public MediaResponseDto Media { get; set; }
 }

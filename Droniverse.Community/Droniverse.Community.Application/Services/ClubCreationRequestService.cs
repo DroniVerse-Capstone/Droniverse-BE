@@ -28,6 +28,7 @@ namespace Droniverse.Community.Application.Services
         private readonly IdentityMicroserviceClient _identityMicroserviceClient;
         private readonly ICurrentUserService _currentUserService;
         private readonly IClock _clock;
+        private readonly IMapper _mapper;
 
         public ClubCreationRequestService(
             IUnitOfWork unitOfWork,
@@ -37,7 +38,7 @@ namespace Droniverse.Community.Application.Services
             IClock clock)
         {
             _unitOfWork = unitOfWork;
-            //_mapper = mapper;
+            _mapper = mapper;
             _identityMicroserviceClient = identityMicroserviceClient;
             _currentUserService = currentUserService;
             _clock = clock;
@@ -85,7 +86,7 @@ namespace Droniverse.Community.Application.Services
         {
             var requests = await _unitOfWork.ClubCreationRequests.GetManyByCondition(
                                         x => !searchRequest.status.HasValue || x.Status == searchRequest.status.Value,
-                                        q => q.AsNoTracking().OrderByDescending(c => c.CreatedAt)
+                                        q => q.Include(x => x.Media).AsNoTracking().OrderByDescending(c => c.CreatedAt)
                                     );
 
             if (requests == null || !requests.Any())
@@ -138,7 +139,8 @@ namespace Droniverse.Community.Application.Services
                     RequesterEmail = requester?.Email,
                     ApproverName = AppHelper.GetFullName(approver),
                     ApproverEmail = approver?.Email,
-                    Status = x.Status
+                    Status = x.Status,
+                    Media = _mapper.Map<MediaResponseDto>(x.Media)
                 };
             });
 
@@ -213,7 +215,7 @@ namespace Droniverse.Community.Application.Services
         {
             var request = await _unitOfWork.ClubCreationRequests.GetByCondition(
                                         x => x.ClubCreationRequestID == id,
-                                        q => q);
+                                        q => q.Include(x => x.Media));
 
             if (request == null)
                 throw new KeyNotFoundException($"Club creation request with ID [{id}] not found.");
@@ -257,7 +259,8 @@ namespace Droniverse.Community.Application.Services
                 RequesterEmail = requester?.Email,
                 ApproverName = AppHelper.GetFullName(approver),
                 ApproverEmail = approver?.Email,
-                Status = request.Status
+                Status = request.Status,
+                Media = _mapper.Map<MediaResponseDto>(request.Media)
             };
         }
 
