@@ -719,10 +719,10 @@ public class AcademyMicroserviceClient
     };
 
         // Level
-        if (request.Level.HasValue)
-        {
-            queryParts.Add($"Level={(int)request.Level.Value}");
-        }
+        //if (request.Level.HasValue)
+        //{
+        //    queryParts.Add($"Level={(int)request.Level.Value}");
+        //}
 
         // ProfitType
         if (request.ProfitType.HasValue)
@@ -781,10 +781,10 @@ public class AcademyMicroserviceClient
             $"CourseOwner={(int)searchRequest.CourseOwner}"
         };
 
-        if (searchRequest.Level.HasValue)
-        {
-            queryParts.Add($"Level={(int)searchRequest.Level.Value}");
-        }
+        //if (searchRequest.Level.HasValue)
+        //{
+        //    queryParts.Add($"Level={(int)searchRequest.Level.Value}");
+        //}
 
         if (searchRequest.ParticipationSort.HasValue)
         {

@@ -25,6 +25,8 @@ internal class CourseRepository : MySqlRepository<Course>, ICourseRepository
         return await _dbSet
             .Where(c => c.CourseID == id)
             .Include(c => c.CurrentVersion)
+            .Include(c => c.Level)
+            .Include(c => c.Drone)
             .FirstOrDefaultAsync(cancellationToken);
     }
 
@@ -36,6 +38,8 @@ internal class CourseRepository : MySqlRepository<Course>, ICourseRepository
             .Where(c => c.CourseID == id)
             .Include(c => c.CurrentVersion)
             .Include(c => c.CourseVersions)
+            .Include(c => c.Level)
+            .Include(c => c.Drone)
             .FirstOrDefaultAsync(cancellationToken);
     }
 
@@ -48,7 +52,7 @@ internal class CourseRepository : MySqlRepository<Course>, ICourseRepository
         CancellationToken cancellationToken = default)
     {
         IQueryable<Course> query = _dbSet
-            .Include(c => c.CurrentVersion);
+            .Include(c => c.CurrentVersion).Include(l => l.Level).Include(d => d.Drone);
 
         if (filter != null)
             query = query.Where(filter);
@@ -82,6 +86,8 @@ internal class CourseRepository : MySqlRepository<Course>, ICourseRepository
     {
         IQueryable<Course> query = _dbSet
             .Include(c => c.CurrentVersion)
+            .Include(l => l.Level)
+            .Include(d => d.Drone)
             .Include(c => c.CourseVersions);
 
         if (filter != null)
@@ -111,7 +117,9 @@ internal class CourseRepository : MySqlRepository<Course>, ICourseRepository
     CancellationToken cancellationToken = default)
     {
         IQueryable<Course> query = _dbSet
-            .Include(c => c.CurrentVersion);
+            .Include(c => c.CurrentVersion)
+            .Include(l => l.Level)
+            .Include(d => d.Drone);
 
         if (filter != null)
             query = query.Where(filter);

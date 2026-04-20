@@ -9,6 +9,8 @@ public class CourseDetailResponseDTO
     public SimpleUserReponse? Creator { get; set; }
     public DateTime CreateAt { get; set; }
     public CourseStatus Status { get; set; }
+    public LevelMiniReponse? Level { get; set; }
+    public DroneMiniReponse? Drone { get; set; }
     public CourseVersionResponseDTO? CurrentVersion { get; set; }
     public ICollection<CourseVersionResponseDTO> CourseVersions { get; set; } = [];
 }

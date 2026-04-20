@@ -40,16 +40,28 @@ public class CourseService : ICourseService
     public async Task<CourseDetailResponseDTO> CreateCourseAsync(CreateCourseRequest request)
     {
         var level = await _unitOfWork.Levels.GetByIdAsync(request.LevelID);
+
         var course = new Course
         {
             CourseID = Guid.NewGuid(),
             LevelID = level.LevelID,
-            DroneID = level.DroneID,
-            CourseVersions = []
+            DroneID = level.DroneID
         };
         course.SetAuditOnCreate(_currentUser.UserId, _clock.Now);
 
         await _unitOfWork.Courses.AddAsync(course);
+        await _unitOfWork.SaveChangesAsync();
+
+        var version = _mapper.Map<CourseVersion>(request.Version);
+        version.CourseVersionID = Guid.NewGuid();
+        version.CourseID = course.CourseID;
+        version.Version = 1;
+        version.SetAuditOnCreate(_currentUser.UserId, _clock.Now);
+
+        await _unitOfWork.CourseVersions.AddAsync(version);
+        await _unitOfWork.SaveChangesAsync();
+
+        course.CurrentVersionID = version.CourseVersionID;
         await _unitOfWork.SaveChangesAsync();
 
         var response = _mapper.Map<CourseDetailResponseDTO>(course);

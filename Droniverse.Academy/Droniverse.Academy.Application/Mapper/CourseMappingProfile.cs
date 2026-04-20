@@ -37,7 +37,11 @@ public class CourseMappingProfile : Profile
             .ForMember(dest => dest.CourseVersions,
                 opt => opt.MapFrom(src =>
                     src.CourseVersions
-                        .OrderByDescending(cv => cv.Version)));
+                        .OrderByDescending(cv => cv.Version)))
+            .ForMember(dest => dest.Level,
+                opt => opt.MapFrom(src => src.Level != null ? src.Level : null))
+            .ForMember(dest => dest.Drone,
+                opt => opt.MapFrom(src => src.Drone != null ? src.Drone : null)); ;
     }
 }
 

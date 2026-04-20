@@ -69,11 +69,6 @@ public class CourseVersionService : ICourseVersionService
         cv.Version = nextVersion;
         cv.SetAuditOnCreate(_currentUser.UserId, _clock.Now);
 
-        if (nextVersion == 1)
-        {
-            course.CurrentVersion = cv;
-            course.CurrentVersionID = cv.CourseVersionID;
-        }
 
         await _unitOfWork.CourseVersions.AddAsync(cv);
         await _unitOfWork.SaveChangesAsync();
