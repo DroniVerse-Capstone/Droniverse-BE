@@ -25,7 +25,6 @@ internal class ClubService : IClubService
     private readonly AcademyMicroserviceClient _academyMicroserviceClient;
     private readonly ICurrentUserService _currentUserService;
     private readonly IClock _clock;
-    private readonly IClubPolicyService _clubPolicyService;
 
     public ClubService(
         IUnitOfWork unitOfWork,
@@ -33,8 +32,7 @@ internal class ClubService : IClubService
         IdentityMicroserviceClient identityMicroserviceClient,
         AcademyMicroserviceClient academyMicroserviceClient,
         ICurrentUserService currentUserService,
-        IClock clock,
-        IClubPolicyService clubPolicyService
+        IClock clock
         )
     {
         _unitOfWork = unitOfWork;
@@ -43,7 +41,6 @@ internal class ClubService : IClubService
         _academyMicroserviceClient = academyMicroserviceClient;
         _currentUserService = currentUserService;
         _clock = clock;
-        _clubPolicyService = clubPolicyService;
     }
 
     public async Task<ClubResponseDto> CreateClub(ClubCreateDto clubRequestDto)
@@ -63,18 +60,6 @@ internal class ClubService : IClubService
         club.CreatedBy = user.UserId;
 
         await _unitOfWork.Clubs.Add(club);
-
-        ClubPolicy clubPolicy = new ClubPolicy
-        (
-            Title: clubRequestDto.ClubPolicy?.Title ?? "Chưa có tiêu đề cho Club Policy",
-            Content: clubRequestDto.ClubPolicy?.Content ?? "Chưa có nội dung cho Club Policy",
-            CreatedBy: currentUserID,
-            UpdatedBy: Guid.Empty,
-            ClubID: club.ClubID
-            
-        );
-        await _unitOfWork.ClubPolicies.Add(clubPolicy);
-        await _unitOfWork.SaveChangeAsync();
 
         return await BuildClubResponseDto(club, user);
     }
@@ -452,239 +437,91 @@ internal class ClubService : IClubService
             || user.Email.Contains(token, StringComparison.OrdinalIgnoreCase));
     }
 
-    public async Task<PaginationResult<IEnumerable<CourseBulkResponseDTO>>> GetClubCourses(
-     Guid clubId,
-     CourseBulkSearchRequest searchRequest)
-    {
-        searchRequest ??= new CourseBulkSearchRequest();
-
-        // 1. Xác định role
-        var isMember = _currentUserService.Roles.Contains(Roles.ClubMember);
-        var effectiveOwnerFilter = isMember
-            ? CourseOwnerFilter.Owned
-            : searchRequest.CourseOwner;
-
-        // 2. Check club tồn tại
-        var clubExists = await _unitOfWork.Clubs.GetByCondition(c => c.ClubID == clubId);
-        if (clubExists == null)
-            throw new KeyNotFoundException($"Không tìm thấy câu lạc bộ với ID [{clubId}].");
-
-        // 3. Lấy danh sách course của club khi cần Owned/NotOwned
-        List<ClubCourse> clubCourses = [];
-        List<Guid> courseIds = [];
-
-        if (effectiveOwnerFilter is CourseOwnerFilter.Owned or CourseOwnerFilter.NotOwned)
-        {
-            clubCourses = (await _unitOfWork.ClubCourses.GetManyByCondition(
-                cc => cc.ClubID == clubId,
-                q => q.AsNoTracking()))
-                ?.ToList() ?? [];
-
-            courseIds = clubCourses
-                .Select(c => c.CourseID)
-                .Where(id => id != Guid.Empty)
-                .Distinct()
-                .ToList();
-
-            if (effectiveOwnerFilter == CourseOwnerFilter.Owned && courseIds.Count == 0)
-            {
-                return Enumerable.Empty<CourseBulkResponseDTO>()
-                    .ToPaginationResult(searchRequest);
-            }
-        }
-
-        // 4. Build request cho academy
-        var academyRequest = new CourseBulkSearchRequest
-        {
-            CurrentPage = searchRequest.CurrentPage,
-            PageSize = searchRequest.PageSize,
-            Level = searchRequest.Level,
-            ParticipationSort = searchRequest.ParticipationSort,
-            CourseName = searchRequest.CourseName,
-            CourseOwner = effectiveOwnerFilter
-        };
-
-        // 5. Call academy
-        var pagedCourse = await _academyMicroserviceClient.GetCourseById(
-            effectiveOwnerFilter is CourseOwnerFilter.Owned or CourseOwnerFilter.NotOwned ? courseIds : [],
-            academyRequest);
-
-        var courseItems = pagedCourse.Items?.ToList() ?? [];
-
-        if (courseItems.Count == 0)
-        {
-            return new PaginationResult<IEnumerable<CourseBulkResponseDTO>>(
-                courseItems,
-                pagedCourse.TotalItems,
-                searchRequest.CurrentPage,
-                searchRequest.PageSize);
-        }
-
-        // 6. Lấy danh sách courseId trong page
-        var itemCourseIds = courseItems
-            .Select(c => c.CourseId)
-            .Where(id => id != Guid.Empty)
-            .Distinct()
-            .ToList();
-
-        // 7. Query product (price)
-        var products = await _unitOfWork.Products.GetManyByCondition(
-            p => itemCourseIds.Contains(p.ReferenceID) && p.Status == ProductStatus.ACTIVE,
-            q => q.AsNoTracking());
-
-        var priceByCourseId = products?
-            .GroupBy(p => p.ReferenceID)
-            .ToDictionary(
-                g => g.Key,
-                g => g
-                    .OrderByDescending(x => x.UpdateAt)
-                    .Select(x => (decimal?)x.Price)
-                    .FirstOrDefault()
-            ) ?? [];
-
-        // 8. Gộp remaining + profitType vào một map duy nhất
-        Dictionary<Guid, (int Remaining, ClubCourseProfit ProfitType)> clubCourseMap = new();
-
-        IEnumerable<ClubCourse> sourceClubCourses;
-
-        if (clubCourses.Count > 0)
-        {
-            sourceClubCourses = clubCourses;
-        }
-        else
-        {
-            sourceClubCourses = await _unitOfWork.ClubCourses.GetManyByCondition(
-                cc => cc.ClubID == clubId && itemCourseIds.Contains(cc.CourseID),
-                q => q.AsNoTracking()) ?? [];
-        }
-
-        clubCourseMap = sourceClubCourses
-            .Where(cc => itemCourseIds.Contains(cc.CourseID))
-            .GroupBy(cc => cc.CourseID)
-            .ToDictionary(
-                g => g.Key,
-                g => (
-                    g.First().RemainingQuantity,
-                    g.First().ProfitType
-                )
-            );
-
-        // 9. Map dữ liệu
-        foreach (var course in courseItems)
-        {
-            course.Price = priceByCourseId.TryGetValue(course.CourseId, out var price)
-                ? price ?? 0
-                : 0;
-
-            if (clubCourseMap.TryGetValue(course.CourseId, out var clubData))
-            {
-                course.ClubCourseOwned = new ClubCourseOwnedResponse
-                {
-                    RemainingCode = clubData.Remaining,
-                    ProfitType = clubData.ProfitType
-                };
-            }
-            else
-            {
-                course.ClubCourseOwned = null;
-            }
-        }
-
-        // 10. Return
-        return new PaginationResult<IEnumerable<CourseBulkResponseDTO>>(
-            courseItems,
-            pagedCourse.TotalItems,
-            searchRequest.CurrentPage,
-            searchRequest.PageSize);
-    }
+    
 
     /// <summary>
     /// Lấy danh sách khóa học hot của một câu lạc bộ theo phân trang.
     /// </summary>
-    public async Task<PaginationResult<IEnumerable<CourseBulkResponseDTO>>> GetHotCoursesByClub(Guid clubId, HotCoursesSearchRequest searchRequest)
-    {
-        searchRequest ??= new HotCoursesSearchRequest();
+    //public async Task<PaginationResult<IEnumerable<CourseBulkResponseDTO>>> GetHotCoursesByClub(Guid clubId, HotCoursesSearchRequest searchRequest)
+    //{
+    //    searchRequest ??= new HotCoursesSearchRequest();
 
-        Club? club = await _unitOfWork.Clubs.GetByCondition(
-            c => c.ClubID == clubId,
-            query => query.AsNoTracking());
+    //    Club? club = await _unitOfWork.Clubs.GetByCondition(
+    //        c => c.ClubID == clubId,
+    //        query => query.AsNoTracking());
 
-        if (club == null)
-            throw new KeyNotFoundException($"Không tìm thấy câu lạc bộ với ID [{clubId}].");
+    //    if (club == null)
+    //        throw new KeyNotFoundException($"Không tìm thấy câu lạc bộ với ID [{clubId}].");
+    //    IEnumerable<Course>
 
-        var clubCourses = await _unitOfWork.ClubCourses.GetManyByCondition(
-            c => c.ClubID == clubId,
-            query => query.AsNoTracking());
+    //    var courseIds = clubCourses
+    //        .Where(id => id != Guid.Empty)
+    //        .Distinct()
+    //        .ToList() ?? [];
 
-        var courseIds = clubCourses?
-            .Select(c => c.CourseID)
-            .Where(id => id != Guid.Empty)
-            .Distinct()
-            .ToList() ?? [];
+    //    if (courseIds.Count == 0)
+    //        return new PaginationResult<IEnumerable<CourseBulkResponseDTO>>([], 0, searchRequest.CurrentPage, searchRequest.PageSize);
 
-        if (courseIds.Count == 0)
-            return new PaginationResult<IEnumerable<CourseBulkResponseDTO>>([], 0, searchRequest.CurrentPage, searchRequest.PageSize);
+    //    var pagedHotCourse = await _academyMicroserviceClient.GetHotCoursesByIds(courseIds, searchRequest);
 
-        var pagedHotCourse = await _academyMicroserviceClient.GetHotCoursesByIds(courseIds, searchRequest);
+    //    var hotCourseItems = pagedHotCourse.Items?.ToList() ?? [];
+    //    if (hotCourseItems.Count == 0)
+    //    {
+    //        return new PaginationResult<IEnumerable<CourseBulkResponseDTO>>(
+    //            hotCourseItems,
+    //            pagedHotCourse.TotalItems,
+    //            searchRequest.CurrentPage,
+    //            searchRequest.PageSize);
+    //    }
 
-        var hotCourseItems = pagedHotCourse.Items?.ToList() ?? [];
-        if (hotCourseItems.Count == 0)
-        {
-            return new PaginationResult<IEnumerable<CourseBulkResponseDTO>>(
-                hotCourseItems,
-                pagedHotCourse.TotalItems,
-                searchRequest.CurrentPage,
-                searchRequest.PageSize);
-        }
+    //    var itemCourseIds = hotCourseItems
+    //        .Select(c => c.CourseId)
+    //        .Where(id => id != Guid.Empty)
+    //        .Distinct()
+    //        .ToList();
 
-        var itemCourseIds = hotCourseItems
-            .Select(c => c.CourseId)
-            .Where(id => id != Guid.Empty)
-            .Distinct()
-            .ToList();
+    //    var products = await _unitOfWork.Products.GetManyByCondition(
+    //        p => itemCourseIds.Contains(p.ReferenceID) && p.Status == ProductStatus.ACTIVE,
+    //        q => q.AsNoTracking());
 
-        var products = await _unitOfWork.Products.GetManyByCondition(
-            p => itemCourseIds.Contains(p.ReferenceID) && p.Status == ProductStatus.ACTIVE,
-            q => q.AsNoTracking());
+    //    var priceByCourseId = products?
+    //        .GroupBy(p => p.ReferenceID)
+    //        .ToDictionary(
+    //            g => g.Key,
+    //            g => g
+    //                .OrderByDescending(x => x.UpdateAt)
+    //                .Select(x => x.Price)
+    //                .FirstOrDefault()
+    //        ) ?? [];
 
-        var priceByCourseId = products?
-            .GroupBy(p => p.ReferenceID)
-            .ToDictionary(
-                g => g.Key,
-                g => g
-                    .OrderByDescending(x => x.UpdateAt)
-                    .Select(x => x.Price)
-                    .FirstOrDefault()
-            ) ?? [];
+    //    var clubCourseMap = clubCourses
+    //        .Where(cc => itemCourseIds.Contains(cc.CourseID))
+    //        .GroupBy(cc => cc.CourseID)
+    //        .ToDictionary(
+    //            g => g.Key,
+    //            g => new ClubCourseOwnedResponse
+    //            {
+    //                RemainingCode = g.First().RemainingQuantity,
+    //                ProfitType = g.First().ProfitType
+    //            });
 
-        var clubCourseMap = clubCourses
-            .Where(cc => itemCourseIds.Contains(cc.CourseID))
-            .GroupBy(cc => cc.CourseID)
-            .ToDictionary(
-                g => g.Key,
-                g => new ClubCourseOwnedResponse
-                {
-                    RemainingCode = g.First().RemainingQuantity,
-                    ProfitType = g.First().ProfitType
-                });
+    //    foreach (var course in hotCourseItems)
+    //    {
+    //        course.Price = priceByCourseId.TryGetValue(course.CourseId, out var price)
+    //            ? price
+    //            : 0;
 
-        foreach (var course in hotCourseItems)
-        {
-            course.Price = priceByCourseId.TryGetValue(course.CourseId, out var price)
-                ? price
-                : 0;
+    //        course.ClubCourseOwned = clubCourseMap.TryGetValue(course.CourseId, out var owned)
+    //            ? owned
+    //            : null;
+    //    }
 
-            course.ClubCourseOwned = clubCourseMap.TryGetValue(course.CourseId, out var owned)
-                ? owned
-                : null;
-        }
-
-        return new PaginationResult<IEnumerable<CourseBulkResponseDTO>>(
-            hotCourseItems,
-            pagedHotCourse.TotalItems,
-            searchRequest.CurrentPage,
-            searchRequest.PageSize);
-    }
+    //    return new PaginationResult<IEnumerable<CourseBulkResponseDTO>>(
+    //        hotCourseItems,
+    //        pagedHotCourse.TotalItems,
+    //        searchRequest.CurrentPage,
+    //        searchRequest.PageSize);
+    //}
 
     public async Task<IEnumerable<ClubResponseDto>> GetClubsByCurrentUsersID(ClubStatus? status = null)
     {
@@ -871,159 +708,6 @@ internal class ClubService : IClubService
         }
     }
 
-    public async Task<CreateCodesResponse> GenerateCodesByManager(Guid clubId, CreateCodesRequestDTO request)
-    {
-        if (request == null)
-            throw new ArgumentNullException(nameof(request));
-
-        var club = await _unitOfWork.Clubs.GetByCondition(c => c.ClubID == clubId);
-        if (club == null)
-            throw new KeyNotFoundException("Không tìm thấy câu lạc bộ");
-        if (club.Status != ClubStatus.ACTIVE)
-            throw new InvalidOperationException("Câu lạc bộ không ở trạng thái để tạo mã");
-
-        var clubCourse = await _unitOfWork.ClubCourses.GetByCondition(cc => cc.ClubID == clubId && cc.CourseID == request.CourseId);
-
-        if (clubCourse == null)
-            throw new KeyNotFoundException("Câu lạc bộ chưa sở hữu khóa học này");
-
-        if (clubCourse.RemainingQuantity < request.Quantity)
-            throw new InvalidOperationException("Số mã còn lại không đủ");
-
-        var generateResponse = await _academyMicroserviceClient.GenerateCodes(new HttpClients.GenerateCodesRequestDTO
-        {
-            ClubId = clubId,
-            CourseId = request.CourseId,
-            Quantity = request.Quantity
-        });
-
-        if (generateResponse.CreatedCode < 0)
-            throw new InvalidOperationException("Số lượng code trả về từ Academy không hợp lệ.");
-
-        if (generateResponse.CreatedCode > 0)
-        {
-            if (clubCourse.RemainingQuantity < generateResponse.CreatedCode)
-                throw new InvalidOperationException("Số lượng code được tạo vượt quá số lượng còn lại của câu lạc bộ.");
-
-            clubCourse.Consume(generateResponse.CreatedCode);
-            await _unitOfWork.SaveChangeAsync();
-        }
-
-        return generateResponse;
-    }
-
-    public async Task<PaginationResult<IEnumerable<ManagerCoursesBulkResponseDTO>>> GetClubCoursesManagement(Guid clubId, ManagerCourseBulkSearchRequest searchRequest)
-    {
-        searchRequest ??= new ManagerCourseBulkSearchRequest();
-
-        var club = await _unitOfWork.Clubs.GetByCondition(
-            c => c.ClubID == clubId,
-            q => q.AsNoTracking());
-
-        if (club == null)
-            throw new KeyNotFoundException($"Không tìm thấy câu lạc bộ với ID [{clubId}].");
-
-        var clubCourses = (await _unitOfWork.ClubCourses.GetManyByCondition(
-            cc => cc.ClubID == clubId,
-            q => q.AsNoTracking()))?.ToList() ?? [];
-
-        if (clubCourses.Count == 0)
-            return new PaginationResult<IEnumerable<ManagerCoursesBulkResponseDTO>>([], 0, searchRequest.CurrentPage, searchRequest.PageSize);
-
-        if (searchRequest.ProfitType.HasValue)
-        {
-            clubCourses = clubCourses
-                .Where(cc => cc.ProfitType == searchRequest.ProfitType.Value)
-                .ToList();
-        }
-
-        var courseIds = clubCourses
-            .Select(cc => cc.CourseID)
-            .Where(id => id != Guid.Empty)
-            .Distinct()
-            .ToList();
-
-        if (courseIds.Count == 0)
-            return new PaginationResult<IEnumerable<ManagerCoursesBulkResponseDTO>>([], 0, searchRequest.CurrentPage, searchRequest.PageSize);
-
-        var pagedCourses = await _academyMicroserviceClient.GetCoursesByIdsManagement(courseIds, searchRequest);
-        var academyItems = pagedCourses.Items?.ToList() ?? [];
-
-        if (academyItems.Count == 0)
-            return new PaginationResult<IEnumerable<ManagerCoursesBulkResponseDTO>>([], pagedCourses.TotalItems, searchRequest.CurrentPage, searchRequest.PageSize);
-
-        var clubCourseByCourseId = clubCourses
-            .GroupBy(cc => cc.CourseID)
-            .ToDictionary(g => g.Key, g => g.First());
-
-        var itemCourseIds = academyItems
-            .Select(c => c.CourseId)
-            .Where(id => id != Guid.Empty)
-            .Distinct()
-            .ToList();
-
-        var products = await _unitOfWork.Products.GetManyByCondition(
-            p => itemCourseIds.Contains(p.ReferenceID) && p.Status == ProductStatus.ACTIVE,
-            q => q.AsNoTracking());
-
-        var priceByCourseId = products?
-            .GroupBy(p => p.ReferenceID)
-            .ToDictionary(
-                g => g.Key,
-                g => g.OrderByDescending(x => x.UpdateAt)
-                      .Select(x => (decimal?)x.Price)
-                      .FirstOrDefault())
-            ?? [];
-
-        var result = academyItems
-            .Select(c =>
-            {
-                clubCourseByCourseId.TryGetValue(c.CourseId, out var clubCourse);
-
-                return new ManagerCoursesBulkResponseDTO
-                {
-                    CourseId = c.CourseId,
-                    CourseVersionId = c.CourseVersionId,
-                    TitleVN = c.TitleVN,
-                    TitleEN = c.TitleEN,
-                    ImageUrl = c.ImageUrl ?? string.Empty,
-                    Level = c.Level,
-                    EstimatedDuration = c.EstimatedDuration,
-                    NumberOfParticipants = c.NumberOfParticipants,
-                    Price = priceByCourseId.TryGetValue(c.CourseId, out var price) ? price : null,
-                    ClubCourseInfo = clubCourse == null
-                        ? null
-                        : new ManagerClubCourseOwnedResponse
-                        {
-                            TotalCode = clubCourse.TotalQuantity,
-                            RemainingCode = clubCourse.RemainingQuantity,
-                            ProfitType = clubCourse.ProfitType
-                        }
-                };
-            })
-            .ToList();
-
-        if (searchRequest.CourseSortBy == ManagerCourseSortBy.Total_Codes_Quantity)
-        {
-            result = searchRequest.CourseSortDirection == SortDirection.Desc
-                ? result.OrderByDescending(x =>
-                    clubCourseByCourseId.TryGetValue(x.CourseId, out var cc) ? cc.TotalQuantity : 0).ToList()
-                : result.OrderBy(x =>
-                    clubCourseByCourseId.TryGetValue(x.CourseId, out var cc) ? cc.TotalQuantity : 0).ToList();
-        }
-        else if (searchRequest.CourseSortBy == ManagerCourseSortBy.Remaining_Codes_Quantity)
-        {
-            result = searchRequest.CourseSortDirection == SortDirection.Desc
-                ? result.OrderByDescending(x => x.ClubCourseInfo?.RemainingCode ?? 0).ToList()
-                : result.OrderBy(x => x.ClubCourseInfo?.RemainingCode ?? 0).ToList();
-        }
-
-        return new PaginationResult<IEnumerable<ManagerCoursesBulkResponseDTO>>(
-            result,
-            pagedCourses.TotalItems,
-            searchRequest.CurrentPage,
-            searchRequest.PageSize);
-    }
 
     public async Task<GetClubParticipantsResponse> GetClubParticipantIds(Guid clubId, GetClubParticipantIdsRequest request)
     {

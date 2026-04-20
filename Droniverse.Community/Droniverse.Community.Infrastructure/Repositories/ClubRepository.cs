@@ -90,28 +90,29 @@ internal class ClubRepository : MySqlRepository<Club>, IClubRepository
 
     public async Task<Dictionary<Guid, (int MemberCount, int CourseCount)>> GetClubStatsByClubIds(IEnumerable<Guid> clubIds)
     {
-        var ids = clubIds.Distinct().ToList();
-        if (!ids.Any())
-            return new Dictionary<Guid, (int MemberCount, int CourseCount)>();
+        //var ids = clubIds.Distinct().ToList();
+        //if (!ids.Any())
+        //    return new Dictionary<Guid, (int MemberCount, int CourseCount)>();
 
-        var memberCounts = await _context.Set<Participation>()
-            .Where(p => ids.Contains(p.ClubID) && p.Status == ParticipationStatus.ACTIVE)
-            .GroupBy(p => p.ClubID)
-            .Select(g => new { ClubID = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(x => x.ClubID, x => x.Count);
+        //var memberCounts = await _context.Set<Participation>()
+        //    .Where(p => ids.Contains(p.ClubID) && p.Status == ParticipationStatus.ACTIVE)
+        //    .GroupBy(p => p.ClubID)
+        //    .Select(g => new { ClubID = g.Key, Count = g.Count() })
+        //    .ToDictionaryAsync(x => x.ClubID, x => x.Count);
 
-        var courseCounts = await _context.Set<ClubCourse>()
-            .Where(cc => ids.Contains(cc.ClubID))
-            .GroupBy(cc => cc.ClubID)
-            .Select(g => new { ClubID = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(x => x.ClubID, x => x.Count);
+        //var courseCounts = await _context.Set<ClubCourse>()
+        //    .Where(cc => ids.Contains(cc.ClubID))
+        //    .GroupBy(cc => cc.ClubID)
+        //    .Select(g => new { ClubID = g.Key, Count = g.Count() })
+        //    .ToDictionaryAsync(x => x.ClubID, x => x.Count);
 
-        return ids.ToDictionary(
-            id => id,
-            id => (
-                memberCounts.GetValueOrDefault(id, 0),
-                courseCounts.GetValueOrDefault(id, 0)
-            ));
+        //return ids.ToDictionary(
+        //    id => id,
+        //    id => (
+        //        memberCounts.GetValueOrDefault(id, 0),
+        //        courseCounts.GetValueOrDefault(id, 0)
+        //    ));
+        throw new NotImplementedException();
     }
 
     public async Task<Dictionary<Guid, int>> GetMemberCountsByClubIds(IEnumerable<Guid> clubIds)
@@ -129,15 +130,16 @@ internal class ClubRepository : MySqlRepository<Club>, IClubRepository
 
     public async Task<Dictionary<Guid, int>> GetCourseCountsByClubIds(IEnumerable<Guid> clubIds)
     {
-        var ids = clubIds.Distinct().ToList();
-        if (!ids.Any())
-            return new Dictionary<Guid, int>();
+        //var ids = clubIds.Distinct().ToList();
+        //if (!ids.Any())
+        //    return new Dictionary<Guid, int>();
 
-        return await _context.Set<ClubCourse>()
-            .Where(cc => ids.Contains(cc.ClubID))
-            .GroupBy(cc => cc.ClubID)
-            .Select(g => new { ClubID = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(x => x.ClubID, x => x.Count);
+        //return await _context.Set<ClubCourse>()
+        //    .Where(cc => ids.Contains(cc.ClubID))
+        //    .GroupBy(cc => cc.ClubID)
+        //    .Select(g => new { ClubID = g.Key, Count = g.Count() })
+        //    .ToDictionaryAsync(x => x.ClubID, x => x.Count);
+        throw new NotImplementedException();
     }
 
     public async Task<SimpleClubResponse?> GetSimpleClubInfoById(Guid clubId)

@@ -8,7 +8,6 @@ public class MySqlDbContext : DbContext
     {
     }
     public DbSet<Club> Clubs { get; set; }
-    public DbSet<ClubCourse> ClubCourses { get; set; }
     public DbSet<ClubAttemptRequest> ClubRequests { get; set; }
     public DbSet<Competition> Competitions { get; set; }
     public DbSet<CompetitionPrize> CompetitionPrizes { get; set; }
@@ -23,7 +22,6 @@ public class MySqlDbContext : DbContext
     public DbSet<UserRound> UserRounds { get; set; }
     public DbSet<UserCompetition> UserCompetitions { get; set; }
     public DbSet<ClubCreationRequest> ClubCreationRequests { get; set; }
-    public DbSet<ClubPolicy> ClubPolicies { get; set; }
     public DbSet<Transaction> Transactions { get; set; }
     public DbSet<Wallet> Wallets { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)

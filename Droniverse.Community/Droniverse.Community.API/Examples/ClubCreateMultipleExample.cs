@@ -26,11 +26,7 @@ public class ClubCreateMultipleExample
                 LimitParticipation = 300,
                 LimitClubManagers = 5,
 
-                ClubPolicy = new ClubPolicyCreateDto
-                {
-                    Title = "Nội quy của câu lạc bộ",
-                    Content = "Đây là nội dung của nội quy câu lạc bộ. Nó nêu rõ các quy tắc và hướng dẫn cho các thành viên câu lạc bộ."
-                }
+                
             });
 
         yield return SwaggerExample.Create(
@@ -48,13 +44,7 @@ public class ClubCreateMultipleExample
                 IsPublic = false,
 
                 LimitParticipation = 80,
-                LimitClubManagers = 3,
-
-                ClubPolicy = new ClubPolicyCreateDto
-                {
-                    Title = "Nội quy của câu lạc bộ",
-                    Content = "Đây là nội dung của nội quy câu lạc bộ. Nó nêu rõ các quy tắc và hướng dẫn cho các thành viên câu lạc bộ."
-                }
+                LimitClubManagers = 3
             });
     }
 }

@@ -27,6 +27,4 @@ public record ClubCreateDto
 
     [Range(1, 100, ErrorMessage = "Số lượng quản lý phải từ 1 đến 100")]
     public int LimitClubManagers { get; init; }
-
-    public ClubPolicyCreateDto? ClubPolicy { get; init; }
 }

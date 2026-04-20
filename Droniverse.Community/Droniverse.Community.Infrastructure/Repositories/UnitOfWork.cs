@@ -8,7 +8,6 @@ internal class UnitOfWork : IUnitOfWork
     private readonly MySqlDbContext _context;
 
     private IClubRepository _club;
-    private IClubPolicyRepository _clubPolicy;
     private IClubAttemptRequestRepository _clubAttemptRequest;
     private ICompetitionRepository _competition;
     private IMediaRepository _media;
@@ -17,7 +16,6 @@ internal class UnitOfWork : IUnitOfWork
     private IProductRepository _product;
     private IProductCategoryRepository _productCategory;
     private IRoundRepository _round;
-    private IClubCourseRepository _clubCourse;
     private IClubCreationRequestRepository _clubCreationRequest;
     private ICompetitionPrizeRepository _competitionPrize;
     private IUserPrizeRepository _userPrize;
@@ -52,8 +50,6 @@ internal class UnitOfWork : IUnitOfWork
     public IRoundRepository Rounds
         => _round ??= new RoundRepository(_context);
 
-    public IClubCourseRepository ClubCourses => _clubCourse ??= new ClubCourseRepository(_context);
-
     public IClubCreationRequestRepository ClubCreationRequests => _clubCreationRequest ??= new ClubCreationRequestRepository(_context);
 
     public IClubAttemptRequestRepository ClubAttemptRequests => _clubAttemptRequest ??= new ClubAttemptRequestRepository(_context);
@@ -63,8 +59,6 @@ internal class UnitOfWork : IUnitOfWork
     public IUserPrizeRepository UserPrizes => _userPrize ??= new UserPrizeRepository(_context);
     public IUserCompetitionRepository UserCompetitions => _userCompetition ??= new UserCompetitionRepository(_context);
     public IUserRoundRepository UserRounds => _userRound ??= new UserRoundRepository(_context);
-
-    public IClubPolicyRepository ClubPolicies => _clubPolicy ??= new ClubPolicyRepository(_context);
 
     public async Task<int> SaveChangeAsync()
     {

@@ -22,7 +22,7 @@ namespace Droniverse.Community.Domain.Entities
         public Guid MediaID { get; set; }
         public Media? Media { get; set; }
         public Guid ClubPolicyID { get; set; }
-        public ClubPolicy? ClubPolicy { get; set; }
+        public string? ClubPolicy { get; set; }
 
         // ===== System Fields =====
         public Guid DroneID { get; set; }

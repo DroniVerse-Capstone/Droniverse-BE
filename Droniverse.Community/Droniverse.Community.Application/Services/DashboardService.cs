@@ -165,33 +165,7 @@ namespace Droniverse.Community.Application.Services
 
         private async Task<(List<Guid> ProductIds, Dictionary<Guid, Guid> CourseIdByProductId)> GetClubProductContext(Guid clubId)
         {
-            var clubExists = await _unitOfWork.Clubs.GetByCondition(c => c.ClubID == clubId, q => q.AsNoTracking());
-            if (clubExists == null)
-                throw new KeyNotFoundException($"Không tìm thấy câu lạc bộ với ID [{clubId}].");
-
-            var clubCourseIds = (await _unitOfWork.ClubCourses.GetManyByCondition(
-                cc => cc.ClubID == clubId,
-                q => q.AsNoTracking()))
-                .Select(cc => cc.CourseID)
-                .Where(id => id != Guid.Empty)
-                .Distinct()
-                .ToList();
-
-            if (clubCourseIds.Count == 0)
-                return ([], []);
-
-            var products = (await _unitOfWork.Products.GetManyByCondition(
-                p => clubCourseIds.Contains(p.ReferenceID),
-                q => q.AsNoTracking())).ToList();
-
-            if (products.Count == 0)
-                return ([], []);
-
-            var courseIdByProductId = products
-                .GroupBy(p => p.ProductID)
-                .ToDictionary(g => g.Key, g => g.First().ReferenceID);
-
-            return (courseIdByProductId.Keys.ToList(), courseIdByProductId);
+           throw new NotImplementedException("Chưa implement mapping ProductID -> CourseID. Cần có thêm thông tin về Product để thực hiện mapping này.");
         }
 
         private static double CalculateGrowthRate(decimal currentValue, decimal previousValue)

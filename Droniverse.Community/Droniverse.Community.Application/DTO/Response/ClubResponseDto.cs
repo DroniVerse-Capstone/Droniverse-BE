@@ -21,5 +21,4 @@ public record ClubResponseDto
     public int TotalCourses { get; set; }
     public string? SuspendedReason { get; set; }
     public UserResponse? Creator { get; set; }
-    public ClubPolicyResponseDto? ClubPolicy { get; set; }
 }

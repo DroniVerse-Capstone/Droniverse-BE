@@ -76,11 +76,6 @@ namespace Droniverse.Community.Infrastructure.Persistence.MySql.Configurations
                 .WithMany(m => m.ClubCreationRequests)
                 .HasForeignKey(x => x.MediaID)
                 .OnDelete(DeleteBehavior.Restrict);
-
-            builder.HasOne(x => x.ClubPolicy)
-                .WithOne(cp => cp.ClubCreationRequest)
-                .HasForeignKey<ClubCreationRequest>(x => x.ClubPolicyID)
-                .OnDelete(DeleteBehavior.Restrict);
         }
 
     }

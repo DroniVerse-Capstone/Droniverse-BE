@@ -9,8 +9,7 @@ public class Club
     public Guid CreatedBy { get; set; }
     public Guid ManagerID { get; set; }
     public Guid DroneID { get; set; }
-    public ClubPolicy ClubPolicy { get; set; }
-    public ICollection<ClubCourse> ClubCourses { get; set; }
+    public string ClubPolicy { get; set; }
     public ICollection<Participation> Participations { get; set; }
     public ICollection<Competition> Competitions { get; set; }
     public ICollection<ClubAttemptRequest> ClubRequests { get; set; }
@@ -39,7 +38,6 @@ public class Club
     // ===== Parameterless Constructor for EF Core =====
     private Club()
     {
-        ClubCourses = new List<ClubCourse>();
         Participations = new List<Participation>();
         Competitions = new List<Competition>();
         ClubRequests = new List<ClubAttemptRequest>();
@@ -74,7 +72,6 @@ public class Club
         CreatedAt = now;
         Status = ClubStatus.ACTIVE;
 
-        ClubCourses = new List<ClubCourse>();
         Participations = new List<Participation>();
         Competitions = new List<Competition>();
         ClubRequests = new List<ClubAttemptRequest>();
