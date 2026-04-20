@@ -132,5 +132,108 @@ public class CloudinaryService : ICloudinaryService
 
         return urls;
     }
+
+    public async Task<string> UploadMediaAsync(IFormFile file, string mediaType, string folder = "droniverse")
+    {
+        if (file == null || file.Length == 0)
+            throw new ArgumentException("File is null or empty.", nameof(file));
+
+        var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        var mediaTypeUpper = mediaType.ToUpper();
+
+        // Determine resource type and validate extensions based on media type
+        ResourceType resourceType;
+        string[] allowedExtensions;
+        long maxFileSize;
+
+        switch (mediaTypeUpper)
+        {
+            case "VIDEO":
+                resourceType = ResourceType.Video;
+                allowedExtensions = new[] { ".mp4", ".avi", ".mov", ".mkv", ".flv", ".wmv", ".webm", ".m4v", ".3gp" };
+                maxFileSize = 100 * 1024 * 1024; // 100MB
+                break;
+
+            case "IMAGE":
+                resourceType = ResourceType.Image;
+                allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".ico" };
+                maxFileSize = 10 * 1024 * 1024; // 10MB
+                break;
+
+            case "GIF":
+                resourceType = ResourceType.Video; // GIF is treated as video in Cloudinary
+                allowedExtensions = new[] { ".gif" };
+                maxFileSize = 50 * 1024 * 1024; // 50MB for GIF
+                break;
+
+            case "AUDIO":
+                resourceType = ResourceType.Video; // Audio is uploaded as raw resource
+                allowedExtensions = new[] { ".mp3", ".wav", ".ogg", ".flac", ".m4a", ".aac", ".wma" };
+                maxFileSize = 50 * 1024 * 1024; // 50MB for audio
+                break;
+
+            default:
+                throw new ArgumentException($"Invalid media type. Allowed: IMAGE, VIDEO, GIF, AUDIO");
+        }
+
+        // Validate file extension
+        if (!allowedExtensions.Contains(fileExtension))
+            throw new ArgumentException($"Invalid file type for {mediaTypeUpper}. Allowed: {string.Join(", ", allowedExtensions)}");
+
+        // Validate file size
+        if (file.Length > maxFileSize)
+            throw new ArgumentException($"File size exceeds {maxFileSize / (1024 * 1024)}MB limit for {mediaTypeUpper}");
+
+        await using var stream = file.OpenReadStream();
+
+        dynamic uploadResult;
+
+        if (mediaTypeUpper == "VIDEO" || mediaTypeUpper == "GIF")
+        {
+            var videoUploadParams = new VideoUploadParams
+            {
+                File = new FileDescription(file.FileName, stream),
+                Folder = folder,
+                UseFilename = true,
+                UniqueFilename = true,
+                Overwrite = false
+            };
+            uploadResult = await _cloudinary.UploadAsync(videoUploadParams);
+        }
+        else if (mediaTypeUpper == "IMAGE")
+        {
+            var imageUploadParams = new ImageUploadParams
+            {
+                File = new FileDescription(file.FileName, stream),
+                Folder = folder,
+                Transformation = new Transformation()
+                    .Quality("auto")
+                    .FetchFormat("auto"),
+                UseFilename = true,
+                UniqueFilename = true,
+                Overwrite = false
+            };
+            uploadResult = await _cloudinary.UploadAsync(imageUploadParams);
+        }
+        else // AUDIO
+        {
+            var rawUploadParams = new RawUploadParams
+            {
+                File = new FileDescription(file.FileName, stream),
+                Folder = folder,
+                UseFilename = true,
+                UniqueFilename = true,
+                Overwrite = false
+            };
+            uploadResult = await _cloudinary.UploadAsync(rawUploadParams);
+        }
+
+        if (uploadResult.Error != null)
+        {
+            throw new Exception($"Cloudinary upload failed: {uploadResult.Error.Message}");
+        }
+
+        return uploadResult.SecureUrl.ToString();
+    }
 }
 

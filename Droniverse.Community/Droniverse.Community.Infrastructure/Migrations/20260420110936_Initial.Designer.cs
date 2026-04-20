@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Droniverse.Community.Infrastructure.Migrations
 {
     [DbContext(typeof(MySqlDbContext))]
-    [Migration("20260406093554_Update_Price_Product_DataType")]
-    partial class Update_Price_Product_DataType
+    [Migration("20260420110936_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -86,35 +86,6 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     b.ToTable("CompetitionPrize", (string)null);
                 });
 
-            modelBuilder.Entity("Droniverse.Community.Domain.Entities.Category", b =>
-                {
-                    b.Property<Guid>("CategoryID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("char(36)");
-
-                    b.Property<string>("DescriptionEN")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("DescriptionVN")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("TypeNameEN")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("varchar(255)");
-
-                    b.Property<string>("TypeNameVN")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("varchar(255)");
-
-                    b.HasKey("CategoryID");
-
-                    b.ToTable("Category", (string)null);
-                });
-
             modelBuilder.Entity("Droniverse.Community.Domain.Entities.Club", b =>
                 {
                     b.Property<Guid>("ClubID")
@@ -125,6 +96,10 @@ namespace Droniverse.Community.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("char(6)");
 
+                    b.Property<string>("ClubPolicy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime");
 
@@ -134,6 +109,9 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("varchar(255)");
+
+                    b.Property<Guid>("DroneID")
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("ImageUrl")
                         .HasColumnType("varchar(255)");
@@ -146,6 +124,9 @@ namespace Droniverse.Community.Infrastructure.Migrations
 
                     b.Property<int>("LimitParticipation")
                         .HasColumnType("int");
+
+                    b.Property<Guid>("ManagerID")
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("NameEN")
                         .IsRequired()
@@ -160,6 +141,9 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     b.Property<sbyte>("Status")
                         .HasColumnType("tinyint");
 
+                    b.Property<string>("SuspendedReason")
+                        .HasColumnType("longtext");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime");
 
@@ -167,7 +151,7 @@ namespace Droniverse.Community.Infrastructure.Migrations
 
                     b.ToTable("Club", null, t =>
                         {
-                            t.HasCheckConstraint("CK_Club_Status", "`Status` IN (0, 1)");
+                            t.HasCheckConstraint("CK_Club_Status", "`Status` IN (0, 1, 2, 3)");
                         });
                 });
 
@@ -186,6 +170,9 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<Guid?>("MediaID")
+                        .HasColumnType("char(36)");
+
                     b.Property<DateTime?>("ProcessedAt")
                         .HasColumnType("datetime(6)");
 
@@ -199,42 +186,13 @@ namespace Droniverse.Community.Infrastructure.Migrations
 
                     b.HasIndex("ClubID");
 
+                    b.HasIndex("MediaID");
+
                     b.HasIndex("RequesterID");
 
                     b.HasIndex("Status");
 
                     b.ToTable("ClubAttemptRequest", (string)null);
-                });
-
-            modelBuilder.Entity("Droniverse.Community.Domain.Entities.ClubCategory", b =>
-                {
-                    b.Property<Guid>("CategoryID")
-                        .HasColumnType("char(36)");
-
-                    b.Property<Guid>("ClubID")
-                        .HasColumnType("char(36)");
-
-                    b.HasKey("CategoryID", "ClubID");
-
-                    b.HasIndex("ClubID");
-
-                    b.ToTable("ClubCategory", (string)null);
-                });
-
-            modelBuilder.Entity("Droniverse.Community.Domain.Entities.ClubCourse", b =>
-                {
-                    b.Property<Guid>("ClubID")
-                        .HasColumnType("char(36)");
-
-                    b.Property<Guid>("CourseID")
-                        .HasColumnType("char(36)");
-
-                    b.Property<byte>("isProfit")
-                        .HasColumnType("tinyint unsigned");
-
-                    b.HasKey("ClubID", "CourseID");
-
-                    b.ToTable("ClubCourse", (string)null);
                 });
 
             modelBuilder.Entity("Droniverse.Community.Domain.Entities.ClubCreationRequest", b =>
@@ -252,6 +210,9 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     b.Property<Guid?>("ClubID")
                         .HasColumnType("char(36)");
 
+                    b.Property<string>("ClubPolicy")
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
@@ -259,6 +220,9 @@ namespace Droniverse.Community.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
+
+                    b.Property<Guid>("DroneID")
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("ImageUrl")
                         .HasColumnType("text");
@@ -271,6 +235,9 @@ namespace Droniverse.Community.Infrastructure.Migrations
 
                     b.Property<int>("LimitParticipant")
                         .HasColumnType("int");
+
+                    b.Property<Guid>("MediaID")
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("NameEN")
                         .IsRequired()
@@ -299,22 +266,9 @@ namespace Droniverse.Community.Infrastructure.Migrations
 
                     b.HasIndex("ClubID");
 
+                    b.HasIndex("MediaID");
+
                     b.ToTable("ClubCreationRequest", (string)null);
-                });
-
-            modelBuilder.Entity("Droniverse.Community.Domain.Entities.ClubCreationRequestCategory", b =>
-                {
-                    b.Property<Guid>("ClubCreationRequestID")
-                        .HasColumnType("char(36)");
-
-                    b.Property<Guid>("CategoryID")
-                        .HasColumnType("char(36)");
-
-                    b.HasKey("ClubCreationRequestID", "CategoryID");
-
-                    b.HasIndex("CategoryID");
-
-                    b.ToTable("ClubCreationRequestCategory", (string)null);
                 });
 
             modelBuilder.Entity("Droniverse.Community.Domain.Entities.Competition", b =>
@@ -346,6 +300,9 @@ namespace Droniverse.Community.Infrastructure.Migrations
 
                     b.Property<string>("InvalidReason")
                         .HasColumnType("varchar(45)");
+
+                    b.Property<bool>("IsSummarized")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int?>("MaxParticipants")
                         .HasColumnType("int");
@@ -492,6 +449,11 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     b.Property<DateTime?>("LeftDate")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
                     b.Property<sbyte>("Status")
                         .HasColumnType("tinyint");
 
@@ -514,10 +476,7 @@ namespace Droniverse.Community.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
 
-                    b.Property<Guid>("CategoryID")
-                        .HasColumnType("char(36)");
-
-                    b.Property<Guid>("CodeID")
+                    b.Property<Guid?>("CategoryID")
                         .HasColumnType("char(36)");
 
                     b.Property<DateTime>("CreateAt")
@@ -623,8 +582,19 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     b.Property<Guid>("CompetitionID")
                         .HasColumnType("char(36)");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("char(36)");
+
                     b.Property<DateTime>("EndTime")
                         .HasColumnType("datetime");
+
+                    b.Property<bool>("IsSummarized")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(false);
 
                     b.Property<Guid>("LabID")
                         .HasColumnType("char(36)");
@@ -638,6 +608,15 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     b.Property<sbyte>("Status")
                         .HasColumnType("tinyint");
 
+                    b.Property<TimeSpan>("TimeLimit")
+                        .HasColumnType("time");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("char(36)");
+
                     b.HasKey("RoundID");
 
                     b.HasIndex("CompetitionID");
@@ -645,6 +624,44 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     b.ToTable("Round", null, t =>
                         {
                             t.HasCheckConstraint("CK_Round_Status", "Status IN (0,1,2,3)");
+                        });
+                });
+
+            modelBuilder.Entity("Droniverse.Community.Domain.Entities.Transaction", b =>
+                {
+                    b.Property<Guid>("TransactionID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("Amount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime");
+
+                    b.Property<Guid>("ReferenceID")
+                        .HasColumnType("char(36)");
+
+                    b.Property<sbyte>("Status")
+                        .HasColumnType("tinyint");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<Guid>("WalletID")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("TransactionID");
+
+                    b.HasIndex("WalletID");
+
+                    b.ToTable("Transaction", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Transaction_Status", "Status IN (0, 1, 2)");
+
+                            t.HasCheckConstraint("CK_Transaction_Type", "Type IN ('COMMISSION', 'WITHDRAWAL', 'REFUND')");
                         });
                 });
 
@@ -790,14 +807,49 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     b.ToTable("UserProduct", (string)null);
                 });
 
+            modelBuilder.Entity("Droniverse.Community.Domain.Entities.Wallet", b =>
+                {
+                    b.Property<Guid>("WalletID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<decimal>("Balance")
+                        .HasColumnType("decimal(15, 2)");
+
+                    b.Property<string>("Bank")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("BankNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime");
+
+                    b.Property<Guid>("OwnerID")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnUpdate()
+                        .HasColumnType("datetime");
+
+                    b.HasKey("WalletID");
+
+                    b.ToTable("Wallet", (string)null);
+                });
+
             modelBuilder.Entity("UserRound", b =>
                 {
                     b.Property<Guid>("UserRoundID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
 
-                    b.Property<float>("ExecutionTime")
-                        .HasColumnType("float");
+                    b.Property<TimeSpan?>("ExecutionTime")
+                        .HasColumnType("time");
 
                     b.Property<string>("FeedbackEN")
                         .HasColumnType("text");
@@ -805,19 +857,25 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     b.Property<string>("FeedbackVN")
                         .HasColumnType("text");
 
-                    b.Property<bool>("IsCompleted")
+                    b.Property<bool?>("IsPassed")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<int>("NumberOfSteps")
+                    b.Property<bool?>("IsSequentialCheckpoints")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int?>("NumberOfSteps")
                         .HasColumnType("int");
 
-                    b.Property<float>("PathLength")
+                    b.Property<float?>("PathLength")
                         .HasColumnType("float");
 
-                    b.Property<decimal>("Point")
+                    b.Property<decimal?>("Point")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int>("Rating")
+                    b.Property<int?>("Rank")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Rating")
                         .HasColumnType("int");
 
                     b.Property<Guid>("RoundID")
@@ -825,6 +883,12 @@ namespace Droniverse.Community.Infrastructure.Migrations
 
                     b.Property<string>("Solution")
                         .HasColumnType("text");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<sbyte>("Status")
+                        .HasColumnType("tinyint");
 
                     b.Property<DateTime?>("SubmittedAt")
                         .HasColumnType("datetime");
@@ -858,37 +922,14 @@ namespace Droniverse.Community.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Club");
-                });
-
-            modelBuilder.Entity("Droniverse.Community.Domain.Entities.ClubCategory", b =>
-                {
-                    b.HasOne("Droniverse.Community.Domain.Entities.Category", "Category")
-                        .WithMany("ClubCategories")
-                        .HasForeignKey("CategoryID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Droniverse.Community.Domain.Entities.Club", "Club")
-                        .WithMany("ClubCategories")
-                        .HasForeignKey("ClubID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Category");
+                    b.HasOne("Droniverse.Community.Domain.Entities.Media", "Media")
+                        .WithMany("ClubAttemptRequests")
+                        .HasForeignKey("MediaID")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Club");
-                });
 
-            modelBuilder.Entity("Droniverse.Community.Domain.Entities.ClubCourse", b =>
-                {
-                    b.HasOne("Droniverse.Community.Domain.Entities.Club", "Club")
-                        .WithMany("ClubCourses")
-                        .HasForeignKey("ClubID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Club");
+                    b.Navigation("Media");
                 });
 
             modelBuilder.Entity("Droniverse.Community.Domain.Entities.ClubCreationRequest", b =>
@@ -898,26 +939,15 @@ namespace Droniverse.Community.Infrastructure.Migrations
                         .HasForeignKey("ClubID")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.Navigation("Club");
-                });
-
-            modelBuilder.Entity("Droniverse.Community.Domain.Entities.ClubCreationRequestCategory", b =>
-                {
-                    b.HasOne("Droniverse.Community.Domain.Entities.Category", "Category")
+                    b.HasOne("Droniverse.Community.Domain.Entities.Media", "Media")
                         .WithMany("ClubCreationRequests")
-                        .HasForeignKey("CategoryID")
+                        .HasForeignKey("MediaID")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Droniverse.Community.Domain.Entities.ClubCreationRequest", "ClubCreationRequest")
-                        .WithMany("Categories")
-                        .HasForeignKey("ClubCreationRequestID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.Navigation("Club");
 
-                    b.Navigation("Category");
-
-                    b.Navigation("ClubCreationRequest");
+                    b.Navigation("Media");
                 });
 
             modelBuilder.Entity("Droniverse.Community.Domain.Entities.Competition", b =>
@@ -969,8 +999,7 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     b.HasOne("Droniverse.Community.Domain.Entities.ProductCategory", "ProductCategory")
                         .WithMany("Products")
                         .HasForeignKey("CategoryID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("ProductCategory");
                 });
@@ -984,6 +1013,17 @@ namespace Droniverse.Community.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Competition");
+                });
+
+            modelBuilder.Entity("Droniverse.Community.Domain.Entities.Transaction", b =>
+                {
+                    b.HasOne("Droniverse.Community.Domain.Entities.Wallet", "Wallet")
+                        .WithMany("Transactions")
+                        .HasForeignKey("WalletID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Wallet");
                 });
 
             modelBuilder.Entity("Droniverse.Community.Domain.Entities.UserCompetition", b =>
@@ -1043,29 +1083,13 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     b.Navigation("UserPrizes");
                 });
 
-            modelBuilder.Entity("Droniverse.Community.Domain.Entities.Category", b =>
-                {
-                    b.Navigation("ClubCategories");
-
-                    b.Navigation("ClubCreationRequests");
-                });
-
             modelBuilder.Entity("Droniverse.Community.Domain.Entities.Club", b =>
                 {
-                    b.Navigation("ClubCategories");
-
-                    b.Navigation("ClubCourses");
-
                     b.Navigation("ClubRequests");
 
                     b.Navigation("Competitions");
 
                     b.Navigation("Participations");
-                });
-
-            modelBuilder.Entity("Droniverse.Community.Domain.Entities.ClubCreationRequest", b =>
-                {
-                    b.Navigation("Categories");
                 });
 
             modelBuilder.Entity("Droniverse.Community.Domain.Entities.Competition", b =>
@@ -1079,6 +1103,13 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     b.Navigation("UserCompetitions");
 
                     b.Navigation("UserPrizes");
+                });
+
+            modelBuilder.Entity("Droniverse.Community.Domain.Entities.Media", b =>
+                {
+                    b.Navigation("ClubAttemptRequests");
+
+                    b.Navigation("ClubCreationRequests");
                 });
 
             modelBuilder.Entity("Droniverse.Community.Domain.Entities.MediaType", b =>
@@ -1099,6 +1130,11 @@ namespace Droniverse.Community.Infrastructure.Migrations
             modelBuilder.Entity("Droniverse.Community.Domain.Entities.Round", b =>
                 {
                     b.Navigation("UserRounds");
+                });
+
+            modelBuilder.Entity("Droniverse.Community.Domain.Entities.Wallet", b =>
+                {
+                    b.Navigation("Transactions");
                 });
 #pragma warning restore 612, 618
         }

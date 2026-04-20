@@ -16,6 +16,7 @@ public class Account
     public Role Role { get; set; }
     public Guid RoleID { get; set; }
     public virtual UserInfo UserInfo { get; set; }
+    
 
 }
 

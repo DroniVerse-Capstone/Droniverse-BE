@@ -15,15 +15,18 @@ using Swashbuckle.AspNetCore.SwaggerUI;
 using System.Reflection;
 using System.Text;
 using System.Text.Json.Serialization;
-using Droniverse.Community.Application.Jobs;
-using Droniverse.Community.API.Jobs;
 using Droniverse.Shared.Exceptions;
 
-
+// Load .env for JWT, Cloudinary, PayOS settings
 Env.Load("../../.env");
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Configuration.AddEnvironmentVariables();
+
+// If Development: reload appsettings.Development.json to override RabbitMQ settings locally
+if (builder.Environment.IsDevelopment())
+{
+    builder.Configuration.AddJsonFile("appsettings.Development.json", optional: false, reloadOnChange: true);
+}
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication(builder.Configuration);
@@ -37,6 +40,8 @@ builder.Services.AddControllers()
     {
         // Convert enum sang string khi serialize/deserialize JSON
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     });
 
 // Cho phép serialize Guid dưới dạng string trong MongoDB

@@ -20,14 +20,12 @@ public static class DependencyInjection
         // Chỉ cần thêm 1 mapping profile là đc
         services.AddAutoMapper(typeof(ClubMappingProfile).Assembly);
         services.AddAutoMapper(typeof(ClubRequestMappingProfile).Assembly);
-        services.AddAutoMapper(typeof(CategoryMappingProfile).Assembly);
         services.AddScoped<INotificationService, EmailNotificationService>();
         services.AddScoped<IClubService, ClubService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IClubAttemptRequestService, ClubAttemptRequestService>();
         services.AddScoped<IClubCreationRequestService, ClubCreationRequestService>();
         services.AddScoped<IOrderService, OrderService>();
-        services.AddScoped<ICategoryService, CategoryService>();
         services.AddScoped<ICompetitionService, CompetitionService>();
         services.AddScoped<ICompetitionCertificateService, CompetitionCertificateService>();
         services.AddScoped<IRoundService, RoundService>();
@@ -36,12 +34,14 @@ public static class DependencyInjection
         services.AddScoped<IProductService, ProductService>();
         services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<IPaymentService, PaymentService>();
-        services.AddScoped<IClubCourseService, ClubCourseService>();
         services.AddScoped<IProductCategoryService, ProductCategoryService>();
         services.AddScoped<ICompetitionState, DraftState>();
         
         // Đăng ký RabbitMQ Publisher cho notification
         services.AddScoped<IOrderNotificationPublisher, OrderNotificationPublisher>();
+        
+        // Đăng ký RabbitMQ Consumer cho user updates
+        services.AddSingleton<UserNameUpdateConsumer>();
         services.AddScoped<ICompetitionState, PublishedState>();
         services.AddScoped<ICompetitionState, ResultPublishedState>();
         services.AddScoped<ICompetitionState, CancelledState>();
@@ -55,7 +55,7 @@ public static class DependencyInjection
 
         services.AddScoped<IRoundStateFactory, RoundStateFactory>();
         services.AddScoped<RoundLifecycleService>();
-        //services.AddScoped<IPaymentService, PaymentService>();
+        services.AddScoped<IMediaService, MediaService>();
 
         //Đăng ký DelegatingHandler
         services.AddTransient<AuthorizationDelegatingHandler>();

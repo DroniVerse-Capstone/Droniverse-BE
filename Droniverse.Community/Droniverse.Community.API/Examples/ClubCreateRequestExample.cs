@@ -9,18 +9,16 @@ namespace Droniverse.Community.API.Examples
         {
             return new ClubCreationRequestCreateDto
             {
+                DroneID = Guid.Parse("30876cff-7818-44ab-8fee-bc2b99c36e7c"),
+                Media = Guid.Parse("0105131f-f0bd-46f9-abef-ecc64f88f4cc"),
+                ClubPolicy = "Nội quy của câu lạc bộ VN",
                 NameVN = "Câu lạc bộ Drone Việt Nam",
                 NameEN = "Vietnam Drone Club",
                 Description = "Câu lạc bộ dành cho những người yêu thích drone và công nghệ bay không người lái.",
                 IsPublic = true,
                 LimitParticipant = 200,
-                LimitClubManager = 5,
-                Image = "https://bom.edu.vn/public/upload/2024/12/avatar-goku-cute-1.webp",
-                CategoryIDs = new List<Guid>
-                {
-                    Guid.Parse("0b27da26-062c-4ecd-8b6f-3f895d21ae4f"),
-                    Guid.Parse("44ca2075-50fd-4b8f-a60c-4db6ad7cc708")
-                }
+                Image = "https://res.cloudinary.com/ds9f2jnnj/image/upload/v1775040967/droniverse/temp/Anh_dai_dien_fd6e47c316_d3vidp.jpg"
+
             };
         }
     }

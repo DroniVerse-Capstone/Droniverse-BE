@@ -25,10 +25,8 @@ public class ClubCreateMultipleExample
 
                 LimitParticipation = 300,
                 LimitClubManagers = 5,
-                CategoryIDs = new List<Guid>
-                {
-                    Guid.Parse("8efd1b50-c59c-4e96-918f-55a817a6bd4b"),
-                }
+
+                
             });
 
         yield return SwaggerExample.Create(
@@ -46,13 +44,7 @@ public class ClubCreateMultipleExample
                 IsPublic = false,
 
                 LimitParticipation = 80,
-                LimitClubManagers = 3,
-
-                CategoryIDs = new List<Guid>
-                {
-                    Guid.Parse("d6cd6805-a231-4661-ad66-0b3382763a81"),
-                    Guid.Parse("b4b420c9-d5d2-434f-a428-7edd3267dfaf")
-                }
+                LimitClubManagers = 3
             });
     }
 }

@@ -242,6 +242,50 @@ namespace Droniverse.Identity.Infrastructure.Migrations
                     b.ToTable("SysConfig", (string)null);
                 });
 
+            modelBuilder.Entity("Droniverse.Identity.Domain.Entities.SysPolicy", b =>
+                {
+                    b.Property<Guid>("SysPolicyID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("EffectiveDate")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("SysPolicyID");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("UpdatedBy");
+
+                    b.ToTable("SysPolicy", (string)null);
+                });
+
             modelBuilder.Entity("Droniverse.Identity.Domain.Entities.UserConfig", b =>
                 {
                     b.Property<Guid>("UserID")
@@ -334,6 +378,25 @@ namespace Droniverse.Identity.Infrastructure.Migrations
                     b.Navigation("Permission");
 
                     b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("Droniverse.Identity.Domain.Entities.SysPolicy", b =>
+                {
+                    b.HasOne("Droniverse.Identity.Domain.Entities.Account", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Droniverse.Identity.Domain.Entities.Account", "UpdatedByUser")
+                        .WithMany()
+                        .HasForeignKey("UpdatedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("UpdatedByUser");
                 });
 
             modelBuilder.Entity("Droniverse.Identity.Domain.Entities.UserConfig", b =>

@@ -19,13 +19,10 @@ public interface IClubService
     Task<bool> DeleteClub(Guid id);
     Task<JoinClubResponse> JoinClub(ClubJoinDto request);
     Task<PaginationResult<IEnumerable<GetParticipantsResponse>>> GetClubParcitipations(Guid clubID, ParticipationSearchRequest searchRequest);
-    Task<PaginationResult<IEnumerable<CourseBulkResponseDTO>>> GetClubCourses(Guid clubId, CourseBulkSearchRequest searchRequest);
-    Task<PaginationResult<IEnumerable<ManagerCoursesBulkResponseDTO>>> GetClubCoursesManagement(Guid clubId, ManagerCourseBulkSearchRequest searchRequest);
-    Task<PaginationResult<IEnumerable<CourseBulkResponseDTO>>> GetHotCoursesByClub(Guid clubId, HotCoursesSearchRequest searchRequest);
+    //Task<PaginationResult<IEnumerable<CourseBulkResponseDTO>>> GetHotCoursesByClub(Guid clubId, HotCoursesSearchRequest searchRequest);
     Task<IEnumerable<ClubResponseDto>> GetClubsByCurrentUsersID(ClubStatus? status = null);
     Task<IEnumerable<SimpleClubResponse>> GetClubInfoBulk(GetClubSimpleInfoRequest request);
     Task<ClubResponseDto> UpdateClubStatus(Guid clubId, ClubUpdateStatusDto dto);
-    Task<CreateCodesResponse> GenerateCodesByManager(Guid clubId, CreateCodesRequestDTO request);
     Task<GetClubParticipantsResponse> GetClubParticipantIds(Guid clubId, GetClubParticipantIdsRequest request);
     Task<bool> CheckParticipant(Guid clubId, Guid userId, ParticipationStatus status = ParticipationStatus.ACTIVE);
 }

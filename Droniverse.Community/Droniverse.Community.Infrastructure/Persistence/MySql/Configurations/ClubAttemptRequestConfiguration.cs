@@ -14,8 +14,14 @@ public class ClubAttemptRequestConfiguration : IEntityTypeConfiguration<ClubAtte
             .WithMany(c => c.ClubRequests)
             .HasForeignKey(cr => cr.ClubID)
             .OnDelete(DeleteBehavior.Restrict);
-        
+
+        builder.HasOne(cr => cr.Media)
+            .WithMany(m => m.ClubAttemptRequests)
+            .HasForeignKey(cr => cr.MediaID)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.Property(c => c.ClubRequestID).HasColumnType("char(36)");
+        builder.Property(c => c.MediaID).HasColumnType("char(36)");
         builder.Property(c => c.ClubID).HasColumnType("char(36)").IsRequired();
         builder.Property(c => c.RequesterID).HasColumnType("char(36)").IsRequired();
         builder.Property(c => c.ApproverID).HasColumnType("char(36)");

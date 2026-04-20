@@ -278,7 +278,7 @@ internal class PaymentService : IPaymentService
                 WriteIndented = false
             };
             string jsonData = JsonSerializer.Serialize(webhookData, options);
-            
+
             // Parse JSON and sort keys
             using JsonDocument doc = JsonDocument.Parse(jsonData);
             var sortedKeys = doc.RootElement.EnumerateObject()
@@ -304,7 +304,7 @@ internal class PaymentService : IPaymentService
                 signatureData.Append(sortedKeys[i]);
                 signatureData.Append('=');
                 signatureData.Append(value);
-                
+
                 if (i < sortedKeys.Count - 1)
                 {
                     signatureData.Append('&');
@@ -316,9 +316,9 @@ internal class PaymentService : IPaymentService
             // Compute HMAC-SHA256
             string? computedSignature = ComputeHmacSha256(signatureData.ToString(), _checksumKey);
             bool isValid = computedSignature.Equals(signature, StringComparison.OrdinalIgnoreCase);
-            _logger.LogInformation("Web hook signature verification : {Result}, Computed: {Computed}, Provided: {Provided}", 
+            _logger.LogInformation("Web hook signature verification : {Result}, Computed: {Computed}, Provided: {Provided}",
                 isValid ? "Valid" : "Invalid", computedSignature, signature);
-            
+
             return await Task.FromResult(isValid);
         }
         catch (Exception ex)
@@ -363,9 +363,12 @@ internal class PaymentService : IPaymentService
                 payment.WebhookReceivedAt = DateTime.UtcNow;
 
                 order.Status = OrderStatus.SUCCESS;
-                
-                // Get user info from Identity service for email sending
-                var (userEmail, userName) = await GetUserInfoAsync(order.UserID);
+
+                // Use cached email and username from order (saved when order was created)
+                // No need to call Identity service in webhook context where HTTP context is not available
+                string userEmail = order.UserEmail ?? string.Empty;
+                string userName = order.UserName ?? "User";
+
                 _logger.LogInformation("Payment SUCCESS for orderId: {OrderId}, Email: {Email}", order._id, userEmail);
 
                 //Add Invoice
@@ -384,7 +387,7 @@ internal class PaymentService : IPaymentService
                 invoice.CustomerInfo = new CustomerInfo
                 {
                     UserID = order.UserID,
-                    FullName = "User", // Fallback, full name từ Identity service không cần thiết cho invoice
+                    FullName = userName,  // Use cached username from order
                     Email = userEmail ?? string.Empty,
                     TaxCode = null,
                 };
@@ -432,7 +435,7 @@ internal class PaymentService : IPaymentService
 
                 _logger.LogInformation("Payment SUCCESS for orderId: {OrderId}", order._id);
 
-                // 🟢 Publish notification event after successful payment
+                //Publish notification event after successful payment
                 try
                 {
                     if (!string.IsNullOrWhiteSpace(userEmail))
@@ -445,7 +448,7 @@ internal class PaymentService : IPaymentService
                             Amount: order.TotalAmount,
                             PaidAt: DateTime.UtcNow
                         );
-                        
+
                         await _orderNotificationPublisher.PublishPaymentSuccessfulAsync(notificationEvent);
                         _logger.LogInformation($"Payment successful notification published for order {order._id}");
                     }
@@ -468,60 +471,25 @@ internal class PaymentService : IPaymentService
                     {
                         bool isMember = order.OrderType == OrderType.USER_PURCHASE;
 
-                        if (!isMember) // ClubManager import
-                        {
-                            // Update ClubCourse - create or increase capacity
-                            ClubCourse? clubCourse = await _unitOfWork.ClubCourses.GetByCondition(
-                                cc => cc.ClubID == order.ClubID && cc.CourseID == product.ReferenceID, 
-                                query => query);
 
-                            if (clubCourse == null)
-                            {
-                                clubCourse = ClubCourse.Create(order.ClubID, product.ReferenceID, order.Item.Quantity, ClubCourseProfit.PROFIT);
-                                await _unitOfWork.ClubCourses.Add(clubCourse);
-                            }
-                            else
-                            {
-                                clubCourse.IncreaseCapacity(order.Item.Quantity);
-                            }
-                            await _unitOfWork.SaveChangeAsync();
-                            _logger.LogInformation("Updated ClubCourse capacity for ClubId: {ClubId}, CourseId: {CourseId}, Quantity: {Quantity}", 
-                                order.ClubID, product.ReferenceID, order.Item.Quantity);
-                        }
-                        else // Club member - generate and assign codes
+                        // Tạo và gán mã cho người dùng
+                        HttpClients.GenerateCodesRequestDTO codeRequest = new HttpClients.GenerateCodesRequestDTO
                         {
-                            // Consume from club course
-                            ClubCourse? clubCourse = await _unitOfWork.ClubCourses.GetByCondition(
-                                cc => cc.ClubID == order.ClubID && cc.CourseID == product.ReferenceID, 
-                                query => query);
-                            
-                            if (clubCourse != null)
-                            {
-                                clubCourse.Consume(order.Item.Quantity);
-                                await _unitOfWork.SaveChangeAsync();
-                                _logger.LogInformation("Consumed from ClubCourse for member - ClubId: {ClubId}, CourseId: {CourseId}, Quantity: {Quantity}", 
-                                    order.ClubID, product.ReferenceID, order.Item.Quantity);
-                            }
+                            ClubId = order.ClubID,
+                            CourseId = product.ReferenceID,
+                            Quantity = order.Item.Quantity
+                        };
 
-                            // Generate and assign codes to member
-                            HttpClients.GenerateCodesRequestDTO codeRequest = new HttpClients.GenerateCodesRequestDTO
-                            {
-                                ClubId = order.ClubID,
-                                CourseId = product.ReferenceID,
-                                Quantity = order.Item.Quantity
-                            };
-                            
-                            CodeResponse codeResponse = await _academyMicroserviceClient.GenerateAssignCodesAsync(codeRequest);
-                            
-                            if (codeResponse == null || codeResponse.CodeID == null)
-                            {
-                                _logger.LogError("Error generating codes for order {OrderId}. No response from Academy Microservice.", order._id);
-                                throw new Exception("Gán mã cho thành viên clb thất bại. Vui lòng liên hệ hỗ trợ.");
-                            }
-                            
-                            _logger.LogInformation("Generated and assigned codes for member - OrderId: {OrderId}, CodeId: {CodeId}", 
-                                order._id, codeResponse.CodeID);
+                        CodeResponse codeResponse = await _academyMicroserviceClient.GenerateAssignCodesAsync(codeRequest);
+
+                        if (codeResponse == null || codeResponse.CodeID == null)
+                        {
+                            throw new Exception("Gán mã cho thành viên clb thất bại. Vui lòng liên hệ hỗ trợ.");
                         }
+
+                        _logger.LogInformation("Generated and assigned codes for member - OrderId: {OrderId}, CodeId: {CodeId}",
+                            order._id, codeResponse.CodeID);
+
                     }
                 }
                 catch (Exception ex)
@@ -550,7 +518,7 @@ internal class PaymentService : IPaymentService
             }
             payment.TransactionDate = DateTime.UtcNow.AddHours(7);
             payment.WebhookReceivedAt = DateTime.UtcNow.AddHours(7);
-            
+
             await _orderRepository.UpdatePayment(order._id, payment);
             await _orderRepository.UpdateOrder(order);
             _logger.LogInformation("Updated payment status to {Status}", payment.PaymentStatus);
@@ -628,7 +596,7 @@ internal class PaymentService : IPaymentService
         try
         {
             _logger.LogInformation("Fetching user info from Identity service for UserId: {UserId}", userId);
-            var user = await _identityMicroserviceClient.GetUserByUserID(userId);
+            UserResponse user = await _identityMicroserviceClient.GetUserByUserID(userId);
             if (user != null)
             {
                 _logger.LogInformation("Successfully retrieved user info for UserId: {UserId}", userId);

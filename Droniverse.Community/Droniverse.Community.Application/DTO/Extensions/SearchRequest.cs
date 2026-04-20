@@ -73,6 +73,11 @@ namespace Droniverse.Community.Application.DTO.Extensions
         public SortDirection? SortDirection { get; set; } = Shared.Enums.SortDirection.Asc;
     }
 
+    public class GetAllClubPoliciesSearchRequest : SearchRequest
+    {
+
+    }
+
     public class GetAllClubsSearchRequest : SearchRequest
     {
         public string? ClubName { get; set; }

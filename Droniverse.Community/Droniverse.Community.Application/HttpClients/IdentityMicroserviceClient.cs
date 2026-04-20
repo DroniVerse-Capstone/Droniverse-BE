@@ -59,7 +59,6 @@ public class IdentityMicroserviceClient
         }
 
         HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync(BuildIdentityPath($"users/{userId}"));
-        //HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync($"/identity/users/{userId}");
 
         if (!httpResponseMsg.IsSuccessStatusCode)
         {

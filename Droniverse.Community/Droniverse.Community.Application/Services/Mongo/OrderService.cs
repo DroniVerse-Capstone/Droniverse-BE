@@ -11,7 +11,7 @@ using Droniverse.Community.Domain.IRepository;
 using Droniverse.Community.Domain.IRepository.Mongo;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs.Request;
-using Droniverse.Shared.Enums;
+using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Messages.Notification;
 using Microsoft.EntityFrameworkCore;
@@ -32,6 +32,7 @@ internal class OrderService : IOrderService
     private readonly IEmailService _emailService;
     private readonly AcademyMicroserviceClient _academyMicroserviceClient;
     private readonly IOrderNotificationPublisher _orderNotificationPublisher;
+    private readonly IdentityMicroserviceClient _identityMicroserviceClient;
     public OrderService(
         IOrderRepository orderRepository,
         IMapper mapper,
@@ -42,7 +43,8 @@ internal class OrderService : IOrderService
         ILogger<OrderService> logger,
         IEmailService emailService,
         AcademyMicroserviceClient academyMicroserviceClient,
-        IOrderNotificationPublisher orderNotificationPublisher)
+        IOrderNotificationPublisher orderNotificationPublisher,
+        IdentityMicroserviceClient identityMicroserviceClient)
     {
         _orderRepository = orderRepository;
         _mapper = mapper;
@@ -54,6 +56,7 @@ internal class OrderService : IOrderService
         _logger = logger;
         _academyMicroserviceClient = academyMicroserviceClient;
         _orderNotificationPublisher = orderNotificationPublisher;
+        _identityMicroserviceClient = identityMicroserviceClient;
     }
 
     public async Task<OrderResponseDto?> AddOrder(Guid clubId, OrderCreateDto orderAddRequest)
@@ -86,7 +89,7 @@ internal class OrderService : IOrderService
             throw new KeyNotFoundException("Không tìm thấy thông tin của sản phẩm");
 
         //------------------------------------------------------------------------------------------------------------------------------
-        
+
         // Validation for club member
         if (isMember)
         {
@@ -115,6 +118,8 @@ internal class OrderService : IOrderService
         {
             _id = Guid.NewGuid(),
             UserID = currentUserId,
+            UserEmail = _currentUserService.Email ?? string.Empty,
+            UserName = _currentUserService.UserName ?? string.Empty,
             ClubID = clubId,
             CreateAt = DateTime.UtcNow.AddHours(7),
             OrderType = isMember ? OrderType.USER_PURCHASE : OrderType.CLUB_IMPORT,
@@ -145,9 +150,9 @@ internal class OrderService : IOrderService
             // Publish notification event after order is successfully created
             try
             {
-                var userEmail = _currentUserService.Email;
-                var userName = _currentUserService.UserName;
-                
+                var userEmail = createdOrder?.UserEmail;
+                var userName = createdOrder?.UserName;
+
                 if (createdOrder != null && !string.IsNullOrWhiteSpace(userEmail))
                 {
                     var notificationEvent = new OrderCreatedNotificationMessage(
@@ -158,9 +163,13 @@ internal class OrderService : IOrderService
                         Total: createdOrder.TotalAmount,
                         CreatedAt: DateTime.UtcNow
                     );
-                    
+
                     await _orderNotificationPublisher.PublishOrderCreatedAsync(notificationEvent);
                     _logger.LogInformation($"Order created notification published for order {createdOrder._id}");
+                }
+                else
+                {
+                    _logger.LogWarning($"Skipped publishing order.created notification - createdOrder: {createdOrder != null}, userEmail: {userEmail}");
                 }
             }
             catch (Exception ex)
@@ -177,7 +186,8 @@ internal class OrderService : IOrderService
             throw;
         }
 
-        return _mapper.Map<OrderResponseDto?>(createdOrder);
+        var orderDto = _mapper.Map<OrderResponseDto?>(createdOrder);
+        return orderDto;
     }
 
     public Task<bool> DeleteOrder(Guid orderID)
@@ -189,27 +199,34 @@ internal class OrderService : IOrderService
     {
         FilterDefinition<Order>? filter = Builders<Order>.Filter.Eq(o => o.ClubID, clubId);
         IEnumerable<Order?> orders = await _orderRepository.GetOrdersByCondition(filter);
-        return _mapper.Map<IEnumerable<Order>, IEnumerable<OrderResponseDto?>>(orders);
+        var orderDtos = _mapper.Map<IEnumerable<Order>, IEnumerable<OrderResponseDto?>>(orders);
+        return orderDtos;
     }
 
     public async Task<PaginationResult<IEnumerable<OrderResponseDto?>>> GetOrdersByClubIdWithPagination(Guid clubId, int currentPage, int pageSize)
     {
         FilterDefinition<Order>? filter = Builders<Order>.Filter.Eq(o => o.ClubID, clubId);
         PaginationResult<IEnumerable<Order>> orders = await _orderRepository.GetOrdersByConditionWithPagination(filter, currentPage, pageSize);
-        return _mapper.Map<PaginationResult<IEnumerable<Order>>, PaginationResult<IEnumerable<OrderResponseDto?>>>(orders);
+        var orderDtos = _mapper.Map<PaginationResult<IEnumerable<Order>>, PaginationResult<IEnumerable<OrderResponseDto?>>>(orders);
+        return orderDtos;
     }
 
     public async Task<OrderResponseDto?> GetOrderByCondition(FilterDefinition<Order> filter)
     {
         var order = await _orderRepository.GetOrderByCondition(filter);
-        return _mapper.Map<Order, OrderResponseDto?>(order);
+        var orderDto = _mapper.Map<Order, OrderResponseDto?>(order);
+        return orderDto;
     }
 
     public async Task<OrderResponseDto?> GetOrderByOrderId(Guid orderID)
     {
         FilterDefinition<Order>? filter = Builders<Order>.Filter.Eq(o => o._id, orderID);
         Order order = await _orderRepository.GetOrderByCondition(filter) ?? throw new NotFoundException($"Không tìm thấy đơn hàng với mã đơn hàng #{orderID}");
-        return _mapper.Map<Order, OrderResponseDto?>(order);
+        OrderResponseDto? orderDto = _mapper.Map<OrderResponseDto?>(order);
+
+        UserResponse? user = await _identityMicroserviceClient.GetUserByUserID(order.UserID);
+        orderDto = orderDto with { User = user };
+        return orderDto;
     }
 
     public async Task<PaginationResult<IEnumerable<OrderResponseDto?>>> GetAllOrders(OrderSearchRequest searchRequest)
@@ -217,19 +234,20 @@ internal class OrderService : IOrderService
         PaginationResult<IEnumerable<Order>> orders = await _orderRepository.GetOrders(searchRequest);
         PaginationResult<IEnumerable<OrderResponseDto?>> orderDtos = _mapper.Map<PaginationResult<IEnumerable<Order>>, PaginationResult<IEnumerable<OrderResponseDto?>>>(orders);
         return orderDtos;
-
     }
 
     public async Task<List<OrderResponseDto?>> GetOrdersByCondition(FilterDefinition<Order> filter)
     {
         IEnumerable<Order?> orders = await _orderRepository.GetOrdersByCondition(filter);
-        return _mapper.Map<IEnumerable<Order?>, IEnumerable<OrderResponseDto?>>(orders).ToList();
+        var orderDtos = _mapper.Map<IEnumerable<Order?>, IEnumerable<OrderResponseDto?>>(orders);
+        return orderDtos.ToList();
     }
 
     public async Task<PaginationResult<IEnumerable<OrderResponseDto?>>> GetOrdersByConditionWithPagination(FilterDefinition<Order> filter, int currentPage, int pageSize)
     {
         PaginationResult<IEnumerable<Order>> orders = await _orderRepository.GetOrdersByConditionWithPagination(filter, currentPage, pageSize);
-        return _mapper.Map<PaginationResult<IEnumerable<Order>>, PaginationResult<IEnumerable<OrderResponseDto?>>>(orders);
+        var orderDtos = _mapper.Map<PaginationResult<IEnumerable<Order>>, PaginationResult<IEnumerable<OrderResponseDto?>>>(orders);
+        return orderDtos;
     }
 
     public Task<OrderResponseDto?> UpdateOrder(OrderUpdateDto orderUpdateRequest)
@@ -289,7 +307,7 @@ internal class OrderService : IOrderService
 
         FilterDefinition<Order> filter = Builders<Order>.Filter.Eq(o => o.UserID, userId);
         IEnumerable<Order?> orders = await _orderRepository.GetOrdersByCondition(filter);
-        IEnumerable<OrderResponseDto?> response = _mapper.Map<IEnumerable<OrderResponseDto?>>(orders);
+        var response = _mapper.Map<IEnumerable<OrderResponseDto?>>(orders);
         return response;
     }
 
@@ -339,4 +357,5 @@ internal class OrderService : IOrderService
         }
     }
 }
+
 

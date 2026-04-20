@@ -1,5 +1,6 @@
 ﻿using Droniverse.Community.Domain.Enums;
 using Droniverse.Shared.DTOs.Response;
+using System.Text.Json.Serialization;
 
 namespace Droniverse.Community.Application.DTO.Response;
 
@@ -20,5 +21,4 @@ public record ClubResponseDto
     public int TotalCourses { get; set; }
     public string? SuspendedReason { get; set; }
     public UserResponse? Creator { get; set; }
-    public IEnumerable<CategoryResponseDto>? Categories { get; init; }
 }

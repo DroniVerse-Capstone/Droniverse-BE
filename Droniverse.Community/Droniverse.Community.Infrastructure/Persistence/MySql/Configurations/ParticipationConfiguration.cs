@@ -22,6 +22,7 @@ public class ParticipationConfiguration : IEntityTypeConfiguration<Participation
         builder.Property(p => p.Status).HasColumnType("tinyint").IsRequired();
         builder.ToTable(t => t.HasCheckConstraint("CK_Participation_Status", "`Status` IN (0, 1, 2)"));
         builder.Property(p => p.JoinDate).HasColumnType("datetime").ValueGeneratedOnAdd();
+        builder.Property(p => p.Note).HasMaxLength(255);
     }
 }
 

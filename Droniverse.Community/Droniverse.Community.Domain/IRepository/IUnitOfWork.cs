@@ -4,9 +4,7 @@ namespace Droniverse.Community.Domain.IRepository;
 
 public interface IUnitOfWork : IDisposable
 {
-    ICategoryRepository Categories { get; }
     IClubRepository Clubs { get; }
-    IClubCategoryRepository ClubCategories { get; }
     IClubAttemptRequestRepository ClubAttemptRequests { get; }
     IClubCreationRequestRepository ClubCreationRequests { get; }
     ICompetitionRepository Competitions { get; }
@@ -16,10 +14,8 @@ public interface IUnitOfWork : IDisposable
     IProductCategoryRepository ProductCategories { get; }
     IProductRepository Products { get; }
     IRoundRepository Rounds { get; }
-    IClubCourseRepository ClubCourses { get; }
     ICompetitionPrizeRepository CompetitionPrizes { get; }
     IUserPrizeRepository UserPrizes { get; }
-    IClubCreationRequestCategoryRepository ClubCreationRequestCategories { get; }
     IUserCompetitionRepository UserCompetitions { get; }
     IUserRoundRepository UserRounds { get; }
 

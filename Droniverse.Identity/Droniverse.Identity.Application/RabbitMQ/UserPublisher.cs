@@ -27,14 +27,29 @@ internal class UserPublisher : IPublisher, IDisposable, IUserPublisher
         string hostName = _configuration["RabbitMQ_HostName"] ?? "localhost";
         string userName = _configuration["RabbitMQ_UserName"] ?? "guest";
         string password = _configuration["RabbitMQ_Password"] ?? "guest";
-        string port = _configuration["RabbitMQ_Port"] ?? "5672";
+        string portStr = _configuration["RabbitMQ_Port"] ?? "5672";
+
+        // Handle cases where port is embedded in a full connection string (e.g., "tcp://10.109.19.235:15672")
+        int port = 5672;
+        if (Uri.TryCreate($"amqp://{portStr}", UriKind.Absolute, out var uri) && uri.Port > 0)
+        {
+            port = uri.Port;
+            if (string.IsNullOrEmpty(hostName) || hostName == "localhost")
+            {
+                hostName = uri.Host;
+            }
+        }
+        else if (int.TryParse(portStr, out int parsedPort))
+        {
+            port = parsedPort;
+        }
 
         _factory = new ConnectionFactory()
         {
             HostName = hostName,
             UserName = userName,
             Password = password,
-            Port = int.Parse(port),
+            Port = port,
             RequestedConnectionTimeout = TimeSpan.FromSeconds(1),
             AutomaticRecoveryEnabled = true,
             NetworkRecoveryInterval = TimeSpan.FromSeconds(10)

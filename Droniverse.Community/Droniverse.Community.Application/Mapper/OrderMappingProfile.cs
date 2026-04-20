@@ -2,6 +2,7 @@
 using Droniverse.Community.Application.DTO.Response.Mongo;
 
 using Droniverse.Community.Domain.Entities.Mongo;
+using Droniverse.Shared.DTOs.Response;
 
 namespace Droniverse.Community.Application.Mapper;
 
@@ -26,6 +27,7 @@ public class OrderMappingProfile : Profile
                 paymentDto = paymentDto with { OrderId = src._id };
                 return paymentDto;
             }))
+            .ForMember(dest => dest.User, opt => opt.Ignore())
             ;
 
         CreateMap<OrderItem, OrderItemDto>()

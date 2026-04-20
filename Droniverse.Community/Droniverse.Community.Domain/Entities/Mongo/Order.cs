@@ -10,6 +10,8 @@ public class Order // Document trong NoSql ~~ Table trong SequenceSql
 
     //[BsonRepresentation(BsonType.String)]
     public Guid UserID { get; set; }
+    public string UserEmail { get; set; } = string.Empty;
+    public string UserName { get; set; } = string.Empty;
     [BsonRepresentation(BsonType.String)]
     public OrderType OrderType { get; set; }
     public required Guid ClubID { get; set; }
