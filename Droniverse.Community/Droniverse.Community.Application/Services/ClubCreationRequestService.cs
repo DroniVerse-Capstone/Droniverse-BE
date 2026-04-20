@@ -51,13 +51,17 @@ namespace Droniverse.Community.Application.Services
             if (isUserExisted)
                 throw new InvalidOperationException("Người dùng hiện đang có một yêu cầu khác chưa xử lí xong. Không thể tạo mới được");
 
+            var media = await _unitOfWork.Medias.GetByCondition(m => m.MediaID == dto.Media);
+            if (media == null)
+                throw new NotFoundException($"Media (hình ảnh/video) không tồn tại trong hệ thống temp.");
+
             var request = new ClubCreationRequest(
                 dto.NameVN,
                 dto.NameEN,
                 dto.Description,
                 dto.IsPublic,
                 dto.LimitParticipant,
-                dto.LimitClubManager,
+                1, //limit club manager mặc định là 1
                 dto.Image,
                 requesterID,
                 dto.DroneID,
@@ -292,7 +296,8 @@ namespace Droniverse.Community.Application.Services
                         _clock.Now,
                         request.ImageUrl,
                         managerID: Guid.Empty,
-                        droneID: Guid.Empty
+                        droneID: request.DroneID,
+                        clubPolicy: request.ClubPolicy
                     );
 
                     await _unitOfWork.Clubs.Add(newClub);

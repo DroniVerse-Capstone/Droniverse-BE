@@ -16,7 +16,7 @@ public class ClubCreationRequestCreateDto
     public string ClubPolicy { get; set; }
 
     [Required]
-    public string Media { get; set; }
+    public Guid Media { get; set; }
 
     [Required]
     [StringLength(255)]
@@ -35,9 +35,6 @@ public class ClubCreationRequestCreateDto
 
     [Range(1, 100000)]
     public int LimitParticipant { get; set; }
-
-    [Range(1, 20)]
-    public int LimitClubManager { get; set; }
 
     [Required]
     public string Image { get; set; }

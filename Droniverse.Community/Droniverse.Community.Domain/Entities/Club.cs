@@ -56,7 +56,8 @@ public class Club
         DateTime now,
         string? imageUrl,
         Guid managerID,
-        Guid droneID)
+        Guid droneID,
+        string clubPolicy)
     {
         ClubID = Guid.NewGuid();
         NameVN = nameVN;
@@ -78,6 +79,7 @@ public class Club
 
         ManagerID = managerID;
         DroneID = droneID;
+        ClubPolicy = clubPolicy;
     }
 
     // ===== Domain Methods =====

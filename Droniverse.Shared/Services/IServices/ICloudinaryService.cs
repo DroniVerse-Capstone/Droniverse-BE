@@ -8,5 +8,6 @@ public interface ICloudinaryService
     Task<string> UploadImageAsync(byte[] content, string fileName, string contentType, string folder = "droniverse");
     Task<bool> DeleteImageAsync(string publicId);
     Task<List<string>> UploadMultipleImagesAsync(IEnumerable<IFormFile> files, string folder = "droniverse");
+    Task<string> UploadMediaAsync(IFormFile file, string mediaType, string folder = "droniverse");
 }
 

@@ -55,6 +55,7 @@ public static class DependencyInjection
 
         services.AddScoped<IRoundStateFactory, RoundStateFactory>();
         services.AddScoped<RoundLifecycleService>();
+        services.AddScoped<IMediaService, MediaService>();
 
         //Đăng ký DelegatingHandler
         services.AddTransient<AuthorizationDelegatingHandler>();

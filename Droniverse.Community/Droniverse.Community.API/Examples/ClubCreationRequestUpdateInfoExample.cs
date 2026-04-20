@@ -15,11 +15,7 @@ namespace Droniverse.Community.API.Examples
                 IsPublic = false,
                 LimitParticipant = 150,
                 LimitClubManager = 3,
-                Image = "https://images7.alphacoders.com/125/1250171.jpg",
-                CategoryIDs = new List<Guid>
-                {
-                    Guid.Parse("0b27da26-062c-4ecd-8b6f-3f895d21ae4f"),
-                }
+                Image = "https://images7.alphacoders.com/125/1250171.jpg"
             };
         }
     }

@@ -14,6 +14,5 @@ namespace Droniverse.Community.Application.DTO.Response
         public string? ImageUrl { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public ClubCreationRequestStatus Status { get; set; }
-        public IEnumerable<CategoryResponseDto> Categories { get; set; } = Enumerable.Empty<CategoryResponseDto>();
     }
 }

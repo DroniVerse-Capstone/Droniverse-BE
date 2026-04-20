@@ -125,36 +125,29 @@ namespace Droniverse.Community.API.Controllers
         //        "Lấy danh sách khóa học HOT của câu lạc bộ thành công!");
         //}
 
-        [HttpPost("upload-temp-image")]
-        [Authorize(Roles = Roles.AllRoles)]
-        public async Task<IActionResult> UploadTempImage([FromForm] FileUploadDto file)
-        {
-            return await this.UploadImageAsync(_cloudinaryService, file, "droniverse/temp");
-        }
+        ///// <summary>
+        ///// Tạo mới một câu lạc bộ.
+        ///// </summary>
+        ///// <param name="clubRequest">Thông tin dữ liệu dùng để tạo câu lạc bộ mới. (API này dành cho Manager của hệ thống)</param>
+        ///// <remarks>
+        ///// Sau khi tạo thành công hệ thống sẽ trả về HTTP 201 và dữ liệu chi tiết của câu lạc bộ.
+        ///// </remarks>
+        ///// <returns>
+        ///// 201 Created - Tạo thành công và trả về dữ liệu <see cref="ClubResponseDto"/>.
+        ///// 400 BadRequest - Nếu dữ liệu đầu vào không hợp lệ.
+        ///// </returns>
+        //[HttpPost]
+        //[ProducesResponseType(typeof(SuccessResponse<ClubResponseDto>), StatusCodes.Status201Created)]
+        //[ProducesResponseType(StatusCodes.Status400BadRequest)]
+        //[SwaggerRequestExample(typeof(ClubAttemptRequestCreateDto), typeof(ClubCreateMultipleExample))]
+        //[Authorize(Roles = Roles.SystemRoles)]
+        //public async Task<ApiResponse> CreateClub([FromBody] ClubCreateDto clubRequest)
+        //{
+        //    ClubResponseDto createdClub = await _clubService.CreateClub(clubRequest);
 
-        /// <summary>
-        /// Tạo mới một câu lạc bộ.
-        /// </summary>
-        /// <param name="clubRequest">Thông tin dữ liệu dùng để tạo câu lạc bộ mới. (API này dành cho Manager của hệ thống)</param>
-        /// <remarks>
-        /// Sau khi tạo thành công hệ thống sẽ trả về HTTP 201 và dữ liệu chi tiết của câu lạc bộ.
-        /// </remarks>
-        /// <returns>
-        /// 201 Created - Tạo thành công và trả về dữ liệu <see cref="ClubResponseDto"/>.
-        /// 400 BadRequest - Nếu dữ liệu đầu vào không hợp lệ.
-        /// </returns>
-        [HttpPost]
-        [ProducesResponseType(typeof(SuccessResponse<ClubResponseDto>), StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [SwaggerRequestExample(typeof(ClubAttemptRequestCreateDto), typeof(ClubCreateMultipleExample))]
-        [Authorize(Roles = Roles.SystemRoles)]
-        public async Task<ApiResponse> CreateClub([FromBody] ClubCreateDto clubRequest)
-        {
-            ClubResponseDto createdClub = await _clubService.CreateClub(clubRequest);
-
-            return SuccessResponse<ClubResponseDto>
-                .Create(createdClub, "Tạo câu lạc bộ thành công!");
-        }
+        //    return SuccessResponse<ClubResponseDto>
+        //        .Create(createdClub, "Tạo câu lạc bộ thành công!");
+        //}
 
         /// <summary>
         /// Gửi yêu cầu tham gia câu lạc bộ
