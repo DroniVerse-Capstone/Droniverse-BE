@@ -14,7 +14,8 @@ public class ClubMappingProfile : Profile
             .ForMember(dest => dest.ClubPolicy, opt => opt.MapFrom(src => src.ClubPolicy));
 
         CreateMap<ClubCreateDto, Club>()
-            .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.DescriptionVN));
+            .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.DescriptionVN))
+            .ForMember(dest => dest.ClubPolicy, opt => opt.Ignore());
 
         CreateMap<ClubUpdateDto, Club>();
 

@@ -40,7 +40,8 @@ namespace Droniverse.Community.Application.Services
                 throw new KeyNotFoundException($"Không tìm thấy club với ID {clubID}");
             }
 
-            ClubAttemptRequest clubRequest = new(clubID, requesterID);
+            Guid mediaID = Guid.Empty;
+            ClubAttemptRequest clubRequest = new(clubID, requesterID, mediaID);
             await _unitOfWork.ClubAttemptRequests.Add(clubRequest);
             await _unitOfWork.SaveChangeAsync();
         }

@@ -13,6 +13,12 @@ namespace Droniverse.Community.Application.DTO.Request
     public class ClubCreationRequestCreateDto
     {
         [Required]
+        public Guid DroneID { get; set; }
+
+        [Required]
+        public Guid ClubPolicyID { get; set; }
+
+        [Required]
         [StringLength(255)]
         public string NameVN { get; set; }
 

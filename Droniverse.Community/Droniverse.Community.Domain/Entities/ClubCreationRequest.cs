@@ -65,7 +65,7 @@ namespace Droniverse.Community.Domain.Entities
             ImageUrl = imageUrl;
             RequesterID = requesterId;
 
-            CreatedAt = DateTime.UtcNow;
+            CreatedAt = DateTime.UtcNow.AddHours(7);
             Status = ClubCreationRequestStatus.PENDING;
             DroneID = droneID;
             ClubPolicyID = clubPolicyID;

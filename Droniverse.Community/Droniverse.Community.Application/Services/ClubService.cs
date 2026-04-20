@@ -16,6 +16,7 @@ using Droniverse.Shared.Enums;
 using Droniverse.Shared.DTOs;
 
 namespace Droniverse.Community.Application.Services;
+
 internal class ClubService : IClubService
 {
     private readonly IUnitOfWork _unitOfWork;
@@ -64,13 +65,14 @@ internal class ClubService : IClubService
         await _unitOfWork.Clubs.Add(club);
 
         ClubPolicy clubPolicy = new ClubPolicy
-        {
-            ClubID = club.ClubID,
-            Title = clubRequestDto.ClubPolicy?.Title ?? "Chưa có tiêu đề cho Club Policy",
-            Content = clubRequestDto.ClubPolicy?.Content ?? "Chưa có nội dung cho Club Policy",
-            CreatedAt = _clock.Now,
-            CreatedBy = currentUserID,
-        };
+        (
+            Title: clubRequestDto.ClubPolicy?.Title ?? "Chưa có tiêu đề cho Club Policy",
+            Content: clubRequestDto.ClubPolicy?.Content ?? "Chưa có nội dung cho Club Policy",
+            CreatedBy: currentUserID,
+            UpdatedBy: Guid.Empty,
+            ClubID: club.ClubID
+            
+        );
         await _unitOfWork.ClubPolicies.Add(clubPolicy);
         await _unitOfWork.SaveChangeAsync();
 
@@ -218,9 +220,12 @@ internal class ClubService : IClubService
             if (user == true)
                 throw new InvalidOperationException("Yêu cầu tham gia club của người dùng này đang chờ được duyệt !");
 
+            Guid mediaID = Guid.Empty;
+
             var clubAttemptRequest = new ClubAttemptRequest(
                 currentUserId,
-                club.ClubID
+                club.ClubID,
+                mediaID
             );
 
             await _unitOfWork.ClubAttemptRequests.Add(clubAttemptRequest);

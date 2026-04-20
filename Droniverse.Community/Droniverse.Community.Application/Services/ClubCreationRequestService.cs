@@ -25,7 +25,6 @@ namespace Droniverse.Community.Application.Services
     public class ClubCreationRequestService : IClubCreationRequestService
     {
         private readonly IUnitOfWork _unitOfWork;
-        //private readonly IMapper _mapper;
         private readonly IdentityMicroserviceClient _identityMicroserviceClient;
         private readonly ICurrentUserService _currentUserService;
         private readonly IClock _clock;
@@ -51,6 +50,13 @@ namespace Droniverse.Community.Application.Services
             var isUserExisted = await _unitOfWork.ClubCreationRequests.IsUserHavingOtherRequest(requesterID);
             if (isUserExisted)
                 throw new InvalidOperationException("Người dùng hiện đang có một yêu cầu khác chưa xử lí xong. Không thể tạo mới được");
+            
+            Guid mediaID = Guid.Empty;
+
+            //ClubPolicy clubPolicy = new ClubPolicy(
+            //    )
+
+            //await _unitOfWork.ClubPolicies.Add(clubPolicy);
 
             var request = new ClubCreationRequest(
                 dto.NameVN,
@@ -60,7 +66,10 @@ namespace Droniverse.Community.Application.Services
                 dto.LimitParticipant,
                 dto.LimitClubManager,
                 dto.Image,
-                requesterID
+                requesterID,
+                dto.DroneID,
+                mediaID,
+                dto.ClubPolicyID
             );
 
             await _unitOfWork.ClubCreationRequests.Add(request);
@@ -288,7 +297,9 @@ namespace Droniverse.Community.Application.Services
                         request.LimitClubManager,
                         request.RequesterID,
                         _clock.Now,
-                        request.ImageUrl
+                        request.ImageUrl,
+                        managerID: Guid.Empty,
+                        droneID: Guid.Empty
                     );
 
                     await _unitOfWork.Clubs.Add(newClub);
