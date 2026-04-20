@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Droniverse.Academy.Application.Common.Extensions;
+using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.Enums;
 using Droniverse.Academy.Application.HttpClients;
@@ -7,13 +8,13 @@ using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
+using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.DTOs.Response;
-using Droniverse.Shared.DTOs;
-using Droniverse.Shared.Exceptions;
-using System.Linq.Expressions;
-using Droniverse.Shared.Services.IServices;
 using Droniverse.Shared.Enums;
+using Droniverse.Shared.Exceptions;
+using Droniverse.Shared.Services.IServices;
+using System.Linq.Expressions;
 
 namespace Droniverse.Academy.Application.Services;
 
@@ -36,11 +37,14 @@ public class CourseService : ICourseService
         _communityMicroserviceClient = communityMicroserviceClient;
     }
 
-    public async Task<CourseDetailResponseDTO> CreateCourseAsync()
+    public async Task<CourseDetailResponseDTO> CreateCourseAsync(CreateCourseRequest request)
     {
+        var level = await _unitOfWork.Levels.GetByIdAsync(request.LevelID);
         var course = new Course
         {
             CourseID = Guid.NewGuid(),
+            LevelID = level.LevelID,
+            DroneID = level.DroneID,
             CourseVersions = []
         };
         course.SetAuditOnCreate(_currentUser.UserId, _clock.Now);
@@ -321,7 +325,6 @@ public class CourseService : ICourseService
                     CourseVersionId = versionId,
                     TitleVN = currentVersion.TitleVN,
                     TitleEN = currentVersion.TitleEN,
-                    Level = default,
                     EstimatedDuration = currentVersion.EstimatedDuration,
                     Price = null,
                     ClubCourseOwned = new ClubCourseOwnedResponse(),
@@ -385,7 +388,6 @@ public class CourseService : ICourseService
         var courseResult = await _unitOfWork.Courses.GetHotCoursesByIdsWithCurrentVersionAsync(
             courseIds: ids,
             currentUserId: _currentUser.UserId,
-            level: null,
             ownedOnly: false,
             courseName: null,
             pageIndex: pageIndex,
@@ -620,7 +622,6 @@ public class CourseService : ICourseService
                     TitleVN = currentVersion.TitleVN,
                     TitleEN = currentVersion.TitleEN,
                     ImageUrl = currentVersion.ImageUrl ?? string.Empty,
-                    Level = default,
                     ClubCourseInfo = null,
                     NumberOfParticipants = participants,
                     EstimatedDuration = currentVersion.EstimatedDuration,

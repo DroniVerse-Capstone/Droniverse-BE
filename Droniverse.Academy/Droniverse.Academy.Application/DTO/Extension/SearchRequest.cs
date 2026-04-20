@@ -10,7 +10,6 @@ namespace Droniverse.Academy.Application.DTO.Extension
 {
     public class UserEnrollmentSearchRequest : SearchRequest
     {
-        public CourseLevel? Level { get; set; }
         public string? CourseSearchName { get; set; }
         public UserEnrollment? EnrollmentStatus { get; set; }
     }

@@ -16,7 +16,6 @@ public class CourseOverviewResponseDTO
     public string? ContextVN { get; set; }
     public string? ContextEN { get; set; }
     public string? ImageUrl { get; set; }
-    public CourseLevel Level { get; set; }
     public int? EstimatedDuration { get; set; }
 
     public decimal AverageRating { get; set; }

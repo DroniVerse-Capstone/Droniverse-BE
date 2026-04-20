@@ -1,5 +1,4 @@
-﻿using Droniverse.Academy.Domain.Enums;
-using Droniverse.Shared.Enums;
+﻿using Droniverse.Shared.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,7 +9,6 @@ namespace Droniverse.Shared.DTOs.Request
 {
     public class ManagerCourseBulkSearchRequest : SearchRequest
     {
-        public CourseLevel? Level { get; set; }
         public ClubCourseProfit? ProfitType { get; set; }
         public ManagerCourseSortBy? CourseSortBy { get; set; } = ManagerCourseSortBy.Participants_Quantity;
         public SortDirection? CourseSortDirection { get; set; } = SortDirection.Asc;

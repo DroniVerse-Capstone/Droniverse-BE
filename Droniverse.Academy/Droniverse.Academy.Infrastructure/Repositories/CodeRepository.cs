@@ -29,19 +29,6 @@ internal class CodeRepository : MySqlRepository<Code>, ICodeRepository
             query = query.Where(c => c.Status == status);
         }
 
-        // Lọc theo CodeUsageStatus
-        if (requestDTO.CodeUsageStatus != null)
-        {
-            var usageStatus = requestDTO.CodeUsageStatus.Value;
-            if (usageStatus == CodeUsageStatus.USED)
-            {
-                query = query.Where(c => c.UsedByUserID != null || c.Status == CodeStatus.Used);
-            }
-            else if (usageStatus == CodeUsageStatus.UNUSED)
-            {
-                query = query.Where(c => c.UsedByUserID == null && c.Status != CodeStatus.Used);
-            }
-        }
 
         // Đếm tổng số records trước khi phân trang
         int totalRecords = await query.CountAsync();

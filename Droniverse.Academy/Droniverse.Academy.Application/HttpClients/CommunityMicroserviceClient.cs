@@ -16,14 +16,12 @@ namespace Droniverse.Academy.Application.HttpClients
     {
         private readonly ClubClient _clubClient;
         private readonly ClubCourseClient _clubCourseClient;
-        private readonly CategoryClient _categoryClient;
         private readonly ProductClient _productClient;
 
         public CommunityMicroserviceClient(HttpClient httpClient, ILogger<CommunityMicroserviceClient> logger, ICacheService cacheService, IHostEnvironment environment)
         {
             _clubClient = new ClubClient(httpClient, logger, cacheService, environment);
             _clubCourseClient = new ClubCourseClient(httpClient, logger, cacheService, environment);
-            _categoryClient = new CategoryClient(httpClient, logger, cacheService, environment);
             _productClient = new ProductClient(httpClient, logger, cacheService, environment);
         }
 
@@ -56,10 +54,7 @@ namespace Droniverse.Academy.Application.HttpClients
             return await _clubCourseClient.ConsumeSlotForCodeAsync(clubId, courseId, num, cancellationToken);
         }
 
-        public async Task<IEnumerable<CategoryResponseDTO>> GetCategoriesBulk(IEnumerable<Guid> ids)
-        {
-            return await _categoryClient.GetCategoriesBulk(ids);
-        }
+
 
         public async Task<ClubCourseOwn?> GetRemainingQuantityAsync(
             Guid clubId,

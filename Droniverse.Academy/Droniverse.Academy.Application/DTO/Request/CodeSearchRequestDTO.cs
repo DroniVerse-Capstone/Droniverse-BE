@@ -8,7 +8,6 @@ namespace Droniverse.Academy.Application.DTO.Request;
 public class CodeSearchRequestDTO : SearchRequest, ICodeSearchSpec
 {
     public CodeStatus? Status { get; set; } //ACTIVE, INACTIVE
-    [FromQuery(Name = "codeUsageStatus")]
-    public CodeUsageStatus? CodeUsageStatus { get; set; }
+    
 }
 

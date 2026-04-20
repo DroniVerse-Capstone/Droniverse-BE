@@ -122,8 +122,6 @@ public class CourseVersionService : ICourseVersionService
         var response = _mapper.Map<CourseVersionResponseDTO>(cv);
         response.Certificate = _mapper.Map<CertificateVersionResponseDTO?>(cv.Certificate);
         response.Updater = await ResolveUpdaterAsync(cv.UpdateBy);
-        response.Categories = [];
-        response.RequiredDrones = [];
 
         return response;
     }

@@ -42,9 +42,6 @@ public class MySqlDbContext : DbContext
             .HasNoKey()
             .ToView("vwCourseStats");
 
-        modelBuilder.Entity<CourseStatsView>()
-            .Property(x => x.Level)
-            .HasConversion<string>();
 
         // Apply all configurations from the current assembly
         modelBuilder.ApplyConfigurationsFromAssembly(

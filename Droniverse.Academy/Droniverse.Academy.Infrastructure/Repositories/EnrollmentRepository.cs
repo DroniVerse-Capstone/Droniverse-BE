@@ -44,7 +44,6 @@ internal class EnrollmentRepository : MySqlRepository<Enrollment>, IEnrollmentRe
         Guid clubId,
         int pageIndex,
         int pageSize,
-        CourseLevel? level = null,
         string? courseSearchName = null,
         EnrollStatus? enrollmentStatus = null,
         CancellationToken cancellationToken = default)
@@ -82,7 +81,6 @@ internal class EnrollmentRepository : MySqlRepository<Enrollment>, IEnrollmentRe
                 CourseNameVN = e.CourseVersion.TitleVN,
                 CourseNameEN = e.CourseVersion.TitleEN,
                 ImageUrl = e.CourseVersion.ImageUrl,
-                Level = default,
                 EstimatedDuration = e.CourseVersion.EstimatedDuration,
                 Progress = e.Progress,
                 EnrollStatus = e.Status

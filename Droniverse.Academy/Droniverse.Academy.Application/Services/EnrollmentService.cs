@@ -158,7 +158,6 @@ public class EnrollmentService : IEnrollmentService
             clubId: clubId,
             pageIndex: request.CurrentPage,
             pageSize: request.PageSize,
-            level: request.Level,
             courseSearchName: request.CourseSearchName,
             enrollmentStatus: enrollmentStatus);
 
@@ -170,7 +169,6 @@ public class EnrollmentService : IEnrollmentService
             CourseNameVN = x.CourseNameVN,
             CourseNameEN = x.CourseNameEN,
             ImageUrl = x.ImageUrl,
-            Level = x.Level,
             EstimatedDuration = x.EstimatedDuration,
             Progress = x.Progress,
             EnrollStatus = x.EnrollStatus

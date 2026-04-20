@@ -1,5 +1,4 @@
-﻿using Droniverse.Academy.Domain.Enums;
-using Droniverse.Shared.DTOs.Response;
+﻿using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Enums;
 
 namespace Droniverse.Shared.DTOs
@@ -11,7 +10,6 @@ namespace Droniverse.Shared.DTOs
         public required string TitleVN { get; set; }
         public required string TitleEN { get; set; }
         public required string ImageUrl { get; set; }
-        public CourseLevel Level { get; set; }
         public int? EstimatedDuration { get; set; }
         public int NumberOfParticipants { get; set; }
         public ManagerClubCourseOwnedResponse? ClubCourseInfo { get; set; }

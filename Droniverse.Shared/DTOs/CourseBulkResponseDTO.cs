@@ -1,5 +1,4 @@
-﻿using Droniverse.Academy.Domain.Enums;
-using Droniverse.Shared.Enums;
+﻿using Droniverse.Shared.Enums;
 using Droniverse.Shared.Enums.Response;
 using System;
 using System.Collections.Generic;
@@ -15,7 +14,6 @@ namespace Droniverse.Shared.DTOs.Response
         public Guid CourseVersionId { get; set; }
         public required string TitleVN { get; set; }
         public required string TitleEN { get; set; }
-        public CourseLevel Level { get; set; }
         public int NumberOfParticipants { get; set; }
         public decimal Rating { get; set; }
         public string? ImageUrl { get; set; }

@@ -15,7 +15,6 @@ public class CreateCourseVersionRequestDTO
 
     public string? ImageUrl { get; set; }
 
-    public CourseLevel Level { get; set; }
 
     public int? EstimatedDuration { get; set; }
 
