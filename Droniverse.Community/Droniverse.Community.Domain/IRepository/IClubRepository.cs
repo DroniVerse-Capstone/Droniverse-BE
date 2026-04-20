@@ -6,7 +6,7 @@ using Droniverse.Shared.DTOs.Response;
 namespace Droniverse.Community.Domain.IRepository;
 public interface IClubRepository : IRepository<Club>
 {
-    Task<PaginationResult<IEnumerable<Club>>> GetAllWithCategories(
+    Task<PaginationResult<IEnumerable<Club>>> GetAllWithPolicies(
         string? clubName = null,
         ClubStatus? clubStatus = null,
         int currentPage = 1,

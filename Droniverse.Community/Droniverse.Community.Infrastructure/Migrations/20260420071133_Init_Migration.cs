@@ -7,7 +7,7 @@ using MySql.EntityFrameworkCore.Metadata;
 namespace Droniverse.Community.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class Update_Naming_Convention : Migration
+    public partial class Init_Migration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -16,42 +16,30 @@ namespace Droniverse.Community.Infrastructure.Migrations
                 .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
-                name: "Category",
-                columns: table => new
-                {
-                    CategoryID = table.Column<Guid>(type: "char(36)", nullable: false),
-                    TypeNameVN = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false),
-                    TypeNameEN = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false),
-                    DescriptionVN = table.Column<string>(type: "text", nullable: false),
-                    DescriptionEN = table.Column<string>(type: "text", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Category", x => x.CategoryID);
-                })
-                .Annotation("MySQL:Charset", "utf8mb4");
-
-            migrationBuilder.CreateTable(
                 name: "Club",
                 columns: table => new
                 {
                     ClubID = table.Column<Guid>(type: "char(36)", nullable: false),
                     CreatedBy = table.Column<Guid>(type: "char(36)", nullable: false),
+                    ManagerID = table.Column<Guid>(type: "char(36)", nullable: false),
+                    DroneID = table.Column<Guid>(type: "char(36)", nullable: false),
                     NameVN = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false),
                     NameEN = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false),
                     Description = table.Column<string>(type: "varchar(255)", nullable: false),
                     ClubCode = table.Column<string>(type: "char(6)", nullable: false),
                     Status = table.Column<sbyte>(type: "tinyint", nullable: false),
+                    ImageUrl = table.Column<string>(type: "varchar(255)", nullable: true),
                     IsPublic = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     LimitParticipation = table.Column<int>(type: "int", nullable: false),
                     LimitClubManagers = table.Column<int>(type: "int", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
+                    UpdatedAt = table.Column<DateTime>(type: "datetime", nullable: true),
+                    SuspendedReason = table.Column<string>(type: "longtext", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Club", x => x.ClubID);
-                    table.CheckConstraint("CK_Club_Status", "`Status` IN (0, 1)");
+                    table.CheckConstraint("CK_Club_Status", "`Status` IN (0, 1, 2, 3)");
                 })
                 .Annotation("MySQL:Charset", "utf8mb4");
 
@@ -94,51 +82,21 @@ namespace Droniverse.Community.Infrastructure.Migrations
                 .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
-                name: "ClubAttemptRequest",
+                name: "Wallet",
                 columns: table => new
                 {
-                    ClubRequestID = table.Column<Guid>(type: "char(36)", nullable: false),
-                    RequesterID = table.Column<Guid>(type: "char(36)", nullable: false),
-                    ApproverID = table.Column<Guid>(type: "char(36)", nullable: true),
-                    ClubID = table.Column<Guid>(type: "char(36)", nullable: false),
-                    Status = table.Column<int>(type: "int", nullable: false),
-                    CreateAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    ProcessedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true)
+                    WalletID = table.Column<Guid>(type: "char(36)", nullable: false),
+                    OwnerID = table.Column<Guid>(type: "char(36)", nullable: false),
+                    BankNumber = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false),
+                    Bank = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false),
+                    Balance = table.Column<decimal>(type: "decimal(15,2)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
+                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ClubAttemptRequest", x => x.ClubRequestID);
-                    table.ForeignKey(
-                        name: "FK_ClubAttemptRequest_Club_ClubID",
-                        column: x => x.ClubID,
-                        principalTable: "Club",
-                        principalColumn: "ClubID",
-                        onDelete: ReferentialAction.Restrict);
-                })
-                .Annotation("MySQL:Charset", "utf8mb4");
-
-            migrationBuilder.CreateTable(
-                name: "ClubCategory",
-                columns: table => new
-                {
-                    CategoryID = table.Column<Guid>(type: "char(36)", nullable: false),
-                    ClubID = table.Column<Guid>(type: "char(36)", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ClubCategory", x => new { x.CategoryID, x.ClubID });
-                    table.ForeignKey(
-                        name: "FK_ClubCategory_Category_CategoryID",
-                        column: x => x.CategoryID,
-                        principalTable: "Category",
-                        principalColumn: "CategoryID",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_ClubCategory_Club_ClubID",
-                        column: x => x.ClubID,
-                        principalTable: "Club",
-                        principalColumn: "ClubID",
-                        onDelete: ReferentialAction.Cascade);
+                    table.PrimaryKey("PK_Wallet", x => x.WalletID);
                 })
                 .Annotation("MySQL:Charset", "utf8mb4");
 
@@ -148,7 +106,9 @@ namespace Droniverse.Community.Infrastructure.Migrations
                 {
                     ClubID = table.Column<Guid>(type: "char(36)", nullable: false),
                     CourseID = table.Column<Guid>(type: "char(36)", nullable: false),
-                    isProfit = table.Column<byte>(type: "tinyint unsigned", nullable: false)
+                    RemainingQuantity = table.Column<int>(type: "int", nullable: false),
+                    TotalQuantity = table.Column<int>(type: "int", nullable: false),
+                    ProfitType = table.Column<byte>(type: "tinyint unsigned", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -163,35 +123,29 @@ namespace Droniverse.Community.Infrastructure.Migrations
                 .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
-                name: "ClubCreationRequest",
+                name: "ClubPolicy",
                 columns: table => new
                 {
-                    ClubCreationRequestID = table.Column<Guid>(type: "char(36)", nullable: false),
-                    NameVN = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false),
-                    NameEN = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false),
-                    Description = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false),
-                    IsPublic = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    LimitParticipant = table.Column<int>(type: "int", nullable: false),
-                    LimitClubManager = table.Column<int>(type: "int", nullable: false),
-                    ImageUrl = table.Column<string>(type: "text", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),
-                    ApprovedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),
-                    RejectReason = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: true),
-                    ClubID = table.Column<Guid>(type: "char(36)", nullable: true),
-                    RequesterID = table.Column<Guid>(type: "char(36)", nullable: false),
-                    ApproverID = table.Column<Guid>(type: "char(36)", nullable: true),
-                    Status = table.Column<byte>(type: "tinyint unsigned", nullable: false)
+                    ClubPolicyID = table.Column<Guid>(type: "char(36)", nullable: false),
+                    Title = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false),
+                    Content = table.Column<string>(type: "text", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
+                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
+                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.ComputedColumn),
+                    CreatedBy = table.Column<Guid>(type: "char(36)", nullable: false),
+                    UpdatedBy = table.Column<Guid>(type: "char(36)", nullable: false),
+                    ClubID = table.Column<Guid>(type: "char(36)", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ClubCreationRequest", x => x.ClubCreationRequestID);
+                    table.PrimaryKey("PK_ClubPolicy", x => x.ClubPolicyID);
                     table.ForeignKey(
-                        name: "FK_ClubCreationRequest_Club_ClubID",
+                        name: "FK_ClubPolicy_Club_ClubID",
                         column: x => x.ClubID,
                         principalTable: "Club",
                         principalColumn: "ClubID",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                 })
                 .Annotation("MySQL:Charset", "utf8mb4");
 
@@ -201,20 +155,24 @@ namespace Droniverse.Community.Infrastructure.Migrations
                 {
                     CompetitionID = table.Column<Guid>(type: "char(36)", nullable: false),
                     ClubID = table.Column<Guid>(type: "char(36)", nullable: false),
-                    CreatedBy = table.Column<Guid>(type: "char(36)", nullable: false),
-                    UpdatedBy = table.Column<Guid>(type: "char(36)", nullable: true),
                     NameVN = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false),
                     NameEN = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false),
-                    DescriptionVN = table.Column<string>(type: "text", nullable: false),
-                    DescriptionEN = table.Column<string>(type: "text", nullable: false),
+                    DescriptionVN = table.Column<string>(type: "text", nullable: true),
+                    DescriptionEN = table.Column<string>(type: "text", nullable: true),
                     RuleContent = table.Column<string>(type: "text", nullable: false),
                     MaxParticipants = table.Column<int>(type: "int", nullable: true),
+                    VisibleAt = table.Column<DateTime>(type: "datetime", nullable: false),
                     RegistrationStartDate = table.Column<DateTime>(type: "datetime", nullable: false),
                     RegistrationEndDate = table.Column<DateTime>(type: "datetime", nullable: false),
                     StartDate = table.Column<DateTime>(type: "datetime", nullable: false),
                     EndDate = table.Column<DateTime>(type: "datetime", nullable: false),
                     Status = table.Column<int>(type: "int", nullable: false),
                     ResultPublishedAt = table.Column<DateTime>(type: "datetime", nullable: true),
+                    IsSummarized = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    InvalidReason = table.Column<string>(type: "varchar(45)", nullable: true),
+                    InvalidAt = table.Column<DateTime>(type: "datetime", nullable: true),
+                    CreatedBy = table.Column<Guid>(type: "char(36)", nullable: false),
+                    UpdatedBy = table.Column<Guid>(type: "char(36)", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime", nullable: true)
                 },
@@ -237,8 +195,9 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     ParticipationID = table.Column<Guid>(type: "char(36)", nullable: false),
                     UserID = table.Column<Guid>(type: "char(36)", nullable: false),
                     ClubID = table.Column<Guid>(type: "char(36)", nullable: false),
-                    ApproverID = table.Column<Guid>(type: "char(36)", nullable: false),
-                    Status = table.Column<ulong>(type: "bit", nullable: false),
+                    ApproverID = table.Column<Guid>(type: "char(36)", nullable: true),
+                    Status = table.Column<sbyte>(type: "tinyint", nullable: false),
+                    Note = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false),
                     JoinDate = table.Column<DateTime>(type: "datetime", nullable: false)
                         .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
                     LeftDate = table.Column<DateTime>(type: "datetime(6)", nullable: true)
@@ -284,14 +243,13 @@ namespace Droniverse.Community.Infrastructure.Migrations
                 columns: table => new
                 {
                     ProductID = table.Column<Guid>(type: "char(36)", nullable: false),
-                    CodeID = table.Column<Guid>(type: "char(36)", nullable: false),
                     ReferenceID = table.Column<Guid>(type: "char(36)", nullable: false),
-                    CategoryID = table.Column<Guid>(type: "char(36)", nullable: false),
+                    CategoryID = table.Column<Guid>(type: "char(36)", nullable: true),
                     ProductNameVN = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false),
                     ProductNameEN = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false),
                     DescriptionVN = table.Column<string>(type: "text", nullable: false),
                     DescriptionEN = table.Column<string>(type: "text", nullable: false),
-                    Price = table.Column<decimal>(type: "decimal(14,9)", nullable: false),
+                    Price = table.Column<decimal>(type: "decimal(20,9)", nullable: false),
                     Currency = table.Column<string>(type: "varchar(10)", maxLength: 10, nullable: false, defaultValue: "VND"),
                     Status = table.Column<sbyte>(type: "tinyint", nullable: false),
                     CreateAt = table.Column<DateTime>(type: "datetime", nullable: false)
@@ -309,6 +267,33 @@ namespace Droniverse.Community.Infrastructure.Migrations
                         principalTable: "ProductCategory",
                         principalColumn: "CategoryID",
                         onDelete: ReferentialAction.Restrict);
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "Transaction",
+                columns: table => new
+                {
+                    TransactionID = table.Column<Guid>(type: "char(36)", nullable: false),
+                    WalletID = table.Column<Guid>(type: "char(36)", nullable: false),
+                    Amount = table.Column<int>(type: "int", nullable: false),
+                    Type = table.Column<string>(type: "varchar(20)", nullable: false),
+                    Status = table.Column<sbyte>(type: "tinyint", nullable: false),
+                    ReferenceID = table.Column<Guid>(type: "char(36)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
+                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Transaction", x => x.TransactionID);
+                    table.CheckConstraint("CK_Transaction_Status", "Status IN (0, 1, 2)");
+                    table.CheckConstraint("CK_Transaction_Type", "Type IN ('COMMISSION', 'WITHDRAWAL', 'REFUND')");
+                    table.ForeignKey(
+                        name: "FK_Transaction_Wallet_WalletID",
+                        column: x => x.WalletID,
+                        principalTable: "Wallet",
+                        principalColumn: "WalletID",
+                        onDelete: ReferentialAction.Cascade);
                 })
                 .Annotation("MySQL:Charset", "utf8mb4");
 
@@ -339,11 +324,11 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     CompetitionID = table.Column<Guid>(type: "char(36)", nullable: false),
                     TitleVN = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false),
                     TitleEN = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false),
-                    DescriptionVN = table.Column<string>(type: "text", nullable: false),
-                    DescriptionEN = table.Column<string>(type: "text", nullable: false),
+                    DescriptionVN = table.Column<string>(type: "text", nullable: true),
+                    DescriptionEN = table.Column<string>(type: "text", nullable: true),
                     RewardType = table.Column<sbyte>(type: "tinyint", nullable: false),
-                    RewardValueGiftVN = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false),
-                    RewardValueGiftEN = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false),
+                    RewardValueGiftVN = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: true),
+                    RewardValueGiftEN = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: true),
                     RewardValueMoney = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
                     RankFrom = table.Column<int>(type: "int", nullable: false),
                     RankTo = table.Column<int>(type: "int", nullable: false),
@@ -372,12 +357,20 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     CompetitionID = table.Column<Guid>(type: "char(36)", nullable: false),
                     LabID = table.Column<Guid>(type: "char(36)", nullable: false),
                     RoundNumber = table.Column<int>(type: "int", nullable: false),
-                    Status = table.Column<int>(type: "int", nullable: false)
+                    StartTime = table.Column<DateTime>(type: "datetime", nullable: false),
+                    EndTime = table.Column<DateTime>(type: "datetime", nullable: false),
+                    TimeLimit = table.Column<TimeSpan>(type: "time", nullable: false),
+                    Status = table.Column<sbyte>(type: "tinyint", nullable: false),
+                    IsSummarized = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false),
+                    CreatedBy = table.Column<Guid>(type: "char(36)", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime", nullable: true),
+                    UpdatedBy = table.Column<Guid>(type: "char(36)", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Round", x => x.RoundID);
-                    table.CheckConstraint("CK_Round_Status", "Status IN (0, 1)");
+                    table.CheckConstraint("CK_Round_Status", "Status IN (0,1,2,3)");
                     table.ForeignKey(
                         name: "FK_Round_Competition_CompetitionID",
                         column: x => x.CompetitionID,
@@ -388,7 +381,7 @@ namespace Droniverse.Community.Infrastructure.Migrations
                 .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
-                name: "User_Competition",
+                name: "UserCompetition",
                 columns: table => new
                 {
                     UserCompetitionID = table.Column<Guid>(type: "char(36)", nullable: false),
@@ -403,12 +396,90 @@ namespace Droniverse.Community.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_User_Competition", x => x.UserCompetitionID);
+                    table.PrimaryKey("PK_UserCompetition", x => x.UserCompetitionID);
                     table.ForeignKey(
-                        name: "FK_User_Competition_Competition_CompetitionID",
+                        name: "FK_UserCompetition_Competition_CompetitionID",
                         column: x => x.CompetitionID,
                         principalTable: "Competition",
                         principalColumn: "CompetitionID",
+                        onDelete: ReferentialAction.Restrict);
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "ClubAttemptRequest",
+                columns: table => new
+                {
+                    ClubRequestID = table.Column<Guid>(type: "char(36)", nullable: false),
+                    RequesterID = table.Column<Guid>(type: "char(36)", nullable: false),
+                    ApproverID = table.Column<Guid>(type: "char(36)", nullable: true),
+                    MediaID = table.Column<Guid>(type: "char(36)", nullable: true),
+                    ClubID = table.Column<Guid>(type: "char(36)", nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    ProcessedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ClubAttemptRequest", x => x.ClubRequestID);
+                    table.ForeignKey(
+                        name: "FK_ClubAttemptRequest_Club_ClubID",
+                        column: x => x.ClubID,
+                        principalTable: "Club",
+                        principalColumn: "ClubID",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_ClubAttemptRequest_Media_MediaID",
+                        column: x => x.MediaID,
+                        principalTable: "Media",
+                        principalColumn: "MediaID",
+                        onDelete: ReferentialAction.Restrict);
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "ClubCreationRequest",
+                columns: table => new
+                {
+                    ClubCreationRequestID = table.Column<Guid>(type: "char(36)", nullable: false),
+                    NameVN = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false),
+                    NameEN = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false),
+                    Description = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false),
+                    IsPublic = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    LimitParticipant = table.Column<int>(type: "int", nullable: false),
+                    LimitClubManager = table.Column<int>(type: "int", nullable: false),
+                    ImageUrl = table.Column<string>(type: "text", nullable: true),
+                    MediaID = table.Column<Guid>(type: "char(36)", nullable: false),
+                    ClubPolicyID = table.Column<Guid>(type: "char(36)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    ApprovedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    RejectReason = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: true),
+                    ClubID = table.Column<Guid>(type: "char(36)", nullable: true),
+                    RequesterID = table.Column<Guid>(type: "char(36)", nullable: false),
+                    ApproverID = table.Column<Guid>(type: "char(36)", nullable: true),
+                    Status = table.Column<byte>(type: "tinyint unsigned", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ClubCreationRequest", x => x.ClubCreationRequestID);
+                    table.ForeignKey(
+                        name: "FK_ClubCreationRequest_ClubPolicy_ClubPolicyID",
+                        column: x => x.ClubPolicyID,
+                        principalTable: "ClubPolicy",
+                        principalColumn: "ClubPolicyID",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_ClubCreationRequest_Club_ClubID",
+                        column: x => x.ClubID,
+                        principalTable: "Club",
+                        principalColumn: "ClubID",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_ClubCreationRequest_Media_MediaID",
+                        column: x => x.MediaID,
+                        principalTable: "Media",
+                        principalColumn: "MediaID",
                         onDelete: ReferentialAction.Restrict);
                 })
                 .Annotation("MySQL:Charset", "utf8mb4");
@@ -423,7 +494,7 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     AcquiredAt = table.Column<DateTime>(type: "datetime", nullable: false)
                         .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
                     Source = table.Column<string>(type: "text", nullable: false),
-                    Status = table.Column<string>(type: "longtext", nullable: false)
+                    Status = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -482,15 +553,20 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     UserRoundID = table.Column<Guid>(type: "char(36)", nullable: false),
                     UserID = table.Column<Guid>(type: "char(36)", nullable: false),
                     RoundID = table.Column<Guid>(type: "char(36)", nullable: false),
-                    Solution = table.Column<string>(type: "text", nullable: false),
-                    IsCompleted = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    Time = table.Column<float>(type: "float", nullable: false),
-                    NumberOfStep = table.Column<int>(type: "int", nullable: false),
-                    Length = table.Column<float>(type: "float", nullable: false),
-                    FeedbackVN = table.Column<string>(type: "text", nullable: false),
-                    FeedbackEN = table.Column<string>(type: "text", nullable: false),
-                    Rating = table.Column<int>(type: "int", nullable: false),
-                    Point = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
+                    Solution = table.Column<string>(type: "text", nullable: true),
+                    ExecutionTime = table.Column<TimeSpan>(type: "time", nullable: true),
+                    NumberOfSteps = table.Column<int>(type: "int", nullable: true),
+                    PathLength = table.Column<float>(type: "float", nullable: true),
+                    FeedbackVN = table.Column<string>(type: "text", nullable: true),
+                    FeedbackEN = table.Column<string>(type: "text", nullable: true),
+                    Rating = table.Column<int>(type: "int", nullable: true),
+                    Point = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    IsPassed = table.Column<bool>(type: "tinyint(1)", nullable: true),
+                    IsSequentialCheckpoints = table.Column<bool>(type: "tinyint(1)", nullable: true),
+                    Status = table.Column<sbyte>(type: "tinyint", nullable: false),
+                    SubmittedAt = table.Column<DateTime>(type: "datetime", nullable: true),
+                    StartedAt = table.Column<DateTime>(type: "datetime", nullable: false),
+                    Rank = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -510,6 +586,11 @@ namespace Droniverse.Community.Infrastructure.Migrations
                 column: "ClubID");
 
             migrationBuilder.CreateIndex(
+                name: "IX_ClubAttemptRequest_MediaID",
+                table: "ClubAttemptRequest",
+                column: "MediaID");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ClubAttemptRequest_RequesterID",
                 table: "ClubAttemptRequest",
                 column: "RequesterID");
@@ -520,14 +601,26 @@ namespace Droniverse.Community.Infrastructure.Migrations
                 column: "Status");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ClubCategory_ClubID",
-                table: "ClubCategory",
-                column: "ClubID");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_ClubCreationRequest_ClubID",
                 table: "ClubCreationRequest",
                 column: "ClubID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ClubCreationRequest_ClubPolicyID",
+                table: "ClubCreationRequest",
+                column: "ClubPolicyID",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ClubCreationRequest_MediaID",
+                table: "ClubCreationRequest",
+                column: "MediaID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ClubPolicy_ClubID",
+                table: "ClubPolicy",
+                column: "ClubID",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Competition_ClubID",
@@ -560,13 +653,18 @@ namespace Droniverse.Community.Infrastructure.Migrations
                 column: "CompetitionID");
 
             migrationBuilder.CreateIndex(
-                name: "IX_User_Competition_CompetitionID",
-                table: "User_Competition",
+                name: "IX_Transaction_WalletID",
+                table: "Transaction",
+                column: "WalletID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserCompetition_CompetitionID",
+                table: "UserCompetition",
                 column: "CompetitionID");
 
             migrationBuilder.CreateIndex(
-                name: "IX_User_Competition_UserID",
-                table: "User_Competition",
+                name: "IX_UserCompetition_UserID",
+                table: "UserCompetition",
                 column: "UserID");
 
             migrationBuilder.CreateIndex(
@@ -597,9 +695,6 @@ namespace Droniverse.Community.Infrastructure.Migrations
                 name: "ClubAttemptRequest");
 
             migrationBuilder.DropTable(
-                name: "ClubCategory");
-
-            migrationBuilder.DropTable(
                 name: "ClubCourse");
 
             migrationBuilder.DropTable(
@@ -609,13 +704,13 @@ namespace Droniverse.Community.Infrastructure.Migrations
                 name: "CompetitionCertificate");
 
             migrationBuilder.DropTable(
-                name: "Media");
-
-            migrationBuilder.DropTable(
                 name: "Participation");
 
             migrationBuilder.DropTable(
-                name: "User_Competition");
+                name: "Transaction");
+
+            migrationBuilder.DropTable(
+                name: "UserCompetition");
 
             migrationBuilder.DropTable(
                 name: "UserPrize");
@@ -627,10 +722,13 @@ namespace Droniverse.Community.Infrastructure.Migrations
                 name: "UserRound");
 
             migrationBuilder.DropTable(
-                name: "Category");
+                name: "ClubPolicy");
 
             migrationBuilder.DropTable(
-                name: "MediaType");
+                name: "Media");
+
+            migrationBuilder.DropTable(
+                name: "Wallet");
 
             migrationBuilder.DropTable(
                 name: "CompetitionPrize");
@@ -640,6 +738,9 @@ namespace Droniverse.Community.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "Round");
+
+            migrationBuilder.DropTable(
+                name: "MediaType");
 
             migrationBuilder.DropTable(
                 name: "ProductCategory");

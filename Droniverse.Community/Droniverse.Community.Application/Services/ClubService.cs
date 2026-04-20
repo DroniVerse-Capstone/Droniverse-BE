@@ -24,6 +24,7 @@ internal class ClubService : IClubService
     private readonly AcademyMicroserviceClient _academyMicroserviceClient;
     private readonly ICurrentUserService _currentUserService;
     private readonly IClock _clock;
+    private readonly IClubPolicyService _clubPolicyService;
 
     public ClubService(
         IUnitOfWork unitOfWork,
@@ -31,7 +32,8 @@ internal class ClubService : IClubService
         IdentityMicroserviceClient identityMicroserviceClient,
         AcademyMicroserviceClient academyMicroserviceClient,
         ICurrentUserService currentUserService,
-        IClock clock
+        IClock clock,
+        IClubPolicyService clubPolicyService
         )
     {
         _unitOfWork = unitOfWork;
@@ -40,6 +42,7 @@ internal class ClubService : IClubService
         _academyMicroserviceClient = academyMicroserviceClient;
         _currentUserService = currentUserService;
         _clock = clock;
+        _clubPolicyService = clubPolicyService;
     }
 
     public async Task<ClubResponseDto> CreateClub(ClubCreateDto clubRequestDto)
@@ -47,18 +50,6 @@ internal class ClubService : IClubService
         if (clubRequestDto == null)
         {
             throw new ArgumentNullException(nameof(clubRequestDto), "Club request data cannot be null.");
-        }
-
-        if (clubRequestDto.CategoryIDs != null && clubRequestDto.CategoryIDs.Any())
-        {
-            foreach (var categoryId in clubRequestDto.CategoryIDs)
-            {
-                var category = await _unitOfWork.Categories.GetByCondition(c => c.CategoryID == categoryId);
-                if (category == null)
-                {
-                    throw new KeyNotFoundException($"Category with ID {categoryId} not found.");
-                }
-            }
         }
 
         Club club = _mapper.Map<Club>(clubRequestDto);
@@ -71,27 +62,19 @@ internal class ClubService : IClubService
         club.CreatedBy = user.UserId;
 
         await _unitOfWork.Clubs.Add(club);
+
+        ClubPolicy clubPolicy = new ClubPolicy
+        {
+            ClubID = club.ClubID,
+            Title = clubRequestDto.ClubPolicy?.Title ?? "Chưa có tiêu đề cho Club Policy",
+            Content = clubRequestDto.ClubPolicy?.Content ?? "Chưa có nội dung cho Club Policy",
+            CreatedAt = _clock.Now,
+            CreatedBy = currentUserID,
+        };
+        await _unitOfWork.ClubPolicies.Add(clubPolicy);
         await _unitOfWork.SaveChangeAsync();
 
-        if (clubRequestDto.CategoryIDs != null && clubRequestDto.CategoryIDs.Any())
-        {
-            foreach (var categoryId in clubRequestDto.CategoryIDs)
-            {
-                var clubCategory = new ClubCategory
-                {
-                    ClubID = club.ClubID,
-                    CategoryID = categoryId
-                };
-                await _unitOfWork.ClubCategories.Add(clubCategory);
-            }
-            await _unitOfWork.SaveChangeAsync();
-        }
-
-        var createdClub = await _unitOfWork.Clubs.GetByIdWithCategories(club.ClubID);
-        if (createdClub == null)
-            throw new KeyNotFoundException($"Club with ID [{club.ClubID}] not found.");
-
-        return await BuildClubResponseDto(createdClub, user);
+        return await BuildClubResponseDto(club, user);
     }
 
     private static string GenerateClubCode(int length = 6)
@@ -135,7 +118,7 @@ internal class ClubService : IClubService
         var currentPage = request.CurrentPage < 1 ? 1 : request.CurrentPage;
         var pageSize = request.PageSize < 5 ? 5 : (request.PageSize > 20 ? 20 : request.PageSize);
 
-        var clubResult = await _unitOfWork.Clubs.GetAllWithCategories(
+        var clubResult = await _unitOfWork.Clubs.GetAllWithPolicies(
                    request.ClubName,
                    request.ClubStatus,
                    currentPage,

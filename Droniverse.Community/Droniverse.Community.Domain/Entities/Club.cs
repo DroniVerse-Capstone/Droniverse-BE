@@ -7,7 +7,9 @@ public class Club
 {
     public Guid ClubID { get; set; }
     public Guid CreatedBy { get; set; }
-    public ICollection<ClubCategory> ClubCategories { get; set; }
+    public Guid ManagerID { get; set; }
+    public Guid DroneID { get; set; }
+    public ClubPolicy ClubPolicy { get; set; }
     public ICollection<ClubCourse> ClubCourses { get; set; }
     public ICollection<Participation> Participations { get; set; }
     public ICollection<Competition> Competitions { get; set; }
@@ -37,7 +39,6 @@ public class Club
     // ===== Parameterless Constructor for EF Core =====
     private Club()
     {
-        ClubCategories = new List<ClubCategory>();
         ClubCourses = new List<ClubCourse>();
         Participations = new List<Participation>();
         Competitions = new List<Competition>();
@@ -55,7 +56,9 @@ public class Club
         int limitClubManagers,
         Guid createdBy,
         DateTime now,
-        string? imageUrl)
+        string? imageUrl,
+        Guid managerID,
+        Guid droneID)
     {
         ClubID = Guid.NewGuid();
         NameVN = nameVN;
@@ -71,11 +74,13 @@ public class Club
         CreatedAt = now;
         Status = ClubStatus.ACTIVE;
 
-        ClubCategories = new List<ClubCategory>();
         ClubCourses = new List<ClubCourse>();
         Participations = new List<Participation>();
         Competitions = new List<Competition>();
         ClubRequests = new List<ClubAttemptRequest>();
+
+        ManagerID = managerID;
+        DroneID = droneID;
     }
 
     // ===== Domain Methods =====

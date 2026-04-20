@@ -35,8 +35,5 @@ namespace Droniverse.Community.Application.DTO.Request
 
         [Required]
         public string Image { get; set; }
-
-        [Required]
-        public List<Guid> CategoryIDs { get; init; } = new();
     }
 }

@@ -12,8 +12,10 @@ public class ClubConfiguration : IEntityTypeConfiguration<Club>
         builder.HasKey(c => c.ClubID);
         builder.Property(c => c.ClubID).HasColumnType("char(36)");
 
-        builder.HasMany(c => c.ClubCategories)
-            .WithOne(cc => cc.Club);
+        builder.HasOne(c => c.ClubPolicy)
+            .WithOne(cp => cp.Club)
+            .HasForeignKey<ClubPolicy>(cp => cp.ClubID)
+            .OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(c => c.ClubCourses)
             .WithOne(cc => cc.Club);
         builder.HasMany(c => c.Participations)

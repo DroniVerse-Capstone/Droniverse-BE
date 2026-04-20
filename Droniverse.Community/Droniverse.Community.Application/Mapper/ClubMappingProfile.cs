@@ -9,12 +9,19 @@ public class ClubMappingProfile : Profile
 {
     public ClubMappingProfile()
     {
+        //  Club
         CreateMap<Club, ClubResponseDto>()
-            .ForMember(dest => dest.Categories,
-                opt => opt.MapFrom(src => src.ClubCategories.Select(cc => cc.Category)));
+            .ForMember(dest => dest.ClubPolicy, opt => opt.MapFrom(src => src.ClubPolicy));
 
-        CreateMap<ClubCreateDto, Club>();
+        CreateMap<ClubCreateDto, Club>()
+            .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.DescriptionVN));
+
         CreateMap<ClubUpdateDto, Club>();
+
+        // ClubPolicy
+        CreateMap<ClubPolicyCreateDto, ClubPolicy>();
+
+        CreateMap<ClubPolicy, ClubPolicyResponseDto>();
     }
 }
 

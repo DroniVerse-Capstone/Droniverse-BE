@@ -7,9 +7,8 @@ internal class UnitOfWork : IUnitOfWork
 {
     private readonly MySqlDbContext _context;
 
-    private ICategoryRepository _category;
     private IClubRepository _club;
-    private IClubCategoryRepository _clubCategory;
+    private IClubPolicyRepository _clubPolicy;
     private IClubAttemptRequestRepository _clubAttemptRequest;
     private ICompetitionRepository _competition;
     private IMediaRepository _media;
@@ -22,7 +21,6 @@ internal class UnitOfWork : IUnitOfWork
     private IClubCreationRequestRepository _clubCreationRequest;
     private ICompetitionPrizeRepository _competitionPrize;
     private IUserPrizeRepository _userPrize;
-    private IClubCreationRequestCategoryRepository _clubCreationRequestCategory;
     private IUserCompetitionRepository _userCompetition;
     private IUserRoundRepository _userRound;
     public UnitOfWork(MySqlDbContext context)
@@ -30,14 +28,8 @@ internal class UnitOfWork : IUnitOfWork
         _context = context;
     }
 
-    public ICategoryRepository Categories
-        => _category ??= new CategoryRepository(_context);
-
     public IClubRepository Clubs
         => _club ??= new ClubRepository(_context);
-
-    public IClubCategoryRepository ClubCategories
-        => _clubCategory ??= new ClubCategoryRepository(_context);
 
     public ICompetitionRepository Competitions
         => _competition ??= new CompetitionRepository(_context);
@@ -69,9 +61,10 @@ internal class UnitOfWork : IUnitOfWork
     public ICompetitionPrizeRepository CompetitionPrizes => _competitionPrize ??= new CompetitionPrizeRepository(_context);
 
     public IUserPrizeRepository UserPrizes => _userPrize ??= new UserPrizeRepository(_context);
-    public IClubCreationRequestCategoryRepository ClubCreationRequestCategories => _clubCreationRequestCategory ??= new ClubCreationRequestCategoryRepository(_context);
     public IUserCompetitionRepository UserCompetitions => _userCompetition ??= new UserCompetitionRepository(_context);
     public IUserRoundRepository UserRounds => _userRound ??= new UserRoundRepository(_context);
+
+    public IClubPolicyRepository ClubPolicies => _clubPolicy ??= new ClubPolicyRepository(_context);
 
     public async Task<int> SaveChangeAsync()
     {

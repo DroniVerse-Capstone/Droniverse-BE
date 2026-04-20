@@ -20,14 +20,12 @@ public static class DependencyInjection
         // Chỉ cần thêm 1 mapping profile là đc
         services.AddAutoMapper(typeof(ClubMappingProfile).Assembly);
         services.AddAutoMapper(typeof(ClubRequestMappingProfile).Assembly);
-        services.AddAutoMapper(typeof(CategoryMappingProfile).Assembly);
         services.AddScoped<INotificationService, EmailNotificationService>();
         services.AddScoped<IClubService, ClubService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IClubAttemptRequestService, ClubAttemptRequestService>();
         services.AddScoped<IClubCreationRequestService, ClubCreationRequestService>();
         services.AddScoped<IOrderService, OrderService>();
-        services.AddScoped<ICategoryService, CategoryService>();
         services.AddScoped<ICompetitionService, CompetitionService>();
         services.AddScoped<ICompetitionCertificateService, CompetitionCertificateService>();
         services.AddScoped<IRoundService, RoundService>();
@@ -58,7 +56,7 @@ public static class DependencyInjection
 
         services.AddScoped<IRoundStateFactory, RoundStateFactory>();
         services.AddScoped<RoundLifecycleService>();
-        //services.AddScoped<IPaymentService, PaymentService>();
+        services.AddScoped<IClubPolicyService, ClubPolicyService>();
 
         //Đăng ký DelegatingHandler
         services.AddTransient<AuthorizationDelegatingHandler>();

@@ -8,7 +8,8 @@ public class Media
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
-
+    public ICollection<ClubCreationRequest> ClubCreationRequests { get; set; } = new List<ClubCreationRequest>();
+    public ICollection<ClubAttemptRequest> ClubAttemptRequests { get; set; } = new List<ClubAttemptRequest>();
     // Foreign Keys
 }
 

@@ -15,10 +15,7 @@ using Swashbuckle.AspNetCore.SwaggerUI;
 using System.Reflection;
 using System.Text;
 using System.Text.Json.Serialization;
-using Droniverse.Community.Application.Jobs;
-using Droniverse.Community.API.Jobs;
 using Droniverse.Shared.Exceptions;
-using DotNetEnv;
 
 // Load .env for JWT, Cloudinary, PayOS settings
 Env.Load("../../.env");
@@ -43,6 +40,8 @@ builder.Services.AddControllers()
     {
         // Convert enum sang string khi serialize/deserialize JSON
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     });
 
 // Cho phép serialize Guid dưới dạng string trong MongoDB

@@ -20,6 +20,12 @@ namespace Droniverse.Community.Infrastructure.Persistence.MySql.Configurations
             builder.Property(x => x.ClubCreationRequestID)
                 .HasColumnType("char(36)");
 
+            builder.Property(x => x.MediaID)
+                .HasColumnType("char(36)");
+
+            builder.Property(x => x.ClubPolicyID)
+                .HasColumnType("char(36)");
+
             builder.Property(x => x.NameVN)
                 .HasMaxLength(255);
 
@@ -66,10 +72,15 @@ namespace Droniverse.Community.Infrastructure.Persistence.MySql.Configurations
                 .HasForeignKey(x => x.ClubID)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            builder.HasMany(x => x.Categories)
-                    .WithOne(x => x.ClubCreationRequest)
-                    .HasForeignKey(x => x.ClubCreationRequestID)
-                    .OnDelete(DeleteBehavior.Cascade);
+            builder.HasOne(x => x.Media)
+                .WithMany(m => m.ClubCreationRequests)
+                .HasForeignKey(x => x.MediaID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(x => x.ClubPolicy)
+                .WithOne(cp => cp.ClubCreationRequest)
+                .HasForeignKey<ClubCreationRequest>(x => x.ClubPolicyID)
+                .OnDelete(DeleteBehavior.Restrict);
         }
 
     }

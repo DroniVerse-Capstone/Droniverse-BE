@@ -14,7 +14,7 @@ internal class ClubRepository : MySqlRepository<Club>, IClubRepository
     {
     }
 
-    public async Task<PaginationResult<IEnumerable<Club>>> GetAllWithCategories(
+    public async Task<PaginationResult<IEnumerable<Club>>> GetAllWithPolicies(
         string? clubName = null,
         ClubStatus? clubStatus = null,
         int currentPage = 1,
@@ -25,6 +25,7 @@ internal class ClubRepository : MySqlRepository<Club>, IClubRepository
 
         var query = _context.Set<Club>()
             .AsNoTracking()
+            .Include(c => c.ClubPolicy)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(clubName))
@@ -40,10 +41,6 @@ internal class ClubRepository : MySqlRepository<Club>, IClubRepository
 
         var totalRecords = await query.CountAsync();
 
-        query = query
-                .Include(c => c.ClubCategories)
-                .ThenInclude(cc => cc.Category);
-
         var data = await query
             .OrderByDescending(c => c.CreatedAt)
             .Skip((currentPage - 1) * pageSize)
@@ -56,8 +53,6 @@ internal class ClubRepository : MySqlRepository<Club>, IClubRepository
     public async Task<Club?> GetByIdWithCategories(Guid clubId)
     {
         return await _context.Set<Club>()
-            .Include(c => c.ClubCategories)
-            .ThenInclude(cc => cc.Category)
             .FirstOrDefaultAsync(c => c.ClubID == clubId);
     }
 
@@ -65,8 +60,6 @@ internal class ClubRepository : MySqlRepository<Club>, IClubRepository
     {
         return await _context.Set<Club>()
             .AsNoTracking()
-            .Include(c => c.ClubCategories)
-            .ThenInclude(cc => cc.Category)
             .FirstOrDefaultAsync(c => c.ClubCode == clubCode);
     }
 
@@ -78,8 +71,6 @@ internal class ClubRepository : MySqlRepository<Club>, IClubRepository
                         p.Status == ParticipationStatus.ACTIVE &&
                         (!status.HasValue || p.Club.Status == status))
             .Include(p => p.Club)
-                .ThenInclude(c => c.ClubCategories)
-                    .ThenInclude(cc => cc.Category)
             .Where(p => p.Club != null)
             .Select(p => p.Club)
             .Distinct();
@@ -92,8 +83,6 @@ internal class ClubRepository : MySqlRepository<Club>, IClubRepository
         var query = _context.Set<Club>()
             .AsNoTracking()
             .Where(c => c.CreatedBy == clubManagerID && (!status.HasValue || c.Status == status))
-            .Include(c => c.ClubCategories)
-                .ThenInclude(cc => cc.Category)
             .OrderByDescending(c => c.CreatedAt);
 
         return await query.ToListAsync();

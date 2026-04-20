@@ -19,8 +19,13 @@ namespace Droniverse.Community.Domain.Entities
         public int LimitParticipant { get; set; }
         public int LimitClubManager { get; set; }
         public string? ImageUrl { get; set; }
+        public Guid MediaID { get; set; }
+        public Media? Media { get; set; }
+        public Guid ClubPolicyID { get; set; }
+        public ClubPolicy? ClubPolicy { get; set; }
 
         // ===== System Fields =====
+        public Guid DroneID { get; set; }
         public DateTime CreatedAt { get; private set; }
         public DateTime? UpdatedAt { get; private set; }
         public DateTime? ApprovedAt { get; private set; }
@@ -30,7 +35,6 @@ namespace Droniverse.Community.Domain.Entities
         public Guid RequesterID { get; private set; }
         public Guid? ApproverID { get; private set; }
         public ClubCreationRequestStatus Status { get; private set; }
-        public ICollection<ClubCreationRequestCategory> Categories { get; private set; }
 
         private ClubCreationRequest()
         {
@@ -46,7 +50,10 @@ namespace Droniverse.Community.Domain.Entities
             int limitParticipant,
             int limitClubManager,
             string imageUrl,
-            Guid requesterId)
+            Guid requesterId,
+            Guid droneID,
+            Guid mediaID,
+            Guid clubPolicyID)
         {
             ClubCreationRequestID = Guid.NewGuid();
             NameVN = nameVN;
@@ -60,12 +67,14 @@ namespace Droniverse.Community.Domain.Entities
 
             CreatedAt = DateTime.UtcNow;
             Status = ClubCreationRequestStatus.PENDING;
-            Categories = new List<ClubCreationRequestCategory>();
+            DroneID = droneID;
+            ClubPolicyID = clubPolicyID;
+            MediaID = mediaID;
         }
 
         // ===== Domain Methods =====
 
-        public void Approve(Guid approverId, Guid clubId)
+        public void Approve(Guid approverId, Guid clubId, DateTime now)
         {
             if (clubId == Guid.Empty)
                 throw new ArgumentException("ClubId không hợp lệ.");
@@ -76,11 +85,11 @@ namespace Droniverse.Community.Domain.Entities
             Status = ClubCreationRequestStatus.APPROVED;
             ApproverID = approverId;
             ClubID = clubId;
-            ApprovedAt = DateTime.UtcNow;
-            UpdatedAt = DateTime.UtcNow;
+            ApprovedAt = now;
+            UpdatedAt = now;
         }
 
-        public void Reject(Guid approverId, string reason)
+        public void Reject(Guid approverId, string reason, DateTime now)
         {
             if (string.IsNullOrWhiteSpace(reason))
                 throw new ArgumentException("Lý do từ chối là bắt buộc.");

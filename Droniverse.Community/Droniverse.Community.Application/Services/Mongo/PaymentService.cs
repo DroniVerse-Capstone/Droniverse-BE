@@ -435,7 +435,7 @@ internal class PaymentService : IPaymentService
 
                 _logger.LogInformation("Payment SUCCESS for orderId: {OrderId}", order._id);
 
-                // 🟢 Publish notification event after successful payment
+                //Publish notification event after successful payment
                 try
                 {
                     if (!string.IsNullOrWhiteSpace(userEmail))
