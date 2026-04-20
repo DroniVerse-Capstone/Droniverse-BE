@@ -21,7 +21,6 @@ namespace Droniverse.Community.Domain.Entities
         public string? ImageUrl { get; set; }
         public Guid MediaID { get; set; }
         public Media? Media { get; set; }
-        public Guid ClubPolicyID { get; set; }
         public string? ClubPolicy { get; set; }
 
         // ===== System Fields =====
@@ -53,7 +52,7 @@ namespace Droniverse.Community.Domain.Entities
             Guid requesterId,
             Guid droneID,
             Guid mediaID,
-            Guid clubPolicyID)
+            string clubPolicy)
         {
             ClubCreationRequestID = Guid.NewGuid();
             NameVN = nameVN;
@@ -68,7 +67,7 @@ namespace Droniverse.Community.Domain.Entities
             CreatedAt = DateTime.UtcNow.AddHours(7);
             Status = ClubCreationRequestStatus.PENDING;
             DroneID = droneID;
-            ClubPolicyID = clubPolicyID;
+            ClubPolicy = clubPolicy;
             MediaID = mediaID;
         }
 

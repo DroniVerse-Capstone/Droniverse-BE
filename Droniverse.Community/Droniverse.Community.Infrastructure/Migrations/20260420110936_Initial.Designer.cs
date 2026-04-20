@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Droniverse.Community.Infrastructure.Migrations
 {
     [DbContext(typeof(MySqlDbContext))]
-    [Migration("20260420102109_Delete_ClubCourse_And_ClubPolicy_And_Add_Field_ClubPolicy_In_Club")]
-    partial class Delete_ClubCourse_And_ClubPolicy_And_Add_Field_ClubPolicy_In_Club
+    [Migration("20260420110936_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -211,10 +211,7 @@ namespace Droniverse.Community.Infrastructure.Migrations
                         .HasColumnType("char(36)");
 
                     b.Property<string>("ClubPolicy")
-                        .HasColumnType("longtext");
-
-                    b.Property<Guid>("ClubPolicyID")
-                        .HasColumnType("char(36)");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");

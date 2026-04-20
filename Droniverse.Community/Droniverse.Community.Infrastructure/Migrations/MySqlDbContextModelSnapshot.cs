@@ -208,10 +208,7 @@ namespace Droniverse.Community.Infrastructure.Migrations
                         .HasColumnType("char(36)");
 
                     b.Property<string>("ClubPolicy")
-                        .HasColumnType("longtext");
-
-                    b.Property<Guid>("ClubPolicyID")
-                        .HasColumnType("char(36)");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");

@@ -9,6 +9,8 @@ namespace Droniverse.Community.API.Examples
         {
             return new ClubCreationRequestCreateDto
             {
+                DroneID = Guid.Empty,
+                ClubPolicy = "Nội quy của câu lạc bộ VN",
                 NameVN = "Câu lạc bộ Drone Việt Nam",
                 NameEN = "Vietnam Drone Club",
                 Description = "Câu lạc bộ dành cho những người yêu thích drone và công nghệ bay không người lái.",

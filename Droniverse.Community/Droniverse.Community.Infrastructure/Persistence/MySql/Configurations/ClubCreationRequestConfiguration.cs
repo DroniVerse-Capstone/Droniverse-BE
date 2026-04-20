@@ -1,11 +1,6 @@
 ﻿using Droniverse.Community.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Droniverse.Community.Infrastructure.Persistence.MySql.Configurations
 {
@@ -23,8 +18,8 @@ namespace Droniverse.Community.Infrastructure.Persistence.MySql.Configurations
             builder.Property(x => x.MediaID)
                 .HasColumnType("char(36)");
 
-            builder.Property(x => x.ClubPolicyID)
-                .HasColumnType("char(36)");
+            builder.Property(x => x.ClubPolicy)
+                .HasColumnType("text");
 
             builder.Property(x => x.NameVN)
                 .HasMaxLength(255);
