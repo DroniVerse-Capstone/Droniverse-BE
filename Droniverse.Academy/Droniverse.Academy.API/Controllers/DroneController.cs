@@ -54,7 +54,7 @@ public class DroneController : ControllerBase
     /// Lấy danh sách drone và lọc theo trạng thái.
     /// </summary>
     [HttpGet]
-    [Authorize(Roles = Roles.Admin)]
+    [Authorize(Roles = Roles.AdminOrManagerRoles)]
     public async Task<IActionResult> GetDrones([FromQuery] DroneStatusFilter status = DroneStatusFilter.All)
     {
         try
@@ -73,7 +73,7 @@ public class DroneController : ControllerBase
     /// Lấy chi tiết một drone.
     /// </summary>
     [HttpGet("{droneId:guid}")]
-    [Authorize(Roles = Roles.Admin)]
+    [Authorize(Roles = Roles.AdminOrManagerRoles)]
     public async Task<IActionResult> GetDroneById(Guid droneId)
     {
         try
@@ -115,7 +115,7 @@ public class DroneController : ControllerBase
     /// Xóa một drone.
     /// </summary>
     [HttpDelete("{droneId:guid}")]
-    [Authorize(Roles = Roles.Admin)]
+    [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> DeleteDrone(Guid droneId)
     {
         try
