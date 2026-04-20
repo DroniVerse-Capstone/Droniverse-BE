@@ -118,11 +118,13 @@ namespace Droniverse.Community.Domain.Entities
             string nameVN,
             string nameEN,
             string description,
-            bool isPublic,
             int limitParticipant,
             int limitClubManager,
             string imageUrl,
-            Guid requesterId)
+            Guid requesterId,
+            Guid droneID,
+            string clubPolicy,
+            Guid mediaID)
         {
             if (Status != ClubCreationRequestStatus.PENDING)
                 throw new InvalidOperationException("Chỉ yêu cầu ở trạng thái PENDING mới có thể được cập nhật.");
@@ -133,11 +135,14 @@ namespace Droniverse.Community.Domain.Entities
             NameVN = nameVN;
             NameEN = nameEN;
             Description = description;
-            IsPublic = isPublic;
             LimitParticipant = limitParticipant;
             LimitClubManager = limitClubManager;
             ImageUrl = imageUrl;
             UpdatedAt = DateTime.UtcNow;
+
+            DroneID = DroneID;
+            ClubPolicy = clubPolicy;
+            MediaID = mediaID;
         }
     }
 }

@@ -12,6 +12,5 @@ namespace Droniverse.Community.Application.DTO.Response
         public required string NameVN { get; set; }
         public required string NameEN { get; set; }
         public Guid? ClubAttemptRequestID { get; set; }
-        public bool ClubIsPublic { get; set; }
     }   
 }
