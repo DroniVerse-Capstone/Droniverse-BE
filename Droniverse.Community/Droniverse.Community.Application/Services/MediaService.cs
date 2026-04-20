@@ -9,6 +9,7 @@ using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Services.IServices;
 using Microsoft.AspNetCore.Components.Sections;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Droniverse.Community.Application.Services;
@@ -20,6 +21,7 @@ public class MediaService : IMediaService
     private readonly ICacheService _cacheService;
     private readonly ILogger<MediaService> _logger;
     private readonly IClock _clock;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private const string MediaCacheKeyPrefix = "media";
 
     public MediaService(
@@ -27,13 +29,15 @@ public class MediaService : IMediaService
         IMapper mapper,
         ICacheService cacheService,
         ILogger<MediaService> logger,
-        IClock clock)
+        IClock clock,
+        IServiceScopeFactory serviceScopeFactory)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _cacheService = cacheService;
         _logger = logger;
         _clock = clock;
+        _serviceScopeFactory = serviceScopeFactory;
     }
 
     public async Task<IEnumerable<MediaResponseDto>> GetAllMedia()
@@ -121,14 +125,20 @@ public class MediaService : IMediaService
 
     /// <summary>
     /// Background task to save media to database without blocking the response
+    /// Creates a new service scope to avoid DbContext disposal issues
     /// </summary>
     private async Task SaveMediaToDatabase(Media media)
     {
         try
         {
-            await _unitOfWork.Medias.Add(media);
-            await _unitOfWork.SaveChangeAsync();
-            _logger.LogInformation($"Media {media.MediaID} saved to database successfully");
+            // Create a new scope to avoid DbContext disposal issues
+            using (var scope = _serviceScopeFactory.CreateScope())
+            {
+                var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+                await unitOfWork.Medias.Add(media);
+                await unitOfWork.SaveChangeAsync();
+                _logger.LogInformation($"Media {media.MediaID} saved to database successfully");
+            }
         }
         catch (Exception ex)
         {
