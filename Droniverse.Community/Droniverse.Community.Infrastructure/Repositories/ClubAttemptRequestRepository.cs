@@ -39,6 +39,7 @@ internal class ClubAttemptRequestRepository : MySqlRepository<ClubAttemptRequest
         var query = _context.Set<ClubAttemptRequest>()
             .Where(c => c.ClubID == clubID)
             .Include(r => r.Club)
+            .Include(r => r.Media)
             .AsNoTracking() // Performance: No tracking since we're reading only
             .AsQueryable();
 

@@ -28,7 +28,6 @@ public class ClubConfiguration : IEntityTypeConfiguration<Club>
         builder.Property(c => c.ImageUrl).HasColumnType("varchar(255)");
         builder.Property(c => c.Status).HasColumnType("tinyint").HasConversion<byte>().IsRequired();
         builder.ToTable(t => t.HasCheckConstraint("CK_Club_Status", "`Status` IN (0, 1, 2, 3)"));
-        builder.Property(c => c.IsPublic).HasColumnType("tinyint(1)").IsRequired();
         builder.Property(c => c.LimitParticipation).HasColumnType("int");
         builder.Property(c => c.LimitClubManagers).HasColumnType("int");
         builder.Property(c => c.CreatedAt).HasColumnType("datetime").IsRequired();

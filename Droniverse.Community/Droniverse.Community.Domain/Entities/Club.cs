@@ -24,11 +24,11 @@ public class Club
     [Required]
     public ClubStatus Status { get; set; }
     public string? ImageUrl { get; set; }
-    [Required]
-    public bool IsPublic { get; set; }
+
     [Required]
     [Range(1, int.MaxValue, ErrorMessage = "Club must have at least 1 member !")]
     public int LimitParticipation { get; set; }
+
     [Range(1, 10, ErrorMessage = "Club just has from 1 to 10 manager")]
     public int LimitClubManagers { get; set; }
     public DateTime CreatedAt { get; private set; }
@@ -49,7 +49,6 @@ public class Club
         string nameEN,
         string description,
         string clubCode,
-        bool isPublic,
         int limitParticipation,
         int limitClubManagers,
         Guid createdBy,
@@ -64,7 +63,6 @@ public class Club
         NameEN = nameEN;
         Description = description;
         ClubCode = clubCode;
-        IsPublic = isPublic;
         ImageUrl = imageUrl;
         LimitParticipation = limitParticipation;
         LimitClubManagers = limitClubManagers;

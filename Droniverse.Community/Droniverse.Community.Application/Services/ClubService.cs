@@ -180,42 +180,29 @@ internal class ClubService : IClubService
         if (isUserExisted)
             throw new InvalidOperationException($"Thành viên này đã là thuộc câu lạc bộ [{club.NameVN}]");
 
+        Media? media = await _unitOfWork.Medias.GetByCondition(m => m.MediaID == request.mediaID);
+        if (media == null)
+            throw new KeyNotFoundException($"Không tìm thấy media với ID {request.mediaID}.");
+
         JoinClubResponse response = new()
         {
             ClubID = club.ClubID,
             NameEN = club.NameEN,
-            NameVN = club.NameVN,
-            ClubIsPublic = club.IsPublic,
+            NameVN = club.NameVN
         };
+        bool user = await _unitOfWork.ClubAttemptRequests.IsUserInClubAttemptRequest(currentUserId, club.ClubID);
 
-        if (club.IsPublic)
-        {
-            var participation = new Participation(
-                currentUserId,
-                club.ClubID,
-                null
-            );
+        if (user == true)
+            throw new InvalidOperationException("Yêu cầu tham gia club của người dùng này đang chờ được duyệt !");
 
-            await _unitOfWork.Participations.Add(participation);
-        }
-        else
-        {
-            bool user = await _unitOfWork.ClubAttemptRequests.IsUserInClubAttemptRequest(currentUserId, club.ClubID);
+        var clubAttemptRequest = new ClubAttemptRequest(
+            currentUserId,
+            club.ClubID,
+            media.MediaID
+        );
 
-            if (user == true)
-                throw new InvalidOperationException("Yêu cầu tham gia club của người dùng này đang chờ được duyệt !");
-
-            Guid mediaID = Guid.Empty;
-
-            var clubAttemptRequest = new ClubAttemptRequest(
-                currentUserId,
-                club.ClubID,
-                mediaID
-            );
-
-            await _unitOfWork.ClubAttemptRequests.Add(clubAttemptRequest);
-            response.ClubAttemptRequestID = clubAttemptRequest.ClubRequestID;
-        }
+        await _unitOfWork.ClubAttemptRequests.Add(clubAttemptRequest);
+        response.ClubAttemptRequestID = clubAttemptRequest.ClubRequestID;
 
         await _unitOfWork.SaveChangeAsync();
 
@@ -437,7 +424,7 @@ internal class ClubService : IClubService
             || user.Email.Contains(token, StringComparison.OrdinalIgnoreCase));
     }
 
-    
+
 
     /// <summary>
     /// Lấy danh sách khóa học hot của một câu lạc bộ theo phân trang.

@@ -140,7 +140,8 @@ namespace Droniverse.Community.Application.Services
                     ApproverName = AppHelper.GetFullName(approver),
                     ApproverEmail = approver?.Email,
                     Status = x.Status,
-                    Media = _mapper.Map<MediaResponseDto>(x.Media)
+                    Media = _mapper.Map<MediaResponseDto>(x.Media),
+                    DroneID = x.DroneID,
                 };
             });
 
@@ -292,13 +293,12 @@ namespace Droniverse.Community.Application.Services
                         request.NameEN,
                         request.Description,
                         GenerateClubCode(),
-                        request.IsPublic,
                         request.LimitParticipant,
                         request.LimitClubManager,
                         request.RequesterID,
                         _clock.Now,
                         request.ImageUrl,
-                        managerID: Guid.Empty,
+                        managerID: request.RequesterID,
                         droneID: request.DroneID,
                         clubPolicy: request.ClubPolicy
                     );
@@ -353,6 +353,13 @@ namespace Droniverse.Community.Application.Services
         {
             var requesterId = Guid.Parse(_currentUserService.UserID ?? throw new UnauthorizedAccessException("Người dùng chưa được xác thực."));
 
+            //Check drone sau
+            //var drone = await _unitOfWork.Drones.GetByCondition(d => d.DroneID == dto.DroneID);
+
+            Media? media = await _unitOfWork.Medias.GetByCondition(m => m.MediaID == dto.Media);
+            if (media == null)
+                throw new NotFoundException($"Media (hình ảnh/video) không tồn tại trong hệ thống temp.");
+
             // Get the request from database with categories
             var request = await _unitOfWork.ClubCreationRequests.GetByCondition(
                 r => r.ClubCreationRequestID == id,
@@ -367,11 +374,13 @@ namespace Droniverse.Community.Application.Services
                 dto.NameVN,
                 dto.NameEN,
                 dto.Description,
-                dto.IsPublic,
                 dto.LimitParticipant,
-                dto.LimitClubManager,
+                1,
                 dto.Image,
-                requesterId
+                requesterId,
+                dto.DroneID,
+                dto.ClubPolicy,
+                dto.Media
             );
 
             // Save changes
@@ -396,8 +405,11 @@ namespace Droniverse.Community.Application.Services
                 LimitClubManager = updatedRequest.LimitClubManager,
                 ImageUrl = updatedRequest.ImageUrl,
                 UpdatedAt = updatedRequest.UpdatedAt,
-                Status = updatedRequest.Status
-                
+                Status = updatedRequest.Status,
+                DroneID = updatedRequest.DroneID,
+                ClubPolicy = updatedRequest.ClubPolicy,
+                Media = _mapper.Map<MediaResponseDto>(updatedRequest.Media)
+
             };
         }
 

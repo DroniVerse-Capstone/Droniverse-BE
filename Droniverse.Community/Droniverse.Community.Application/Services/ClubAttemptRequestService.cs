@@ -91,7 +91,8 @@ namespace Droniverse.Community.Application.Services
                     approver?.Email,
                     clubRequest.Status,
                     clubRequest.CreatedAt,
-                    clubRequest.ProcessedAt
+                    clubRequest.ProcessedAt,
+                    _mapper.Map<MediaResponseDto?>(clubRequest.MediaID.HasValue ? clubRequest.Media : null)
                 );
             });
 
@@ -106,6 +107,7 @@ namespace Droniverse.Community.Application.Services
             var request = await _unitOfWork.ClubAttemptRequests.GetByCondition(
                 r => r.ClubRequestID == id,
                 q => q.Include(r => r.Club)
+                .Include(c => c.Media)
             );
 
             if (request == null)
@@ -169,7 +171,7 @@ namespace Droniverse.Community.Application.Services
                 .GetManyByCondition(
                     c => c.RequesterID == requesterID &&
                          (!status.HasValue || c.Status == status),
-                    query => query.AsNoTracking().Include(c => c.Club).OrderByDescending(c => c.CreatedAt)
+                    query => query.AsNoTracking().Include(c => c.Club).Include(c => c.Media).OrderByDescending(c => c.CreatedAt)
                 );
 
             if (clubRequests == null || !clubRequests.Any())
@@ -197,7 +199,6 @@ namespace Droniverse.Community.Application.Services
             }
 
             var userDict = users.ToDictionary(u => u.UserId, u => u);
-
             var result = clubRequests
                 .Where(c => c != null)
                 .Select(clubRequest =>
@@ -223,7 +224,8 @@ namespace Droniverse.Community.Application.Services
                         approver?.Email,
                         clubRequest.Status,
                         clubRequest.CreatedAt,
-                        clubRequest.ProcessedAt
+                        clubRequest.ProcessedAt,
+                        _mapper.Map<MediaResponseDto?>(clubRequest.MediaID.HasValue ? clubRequest.Media : null)
                     );
                 });
 
@@ -296,7 +298,8 @@ namespace Droniverse.Community.Application.Services
                     approver?.Email,
                     request.Status,
                     request.CreatedAt,
-                    request.ProcessedAt
+                    request.ProcessedAt,
+                    _mapper.Map<MediaResponseDto?>(request.MediaID.HasValue ? request.Media : null)
                 );
             }).ToList();
 

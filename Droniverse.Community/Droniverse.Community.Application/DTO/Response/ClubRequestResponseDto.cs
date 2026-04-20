@@ -22,6 +22,7 @@ namespace Droniverse.Community.Application.DTO.Response
     string? ApproverEmail,
     ClubAttemptRequestStatus Status,
     DateTime createAt,
-    DateTime? processedAt
+    DateTime? processedAt,
+    MediaResponseDto? Media
     );
 }

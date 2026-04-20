@@ -168,10 +168,8 @@ namespace Droniverse.Community.API.Controllers
         [Authorize(Roles = Roles.ClubMember)]
         public async Task<ApiResponse> JoinClub([FromBody] ClubJoinDto request)
         {
-            string message = "Tham gia câu lạc bộ thành công";
+            string message = "Thành viên gửi yêu cầu tham gia câu lạc bộ thành công! Vui lòng đợi sự kiểm duyệt từ phía hệ thống...";
             JoinClubResponse response = await _clubService.JoinClub(request);
-            if (!response.ClubIsPublic)
-                message = "Tạo yêu cầu tham gia thành công, vui lòng đợi được duyệt !";
             return SuccessResponse<JoinClubResponse>
                 .Create(response, message);
         }

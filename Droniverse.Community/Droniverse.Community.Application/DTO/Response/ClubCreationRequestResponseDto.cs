@@ -25,4 +25,5 @@ public class ClubCreationRequestResponseDto
     public string? RequesterEmail { get; set; }
     public ClubCreationRequestStatus Status { get; set; }
     public MediaResponseDto Media { get; set; }
+    public Guid DroneID { get; set; }
 }
