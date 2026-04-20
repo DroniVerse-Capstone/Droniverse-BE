@@ -1,5 +1,4 @@
-﻿using Droniverse.Academy.Domain.Enums;
-using Droniverse.Shared.Enums.Response;
+﻿using Droniverse.Shared.Enums.Response;
 
 namespace Droniverse.Shared.DTOs.Response;
 public record CourseVersionResponseDto(
@@ -11,7 +10,6 @@ public record CourseVersionResponseDto(
     CourseStatus Status,
     int Version,
     string ImageUrl,
-    CourseLevel Level,
     int EstimatedDuration,
     Guid UpdateBy,
     DateTime UpdateAt,

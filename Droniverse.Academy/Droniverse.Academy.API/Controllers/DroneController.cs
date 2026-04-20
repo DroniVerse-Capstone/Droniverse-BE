@@ -4,7 +4,6 @@ using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.API.Examples;
 using Droniverse.Academy.API.Enums;
 using Droniverse.Academy.Domain.Enums;
-using Droniverse.Academy.API.Validators;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
@@ -20,14 +19,12 @@ public class DroneController : ControllerBase
     private readonly ILogger<DroneController> _logger;
     private readonly IDroneService _droneService;
     private readonly IDroneTypeService _droneTypeService;
-    private readonly IRequiredDroneService _requiredDroneService;
 
-    public DroneController(ILogger<DroneController> logger, IDroneService droneService, IDroneTypeService droneTypeService, IRequiredDroneService requiredDroneService)
+    public DroneController(ILogger<DroneController> logger, IDroneService droneService, IDroneTypeService droneTypeService)
     {
         _logger = logger;
         _droneService = droneService;
         _droneTypeService = droneTypeService;
-        _requiredDroneService = requiredDroneService;
     }
 
     /// <summary>
@@ -57,7 +54,7 @@ public class DroneController : ControllerBase
     /// Lấy danh sách drone và lọc theo trạng thái.
     /// </summary>
     [HttpGet]
-    [Authorize(Roles = Roles.Admin)]
+    [Authorize(Roles = Roles.AdminOrManagerRoles)]
     public async Task<IActionResult> GetDrones([FromQuery] DroneStatusFilter status = DroneStatusFilter.All)
     {
         try
@@ -76,7 +73,7 @@ public class DroneController : ControllerBase
     /// Lấy chi tiết một drone.
     /// </summary>
     [HttpGet("{droneId:guid}")]
-    [Authorize(Roles = Roles.Admin)]
+    [Authorize(Roles = Roles.AdminOrManagerRoles)]
     public async Task<IActionResult> GetDroneById(Guid droneId)
     {
         try
@@ -118,7 +115,7 @@ public class DroneController : ControllerBase
     /// Xóa một drone.
     /// </summary>
     [HttpDelete("{droneId:guid}")]
-    [Authorize(Roles = Roles.Admin)]
+    [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> DeleteDrone(Guid droneId)
     {
         try
@@ -133,34 +130,14 @@ public class DroneController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Lấy danh sách phiên bản khóa học theo drone.
-    /// </summary>
-    [HttpGet("{droneId:guid}/course-versions")]
-    [Authorize(Roles = Roles.Admin)]
-    public async Task<IActionResult> GetCourseVersionsByDrone(Guid droneId)
-    {
-        try
-        {
-            RequiredDroneControllerValidator.ValidateGetCourseVersionsByDrone(droneId);
-            var courseVersions = await _requiredDroneService.GetCourseVersionsByDroneAsync(droneId);
-            return Ok(SuccessResponse<IEnumerable<CourseVersionByDroneClientViewDTO>>.Create(courseVersions, "Lấy danh sách course version theo drone thành công."));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Lấy danh sách phiên bản khóa học theo drone thất bại.");
-            throw;
-        }
-    }
-
     private static DroneStatus? MapDroneStatus(DroneStatusFilter status)
     {
         return status switch
         {
             DroneStatusFilter.All => null,
-            DroneStatusFilter.Draft => DroneStatus.DRAFT,
-            DroneStatusFilter.Available => DroneStatus.AVAILABLE,
-            DroneStatusFilter.Maintenance => DroneStatus.MAINTENANCE,
+            DroneStatusFilter.Active => DroneStatus.ACTIVE,
+            DroneStatusFilter.Inactive => DroneStatus.INACTIVE,
+            DroneStatusFilter.Deprecated => DroneStatus.DEPRECATED,
             _ => null
         };
     }

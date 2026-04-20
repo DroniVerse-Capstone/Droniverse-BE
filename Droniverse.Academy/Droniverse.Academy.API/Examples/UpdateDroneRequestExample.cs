@@ -20,8 +20,8 @@ public class UpdateDroneRequestExample : IMultipleExamplesProvider<UpdateDroneRe
                 DescriptionEN = "Drone for training and basic surveillance.",
                 Height = 0.35f,
                 Weight = 1.2f,
-                Status = DroneStatus.AVAILABLE,
-                Model3DLink = "https://cdn-media.sforum.vn/storage/app/media/wp-content/uploads/2024/04/drone-light-la-gi-6.jpeg"
+                Status = DroneStatus.ACTIVE,
+                ImgURL = "https://cdn-media.sforum.vn/storage/app/media/wp-content/uploads/2024/04/drone-light-la-gi-6.jpeg"
             }
         );
     }

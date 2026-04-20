@@ -16,7 +16,6 @@ public interface IEnrollmentRepository : IRepository<Enrollment>
         Guid clubId,
         int pageIndex,
         int pageSize,
-        CourseLevel? level = null,
         string? courseSearchName = null,
         EnrollStatus? enrollmentStatus = null,
         CancellationToken cancellationToken = default);

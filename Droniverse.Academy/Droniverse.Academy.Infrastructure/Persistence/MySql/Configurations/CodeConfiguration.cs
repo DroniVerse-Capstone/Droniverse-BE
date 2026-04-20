@@ -31,11 +31,6 @@ public class CodeConfiguration : IEntityTypeConfiguration<Code>
             .HasForeignKey(c => c.CourseID)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // Ownership
-        builder.Property(c => c.OwnedUserID)
-            .HasColumnType("char(36)")
-            .IsRequired(false);
-
         builder.Property(c => c.UsedByUserID)
             .HasColumnType("char(36)")
             .IsRequired(false);
@@ -60,17 +55,9 @@ public class CodeConfiguration : IEntityTypeConfiguration<Code>
             .HasColumnType("datetime")
             .IsRequired();
 
-        builder.Property(c => c.UpdatedAt)
-            .HasColumnType("datetime")
-            .IsRequired(false);
-
         builder.Property(c => c.CreatedBy)
             .HasColumnType("char(36)")
             .IsRequired();
-
-        builder.Property(c => c.UpdatedBy)
-            .HasColumnType("char(36)")
-            .IsRequired(false);
 
         builder.ToTable(t =>
         {

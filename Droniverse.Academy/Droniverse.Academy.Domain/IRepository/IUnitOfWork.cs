@@ -5,14 +5,13 @@ namespace Droniverse.Academy.Domain.IRepository
     {
         ICertificateRepository Certificates { get; }
         ICodeRepository Codes { get; }
-        ICodeUsageRepository CodeUsages { get; }
         ICourseRepository Courses { get; }
         ICourseVersionRepository CourseVersions { get; }
-        ICourseVersionCategoryRepository CourseVersionCategories { get; }
         IDroneRepository Drones { get; }
         IDroneTypeRepository DroneTypes { get; }
         IEnrollmentRepository Enrollments { get; }
         IFeedbackRepository Feedbacks { get; }
+        IFlightSimulatorRepository FlightSimulators { get; }
         ILabRepository Labs { get; }
         ILessonRepository Lessons { get; }
         IModuleRepository Modules { get; }
@@ -21,12 +20,13 @@ namespace Droniverse.Academy.Domain.IRepository
         IQuizQuestionAttemptRepository QuizQuestionAttempts { get; }
         IQuizQuestionRepository QuizQuestions { get; }
         IReportRepository Reports { get; }
-        IRequiredDroneRepository RequiredDrones { get; }
+        IStructureSimulatorRepository StructureSimulators { get; }
         ITheoryRepository Theories { get; }
         IUserCertificateRepository UserCertificates { get; }
         IUserLabRepository UserLabs { get; }
         IUserLessonRepository UserLessons { get; }
         IUserModuleRepository UserModules { get; }
+        ILevelRepository Levels { get; }
 
         Task ExecuteInTransactionAsync(Func<Task> action);
         Task<T> ExecuteInTransactionAsync<T>(Func<Task<T>> action);

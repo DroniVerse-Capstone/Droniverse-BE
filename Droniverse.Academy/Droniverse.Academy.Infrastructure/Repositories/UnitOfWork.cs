@@ -9,14 +9,13 @@ internal class UnitOfWork : IUnitOfWork
     private readonly MySqlDbContext _mySqlContext;
     private ICertificateRepository _certificate;
     private ICodeRepository _code;
-    private ICodeUsageRepository _codeUsage;
     private ICourseRepository _course;
     private ICourseVersionRepository _courseVersion;
-    private ICourseVersionCategoryRepository _courseVersionCategory;
     private IDroneRepository _drone;
     private IDroneTypeRepository _droneType;
     private IEnrollmentRepository _enrollment;
     private IFeedbackRepository _feedback;
+    private IFlightSimulatorRepository _flightSimulator;
     private ILabRepository _lab;
     private ILessonRepository _lesson;
     private IModuleRepository _module;
@@ -25,12 +24,13 @@ internal class UnitOfWork : IUnitOfWork
     private IQuizQuestionAttemptRepository _quizQuestionAttempt;
     private IQuizQuestionRepository _quizQuestion;
     private IReportRepository _report;
-    private IRequiredDroneRepository _requiredDrone;
+    private IStructureSimulatorRepository _structureSimulator;
     private ITheoryRepository _theory;
     private IUserCertificateRepository _userCertificate;
     private IUserLabRepository _userLab;
     private IUserLessonRepository _userLesson;
     private IUserModuleRepository _userModule;
+    private ILevelRepository _level;
 
     public UnitOfWork(MySqlDbContext mySqlContext)
     {
@@ -41,13 +41,9 @@ internal class UnitOfWork : IUnitOfWork
 
     public ICodeRepository Codes => _code ??= new CodeRepository(_mySqlContext);
 
-    public ICodeUsageRepository CodeUsages => _codeUsage ??= new CodeUsageRepository(_mySqlContext);
-
     public ICourseRepository Courses => _course ??= new CourseRepository(_mySqlContext);
 
     public ICourseVersionRepository CourseVersions => _courseVersion ??= new CourseVersionRepository(_mySqlContext);
-
-    public ICourseVersionCategoryRepository CourseVersionCategories => _courseVersionCategory ??= new CourseVersionCategoryRepository(_mySqlContext);
 
     public IDroneRepository Drones => _drone ??= new DroneRepository(_mySqlContext);
 
@@ -56,6 +52,8 @@ internal class UnitOfWork : IUnitOfWork
     public IEnrollmentRepository Enrollments => _enrollment ??= new EnrollmentRepository(_mySqlContext);
 
     public IFeedbackRepository Feedbacks => _feedback ??= new FeedbackRepository(_mySqlContext);
+
+    public IFlightSimulatorRepository FlightSimulators => _flightSimulator ??= new FlightSimulatorRepository(_mySqlContext);
 
     public ILabRepository Labs => _lab ??= new LabRepository(_mySqlContext);
 
@@ -73,7 +71,7 @@ internal class UnitOfWork : IUnitOfWork
 
     public IReportRepository Reports => _report ??= new ReportRepository(_mySqlContext);
 
-    public IRequiredDroneRepository RequiredDrones => _requiredDrone ??= new RequiredDroneRepository(_mySqlContext);
+    public IStructureSimulatorRepository StructureSimulators => _structureSimulator ??= new StructureSimulatorRepository(_mySqlContext);
 
     public ITheoryRepository Theories => _theory ??= new TheoryRepository(_mySqlContext);
 
@@ -84,6 +82,8 @@ internal class UnitOfWork : IUnitOfWork
     public IUserLessonRepository UserLessons => _userLesson ??= new UserLessonRepository(_mySqlContext);
 
     public IUserModuleRepository UserModules => _userModule ??= new UserModuleRepository(_mySqlContext);
+
+    public ILevelRepository Levels => _level ??= new LevelRepository(_mySqlContext);
 
     public void Dispose()
     {

@@ -125,7 +125,6 @@ internal class CourseRepository : MySqlRepository<Course>, ICourseRepository
     public async Task<PaginationResult<IEnumerable<CourseBulkResponseDTO>>> GetHotCoursesByIdsWithCurrentVersionAsync(
         IEnumerable<Guid> courseIds,
         Guid currentUserId,
-        CourseLevel? level,
         bool ownedOnly,
         string? courseName,
         int pageIndex,
@@ -150,10 +149,6 @@ internal class CourseRepository : MySqlRepository<Course>, ICourseRepository
             .AsNoTracking()
             .Where(x => ids.Contains(x.CourseID));
 
-        if (level.HasValue)
-        {
-            statsQuery = statsQuery.Where(x => x.Level == level.Value);
-        }
 
         if (!string.IsNullOrWhiteSpace(keyword))
         {
@@ -196,7 +191,6 @@ internal class CourseRepository : MySqlRepository<Course>, ICourseRepository
                 CourseVersionId = x.Course.CourseVersionID,
                 TitleVN = x.Course.TitleVN,
                 TitleEN = x.Course.TitleEN,
-                Level = x.Course.Level,
                 EstimatedDuration = x.Course.EstimatedDuration,
                 Price = null,
                 ClubCourseOwned = new ClubCourseOwnedResponse(),

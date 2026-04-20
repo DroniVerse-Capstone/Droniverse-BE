@@ -13,7 +13,6 @@ public class CourseVersionResponseDTO
     public CourseVersionStatus Status { get; set; }
     public int Version { get; set; }
     public string? ImageUrl { get; set; }
-    public CourseLevel Level { get; set; }
     public int? EstimatedDuration { get; set; }
     public string? ChangeLog { get; set; }
     public SimpleUserReponse? Updater { get; set; }
@@ -21,6 +20,4 @@ public class CourseVersionResponseDTO
     public string? ContextVN { get; set; }
     public string? ContextEN { get; set; }
     public CertificateVersionResponseDTO? Certificate { get; set; }
-    public IEnumerable<CategoryResponseDTO> Categories { get; set; } = [];
-    public IEnumerable<DroneClientViewDTO> RequiredDrones { get; set; } = [];
 }

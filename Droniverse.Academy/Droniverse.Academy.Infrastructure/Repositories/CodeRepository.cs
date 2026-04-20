@@ -29,19 +29,6 @@ internal class CodeRepository : MySqlRepository<Code>, ICodeRepository
             query = query.Where(c => c.Status == status);
         }
 
-        // Lọc theo CodeUsageStatus
-        if (requestDTO.CodeUsageStatus != null)
-        {
-            var usageStatus = requestDTO.CodeUsageStatus.Value;
-            if (usageStatus == CodeUsageStatus.USED)
-            {
-                query = query.Where(c => c.UsedByUserID != null || c.Status == CodeStatus.Used);
-            }
-            else if (usageStatus == CodeUsageStatus.UNUSED)
-            {
-                query = query.Where(c => c.UsedByUserID == null && c.Status != CodeStatus.Used);
-            }
-        }
 
         // Đếm tổng số records trước khi phân trang
         int totalRecords = await query.CountAsync();
@@ -79,15 +66,6 @@ internal class CodeRepository : MySqlRepository<Code>, ICodeRepository
                 c.UsedByUserID == Guid.Empty);
         }
 
-        if (request.CodeOwnState == CodeOwnState.UserOwned)
-        {
-            query = query.Where(c => c.OwnedUserID.HasValue && c.OwnedUserID != Guid.Empty);
-        }
-        else if (request.CodeOwnState == CodeOwnState.UnUserOwned)
-        {
-            query = query.Where(c => !c.OwnedUserID.HasValue || c.OwnedUserID == Guid.Empty);
-        }
-
         var totalRecords = await query.CountAsync();
 
         var items = await query
@@ -108,7 +86,7 @@ internal class CodeRepository : MySqlRepository<Code>, ICodeRepository
     {
         IQueryable<Code> query = _dbSet
             .AsNoTracking()
-            .Where(c => c.OwnedUserID == userId || c.UsedByUserID == userId);
+            .Where(c => c.UsedByUserID == userId);
 
         if (isUsed.HasValue)
         {
@@ -161,9 +139,9 @@ internal class CodeRepository : MySqlRepository<Code>, ICodeRepository
             .AsNoTracking()
             .Where(c => c.ClubID == clubId
                         && c.CourseID == courseId
-                        && c.OwnedUserID.HasValue
-                        && c.OwnedUserID.Value != Guid.Empty)
-            .Select(c => c.OwnedUserID!.Value)
+                        && c.UsedByUserID.HasValue
+                        && c.UsedByUserID.Value != Guid.Empty)
+            .Select(c => c.UsedByUserID!.Value)
             .Distinct()
             .ToListAsync(cancellationToken);
     }
@@ -185,9 +163,8 @@ internal class CodeRepository : MySqlRepository<Code>, ICodeRepository
             .AnyAsync(c =>
                 c.ClubID == clubId &&
                 c.CourseID == courseId &&
-                c.OwnedUserID == userId &&
+                c.UsedByUserID == userId &&
                 c.Status == CodeStatus.Active &&
-                !c.UsedByUserID.HasValue &&
                 c.ExpireDate >= now,
                 cancellationToken);
     }

@@ -82,17 +82,8 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                     b.Property<DateTime>("ExpireDate")
                         .HasColumnType("datetime");
 
-                    b.Property<Guid?>("OwnedUserID")
-                        .HasColumnType("char(36)");
-
                     b.Property<sbyte>("Status")
                         .HasColumnType("tinyint");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime");
-
-                    b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("char(36)");
 
                     b.Property<Guid?>("UsedByUserID")
                         .HasColumnType("char(36)");
@@ -108,22 +99,6 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                         {
                             t.HasCheckConstraint("CK_Code_Status", "Status IN (1,2,3,4)");
                         });
-                });
-
-            modelBuilder.Entity("Droniverse.Academy.Domain.Entities.CodeUsage", b =>
-                {
-                    b.Property<string>("CodeID")
-                        .HasColumnType("varchar(50)");
-
-                    b.Property<Guid>("UserID")
-                        .HasColumnType("char(36)");
-
-                    b.Property<DateTime>("UsedDate")
-                        .HasColumnType("datetime");
-
-                    b.HasKey("CodeID", "UserID");
-
-                    b.ToTable("CodeUsage", (string)null);
                 });
 
             modelBuilder.Entity("Droniverse.Academy.Domain.Entities.Course", b =>
@@ -142,12 +117,22 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                     b.Property<Guid?>("CurrentVersionID")
                         .HasColumnType("char(36)");
 
+                    b.Property<Guid?>("DroneID")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid?>("LevelID")
+                        .HasColumnType("char(36)");
+
                     b.Property<sbyte>("Status")
                         .HasColumnType("tinyint");
 
                     b.HasKey("CourseID");
 
                     b.HasIndex("CurrentVersionID");
+
+                    b.HasIndex("DroneID");
+
+                    b.HasIndex("LevelID");
 
                     b.ToTable("Course", null, t =>
                         {
@@ -185,11 +170,6 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                     b.Property<string>("ImageUrl")
                         .HasColumnType("text");
 
-                    b.Property<string>("Level")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("varchar(10)");
-
                     b.Property<sbyte>("Status")
                         .HasColumnType("tinyint");
 
@@ -219,23 +199,8 @@ namespace Droniverse.Academy.Infrastructure.Migrations
 
                     b.ToTable("CourseVersion", null, t =>
                         {
-                            t.HasCheckConstraint("CK_CourseVersion_Level", "`Level` IN ('EASY','MEDIUM','HARD')");
-
                             t.HasCheckConstraint("CK_CourseVersion_Status", "`Status` IN (0,1,2,3)");
                         });
-                });
-
-            modelBuilder.Entity("Droniverse.Academy.Domain.Entities.CourseVersionCategory", b =>
-                {
-                    b.Property<Guid>("CourseVersionID")
-                        .HasColumnType("char(36)");
-
-                    b.Property<Guid>("CategoryID")
-                        .HasColumnType("char(36)");
-
-                    b.HasKey("CourseVersionID", "CategoryID");
-
-                    b.ToTable("CourseVersionCategory", (string)null);
                 });
 
             modelBuilder.Entity("Droniverse.Academy.Domain.Entities.Drone", b =>
@@ -268,14 +233,15 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                     b.Property<float>("Height")
                         .HasColumnType("float");
 
+                    b.Property<string>("ImgURL")
+                        .IsRequired()
+                        .HasColumnType("char(255)")
+                        .HasColumnName("ImgURL");
+
                     b.Property<string>("Manufacturer")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
-
-                    b.Property<string>("Model3DLink")
-                        .IsRequired()
-                        .HasColumnType("text");
 
                     b.Property<sbyte>("Status")
                         .HasColumnType("tinyint");
@@ -403,6 +369,38 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Droniverse.Academy.Domain.Entities.FlightSimulator", b =>
+                {
+                    b.Property<Guid>("FlightID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("ContentVN")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreateAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("EstimatedTime")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdateAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("FlightID");
+
+                    b.ToTable("FlightSimulator", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_FlightSimulator_EstimatedTime", "`EstimatedTime` > 0");
+                        });
+                });
+
             modelBuilder.Entity("Droniverse.Academy.Domain.Entities.Lab", b =>
                 {
                     b.Property<Guid>("LabID")
@@ -493,8 +491,50 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                         {
                             t.HasCheckConstraint("CK_Lesson_OrderIndex", "`OrderIndex` > 0");
 
-                            t.HasCheckConstraint("CK_Lesson_Type", "`Type` IN ('THEORY', 'QUIZ', 'LAB')");
+                            t.HasCheckConstraint("CK_Lesson_Type", "`Type` IN ('THEORY', 'QUIZ', 'LAB', 'STRUCTURE_SIMULATOR', 'FLIGHT_SIMULATOR')");
                         });
+                });
+
+            modelBuilder.Entity("Droniverse.Academy.Domain.Entities.Level", b =>
+                {
+                    b.Property<Guid>("LevelID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("DroneID")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("LevelNumber")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
+
+                    b.HasKey("LevelID");
+
+                    b.HasIndex("DroneID", "LevelNumber")
+                        .IsUnique();
+
+                    b.ToTable("Level", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Level_LevelNumber", "`LevelNumber` IN (1,2,3,4)");
+                        });
+                });
+
+            modelBuilder.Entity("Droniverse.Academy.Domain.Entities.LevelCourseRequirement", b =>
+                {
+                    b.Property<Guid>("LevelID")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("CourseID")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("LevelID", "CourseID");
+
+                    b.HasIndex("CourseID");
+
+                    b.ToTable("LevelCourseRequirement", (string)null);
                 });
 
             modelBuilder.Entity("Droniverse.Academy.Domain.Entities.Module", b =>
@@ -532,6 +572,24 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                     b.HasIndex("CourseVersionID");
 
                     b.ToTable("Module", (string)null);
+                });
+
+            modelBuilder.Entity("Droniverse.Academy.Domain.Entities.PrerequisiteCourse", b =>
+                {
+                    b.Property<Guid>("CourseID")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("PrerequisiteCourseID")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("CourseID", "PrerequisiteCourseID");
+
+                    b.HasIndex("PrerequisiteCourseID");
+
+                    b.ToTable("PrerequisiteCourse", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_PrerequisiteCourse_SelfReference", "`CourseID` <> `PrerequisiteCourseID`");
+                        });
                 });
 
             modelBuilder.Entity("Droniverse.Academy.Domain.Entities.Quiz", b =>
@@ -750,19 +808,36 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                     b.ToTable("Report", (string)null);
                 });
 
-            modelBuilder.Entity("Droniverse.Academy.Domain.Entities.RequiredDrone", b =>
+            modelBuilder.Entity("Droniverse.Academy.Domain.Entities.StructureSimulator", b =>
                 {
-                    b.Property<Guid>("CourseVersionID")
+                    b.Property<Guid>("StructureID")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
 
-                    b.Property<Guid>("DroneID")
+                    b.Property<string>("ContentVN")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreateAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<Guid>("CreateBy")
                         .HasColumnType("char(36)");
 
-                    b.HasKey("CourseVersionID", "DroneID");
+                    b.Property<int>("EstimatedTime")
+                        .HasColumnType("int");
 
-                    b.HasIndex("DroneID");
+                    b.Property<DateTime>("UpdateAt")
+                        .HasColumnType("datetime");
 
-                    b.ToTable("RequiredDrone", (string)null);
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("StructureID");
+
+                    b.ToTable("StructureSimulator", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_StructureSimulator_EstimatedTime", "`EstimatedTime` > 0");
+                        });
                 });
 
             modelBuilder.Entity("Droniverse.Academy.Domain.Entities.Theory", b =>
@@ -918,6 +993,31 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Droniverse.Academy.Domain.Entities.UserLevel", b =>
+                {
+                    b.Property<Guid>("UserLevelID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("AchievedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<Guid>("LevelID")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("UserID")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("UserLevelID");
+
+                    b.HasIndex("LevelID");
+
+                    b.HasIndex("UserID", "LevelID")
+                        .IsUnique();
+
+                    b.ToTable("UserLevel", (string)null);
+                });
+
             modelBuilder.Entity("Droniverse.Academy.Domain.Entities.UserModule", b =>
                 {
                     b.Property<Guid>("UserModuleID")
@@ -1014,17 +1114,6 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                     b.Navigation("Course");
                 });
 
-            modelBuilder.Entity("Droniverse.Academy.Domain.Entities.CodeUsage", b =>
-                {
-                    b.HasOne("Droniverse.Academy.Domain.Entities.Code", "Code")
-                        .WithMany("CodeUsages")
-                        .HasForeignKey("CodeID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Code");
-                });
-
             modelBuilder.Entity("Droniverse.Academy.Domain.Entities.Course", b =>
                 {
                     b.HasOne("Droniverse.Academy.Domain.Entities.CourseVersion", "CurrentVersion")
@@ -1032,7 +1121,21 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                         .HasForeignKey("CurrentVersionID")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Droniverse.Academy.Domain.Entities.Drone", "Drone")
+                        .WithMany()
+                        .HasForeignKey("DroneID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Droniverse.Academy.Domain.Entities.Level", "Level")
+                        .WithMany()
+                        .HasForeignKey("LevelID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("CurrentVersion");
+
+                    b.Navigation("Drone");
+
+                    b.Navigation("Level");
                 });
 
             modelBuilder.Entity("Droniverse.Academy.Domain.Entities.CourseVersion", b =>
@@ -1044,17 +1147,6 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Course");
-                });
-
-            modelBuilder.Entity("Droniverse.Academy.Domain.Entities.CourseVersionCategory", b =>
-                {
-                    b.HasOne("Droniverse.Academy.Domain.Entities.CourseVersion", "CourseVersion")
-                        .WithMany("CourseVersionCategories")
-                        .HasForeignKey("CourseVersionID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("CourseVersion");
                 });
 
             modelBuilder.Entity("Droniverse.Academy.Domain.Entities.Drone", b =>
@@ -1109,6 +1201,36 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                     b.Navigation("Module");
                 });
 
+            modelBuilder.Entity("Droniverse.Academy.Domain.Entities.Level", b =>
+                {
+                    b.HasOne("Droniverse.Academy.Domain.Entities.Drone", "Drone")
+                        .WithMany()
+                        .HasForeignKey("DroneID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Drone");
+                });
+
+            modelBuilder.Entity("Droniverse.Academy.Domain.Entities.LevelCourseRequirement", b =>
+                {
+                    b.HasOne("Droniverse.Academy.Domain.Entities.Course", "Course")
+                        .WithMany()
+                        .HasForeignKey("CourseID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Droniverse.Academy.Domain.Entities.Level", "Level")
+                        .WithMany("LevelCourseRequirements")
+                        .HasForeignKey("LevelID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Course");
+
+                    b.Navigation("Level");
+                });
+
             modelBuilder.Entity("Droniverse.Academy.Domain.Entities.Module", b =>
                 {
                     b.HasOne("Droniverse.Academy.Domain.Entities.CourseVersion", "CourseVersion")
@@ -1118,6 +1240,25 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("CourseVersion");
+                });
+
+            modelBuilder.Entity("Droniverse.Academy.Domain.Entities.PrerequisiteCourse", b =>
+                {
+                    b.HasOne("Droniverse.Academy.Domain.Entities.Course", "Course")
+                        .WithMany()
+                        .HasForeignKey("CourseID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Droniverse.Academy.Domain.Entities.Course", "RequiredCourse")
+                        .WithMany()
+                        .HasForeignKey("PrerequisiteCourseID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Course");
+
+                    b.Navigation("RequiredCourse");
                 });
 
             modelBuilder.Entity("Droniverse.Academy.Domain.Entities.QuizAttempt", b =>
@@ -1172,25 +1313,6 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                     b.Navigation("Lab");
                 });
 
-            modelBuilder.Entity("Droniverse.Academy.Domain.Entities.RequiredDrone", b =>
-                {
-                    b.HasOne("Droniverse.Academy.Domain.Entities.CourseVersion", "CourseVersion")
-                        .WithMany("RequiredDrones")
-                        .HasForeignKey("CourseVersionID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Droniverse.Academy.Domain.Entities.Drone", "Drone")
-                        .WithMany("RequiredDrones")
-                        .HasForeignKey("DroneID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("CourseVersion");
-
-                    b.Navigation("Drone");
-                });
-
             modelBuilder.Entity("Droniverse.Academy.Domain.Entities.UserCertificate", b =>
                 {
                     b.HasOne("Certificate", "Certificate")
@@ -1224,6 +1346,17 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                     b.Navigation("Lesson");
                 });
 
+            modelBuilder.Entity("Droniverse.Academy.Domain.Entities.UserLevel", b =>
+                {
+                    b.HasOne("Droniverse.Academy.Domain.Entities.Level", "Level")
+                        .WithMany("UserLevels")
+                        .HasForeignKey("LevelID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Level");
+                });
+
             modelBuilder.Entity("Droniverse.Academy.Domain.Entities.UserModule", b =>
                 {
                     b.HasOne("Droniverse.Academy.Domain.Entities.Module", "Module")
@@ -1240,11 +1373,6 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                     b.Navigation("UserCertificates");
                 });
 
-            modelBuilder.Entity("Droniverse.Academy.Domain.Entities.Code", b =>
-                {
-                    b.Navigation("CodeUsages");
-                });
-
             modelBuilder.Entity("Droniverse.Academy.Domain.Entities.Course", b =>
                 {
                     b.Navigation("Codes");
@@ -1256,20 +1384,11 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                 {
                     b.Navigation("Certificate");
 
-                    b.Navigation("CourseVersionCategories");
-
                     b.Navigation("Enrollments");
 
                     b.Navigation("Feedbacks");
 
                     b.Navigation("Modules");
-
-                    b.Navigation("RequiredDrones");
-                });
-
-            modelBuilder.Entity("Droniverse.Academy.Domain.Entities.Drone", b =>
-                {
-                    b.Navigation("RequiredDrones");
                 });
 
             modelBuilder.Entity("Droniverse.Academy.Domain.Entities.DroneType", b =>
@@ -1287,6 +1406,13 @@ namespace Droniverse.Academy.Infrastructure.Migrations
             modelBuilder.Entity("Droniverse.Academy.Domain.Entities.Lesson", b =>
                 {
                     b.Navigation("UserLessons");
+                });
+
+            modelBuilder.Entity("Droniverse.Academy.Domain.Entities.Level", b =>
+                {
+                    b.Navigation("LevelCourseRequirements");
+
+                    b.Navigation("UserLevels");
                 });
 
             modelBuilder.Entity("Droniverse.Academy.Domain.Entities.Module", b =>

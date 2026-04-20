@@ -19,11 +19,8 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddAutoMapper(typeof(CourseMappingProfile).Assembly); //chỉ cần thêm 1 profile là đc
-        // ensure new mapping profiles are picked up
-        services.AddAutoMapper(typeof(CategoryMappingProfile).Assembly);
         services.AddScoped<ICourseService, CourseService>();
         services.AddScoped<ICourseVersionService, CourseVersionService>();
-        services.AddScoped<ICourseVersionCategoryService, CourseVersionCategoryService>();
         services.AddScoped<IModuleService, ModuleService>();
         services.AddScoped<ILessonService, LessonService>();
         services.AddScoped<ILabService, LabService>();
@@ -32,7 +29,6 @@ public static class DependencyInjection
         services.AddScoped<ITheoryService, TheoryService>();
         services.AddScoped<IDroneTypeService, DroneTypeService>();
         services.AddScoped<IDroneService, DroneService>();
-        services.AddScoped<IRequiredDroneService, RequiredDroneService>();
         services.AddScoped<ICertificateService, CertificateService>();
         services.AddScoped<ICertificateCreationService, CertificateCreationService>();
         services.AddScoped<ICertificateImageService, CertificateImageService>();
@@ -67,9 +63,12 @@ public static class DependencyInjection
         services.AddScoped<ITheoryDuplicator, TheoryDuplicator>();
         services.AddScoped<IQuizDuplicator, QuizDuplicator>();
         services.AddScoped<ILabDuplicator, LabDuplicator>();
+        services.AddScoped<IStructureSimulatorDuplicator, StructureSimulatorDuplicator>();
+        services.AddScoped<IFlightSimulatorDuplicator, FlightSimulatorDuplicator>();
         services.AddScoped<ILabContentSyncService, LabContentSyncService>();
 
         services.AddScoped<ICodeService, CodeService>();
+        services.AddScoped<IImportService, ImportService>();
         services.AddScoped<ICacheService, CacheService>();
 
         services.AddTransient<AuthorizationDelegatingHandler>();

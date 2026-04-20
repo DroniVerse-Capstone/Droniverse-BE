@@ -16,7 +16,6 @@ namespace Droniverse.Academy.Domain.QueryModels
         public string CourseNameVN { get; set; } = string.Empty;
         public string CourseNameEN { get; set; } = string.Empty;
         public string? ImageUrl { get; set; }
-        public CourseLevel Level { get; set; }
         public int? EstimatedDuration { get; set; }
         public float Progress { get; set; }
         public EnrollStatus EnrollStatus { get; set; }

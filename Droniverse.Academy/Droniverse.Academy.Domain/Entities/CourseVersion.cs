@@ -24,7 +24,6 @@ public class CourseVersion
 
     public int Version { get; set; }
     public string? ImageUrl { get; set; }
-    public CourseLevel Level { get; set; }
     public int? EstimatedDuration { get; set; }
     public string? ChangeLog { get; set; }
     public Guid? UpdateBy { get; private set; }
@@ -37,14 +36,8 @@ public class CourseVersion
     public ICollection<Module> Modules { get; set; }
         = new List<Module>();
 
-    public ICollection<CourseVersionCategory> CourseVersionCategories { get; set; }
-        = new List<CourseVersionCategory>();
-
     public ICollection<Feedback> Feedbacks { get; set; }
         = new List<Feedback>();
-
-    public ICollection<RequiredDrone> RequiredDrones { get; set; }
-        = new List<RequiredDrone>();
 
     public ICollection<Enrollment> Enrollments { get; set; }
         = new List<Enrollment>();
@@ -113,7 +106,6 @@ public class CourseVersion
         string? contextVN,
         string? contextEN,
         string? imageUrl,
-        CourseLevel level,
         int? estimatedDuration,
         string? changeLog,
         Guid userId,
@@ -131,7 +123,6 @@ public class CourseVersion
         ContextVN = contextVN;
         ContextEN = contextEN;
         ImageUrl = imageUrl;
-        Level = level;
         EstimatedDuration = estimatedDuration;
         ChangeLog = changeLog;
 

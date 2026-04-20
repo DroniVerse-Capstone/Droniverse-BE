@@ -26,6 +26,12 @@ public class CourseConfiguration : IEntityTypeConfiguration<Course>
             .HasColumnType("tinyint")
             .HasConversion<byte>()
             .IsRequired();
+        builder.Property(c => c.LevelID)
+            .HasColumnType("char(36)")
+            .IsRequired(false);
+        builder.Property(c => c.DroneID)
+            .HasColumnType("char(36)")
+            .IsRequired(false);
         builder.Property(c => c.CurrentVersionID)
             .HasColumnType("char(36)")
             .IsRequired(false);
@@ -38,6 +44,16 @@ public class CourseConfiguration : IEntityTypeConfiguration<Course>
         builder.HasMany(c => c.CourseVersions)
             .WithOne(cv => cv.Course)
             .HasForeignKey(cv => cv.CourseID)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(c => c.Level)
+            .WithMany()
+            .HasForeignKey(c => c.LevelID)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(c => c.Drone)
+            .WithMany()
+            .HasForeignKey(c => c.DroneID)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasMany(cv => cv.Codes)

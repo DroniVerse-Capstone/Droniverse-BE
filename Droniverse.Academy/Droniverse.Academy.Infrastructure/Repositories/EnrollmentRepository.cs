@@ -44,7 +44,6 @@ internal class EnrollmentRepository : MySqlRepository<Enrollment>, IEnrollmentRe
         Guid clubId,
         int pageIndex,
         int pageSize,
-        CourseLevel? level = null,
         string? courseSearchName = null,
         EnrollStatus? enrollmentStatus = null,
         CancellationToken cancellationToken = default)
@@ -61,12 +60,6 @@ internal class EnrollmentRepository : MySqlRepository<Enrollment>, IEnrollmentRe
         {
             var status = enrollmentStatus.Value;
             query = query.Where(e => e.Status == status);
-        }
-
-        if (level.HasValue)
-        {
-            var courseLevel = level.Value;
-            query = query.Where(e => e.CourseVersion.Level == courseLevel);
         }
 
         if (!string.IsNullOrWhiteSpace(keyword))
@@ -88,7 +81,6 @@ internal class EnrollmentRepository : MySqlRepository<Enrollment>, IEnrollmentRe
                 CourseNameVN = e.CourseVersion.TitleVN,
                 CourseNameEN = e.CourseVersion.TitleEN,
                 ImageUrl = e.CourseVersion.ImageUrl,
-                Level = e.CourseVersion.Level,
                 EstimatedDuration = e.CourseVersion.EstimatedDuration,
                 Progress = e.Progress,
                 EnrollStatus = e.Status

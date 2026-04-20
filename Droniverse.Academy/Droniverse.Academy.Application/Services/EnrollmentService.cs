@@ -37,12 +37,6 @@ public class EnrollmentService : IEnrollmentService
 
         var userId = _currentUser.UserId;
 
-        var existing = await _unitOfWork.Enrollments.GetByConditionAsync(
-            x => x.UserID == userId && x.CourseVersionID == request.CourseVersionID && x.ClubID == request.ClubID);
-
-        if (existing != null)
-            throw new ValidationException("Người dùng đã đăng ký phiên bản khóa học này.");
-
         var enrollment = _mapper.Map<Enrollment>(request);
         enrollment.EnrollmentID = Guid.NewGuid();
         enrollment.CourseID = courseVersion.CourseID;
@@ -164,7 +158,6 @@ public class EnrollmentService : IEnrollmentService
             clubId: clubId,
             pageIndex: request.CurrentPage,
             pageSize: request.PageSize,
-            level: request.Level,
             courseSearchName: request.CourseSearchName,
             enrollmentStatus: enrollmentStatus);
 
@@ -176,7 +169,6 @@ public class EnrollmentService : IEnrollmentService
             CourseNameVN = x.CourseNameVN,
             CourseNameEN = x.CourseNameEN,
             ImageUrl = x.ImageUrl,
-            Level = x.Level,
             EstimatedDuration = x.EstimatedDuration,
             Progress = x.Progress,
             EnrollStatus = x.EnrollStatus

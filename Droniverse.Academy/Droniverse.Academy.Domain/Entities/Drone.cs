@@ -14,7 +14,6 @@ public class Drone
     public float Height { get; set; } //float
     public float Weight { get; set; } //float
     public DroneStatus Status { get; set; }
-    public string Model3DLink { get; set; } //text
-    public ICollection<RequiredDrone> RequiredDrones { get; set; }
+    public string ImgURL { get; set; } //text
 
 }

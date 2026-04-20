@@ -10,7 +10,6 @@ public class CourseStatsView
     public Guid CourseVersionID { get; set; }
     public string TitleVN { get; set; } = string.Empty;
     public string TitleEN { get; set; } = string.Empty;
-    public CourseLevel Level { get; set; }
     public int? EstimatedDuration { get; set; }
     public string? ImageUrl { get; set; }
     public DateTime? UpdateAt { get; set; }

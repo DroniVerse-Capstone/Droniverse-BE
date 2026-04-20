@@ -1,4 +1,5 @@
-﻿using Droniverse.Academy.Application.DTO.Response;
+﻿using Droniverse.Academy.Application.DTO.Request;
+using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Request;
@@ -22,7 +23,7 @@ public interface ICourseService
         Guid courseId,
         CancellationToken cancellationToken = default);
 
-    Task<CourseDetailResponseDTO> CreateCourseAsync();
+    Task<CourseDetailResponseDTO> CreateCourseAsync(CreateCourseRequest request);
 
     Task PublishCourseAsync(Guid courseId);
 

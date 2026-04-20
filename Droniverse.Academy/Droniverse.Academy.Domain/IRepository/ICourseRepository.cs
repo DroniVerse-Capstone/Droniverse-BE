@@ -57,7 +57,6 @@ public interface ICourseRepository : IRepository<Course>
     Task<PaginationResult<IEnumerable<CourseBulkResponseDTO>>> GetHotCoursesByIdsWithCurrentVersionAsync(
         IEnumerable<Guid> courseIds,
         Guid currentUserId,
-        CourseLevel? level,
         bool ownedOnly,
         string? courseName,
         int pageIndex,

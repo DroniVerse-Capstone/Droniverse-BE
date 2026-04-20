@@ -40,7 +40,6 @@ public class CourseDetailSuccessResponseExample : IExamplesProvider<SuccessRespo
                     Status = CourseVersionStatus.ACTIVE,
                     Version = 1,
                     ImageUrl = "https://cdn.example.com/course.jpg",
-                    Level = CourseLevel.EASY,
                     EstimatedDuration = 120
                 }
             },
@@ -64,7 +63,6 @@ public class CourseOverviewSuccessResponseExample : IExamplesProvider<SuccessRes
                 ContextVN = "Bối cảnh ứng dụng drone trong thực tế.",
                 ContextEN = "Real-world context for drone applications.",
                 ImageUrl = "https://cdn.example.com/course.jpg",
-                Level = CourseLevel.EASY,
                 EstimatedDuration = 120,
                 AverageRating = 4.8m,
                 TotalFeedback = 45,
@@ -121,7 +119,6 @@ public class CoursesByIdsSuccessResponseExample : IExamplesProvider<SuccessRespo
                         CourseVersionId = Guid.Parse("7d8aa3db-7477-4af6-a06c-783f26450484"),
                         TitleVN = "Lập trình drone cơ bản",
                         TitleEN = "Drone Programming Basics",
-                        Level = CourseLevel.EASY,
                         EstimatedDuration = 120,
                         Price = 499000,
                         ClubCourseOwned = new ClubCourseOwnedResponse(),
@@ -135,7 +132,6 @@ public class CoursesByIdsSuccessResponseExample : IExamplesProvider<SuccessRespo
                         CourseVersionId = Guid.Parse("90f8eeb6-dafb-4ecf-a2b6-e7acf53db86f"),
                         TitleVN = "Drone nâng cao",
                         TitleEN = "Advanced Drone",
-                        Level = CourseLevel.MEDIUM,
                         EstimatedDuration = 180,
                         Price = 899000,
                         ClubCourseOwned = new ClubCourseOwnedResponse(),
