@@ -10,7 +10,7 @@ public class Participation
     public Guid? ApproverID { get; private set; }
     public Club Club { get; private set; }
     public ParticipationStatus Status { get; private set; }
-    public string Note { get; private set; }
+    public string? Note { get; private set; }
     public DateTime JoinDate { get; private set; }
     public DateTime? LeftDate { get; private set; }
 
@@ -22,9 +22,10 @@ public class Participation
         UserID = userId;
         ClubID = clubId;
         ApproverID = approverId;
-
         Status = ParticipationStatus.ACTIVE;
         JoinDate = DateTime.UtcNow;
+        Note = null;
+        LeftDate = null;
     }
 
     public void Leave(string note)

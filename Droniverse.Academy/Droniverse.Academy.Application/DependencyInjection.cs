@@ -84,7 +84,7 @@ public static class DependencyInjection
         services.AddHttpClient<CommunityMicroserviceClient>(client =>
         {
             client.BaseAddress = new Uri($"http://{configuration["CommunityMicroserviceName"]}:{configuration["CommunityMicroservicePort"]}");
-        }).AddHttpMessageHandler<AuthorizationDelegatingHandler>(); ;
+        }).AddHttpMessageHandler<AuthorizationDelegatingHandler>();
 
         // Đăng ký Redis
         services.AddStackExchangeRedisCache(options =>

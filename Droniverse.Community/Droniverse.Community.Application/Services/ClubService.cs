@@ -669,6 +669,9 @@ internal class ClubService : IClubService
 
     private async Task<DroneResponseDto?> GetDroneById(Guid droneId)
     {
+        if (droneId == Guid.Empty)
+            return null;
+        
         return (await GetDronesByIds([droneId])).FirstOrDefault();
     }
 
