@@ -22,6 +22,7 @@ public class Wallet
         BankNumber = bankNumber;
         Balance = 0;
         CreatedAt = DateTime.UtcNow.AddHours(7);
+        UpdatedAt = DateTime.UtcNow.AddHours(7);
         WalletID = Guid.NewGuid();
     }
 

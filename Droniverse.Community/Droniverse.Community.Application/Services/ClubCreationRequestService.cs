@@ -162,6 +162,8 @@ namespace Droniverse.Community.Application.Services
                     RequesterEmail = requester?.Email,
                     ApproverName = AppHelper.GetFullName(approver),
                     ApproverEmail = approver?.Email,
+                    ClubPolicyVN = x.ClubPolicyVN,
+                    ClubPolicyEN = x.ClubPolicyEN,
                     Status = x.Status,
                     Media = _mapper.Map<MediaResponseDto>(x.Media),
                     Drone = drone,
@@ -178,7 +180,7 @@ namespace Droniverse.Community.Application.Services
 
             var requests = await _unitOfWork.ClubCreationRequests.GetManyByCondition(
                                         x => x.RequesterID == managerId && (!status.HasValue || x.Status == status.Value),
-                                        q => q.OrderByDescending(c => c.CreatedAt)
+                                        q => q.Include(x => x.Media).OrderByDescending(c => c.CreatedAt)
                                     );
 
             if (requests == null || !requests.Any())
@@ -250,6 +252,8 @@ namespace Droniverse.Community.Application.Services
                     RequesterEmail = requester?.Email,
                     ApproverName = AppHelper.GetFullName(approver),
                     ApproverEmail = approver?.Email,
+                    ClubPolicyVN = x.ClubPolicyVN,
+                    ClubPolicyEN = x.ClubPolicyEN,
                     Status = x.Status,
                     Media = _mapper.Map<MediaResponseDto>(x.Media),
                     Drone = drone,

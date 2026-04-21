@@ -1,9 +1,12 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Droniverse.Community.API.Examples;
+using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.IService;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Filters;
 
 namespace Droniverse.Community.API.Controllers
 {
@@ -18,23 +21,61 @@ namespace Droniverse.Community.API.Controllers
             _walletService = walletService;
         }
 
+        [HttpGet("me")]
+        [Authorize(Roles = Roles.ClubManager)]
+        public async Task<ApiResponse> GetMyWallet()
+        {
+            WalletRequestDto result = await _walletService.GetMyWallet();
+
+            return SuccessResponse<WalletRequestDto>.Create(result, "Lấy thông tin ví thành công");
+        }
+
+        /// <summary>
+        /// Lấy thông tin của ví theo walletID
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(Guid id)
+        [Authorize(Roles = Roles.ClubManager)]
+        public async Task<ApiResponse> GetById(Guid id)
         {
-            var result = await _walletService.GetWalletById(id);
-            if (result == null)
-            {
-                return NotFound();
-            }
-            return Ok(result);
+            WalletResponseDto result = await _walletService.GetWalletById(id);
+
+            return SuccessResponse<WalletResponseDto>.Create(result, "Lấy thông tin ví thành công");
         }
 
+        /// <summary>
+        /// Tạo mới ví cho club manager
+        /// </summary>
+        /// <remarks>
+        /// API trả về thông tin ví đã được tạo, bao gồm WalletID, OwnerID, OwnerName, BankNumber, Bank, Balance, CreatedAt và UpdatedAt. Các trường này cung cấp thông tin chi tiết về ví mới được tạo ra cho club manager.
+        /// </remarks>
+        /// <returns>
+        /// 200 OK - Trả về thông tin ví đã được tạo
+        /// </returns>
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] WalletCreateRequestDto request)
+        [Authorize(Roles = Roles.ClubManager)]
+        [SwaggerRequestExample(typeof(WalletRequestDto), typeof(WalletRequestExample))]
+        public async Task<ApiResponse> Create([FromBody] WalletRequestDto request)
         {
-            var result = await _walletService.CreateWallet(request);
-            return CreatedAtAction(nameof(GetById), new { id = result.WalletID }, result);
+            WalletResponseDto result = await _walletService.CreateWallet(request);
+            return SuccessResponse<WalletResponseDto>.Create(result, "Tạo ví thành công");
         }
 
+        /// <summary>
+        /// Cập nhật thông tin của ví cho club manager, gồm các thông tin như Bank (tên ngân hàng), BankNumber (số tài khoản ngân hàng)
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [HttpPut("{id}")]
+        [Authorize(Roles = Roles.ClubManager)]
+        [SwaggerRequestExample(typeof(WalletRequestDto), typeof(WalletRequestExample))]
+        public async Task<ApiResponse> Update(Guid id, [FromBody] WalletRequestDto request)
+        {
+            WalletResponseDto result = await _walletService.UpdateWallet(request);
+            return SuccessResponse<WalletResponseDto>.Create(result, "Cập nhật ví thành công");
+
+        }
     }
 }
