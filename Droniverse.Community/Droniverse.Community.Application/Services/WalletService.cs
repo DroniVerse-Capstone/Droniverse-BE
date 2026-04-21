@@ -58,7 +58,7 @@ namespace Droniverse.Community.Application.Services
             }
 
             Wallet? existingWallet = await _unitOfWork.Wallets.GetByCondition(w => w.OwnerID == userId);
-            if(existingWallet != null)
+            if (existingWallet != null)
             {
                 throw new InvalidOperationException("Người dùng đã có ví.");
             }
@@ -74,7 +74,7 @@ namespace Droniverse.Community.Application.Services
             return response;
         }
 
-        public async Task<WalletRequestDto> GetMyWallet()
+        public async Task<WithdrawResponseDto> CreateWithdrawRequest(WithdrawRequestDto request)
         {
             Guid userId = _currentUserService.UserId;
             if (userId == Guid.Empty)
@@ -83,10 +83,40 @@ namespace Droniverse.Community.Application.Services
             }
 
             Wallet? wallet = await _unitOfWork.Wallets.GetByCondition(w => w.OwnerID == userId);
-            WalletRequestDto response = _mapper.Map<WalletRequestDto>(wallet);
+            if (wallet == null)
+            {
+                throw new NotFoundException("Người dùng hiện tại chưa có ví.");
+            }
+
+            if (request.Amount == null || request.Amount <= 0)
+            {
+                throw new ArgumentException("Số tiền rút phải lớn hơn 0.");
+            }
+
+            if (wallet.Balance < request.Amount)
+            {
+                throw new InvalidOperationException("Số dư trong ví không đủ để thực hiện rút tiền.");
+            }
+            return new WithdrawResponseDto { };
+
+        }
+
+        public async Task<WalletResponseDto> GetMyWallet()
+        {
+            Guid userId = _currentUserService.UserId;
+            if (userId == Guid.Empty)
+            {
+                throw new UnauthorizedAccessException("Người dùng chưa xác thực.");
+            }
+
+            Wallet? wallet = await _unitOfWork.Wallets.GetByCondition(w => w.OwnerID == userId);
+            if (wallet == null)
+            {
+                throw new Exception("Người dùng hiện tại chưa có ví.");
+            }
+            WalletResponseDto response = _mapper.Map<WalletResponseDto>(wallet);
 
             return response;
-
         }
 
         public async Task<WalletResponseDto> GetWalletById(Guid walletId)

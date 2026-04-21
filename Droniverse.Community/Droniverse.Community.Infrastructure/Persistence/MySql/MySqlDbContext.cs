@@ -24,6 +24,7 @@ public class MySqlDbContext : DbContext
     public DbSet<ClubCreationRequest> ClubCreationRequests { get; set; }
     public DbSet<Transaction> Transactions { get; set; }
     public DbSet<Wallet> Wallets { get; set; }
+    public DbSet<WithdrawRequest> WithdrawRequests { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
