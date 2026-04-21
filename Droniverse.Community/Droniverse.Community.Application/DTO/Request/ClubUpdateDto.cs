@@ -21,7 +21,6 @@ public record ClubUpdateDto
     [StringLength(1000, ErrorMessage = "Mô tả tiếng Anh tối đa 1000 ký tự")]
     public string? DescriptionEN { get; init; }
 
-    public bool IsPublic { get; init; }
     public string? ImageUrl { get; init; }
 
     [Range(1, 10000, ErrorMessage = "Số lượng thành viên phải từ 1 đến 10000")]

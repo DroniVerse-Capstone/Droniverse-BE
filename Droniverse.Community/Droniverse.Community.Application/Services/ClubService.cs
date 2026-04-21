@@ -6,12 +6,10 @@ using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.Enums;
-using Droniverse.Academy.Application.Enums;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.DTOs.Response;
 using Microsoft.EntityFrameworkCore;
-using Droniverse.Shared.Constants;
 using Droniverse.Shared.Enums;
 using Droniverse.Shared.DTOs;
 

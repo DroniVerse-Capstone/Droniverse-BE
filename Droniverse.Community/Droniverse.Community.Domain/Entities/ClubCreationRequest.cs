@@ -15,7 +15,6 @@ namespace Droniverse.Community.Domain.Entities
         public string NameVN { get; set; }
         public string NameEN { get; set; }
         public string Description { get; set; }
-        public bool IsPublic { get; set; }
         public int LimitParticipant { get; set; }
         public int LimitClubManager { get; set; }
         public string? ImageUrl { get; set; }
@@ -45,7 +44,6 @@ namespace Droniverse.Community.Domain.Entities
             string nameVN,
             string nameEN,
             string description,
-            bool isPublic,
             int limitParticipant,
             int limitClubManager,
             string imageUrl,
@@ -58,7 +56,6 @@ namespace Droniverse.Community.Domain.Entities
             NameVN = nameVN;
             NameEN = nameEN;
             Description = description;
-            IsPublic = isPublic;
             LimitParticipant = limitParticipant;
             LimitClubManager = limitClubManager;
             ImageUrl = imageUrl;

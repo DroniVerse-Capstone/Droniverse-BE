@@ -19,7 +19,6 @@ public class ClubUpdateExample : IExamplesProvider<ClubUpdateDto>
                           + "Machine Learning, and Data Science. The club organizes workshops, "
                           + "hackathons, and knowledge-sharing sessions focused on real-world AI applications.",
 
-            IsPublic = true,
             LimitParticipation = 280,
             LimitClubManagers = 1,
             CategoryIDs = new List<Guid>

@@ -33,9 +33,6 @@ namespace Droniverse.Community.Infrastructure.Persistence.MySql.Configurations
             builder.Property(x => x.ImageUrl)
                 .HasColumnType("text");
 
-            builder.Property(x => x.IsPublic)
-                .HasColumnType("tinyint(1)");
-
             builder.Property(x => x.CreatedAt)
                 .IsRequired();
 

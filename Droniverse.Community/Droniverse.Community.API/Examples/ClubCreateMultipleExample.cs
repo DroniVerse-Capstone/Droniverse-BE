@@ -21,7 +21,6 @@ public class ClubCreateMultipleExample
                 DescriptionEN = "A club dedicated to researching, developing, and applying drone technology in agriculture, surveillance, and logistics.",
 
                 Status = ClubStatus.ACTIVE,
-                IsPublic = true,
 
                 LimitParticipation = 300,
                 LimitClubManagers = 5,
@@ -41,7 +40,6 @@ public class ClubCreateMultipleExample
                 DescriptionEN = "An advanced research group focusing on AI, autonomous robotics, and computer vision.",
 
                 Status = ClubStatus.ACTIVE,
-                IsPublic = false,
 
                 LimitParticipation = 80,
                 LimitClubManagers = 3
