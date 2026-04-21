@@ -24,7 +24,7 @@ internal sealed class ClubClient : CommunityBaseClient
     {
     }
 
-    public async Task<IEnumerable<ClubResponse>> GetMyClubsAsync()
+    public async Task<IEnumerable<DroneResponseDto>> GetMyClubsAsync()
     {
         var response = await HttpClient.GetAsync(BuildCommunityPath("clubs/myclub"));
 
@@ -72,7 +72,7 @@ internal sealed class ClubClient : CommunityBaseClient
                 Converters = { new JsonStringEnumConverter() }
             };
 
-            var clubs = JsonSerializer.Deserialize<IEnumerable<ClubResponse>>(dataElement.GetRawText(), options);
+            var clubs = JsonSerializer.Deserialize<IEnumerable<DroneResponseDto>>(dataElement.GetRawText(), options);
             return clubs ?? [];
         }
         catch (Exception ex)

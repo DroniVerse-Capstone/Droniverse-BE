@@ -20,6 +20,6 @@ public record ClubResponseDto
     public int TotalMembers { get; set; }
     public int TotalCourses { get; set; }
     public string? SuspendedReason { get; set; }
-    public Guid DroneID { get; set; }
+    public DroneResponseDto Drone { get; set; }
     public UserResponse? Creator { get; set; }
 }

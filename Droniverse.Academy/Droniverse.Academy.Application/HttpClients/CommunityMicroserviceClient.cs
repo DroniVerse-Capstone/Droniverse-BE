@@ -30,7 +30,7 @@ namespace Droniverse.Academy.Application.HttpClients
             return await _clubCourseClient.AddCourseToClub(clubId, request);
         }
 
-        public async Task<IEnumerable<ClubResponse>> GetMyClubsAsync()
+        public async Task<IEnumerable<DroneResponseDto>> GetMyClubsAsync()
         {
             return await _clubClient.GetMyClubsAsync();
 
