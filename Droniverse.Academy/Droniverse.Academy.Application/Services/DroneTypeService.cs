@@ -100,8 +100,21 @@ public class DroneTypeService : IDroneTypeService
         drone.DroneID = Guid.NewGuid();
         drone.DroneTypeID = droneTypeId;
 
-        await _unitOfWork.Drones.AddAsync(drone);
-        await _unitOfWork.SaveChangesAsync();
+        await _unitOfWork.ExecuteInTransactionAsync(async () =>
+        {
+            await _unitOfWork.Drones.AddAsync(drone);
+
+            var defaultLevels = new List<Level>
+            {
+                new() { LevelID = Guid.NewGuid(), DroneID = drone.DroneID, LevelNumber = 1, Name = "Beginner" },
+                new() { LevelID = Guid.NewGuid(), DroneID = drone.DroneID, LevelNumber = 2, Name = "Intermediate" },
+                new() { LevelID = Guid.NewGuid(), DroneID = drone.DroneID, LevelNumber = 3, Name = "Advanced" },
+                new() { LevelID = Guid.NewGuid(), DroneID = drone.DroneID, LevelNumber = 4, Name = "Master" }
+            };
+
+            await _unitOfWork.Levels.AddRangeAsync(defaultLevels);
+            await _unitOfWork.SaveChangesAsync();
+        });
 
         var created = await _unitOfWork.Drones.GetByConditionAsync(
             d => d.DroneID == drone.DroneID,
