@@ -15,7 +15,6 @@ public class UpdateEnrollmentRequestExample : IMultipleExamplesProvider<UpdateEn
                 Progress = 45.5f,
                 LastAccessDate = DateTime.UtcNow,
                 ExpireDate = DateTime.UtcNow.AddMonths(6),
-                Status = EnrollStatus.ACTIVE
             }
         );
 

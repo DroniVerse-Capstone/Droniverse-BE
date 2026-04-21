@@ -84,7 +84,7 @@ public class LabService : ILabService
 
         var duplicatedLab = _mapper.Map<Lab>(sourceLab);
         duplicatedLab.LabID = Guid.NewGuid();
-        duplicatedLab.Status = LabStatus.DRAFT;
+        duplicatedLab.ResetToDraft();
         duplicatedLab.NameVN = $"{sourceLab.NameVN} (Copy)";
         duplicatedLab.NameEN = $"{sourceLab.NameEN} (Copy)";
         duplicatedLab.SetAuditOnCreate(_currentUser.UserId, _clock.Now);
@@ -237,6 +237,7 @@ public class LabService : ILabService
         await EnsureLabNamesUniqueAsync(request.NameVN, request.NameEN, labId);
 
         _mapper.Map(request, lab);
+        lab.TransitionTo(request.Status);
         lab.SetAuditOnUpdate(_currentUser.UserId, _clock.Now);
 
         await _unitOfWork.Labs.UpdateAsync(lab);

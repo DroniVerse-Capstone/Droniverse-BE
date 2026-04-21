@@ -12,8 +12,6 @@ public class LabConfiguration : IEntityTypeConfiguration<Lab>
 
         builder.HasMany(e => e.UserLabs)
             .WithOne(c => c.Lab);
-        builder.HasMany(e => e.Reports)
-            .WithOne(c => c.Lab);
 
         builder.Property(e => e.NameVN).HasColumnType("varchar(255)");
         builder.Property(e => e.NameEN).HasColumnType("varchar(255)");

@@ -3,7 +3,7 @@
 public class ReportResponseDTO
 {
     public Guid ReportID { get; set; }
-    public Guid LabID { get; set; }
+    public Guid ReferenceID { get; set; }
     public Guid UserID { get; set; }
     public string Content { get; set; } = string.Empty;
     public string? ResponseVN { get; set; }

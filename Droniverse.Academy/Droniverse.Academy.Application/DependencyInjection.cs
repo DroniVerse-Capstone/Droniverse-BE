@@ -63,8 +63,8 @@ public static class DependencyInjection
         services.AddScoped<ITheoryDuplicator, TheoryDuplicator>();
         services.AddScoped<IQuizDuplicator, QuizDuplicator>();
         services.AddScoped<ILabDuplicator, LabDuplicator>();
-        services.AddScoped<IStructureSimulatorDuplicator, StructureSimulatorDuplicator>();
-        services.AddScoped<IFlightSimulatorDuplicator, FlightSimulatorDuplicator>();
+        services.AddScoped<IWebSimulatorDuplicator, WebSimulatorDuplicator>();
+        services.AddScoped<IVRSimulatorDuplicator, VRSimulatorDuplicator>();
         services.AddScoped<ILabContentSyncService, LabContentSyncService>();
 
         services.AddScoped<ICodeService, CodeService>();

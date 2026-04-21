@@ -2,6 +2,6 @@
 
 public class CreateReportRequestDTO
 {
-    public Guid LabID { get; set; }
+    public Guid ReferenceID { get; set; }
     public string Content { get; set; } = string.Empty;
 }

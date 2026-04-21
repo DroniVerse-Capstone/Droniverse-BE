@@ -12,7 +12,7 @@ public class Code
     public Course Course { get; set; }
 
     public DateTime ExpireDate { get; set; }
-    public CodeStatus Status { get; set; } = CodeStatus.Active;
+    public CodeStatus Status { get; private set; } = CodeStatus.Active;
 
     // Usage
     public Guid? UsedByUserID { get; set; }

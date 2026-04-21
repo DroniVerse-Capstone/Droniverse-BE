@@ -44,8 +44,7 @@ public class EnrollmentService : IEnrollmentService
         enrollment.EnrollDate = _clock.Now;
         enrollment.LastAccessDate = _clock.Now;
         enrollment.ExpireDate = _clock.Now.AddMonths(6);
-        enrollment.Progress = 0;
-        enrollment.Status = EnrollStatus.ACTIVE;
+        enrollment.SetProgress(0);
 
         await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
@@ -103,11 +102,8 @@ public class EnrollmentService : IEnrollmentService
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
-        if (!request.Progress.HasValue && !request.LastAccessDate.HasValue && !request.ExpireDate.HasValue && !request.Status.HasValue)
+        if (!request.Progress.HasValue && !request.LastAccessDate.HasValue && !request.ExpireDate.HasValue)
             throw new ValidationException("Cần ít nhất một trường để cập nhật enrollment.");
-
-        if (request.Status.HasValue)
-            throw new ValidationException("Status được xác định tự động theo Progress.");
 
         if (request.Progress.HasValue && request.Progress is < 0 or > 100)
             throw new ValidationException("Progress phải nằm trong khoảng từ 0 đến 100.");
@@ -116,8 +112,7 @@ public class EnrollmentService : IEnrollmentService
 
         if (request.Progress.HasValue)
         {
-            enrollment.Progress = request.Progress.Value;
-            enrollment.Status = enrollment.Progress >= 100 ? EnrollStatus.COMPLETED : EnrollStatus.ACTIVE;
+            enrollment.SetProgress(request.Progress.Value);
         }
 
         enrollment.LastAccessDate = request.LastAccessDate ?? _clock.Now;

@@ -180,18 +180,18 @@ public class LessonService : ILessonService
                     MapLabToDto(lab, dto);
                 }
                 break;
-            case LessonType.STRUCTURE_SIMULATOR:
-                var structureSimulator = await _unitOfWork.StructureSimulators.GetByIdAsync(lesson.ReferenceID);
-                if (structureSimulator != null)
+            case LessonType.WEB:
+                var webSimulator = await _unitOfWork.WebSimulators.GetByIdAsync(lesson.ReferenceID);
+                if (webSimulator != null)
                 {
-                    MapStructureSimulatorToDto(structureSimulator, dto);
+                    MapWebSimulatorToDto(webSimulator, dto);
                 }
                 break;
-            case LessonType.FLIGHT_SIMULATOR:
-                var flightSimulator = await _unitOfWork.FlightSimulators.GetByIdAsync(lesson.ReferenceID);
-                if (flightSimulator != null)
+            case LessonType.VR:
+                var vrSimulator = await _unitOfWork.VRSimulators.GetByIdAsync(lesson.ReferenceID);
+                if (vrSimulator != null)
                 {
-                    MapFlightSimulatorToDto(flightSimulator, dto);
+                    MapVRSimulatorToDto(vrSimulator, dto);
                 }
                 break;
         }
@@ -202,16 +202,16 @@ public class LessonService : ILessonService
         var theoryIds = GetReferenceIdsByType(lessons, LessonType.THEORY);
         var quizIds = GetReferenceIdsByType(lessons, LessonType.QUIZ);
         var labIds = GetReferenceIdsByType(lessons, LessonType.LAB);
-        var structureSimulatorIds = GetReferenceIdsByType(lessons, LessonType.STRUCTURE_SIMULATOR);
-        var flightSimulatorIds = GetReferenceIdsByType(lessons, LessonType.FLIGHT_SIMULATOR);
+        var webSimulatorIds = GetReferenceIdsByType(lessons, LessonType.WEB);
+        var vrSimulatorIds = GetReferenceIdsByType(lessons, LessonType.VR);
 
         var theoryLookup = await GetTheoryLookupAsync(theoryIds);
         var quizLookup = await GetQuizLookupAsync(quizIds);
         var labLookup = await GetLabLookupAsync(labIds);
-        var structureSimulatorLookup = await GetStructureSimulatorLookupAsync(structureSimulatorIds);
-        var flightSimulatorLookup = await GetFlightSimulatorLookupAsync(flightSimulatorIds);
+        var webSimulatorLookup = await GetWebSimulatorLookupAsync(webSimulatorIds);
+        var vrSimulatorLookup = await GetVRSimulatorLookupAsync(vrSimulatorIds);
 
-        return new ReferenceLookups(theoryLookup, quizLookup, labLookup, structureSimulatorLookup, flightSimulatorLookup);
+        return new ReferenceLookups(theoryLookup, quizLookup, labLookup, webSimulatorLookup, vrSimulatorLookup);
     }
 
     private static HashSet<Guid> GetReferenceIdsByType(IEnumerable<Lesson> lessons, LessonType type)
@@ -286,16 +286,16 @@ public class LessonService : ILessonService
                     MapLabToDto(lab, dto);
                 }
                 break;
-            case LessonType.STRUCTURE_SIMULATOR:
-                if (lookups.StructureSimulators.TryGetValue(lesson.ReferenceID, out var structureSimulator))
+            case LessonType.WEB:
+                if (lookups.WebSimulators.TryGetValue(lesson.ReferenceID, out var webSimulator))
                 {
-                    MapStructureSimulatorToDto(structureSimulator, dto);
+                    MapWebSimulatorToDto(webSimulator, dto);
                 }
                 break;
-            case LessonType.FLIGHT_SIMULATOR:
-                if (lookups.FlightSimulators.TryGetValue(lesson.ReferenceID, out var flightSimulator))
+            case LessonType.VR:
+                if (lookups.VRSimulators.TryGetValue(lesson.ReferenceID, out var vrSimulator))
                 {
-                    MapFlightSimulatorToDto(flightSimulator, dto);
+                    MapVRSimulatorToDto(vrSimulator, dto);
                 }
                 break;
         }
@@ -316,47 +316,47 @@ public class LessonService : ILessonService
         _mapper.Map(lab, dto);
     }
 
-    private void MapStructureSimulatorToDto(StructureSimulator structureSimulator, LessonClientViewDTO dto)
+    private void MapWebSimulatorToDto(WebSimulator webSimulator, LessonClientViewDTO dto)
     {
-        _mapper.Map(structureSimulator, dto);
+        _mapper.Map(webSimulator, dto);
     }
 
-    private void MapFlightSimulatorToDto(FlightSimulator flightSimulator, LessonClientViewDTO dto)
+    private void MapVRSimulatorToDto(VRSimulator vrSimulator, LessonClientViewDTO dto)
     {
-        _mapper.Map(flightSimulator, dto);
+        _mapper.Map(vrSimulator, dto);
     }
 
     private sealed record ReferenceLookups(
         IReadOnlyDictionary<Guid, Theory> Theories,
         IReadOnlyDictionary<Guid, Quiz> Quizs,
         IReadOnlyDictionary<Guid, Lab> Labs,
-        IReadOnlyDictionary<Guid, StructureSimulator> StructureSimulators,
-        IReadOnlyDictionary<Guid, FlightSimulator> FlightSimulators);
+        IReadOnlyDictionary<Guid, WebSimulator> WebSimulators,
+        IReadOnlyDictionary<Guid, VRSimulator> VRSimulators);
 
-    private async Task<Dictionary<Guid, StructureSimulator>> GetStructureSimulatorLookupAsync(IReadOnlySet<Guid> structureSimulatorIds)
+    private async Task<Dictionary<Guid, WebSimulator>> GetWebSimulatorLookupAsync(IReadOnlySet<Guid> webSimulatorIds)
     {
-        if (structureSimulatorIds.Count == 0)
+        if (webSimulatorIds.Count == 0)
             return [];
 
-        var result = await _unitOfWork.StructureSimulators.GetAllAsync(
-            filter: x => structureSimulatorIds.Contains(x.StructureID),
+        var result = await _unitOfWork.WebSimulators.GetAllAsync(
+            filter: x => webSimulatorIds.Contains(x.WebSimulatorID),
             pageIndex: 1,
             pageSize: int.MaxValue);
 
-        return result.Data.ToDictionary(x => x.StructureID);
+        return result.Data.ToDictionary(x => x.WebSimulatorID);
     }
 
-    private async Task<Dictionary<Guid, FlightSimulator>> GetFlightSimulatorLookupAsync(IReadOnlySet<Guid> flightSimulatorIds)
+    private async Task<Dictionary<Guid, VRSimulator>> GetVRSimulatorLookupAsync(IReadOnlySet<Guid> vrSimulatorIds)
     {
-        if (flightSimulatorIds.Count == 0)
+        if (vrSimulatorIds.Count == 0)
             return [];
 
-        var result = await _unitOfWork.FlightSimulators.GetAllAsync(
-            filter: x => flightSimulatorIds.Contains(x.FlightID),
+        var result = await _unitOfWork.VRSimulators.GetAllAsync(
+            filter: x => vrSimulatorIds.Contains(x.VRSimulatorID),
             pageIndex: 1,
             pageSize: int.MaxValue);
 
-        return result.Data.ToDictionary(x => x.FlightID);
+        return result.Data.ToDictionary(x => x.VRSimulatorID);
     }
 
     public async Task DeleteLessonAsync(Guid moduleId, Guid lessonId)
@@ -393,18 +393,18 @@ public class LessonService : ILessonService
                         await _unitOfWork.Quizs.DeleteAsync(quiz);
                     }
                     break;
-                case LessonType.STRUCTURE_SIMULATOR:
-                    var structureSimulator = await _unitOfWork.StructureSimulators.GetByIdAsync(lesson.ReferenceID);
-                    if (structureSimulator != null)
+                case LessonType.WEB:
+                    var webSimulator = await _unitOfWork.WebSimulators.GetByIdAsync(lesson.ReferenceID);
+                    if (webSimulator != null)
                     {
-                        await _unitOfWork.StructureSimulators.DeleteAsync(structureSimulator);
+                        await _unitOfWork.WebSimulators.DeleteAsync(webSimulator);
                     }
                     break;
-                case LessonType.FLIGHT_SIMULATOR:
-                    var flightSimulator = await _unitOfWork.FlightSimulators.GetByIdAsync(lesson.ReferenceID);
-                    if (flightSimulator != null)
+                case LessonType.VR:
+                    var vrSimulator = await _unitOfWork.VRSimulators.GetByIdAsync(lesson.ReferenceID);
+                    if (vrSimulator != null)
                     {
-                        await _unitOfWork.FlightSimulators.DeleteAsync(flightSimulator);
+                        await _unitOfWork.VRSimulators.DeleteAsync(vrSimulator);
                     }
                     break;
             }
@@ -470,13 +470,13 @@ public class LessonService : ILessonService
                 if (lab.Status != LabStatus.ACTIVE)
                     throw new ValidationException("Chỉ có thể thêm bài lab ở trạng thái Active vào lesson.");
                 break;
-            case LessonType.STRUCTURE_SIMULATOR:
-                if (await _unitOfWork.StructureSimulators.GetByIdAsync(referenceId) == null)
-                    throw new ValidationException("Không tìm thấy tham chiếu structure simulator.");
+            case LessonType.WEB:
+                if (await _unitOfWork.WebSimulators.GetByIdAsync(referenceId) == null)
+                    throw new ValidationException("Không tìm thấy tham chiếu web simulator.");
                 break;
-            case LessonType.FLIGHT_SIMULATOR:
-                if (await _unitOfWork.FlightSimulators.GetByIdAsync(referenceId) == null)
-                    throw new ValidationException("Không tìm thấy tham chiếu flight simulator.");
+            case LessonType.VR:
+                if (await _unitOfWork.VRSimulators.GetByIdAsync(referenceId) == null)
+                    throw new ValidationException("Không tìm thấy tham chiếu vr simulator.");
                 break;
             default:
                 throw new ValidationException("Loại bài học không hợp lệ.");

@@ -4,20 +4,24 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Droniverse.Academy.Infrastructure.Persistence.MySql.Configurations;
 
-public class FlightSimulatorConfiguration : IEntityTypeConfiguration<FlightSimulator>
+public class VRSimulatorConfiguration : IEntityTypeConfiguration<VRSimulator>
 {
-    public void Configure(EntityTypeBuilder<FlightSimulator> builder)
+    public void Configure(EntityTypeBuilder<VRSimulator> builder)
     {
-        builder.ToTable("FlightSimulator");
+        builder.ToTable("VRSimulator");
 
-        builder.HasKey(x => x.FlightID);
+        builder.HasKey(x => x.VRSimulatorID);
 
-        builder.Property(x => x.FlightID)
+        builder.Property(x => x.VRSimulatorID)
             .HasColumnType("char(36)");
 
-        builder.Property(x => x.ContentVN)
+        builder.Property(x => x.TitleEN)
             .HasColumnType("text")
-            .IsRequired(false);
+            .IsRequired();
+
+        builder.Property(x => x.TitleVN)
+            .HasColumnType("text")
+            .IsRequired();
 
         builder.Property(x => x.CreateBy)
             .HasColumnType("char(36)")
@@ -41,7 +45,7 @@ public class FlightSimulatorConfiguration : IEntityTypeConfiguration<FlightSimul
 
         builder.ToTable(t =>
             t.HasCheckConstraint(
-                "CK_FlightSimulator_EstimatedTime",
+                "CK_VRSimulator_EstimatedTime",
                 "`EstimatedTime` > 0"
             ));
     }

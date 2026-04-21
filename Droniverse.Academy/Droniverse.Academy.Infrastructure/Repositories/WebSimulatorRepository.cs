@@ -4,9 +4,9 @@ using Droniverse.Academy.Infrastructure.Persistence.MySql;
 
 namespace Droniverse.Academy.Infrastructure.Repositories;
 
-internal class FlightSimulatorRepository : MySqlRepository<FlightSimulator>, IFlightSimulatorRepository
+internal class WebSimulatorRepository : MySqlRepository<WebSimulator>, IWebSimulatorRepository
 {
-    public FlightSimulatorRepository(MySqlDbContext context) : base(context)
+    public WebSimulatorRepository(MySqlDbContext context) : base(context)
     {
     }
 }

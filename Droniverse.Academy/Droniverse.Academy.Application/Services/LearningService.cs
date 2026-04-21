@@ -79,10 +79,9 @@ public class LearningService : ILearningService
             UserLessonID = Guid.NewGuid(),
             UserID = _currentUser.UserId,
             LessonID = lessonId,
-            Status = UserLessonStatus.INCOMPLETED,
-            Progress = 0,
             LastAccessDate = _clock.Now
         };
+        userLesson.SetProgress(0);
 
         await _unitOfWork.UserLessons.AddAsync(userLesson);
 
@@ -244,8 +243,7 @@ public class LearningService : ILearningService
         if (context.UserLessons.TryGetValue(context.Lesson.LessonID, out var existingUserLesson))
         {
             var isAlreadyCompleted = IsCompletedUserLesson(existingUserLesson);
-            existingUserLesson.Status = UserLessonStatus.COMPLETED;
-            existingUserLesson.Progress = 100;
+            existingUserLesson.Complete();
             existingUserLesson.LastAccessDate = now;
             await _unitOfWork.UserLessons.UpdateAsync(existingUserLesson);
             return isAlreadyCompleted;
@@ -256,10 +254,9 @@ public class LearningService : ILearningService
             UserLessonID = Guid.NewGuid(),
             UserID = _currentUser.UserId,
             LessonID = context.Lesson.LessonID,
-            Status = UserLessonStatus.COMPLETED,
-            Progress = 100,
             LastAccessDate = now
         };
+        newUserLesson.Complete();
 
         context.UserLessons[context.Lesson.LessonID] = newUserLesson;
         await _unitOfWork.UserLessons.AddAsync(newUserLesson);

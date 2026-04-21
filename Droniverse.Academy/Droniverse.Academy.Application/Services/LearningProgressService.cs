@@ -94,9 +94,8 @@ public sealed class LearningProgressService
         var completedLessons = lessons.Count(lesson =>
             userLessons.TryGetValue(lesson.LessonID, out var userLesson) && IsCompletedUserLesson(userLesson));
 
-        enrollment.Progress = ProgressHelper.CalculateProgress(completedLessons, lessons.Count);
+        enrollment.SetProgress(ProgressHelper.CalculateProgress(completedLessons, lessons.Count));
         enrollment.LastAccessDate = now;
-        enrollment.Status = enrollment.Progress >= 100 ? EnrollStatus.COMPLETED : EnrollStatus.ACTIVE;
 
         await _unitOfWork.Enrollments.UpdateAsync(enrollment);
     }

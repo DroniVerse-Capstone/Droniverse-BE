@@ -2,6 +2,6 @@
 
 namespace Droniverse.Academy.Domain.IRepository;
 
-public interface IStructureSimulatorRepository : IRepository<StructureSimulator>
+public interface IVRSimulatorRepository : IRepository<VRSimulator>
 {
 }

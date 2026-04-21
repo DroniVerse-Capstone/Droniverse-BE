@@ -97,10 +97,17 @@ public class AdminEnrollmentService : IAdminEnrollmentService
         if (enrollment == null)
             throw new BaseException("Không tìm thấy enrollment.", "NOT_FOUND");
 
-        _mapper.Map(request, enrollment);
+        if (request.Progress.HasValue)
+            enrollment.SetProgress(request.Progress.Value);
 
-        if (enrollment.Progress >= 100)
-            enrollment.Status = EnrollStatus.COMPLETED;
+        if (request.LastAccessDate.HasValue)
+            enrollment.LastAccessDate = request.LastAccessDate.Value;
+
+        if (request.ExpireDate.HasValue)
+            enrollment.ExpireDate = request.ExpireDate.Value;
+
+        if (request.Status.HasValue)
+            enrollment.TransitionTo(request.Status.Value);
 
         await _unitOfWork.Enrollments.UpdateAsync(enrollment);
         await _unitOfWork.SaveChangesAsync();

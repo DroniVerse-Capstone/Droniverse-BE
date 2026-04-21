@@ -16,7 +16,7 @@ public class MySqlDbContext : DbContext
     public DbSet<DroneType> DroneTypes { get; set; }
     public DbSet<Enrollment> Enrollments { get; set; }
     public DbSet<Feedback> Feedbacks { get; set; }
-    public DbSet<FlightSimulator> FlightSimulators { get; set; }
+    public DbSet<VRSimulator> VRSimulators { get; set; }
     public DbSet<Lab> Labs { get; set; }
     public DbSet<Lesson> Lessons { get; set; }
     public DbSet<Level> Levels { get; set; }
@@ -28,7 +28,7 @@ public class MySqlDbContext : DbContext
     public DbSet<QuizQuestion> QuizQuestions { get; set; }
     public DbSet<QuizQuestionAttempt> QuizQuestionAttempts { get; set; }
     public DbSet<Report> Reports { get; set; }
-    public DbSet<StructureSimulator> StructureSimulators { get; set; }
+    public DbSet<WebSimulator> WebSimulators { get; set; }
     public DbSet<Theory> Theories { get; set; }
     public DbSet<UserLab> UserLabs { get; set; }
     public DbSet<UserLevel> UserLevels { get; set; }
