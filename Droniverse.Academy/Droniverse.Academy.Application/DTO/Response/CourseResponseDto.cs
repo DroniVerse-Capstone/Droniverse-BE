@@ -9,8 +9,8 @@ public class CourseResponseDTO
     public SimpleUserReponse? Creator { get; set; }
     public DateTime CreateAt { get; set; }
     public CourseStatus Status { get; set; }
-    public LevelMiniReponse? Level { get; set; }
-    public DroneMiniReponse? Drone { get; set; }
+    public LevelMiniResponse? Level { get; set; }
+    public DroneMiniResponse? Drone { get; set; }
     public CourseVersionResponseDTO? CurrentVersion { get; set; }
     public ProductMiniResponseDTO? MiniProduct { get; set; }
 }
