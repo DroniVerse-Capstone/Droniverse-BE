@@ -40,6 +40,7 @@ internal class ClubAttemptRequestRepository : MySqlRepository<ClubAttemptRequest
             .Where(c => c.ClubID == clubID)
             .Include(r => r.Club)
             .Include(r => r.Media)
+            .ThenInclude(m => m.MediaType)
             .AsNoTracking() // Performance: No tracking since we're reading only
             .AsQueryable();
 
