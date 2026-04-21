@@ -25,7 +25,7 @@ public class ReportController : ControllerBase
     }
 
     /// <summary>
-    /// Tạo báo cáo mới cho lab.
+    /// Tạo báo cáo mới.
     /// </summary>
     /// <param name="request">Thông tin báo cáo cần tạo.</param>
     [HttpPost]
@@ -45,23 +45,23 @@ public class ReportController : ControllerBase
     }
 
     /// <summary>
-    /// Lấy danh sách báo cáo và lọc theo lab hoặc người dùng.
+    /// Lấy danh sách báo cáo và lọc theo reference hoặc người dùng.
     /// </summary>
     /// <param name="pageIndex">Trang hiện tại, bắt đầu từ 1.</param>
     /// <param name="pageSize">Số bản ghi trên mỗi trang.</param>
-    /// <param name="labId">Mã lab cần lọc.</param>
+    /// <param name="referenceId">Mã reference cần lọc.</param>
     /// <param name="userId">Mã người dùng cần lọc.</param>
     [HttpGet]
     [Authorize(Roles = Roles.AdminOrManagerRoles)]
     public async Task<IActionResult> GetReports(
         [FromQuery] int pageIndex = 1,
         [FromQuery] int pageSize = 10,
-        [FromQuery] Guid? labId = null,
+        [FromQuery] Guid? referenceId = null,
         [FromQuery] Guid? userId = null)
     {
         try
         {
-            var reports = await _service.GetReportsAsync(pageIndex, pageSize, labId, userId);
+            var reports = await _service.GetReportsAsync(pageIndex, pageSize, referenceId, userId);
             return Ok(SuccessResponse<object>.Create(reports, "Lấy danh sách report thành công."));
         }
         catch (Exception ex)

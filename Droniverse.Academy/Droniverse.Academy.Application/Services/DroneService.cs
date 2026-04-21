@@ -2,6 +2,7 @@
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Exceptions;
@@ -61,7 +62,9 @@ public class DroneService : IDroneService
         if (droneType == null)
             throw new BaseException("Không tìm thấy loại drone.", "NOT_FOUND");
 
+        var targetStatus = request.Status;
         _mapper.Map(request, drone);
+        drone.TransitionTo(targetStatus);
 
         await _unitOfWork.Drones.UpdateAsync(drone);
         await _unitOfWork.SaveChangesAsync();

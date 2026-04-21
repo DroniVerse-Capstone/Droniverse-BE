@@ -19,10 +19,10 @@ public class AdminReportService : IAdminReportService
         _mapper = mapper;
     }
 
-    public async Task<PaginationResult<IEnumerable<ReportResponseDTO>>> GetReportsAsync(int pageIndex = 1, int pageSize = 10, Guid? labId = null, Guid? userId = null)
+    public async Task<PaginationResult<IEnumerable<ReportResponseDTO>>> GetReportsAsync(int pageIndex = 1, int pageSize = 10, Guid? referenceId = null, Guid? userId = null)
     {
         var result = await _unitOfWork.Reports.GetAllAsync(
-            filter: x => (!labId.HasValue || x.LabID == labId.Value)
+            filter: x => (!referenceId.HasValue || x.ReferenceID == referenceId.Value)
                       && (!userId.HasValue || x.UserID == userId.Value),
             pageIndex: pageIndex,
             pageSize: pageSize,

@@ -42,8 +42,7 @@ public class UserCertificateService : IUserCertificateService
 
         var uc = _mapper.Map<UserCertificate>(request);
         //uc.SerialNumber = Guid.NewGuid();
-        uc.AchievedDate = _clock.Now;
-        uc.Status = UserCertificateStatus.ACHIEVED;
+        uc.Achieve(_clock.Now);
 
         await _unitOfWork.UserCertificates.AddAsync(uc);
         await _unitOfWork.SaveChangesAsync();
@@ -102,7 +101,7 @@ public class UserCertificateService : IUserCertificateService
         if (uc == null)
             throw new BaseException("Không tìm thấy chứng chỉ của người dùng.", "NOT_FOUND");
 
-        uc.Status = UserCertificateStatus.REVOKED;
+        uc.Revoke();
         await _unitOfWork.UserCertificates.UpdateAsync(uc);
         await _unitOfWork.SaveChangesAsync();
     }

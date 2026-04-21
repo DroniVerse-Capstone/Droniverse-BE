@@ -32,9 +32,8 @@ public class ReportService : IReportService
         if (string.IsNullOrWhiteSpace(request.Content))
             throw new ValidationException("Nội dung báo cáo là bắt buộc.");
 
-        var lab = await _unitOfWork.Labs.GetByIdAsync(request.LabID);
-        if (lab == null)
-            throw new BaseException("Không tìm thấy lab.", "NOT_FOUND");
+        if (request.ReferenceID == Guid.Empty)
+            throw new ValidationException("ReferenceID là bắt buộc.");
 
         var report = _mapper.Map<Report>(request);
         report.ReportID = Guid.NewGuid();
@@ -48,10 +47,10 @@ public class ReportService : IReportService
         return _mapper.Map<ReportResponseDTO>(report);
     }
 
-    public async Task<PaginationResult<IEnumerable<ReportResponseDTO>>> GetReportsAsync(int pageIndex = 1, int pageSize = 10, Guid? labId = null, Guid? userId = null)
+    public async Task<PaginationResult<IEnumerable<ReportResponseDTO>>> GetReportsAsync(int pageIndex = 1, int pageSize = 10, Guid? referenceId = null, Guid? userId = null)
     {
         var result = await _unitOfWork.Reports.GetAllAsync(
-            filter: r => (!labId.HasValue || r.LabID == labId.Value)
+            filter: r => (!referenceId.HasValue || r.ReferenceID == referenceId.Value)
                       && (!userId.HasValue || r.UserID == userId.Value),
             orderBy: q => q.OrderByDescending(x => x.ReportID),
             pageIndex: pageIndex,

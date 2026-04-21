@@ -32,18 +32,18 @@ public class AdminReportController : ControllerBase
     /// </summary>
     /// <param name="pageIndex">Trang hiện tại, bắt đầu từ 1.</param>
     /// <param name="pageSize">Số bản ghi trên mỗi trang.</param>
-    /// <param name="labId">Lọc theo lab.</param>
+    /// <param name="referenceId">Lọc theo reference.</param>
     /// <param name="userId">Lọc theo người gửi report.</param>
     [HttpGet]
     public async Task<IActionResult> GetReports(
         [FromQuery] int pageIndex = 1,
         [FromQuery] int pageSize = 10,
-        [FromQuery] Guid? labId = null,
+        [FromQuery] Guid? referenceId = null,
         [FromQuery] Guid? userId = null)
     {
         try
         {
-            var reports = await _service.GetReportsAsync(pageIndex, pageSize, labId, userId);
+            var reports = await _service.GetReportsAsync(pageIndex, pageSize, referenceId, userId);
             return Ok(SuccessResponse<object>.Create(reports, "Lấy danh sách report thành công."));
         }
         catch (Exception ex)

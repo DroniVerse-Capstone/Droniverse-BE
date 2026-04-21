@@ -4,6 +4,6 @@ public enum LessonType
     THEORY,
     QUIZ,
     LAB,
-    STRUCTURE_SIMULATOR,
-    FLIGHT_SIMULATOR
+    WEB,
+    VR
 }

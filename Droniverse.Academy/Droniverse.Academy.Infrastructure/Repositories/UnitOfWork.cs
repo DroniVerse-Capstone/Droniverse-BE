@@ -15,7 +15,7 @@ internal class UnitOfWork : IUnitOfWork
     private IDroneTypeRepository _droneType;
     private IEnrollmentRepository _enrollment;
     private IFeedbackRepository _feedback;
-    private IFlightSimulatorRepository _flightSimulator;
+    private IVRSimulatorRepository _vrSimulator;
     private ILabRepository _lab;
     private ILessonRepository _lesson;
     private IModuleRepository _module;
@@ -24,7 +24,7 @@ internal class UnitOfWork : IUnitOfWork
     private IQuizQuestionAttemptRepository _quizQuestionAttempt;
     private IQuizQuestionRepository _quizQuestion;
     private IReportRepository _report;
-    private IStructureSimulatorRepository _structureSimulator;
+    private IWebSimulatorRepository _webSimulator;
     private ITheoryRepository _theory;
     private IUserCertificateRepository _userCertificate;
     private IUserLabRepository _userLab;
@@ -54,7 +54,7 @@ internal class UnitOfWork : IUnitOfWork
 
     public IFeedbackRepository Feedbacks => _feedback ??= new FeedbackRepository(_mySqlContext);
 
-    public IFlightSimulatorRepository FlightSimulators => _flightSimulator ??= new FlightSimulatorRepository(_mySqlContext);
+    public IVRSimulatorRepository VRSimulators => _vrSimulator ??= new VRSimulatorRepository(_mySqlContext);
 
     public ILabRepository Labs => _lab ??= new LabRepository(_mySqlContext);
 
@@ -72,7 +72,7 @@ internal class UnitOfWork : IUnitOfWork
 
     public IReportRepository Reports => _report ??= new ReportRepository(_mySqlContext);
 
-    public IStructureSimulatorRepository StructureSimulators => _structureSimulator ??= new StructureSimulatorRepository(_mySqlContext);
+    public IWebSimulatorRepository WebSimulators => _webSimulator ??= new WebSimulatorRepository(_mySqlContext);
 
     public ITheoryRepository Theories => _theory ??= new TheoryRepository(_mySqlContext);
 

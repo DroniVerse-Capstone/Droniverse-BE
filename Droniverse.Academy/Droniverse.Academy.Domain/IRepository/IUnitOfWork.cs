@@ -11,7 +11,7 @@ namespace Droniverse.Academy.Domain.IRepository
         IDroneTypeRepository DroneTypes { get; }
         IEnrollmentRepository Enrollments { get; }
         IFeedbackRepository Feedbacks { get; }
-        IFlightSimulatorRepository FlightSimulators { get; }
+        IVRSimulatorRepository VRSimulators { get; }
         ILabRepository Labs { get; }
         ILessonRepository Lessons { get; }
         IModuleRepository Modules { get; }
@@ -20,7 +20,7 @@ namespace Droniverse.Academy.Domain.IRepository
         IQuizQuestionAttemptRepository QuizQuestionAttempts { get; }
         IQuizQuestionRepository QuizQuestions { get; }
         IReportRepository Reports { get; }
-        IStructureSimulatorRepository StructureSimulators { get; }
+        IWebSimulatorRepository WebSimulators { get; }
         ITheoryRepository Theories { get; }
         IUserCertificateRepository UserCertificates { get; }
         IUserLabRepository UserLabs { get; }

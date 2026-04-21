@@ -31,8 +31,8 @@ public class LessonMappingProfile : Profile
 
         CreateMap<Lesson, LessonClientViewDTO>();
 
-        CreateMap<StructureSimulator, StructureSimulator>();
-        CreateMap<FlightSimulator, FlightSimulator>();
+        CreateMap<WebSimulator, WebSimulator>();
+        CreateMap<VRSimulator, VRSimulator>();
 
         CreateMap<Theory, LessonClientViewDTO>()
             .ForMember(dest => dest.TitleVN, opt => opt.MapFrom(src => src.TitleVN))
@@ -50,15 +50,15 @@ public class LessonMappingProfile : Profile
             .ForMember(dest => dest.EstimatedTime, opt => opt.MapFrom(src => src.EstimatedTime))
             .ForMember(dest => dest.Type, opt => opt.Ignore());
 
-        CreateMap<StructureSimulator, LessonClientViewDTO>()
-            .ForMember(dest => dest.TitleVN, opt => opt.MapFrom(src => src.ContentVN))
-            .ForMember(dest => dest.TitleEN, opt => opt.Ignore())
+        CreateMap<WebSimulator, LessonClientViewDTO>()
+            .ForMember(dest => dest.TitleVN, opt => opt.MapFrom(src => src.TitleVN))
+            .ForMember(dest => dest.TitleEN, opt => opt.MapFrom(src => src.TitleEN))
             .ForMember(dest => dest.EstimatedTime, opt => opt.MapFrom(src => src.EstimatedTime))
             .ForMember(dest => dest.Type, opt => opt.Ignore());
 
-        CreateMap<FlightSimulator, LessonClientViewDTO>()
-            .ForMember(dest => dest.TitleVN, opt => opt.MapFrom(src => src.ContentVN))
-            .ForMember(dest => dest.TitleEN, opt => opt.Ignore())
+        CreateMap<VRSimulator, LessonClientViewDTO>()
+            .ForMember(dest => dest.TitleVN, opt => opt.MapFrom(src => src.TitleVN))
+            .ForMember(dest => dest.TitleEN, opt => opt.MapFrom(src => src.TitleEN))
             .ForMember(dest => dest.EstimatedTime, opt => opt.MapFrom(src => src.EstimatedTime))
             .ForMember(dest => dest.Type, opt => opt.Ignore());
     }

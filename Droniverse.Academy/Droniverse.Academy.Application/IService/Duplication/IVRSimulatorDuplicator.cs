@@ -2,7 +2,7 @@
 
 namespace Droniverse.Academy.Application.IService.Duplication;
 
-public interface IFlightSimulatorDuplicator
+public interface IVRSimulatorDuplicator
 {
-    Task<Guid> DuplicateAsync(Guid sourceFlightId, CourseVersionDuplicationContext context);
+    Task<Guid> DuplicateAsync(Guid sourceVRSimulatorId, CourseVersionDuplicationContext context);
 }

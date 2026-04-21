@@ -4,9 +4,9 @@ using Droniverse.Academy.Infrastructure.Persistence.MySql;
 
 namespace Droniverse.Academy.Infrastructure.Repositories;
 
-internal class StructureSimulatorRepository : MySqlRepository<StructureSimulator>, IStructureSimulatorRepository
+internal class VRSimulatorRepository : MySqlRepository<VRSimulator>, IVRSimulatorRepository
 {
-    public StructureSimulatorRepository(MySqlDbContext context) : base(context)
+    public VRSimulatorRepository(MySqlDbContext context) : base(context)
     {
     }
 }

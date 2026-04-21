@@ -2,6 +2,6 @@
 
 namespace Droniverse.Academy.Domain.IRepository;
 
-public interface IFlightSimulatorRepository : IRepository<FlightSimulator>
+public interface IWebSimulatorRepository : IRepository<WebSimulator>
 {
 }

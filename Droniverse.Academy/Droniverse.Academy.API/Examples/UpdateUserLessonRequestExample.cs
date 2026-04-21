@@ -12,7 +12,6 @@ public class UpdateUserLessonRequestExample : IMultipleExamplesProvider<UpdateUs
             "Ví dụ cập nhật user lesson",
             new UpdateUserLessonRequestDTO
             {
-                Status = UserLessonStatus.COMPLETED,
                 Progress = 100f,
                 LastAccessDate = DateTime.UtcNow
             }

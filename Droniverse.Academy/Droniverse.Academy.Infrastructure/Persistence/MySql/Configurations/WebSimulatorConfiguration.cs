@@ -4,20 +4,29 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Droniverse.Academy.Infrastructure.Persistence.MySql.Configurations;
 
-public class StructureSimulatorConfiguration : IEntityTypeConfiguration<StructureSimulator>
+public class WebSimulatorConfiguration : IEntityTypeConfiguration<WebSimulator>
 {
-    public void Configure(EntityTypeBuilder<StructureSimulator> builder)
+    public void Configure(EntityTypeBuilder<WebSimulator> builder)
     {
-        builder.ToTable("StructureSimulator");
+        builder.ToTable("WebSimulator");
 
-        builder.HasKey(x => x.StructureID);
+        builder.HasKey(x => x.WebSimulatorID);
 
-        builder.Property(x => x.StructureID)
+        builder.Property(x => x.WebSimulatorID)
             .HasColumnType("char(36)");
 
-        builder.Property(x => x.ContentVN)
+        builder.Property(x => x.TitleEN)
             .HasColumnType("text")
-            .IsRequired(false);
+            .IsRequired();
+
+        builder.Property(x => x.TitleVN)
+            .HasColumnType("text")
+            .IsRequired();
+
+        builder.Property(x => x.Type)
+            .HasColumnType("varchar(20)")
+            .HasMaxLength(20)
+            .IsRequired();
 
         builder.Property(x => x.CreateBy)
             .HasColumnType("char(36)")
@@ -41,8 +50,14 @@ public class StructureSimulatorConfiguration : IEntityTypeConfiguration<Structur
 
         builder.ToTable(t =>
             t.HasCheckConstraint(
-                "CK_StructureSimulator_EstimatedTime",
+                "CK_WebSimulator_EstimatedTime",
                 "`EstimatedTime` > 0"
+            ));
+
+        builder.ToTable(t =>
+            t.HasCheckConstraint(
+                "CK_WebSimulator_Type",
+                "`Type` IN ('Physic', 'LabPhysic')"
             ));
     }
 }

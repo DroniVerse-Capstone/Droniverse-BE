@@ -11,7 +11,7 @@ public class CreateReportRequestExample : IMultipleExamplesProvider<CreateReport
             "Ví dụ tạo report",
             new CreateReportRequestDTO
             {
-                LabID = Guid.Parse("99999999-9999-9999-9999-999999999999"),
+                ReferenceID = Guid.Parse("99999999-9999-9999-9999-999999999999"),
                 Content = "Lab bị lỗi checkpoint tại bước 3, không thể hoàn thành bài."
             }
         );

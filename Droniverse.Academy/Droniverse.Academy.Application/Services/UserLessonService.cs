@@ -45,9 +45,8 @@ public class UserLessonService : IUserLessonService
         var userLesson = _mapper.Map<UserLesson>(request);
         userLesson.UserLessonID = Guid.NewGuid();
         userLesson.UserID = userId;
-        userLesson.Status = UserLessonStatus.INCOMPLETED;
-        userLesson.Progress = 0;
         userLesson.LastAccessDate = _clock.Now;
+        userLesson.SetProgress(0);
 
         await _unitOfWork.UserLessons.AddAsync(userLesson);
         await _unitOfWork.SaveChangesAsync();
@@ -89,9 +88,6 @@ public class UserLessonService : IUserLessonService
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
-        if (request.Status.HasValue)
-            throw new ValidationException("Status được xác định tự động theo Progress.");
-
         if (request.Progress.HasValue && request.Progress is < 0 or > 100)
             throw new ValidationException("Progress phải nằm trong khoảng từ 0 đến 100.");
 
@@ -105,10 +101,7 @@ public class UserLessonService : IUserLessonService
 
         if (request.Progress.HasValue)
         {
-            userLesson.Progress = request.Progress.Value;
-            userLesson.Status = userLesson.Progress >= 100
-                ? UserLessonStatus.COMPLETED
-                : UserLessonStatus.INCOMPLETED;
+            userLesson.SetProgress(request.Progress.Value);
         }
 
         userLesson.LastAccessDate = request.LastAccessDate ?? _clock.Now;

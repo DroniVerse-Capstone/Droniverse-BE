@@ -1,9 +1,11 @@
 ﻿namespace Droniverse.Academy.Domain.Entities;
 
-public class FlightSimulator
+public class WebSimulator
 {
-    public Guid FlightID { get; set; }
-    public string? ContentVN { get; set; }
+    public Guid WebSimulatorID { get; set; }
+    public string TitleEN { get; set; } = string.Empty;
+    public string TitleVN { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
     public Guid CreateBy { get; private set; }
     public Guid UpdateBy { get; private set; }
     public DateTime CreateAt { get; private set; }
