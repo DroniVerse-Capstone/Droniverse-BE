@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Web.Mvc;
 
 namespace Droniverse.Community.Application.DTO.Request
 {
@@ -8,9 +9,11 @@ namespace Droniverse.Community.Application.DTO.Request
         public Guid DroneID { get; set; }
 
         [Required]
+        [AllowHtml]
         public string ClubPolicyVN { get; set; }
 
         [Required]
+        [AllowHtml]
         public string ClubPolicyEN { get; set; }
 
         [Required]

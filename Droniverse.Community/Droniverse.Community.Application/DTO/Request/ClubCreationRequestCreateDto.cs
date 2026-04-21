@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.ComponentModel.DataAnnotations;
+using System.Web.Mvc;
 namespace Droniverse.Community.Application.DTO.Request;
 
 public class ClubCreationRequestCreateDto
@@ -13,9 +14,11 @@ public class ClubCreationRequestCreateDto
     public Guid DroneID { get; set; }
 
     [Required]
+    [AllowHtml]
     public string ClubPolicyVN { get; set; }
 
     [Required]
+    [AllowHtml]
     public string ClubPolicyEN { get; set; }
 
     [Required]
