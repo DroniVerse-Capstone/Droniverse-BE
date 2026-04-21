@@ -225,11 +225,17 @@ namespace Droniverse.Academy.API.Controllers
         // GET academy/courses?pageIndex=1&pageSize=10&search=...&status=All|Draft|Publish|Unpublish|Archived
         [HttpGet]
         [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<CourseResponseDTO>>>), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetAllCourses([FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 10, [FromQuery] string? search = null, [FromQuery] CourseStatusFilter status = CourseStatusFilter.All)
+        public async Task<IActionResult> GetAllCourses(
+            [FromQuery] int pageIndex = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? search = null,
+            [FromQuery] CourseStatusFilter status = CourseStatusFilter.All,
+            [FromQuery] Guid? droneId = null,
+            [FromQuery] Guid? levelId = null)
         {
             try
             {
-                var result = await _courseService.GetAllCoursesAsync(pageIndex, pageSize, search, MapToCourseStatus(status));
+                var result = await _courseService.GetAllCoursesAsync(pageIndex, pageSize, search, MapToCourseStatus(status), droneId, levelId);
                 return Ok(SuccessResponse<PaginationResult<IEnumerable<CourseResponseDTO>>>.Create(result, "Lấy danh sách course thành công."));
             }
             catch (Exception ex)

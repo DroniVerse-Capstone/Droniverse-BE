@@ -12,6 +12,8 @@ namespace Droniverse.Shared.DTOs.Request
         public ClubCourseProfit? ProfitType { get; set; }
         public ManagerCourseSortBy? CourseSortBy { get; set; } = ManagerCourseSortBy.Participants_Quantity;
         public SortDirection? CourseSortDirection { get; set; } = SortDirection.Asc;
+        public Guid? DroneId { get; set; }
+        public Guid? LevelId { get; set; }
     }
 
     public enum ManagerCourseSortBy

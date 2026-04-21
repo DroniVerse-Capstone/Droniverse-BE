@@ -27,6 +27,7 @@ namespace Droniverse.Academy.Domain.IRepository
         IUserLessonRepository UserLessons { get; }
         IUserModuleRepository UserModules { get; }
         ILevelRepository Levels { get; }
+        IPrerequisiteCourseRepository PrerequisiteCourses { get; }
 
         Task ExecuteInTransactionAsync(Func<Task> action);
         Task<T> ExecuteInTransactionAsync<T>(Func<Task<T>> action);

@@ -72,6 +72,7 @@ public static class DependencyInjection
         services.AddScoped<ICacheService, CacheService>();
 
         services.AddScoped<ILevelService, LevelService>();
+        services.AddScoped<IPrerequisiteCourseService, PrerequisiteCourseService>();
 
         services.AddTransient<AuthorizationDelegatingHandler>();
 

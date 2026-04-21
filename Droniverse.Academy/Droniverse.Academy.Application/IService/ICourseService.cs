@@ -16,7 +16,9 @@ public interface ICourseService
             int pageIndex,
             int pageSize,
             string? search = null,
-            CourseStatus? status = null);
+            CourseStatus? status = null,
+            Guid? droneId = null,
+            Guid? levelId = null);
 
     Task<CourseOverviewResponseDTO> GetCourseOverviewAsync(
         Guid clubId,

@@ -8,5 +8,7 @@ namespace Droniverse.Shared.DTOs.Request
 {
     public class HotCoursesSearchRequest : SearchRequest
     {
+        public Guid? DroneId { get; set; }
+        public Guid? LevelId { get; set; }
     }
 }

@@ -37,6 +37,9 @@ public class AdminEnrollmentController : ControllerBase
     /// <param name="pageSize">Số bản ghi trên mỗi trang.</param>
     /// <param name="userId">Lọc theo người dùng.</param>
     /// <param name="courseVersionId">Lọc theo phiên bản khóa học.</param>
+    /// <param name="droneId">Lọc theo drone.</param>
+    /// <param name="levelId">Lọc theo level.</param>
+    /// <param name="clubId">Lọc theo club.</param>
     /// <param name="status">Lọc theo trạng thái enrollment.</param>
     [HttpGet]
     public async Task<IActionResult> GetEnrollments(
@@ -44,11 +47,14 @@ public class AdminEnrollmentController : ControllerBase
         [FromQuery] int pageSize = 10,
         [FromQuery] Guid? userId = null,
         [FromQuery] Guid? courseVersionId = null,
+        [FromQuery] Guid? droneId = null,
+        [FromQuery] Guid? levelId = null,
+        [FromQuery] Guid? clubId = null,
         [FromQuery] EnrollmentStatusFilter status = EnrollmentStatusFilter.All)
     {
         try
         {
-            var result = await _service.GetEnrollmentsAsync(pageIndex, pageSize, userId, courseVersionId, MapEnrollmentStatus(status));
+            var result = await _service.GetEnrollmentsAsync(pageIndex, pageSize, userId, courseVersionId, droneId, levelId, clubId, MapEnrollmentStatus(status));
             return Ok(SuccessResponse<PaginationResult<IEnumerable<EnrollmentResponseDTO>>>.Create(result, "Lấy danh sách enrollment thành công."));
         }
         catch (Exception ex)

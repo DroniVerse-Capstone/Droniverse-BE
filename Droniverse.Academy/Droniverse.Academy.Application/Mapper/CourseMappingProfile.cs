@@ -10,6 +10,7 @@ public class CourseMappingProfile : Profile
     public CourseMappingProfile()
     {
         CreateMap<ProductMiniResponseDTO, ProductMiniResponseDTO>();
+        CreateMap<Level, LevelMiniResponse>();
 
 
 
