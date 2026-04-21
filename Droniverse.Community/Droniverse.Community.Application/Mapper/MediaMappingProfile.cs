@@ -10,7 +10,8 @@ public class MediaMappingProfile : Profile
     public MediaMappingProfile()
     {
         //  Media
-        CreateMap<Media, MediaResponseDto>();
+        CreateMap<Media, MediaResponseDto>()
+            .ForMember(dest => dest.MediaTypeName, opt => opt.MapFrom(src => src.MediaType.TypeNameEN));
 
     }
 }

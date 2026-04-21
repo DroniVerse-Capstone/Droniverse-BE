@@ -90,7 +90,7 @@ namespace Droniverse.Community.Application.Services
         {
             var requests = await _unitOfWork.ClubCreationRequests.GetManyByCondition(
                                         x => !searchRequest.status.HasValue || x.Status == searchRequest.status.Value,
-                                        q => q.Include(x => x.Media).AsNoTracking().OrderByDescending(c => c.CreatedAt)
+                                        q => q.Include(x => x.Media).ThenInclude(m => m.MediaType).AsNoTracking().OrderByDescending(c => c.CreatedAt)
                                     );
 
             if (requests == null || !requests.Any())
@@ -180,7 +180,7 @@ namespace Droniverse.Community.Application.Services
 
             var requests = await _unitOfWork.ClubCreationRequests.GetManyByCondition(
                                         x => x.RequesterID == managerId && (!status.HasValue || x.Status == status.Value),
-                                        q => q.Include(x => x.Media).OrderByDescending(c => c.CreatedAt)
+                                        q => q.Include(x => x.Media).ThenInclude(m => m.MediaType).OrderByDescending(c => c.CreatedAt)
                                     );
 
             if (requests == null || !requests.Any())
@@ -267,7 +267,7 @@ namespace Droniverse.Community.Application.Services
         {
             var request = await _unitOfWork.ClubCreationRequests.GetByCondition(
                                 x => x.ClubCreationRequestID == id,
-                                q => q.Include(x => x.Media));
+                                q => q.Include(x => x.Media).ThenInclude(m => m.MediaType));
 
             if (request == null)
                 throw new KeyNotFoundException($"Club creation request with ID [{id}] not found.");
@@ -332,6 +332,8 @@ namespace Droniverse.Community.Application.Services
                 RequesterEmail = requester?.Email,
                 ApproverName = AppHelper.GetFullName(approver),
                 ApproverEmail = approver?.Email,
+                ClubPolicyVN = request.ClubPolicyVN,
+                ClubPolicyEN = request.ClubPolicyEN,
                 Status = request.Status,
                 Media = _mapper.Map<MediaResponseDto>(request.Media),
                 Drone = drone,
@@ -465,7 +467,7 @@ namespace Droniverse.Community.Application.Services
             // Reload to get updated categories
             var updatedRequest = await _unitOfWork.ClubCreationRequests.GetByCondition(
                 r => r.ClubCreationRequestID == id,
-                query => query
+                query => query.Include(x => x.Media).ThenInclude(m => m.MediaType)
             ) ?? throw new KeyNotFoundException($"Club creation request with ID {id} not found.");
 
             // Return response

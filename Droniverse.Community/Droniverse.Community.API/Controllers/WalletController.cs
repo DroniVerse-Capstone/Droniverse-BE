@@ -21,13 +21,25 @@ namespace Droniverse.Community.API.Controllers
             _walletService = walletService;
         }
 
+        [HttpPost("withdraw-request")]
+        public async Task<ApiResponse> CreateWithdrawRequest([FromBody] WithdrawRequestDto request)
+        {
+            await _walletService.CreateWithdrawRequest(request);
+            return SuccessResponse<string>.Create("Yêu cầu rút tiền đã được gửi thành công");
+        }
+
+
+        /// <summary>
+        /// Lấy thông tin ví của club manager đang đăng nhập
+        /// </summary>
+        /// <returns></returns>
         [HttpGet("me")]
         [Authorize(Roles = Roles.ClubManager)]
         public async Task<ApiResponse> GetMyWallet()
         {
-            WalletRequestDto result = await _walletService.GetMyWallet();
+            WalletResponseDto result = await _walletService.GetMyWallet();
 
-            return SuccessResponse<WalletRequestDto>.Create(result, "Lấy thông tin ví thành công");
+            return SuccessResponse<WalletResponseDto>.Create(result, "Lấy thông tin ví thành công");
         }
 
         /// <summary>

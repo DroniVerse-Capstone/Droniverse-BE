@@ -41,7 +41,7 @@ builder.Services.AddControllers()
         // Convert enum sang string khi serialize/deserialize JSON
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-        options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+        options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.Never;
     });
 
 // Cho phép serialize Guid dưới dạng string trong MongoDB

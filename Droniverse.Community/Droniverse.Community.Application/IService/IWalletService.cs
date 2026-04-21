@@ -3,9 +3,10 @@ namespace Droniverse.Community.Application.IService;
 
 public interface IWalletService
 {
+    Task<WithdrawResponseDto> CreateWithdrawRequest(WithdrawRequestDto request);
     Task<WalletResponseDto> CreateWallet(WalletRequestDto request);
     Task<WalletResponseDto> UpdateWallet(WalletRequestDto request);
     Task<WalletResponseDto> GetWalletById(Guid walletId);
-    Task<WalletRequestDto> GetMyWallet();
+    Task<WalletResponseDto> GetMyWallet();
 }
 
