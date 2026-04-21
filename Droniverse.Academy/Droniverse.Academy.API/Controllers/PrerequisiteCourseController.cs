@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Droniverse.Academy.API.Controllers;
 
-[Route("api/courses/{courseId:guid}/prerequisites")]
+[Route("academy/courses/{courseId:guid}/prerequisites")]
 [ApiController]
 public class PrerequisiteCourseController : ControllerBase
 {
@@ -33,7 +33,7 @@ public class PrerequisiteCourseController : ControllerBase
         try
         {
             if (courseId == Guid.Empty)
-                return BadRequest(SuccessResponse<object>.Create(null!, "courseId không hợp lệ."));
+                return BadRequest(SuccessResponse<object>.Create(null!, "Course không hợp lệ."));
 
             if (request?.PrerequisiteCourseIds == null || !request.PrerequisiteCourseIds.Any())
                 return BadRequest(SuccessResponse<object>.Create(null!, "Danh sách prerequisiteCourseIds không được để trống."));

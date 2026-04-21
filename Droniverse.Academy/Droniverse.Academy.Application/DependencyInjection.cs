@@ -71,6 +71,8 @@ public static class DependencyInjection
         services.AddScoped<IImportService, ImportService>();
         services.AddScoped<ICacheService, CacheService>();
 
+        services.AddScoped<ILevelService, LevelService>();
+
         services.AddTransient<AuthorizationDelegatingHandler>();
 
         //đăng ký httpclient

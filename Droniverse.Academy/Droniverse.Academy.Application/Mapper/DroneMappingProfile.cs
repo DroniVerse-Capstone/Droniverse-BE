@@ -21,5 +21,10 @@ public class DroneMappingProfile : Profile
         CreateMap<Drone, DroneClientViewDTO>()
             .ForMember(dest => dest.DroneTypeNameVN, opt => opt.MapFrom(src => src.DroneType != null ? src.DroneType.TypeNameVN : string.Empty))
             .ForMember(dest => dest.DroneTypeNameEN, opt => opt.MapFrom(src => src.DroneType != null ? src.DroneType.TypeNameEN : string.Empty));
+
+        CreateMap<Drone, DroneMiniResponse>()
+            .ForMember(dest => dest.DroneID, opt => opt.MapFrom(src => src.DroneID))
+            .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.DroneNameEN))
+            .ForMember(dest => dest.ImgURL, opt => opt.MapFrom(src => src.ImgURL));
     }
 }

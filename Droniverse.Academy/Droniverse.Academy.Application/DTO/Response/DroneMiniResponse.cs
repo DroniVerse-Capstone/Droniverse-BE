@@ -6,10 +6,11 @@ using System.Threading.Tasks;
 
 namespace Droniverse.Academy.Application.DTO.Response
 {
-    public class LevelMiniReponse
+    public class DroneMiniResponse
     {
-        public Guid LevelID { get; set; }
-        public int LevelNumber { get; set; }
+        public Guid DroneID { get; set; }
         public string Name { get; set; }
+        public string ImgURL { get; set; } 
+
     }
 }
