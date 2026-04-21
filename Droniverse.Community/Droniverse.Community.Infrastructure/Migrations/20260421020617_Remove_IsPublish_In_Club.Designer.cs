@@ -3,6 +3,7 @@ using System;
 using Droniverse.Community.Infrastructure.Persistence.MySql;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Droniverse.Community.Infrastructure.Migrations
 {
     [DbContext(typeof(MySqlDbContext))]
-    partial class MySqlDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260421020617_Remove_IsPublish_In_Club")]
+    partial class Remove_IsPublish_In_Club
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -220,6 +223,9 @@ namespace Droniverse.Community.Infrastructure.Migrations
 
                     b.Property<string>("ImageUrl")
                         .HasColumnType("text");
+
+                    b.Property<bool>("IsPublic")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int>("LimitClubManager")
                         .HasColumnType("int");

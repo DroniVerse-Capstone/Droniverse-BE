@@ -4,6 +4,7 @@ using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Enums;
+using Droniverse.Shared.Exceptions;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -16,7 +17,6 @@ using System.Text.Json.Serialization;
 
 namespace Droniverse.Community.Application.HttpClients;
 
-// DTO for Academy microservice response
 public class CourseResponse
 {
     public Guid CourseId { get; set; }
@@ -49,6 +49,10 @@ public class AcademyMicroserviceClient
     new DistributedCacheEntryOptions()
         .SetAbsoluteExpiration(TimeSpan.FromMinutes(3))
         .SetSlidingExpiration(TimeSpan.FromMinutes(1));
+    private static readonly DistributedCacheEntryOptions DroneCacheOptions =
+        new DistributedCacheEntryOptions()
+        .SetSlidingExpiration(TimeSpan.FromMinutes(5))
+        .SetAbsoluteExpiration(TimeSpan.FromMinutes(2));
     private static readonly JsonSerializerOptions _jsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -67,6 +71,155 @@ public class AcademyMicroserviceClient
         _distributedCache = distributedCache;
         _environment = environment;
         _currentUserService = currentUserService;
+    }
+
+    public async Task<IEnumerable<DroneResponseDto>> GetDronesBulk(IEnumerable<Guid> droneIds)
+    {
+        if (droneIds == null || !droneIds.Any())
+            return Enumerable.Empty<DroneResponseDto>();
+
+        var distinctIds = droneIds.Where(id => id != Guid.Empty).Distinct().ToList();
+
+        if (distinctIds.Count == 0)
+            return Enumerable.Empty<DroneResponseDto>();
+
+        var droneDict = new Dictionary<Guid, DroneResponseDto>();
+        var missingIds = new List<Guid>();
+
+        var cacheReadTasks = distinctIds.Select(async id =>
+        {
+            var cacheKey = $"drone:{id}";
+            var cacheValue = await _distributedCache.GetStringAsync(cacheKey);
+            _logger.LogInformation($"Drone with id [{id}] found in cache.");
+            return (Id: id, CacheValue: cacheValue);
+        });
+
+        var cachedDrones = await Task.WhenAll(cacheReadTasks);
+
+        foreach (var (id, cacheValue) in cachedDrones)
+        {
+            if (string.IsNullOrWhiteSpace(cacheValue))
+            {
+                missingIds.Add(id);
+                continue;
+            }
+
+            try
+            {
+                var cachedDrone = JsonSerializer.Deserialize<DroneResponseDto>(cacheValue);
+                if (cachedDrone == null)
+                {
+                    missingIds.Add(id);
+                    continue;
+                }
+
+                droneDict[id] = cachedDrone;
+            }
+            catch
+            {
+                missingIds.Add(id);
+            }
+        }
+
+        if (missingIds.Any())
+        {
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync(
+                    BuildAcademyPath($"drones/bulk"),
+                    missingIds
+                );
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                    {
+                        _logger.LogError("Academy service unavailable (bulk request).");
+                        throw new HttpRequestException(
+                            "Academy service unavailable",
+                            null,
+                            System.Net.HttpStatusCode.ServiceUnavailable);
+                    }
+
+                    if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                    {
+                        throw new HttpRequestException(
+                            "Bad request when calling Academy bulk API",
+                            null,
+                            System.Net.HttpStatusCode.BadRequest);
+                    }
+
+                    throw new HttpRequestException(
+                        $"Academy bulk API error: {response.StatusCode}",
+                        null,
+                        response.StatusCode);
+                }
+
+                var dronesFromApi = await response.Content.ReadFromJsonAsync<IEnumerable<DroneResponseDto>>(_jsonOptions);
+                
+                if (dronesFromApi == null || !dronesFromApi.Any())
+                {
+                    _logger.LogWarning("No drones returned from Academy API.");
+                    return distinctIds.Where(id => droneDict.ContainsKey(id)).Select(id => droneDict[id]);
+                }
+
+                var cacheWriteTasks = new List<Task>();
+
+                foreach (var drone in dronesFromApi)
+                {
+                    droneDict[drone.DroneID] = drone;
+                    string droneKeyToWrite = $"drone:{drone.DroneID}";
+                    string droneCacheString = JsonSerializer.Serialize(drone);
+                    cacheWriteTasks.Add(_distributedCache.SetStringAsync(droneKeyToWrite, droneCacheString, DroneCacheOptions));
+                }
+
+                if (cacheWriteTasks.Count > 0)
+                    await Task.WhenAll(cacheWriteTasks);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calling Academy bulk API");
+                throw;
+            }
+        }
+
+        return distinctIds
+            .Where(id => droneDict.ContainsKey(id))
+            .Select(id => droneDict[id]);
+
+    }
+
+    public async Task<DroneResponseDto> GetDroneDetailById(Guid droneId)
+    {
+        HttpResponseMessage httpResponseMsg = await _httpClient.GetAsync(
+            BuildAcademyPath($"drones/{droneId}"));
+        if (!httpResponseMsg.IsSuccessStatusCode)
+        {
+            if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+            {
+                _logger.LogError("Dịch vụ Academy tạm thời không khả dụng.");
+                return null;
+            }
+            else if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                _logger.LogWarning("Không tìm thấy drone trong Academy Microservice.");
+                return null;
+            }
+            else if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            {
+                throw new HttpRequestException("Yêu cầu không hợp lệ khi gọi Academy service.", null, System.Net.HttpStatusCode.BadRequest);
+            }
+            else
+            {
+                throw new HttpRequestException($"Lỗi Academy service: {httpResponseMsg.StatusCode}", null, httpResponseMsg.StatusCode);
+            }
+        }
+        DroneResponseDto? drone = (await httpResponseMsg.Content.ReadFromJsonAsync<DroneResponseDto>(_jsonOptions));
+        if (drone == null)
+        {
+            throw new NotFoundException("NOT FOUND DRONE");
+        }
+        return drone;
     }
 
     public async Task<CodeResponse> GenerateAssignCodesAsync(GenerateCodesRequestDTO request)

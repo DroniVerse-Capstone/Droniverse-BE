@@ -6,12 +6,10 @@ using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.Enums;
-using Droniverse.Academy.Application.Enums;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.DTOs.Response;
 using Microsoft.EntityFrameworkCore;
-using Droniverse.Shared.Constants;
 using Droniverse.Shared.Enums;
 using Droniverse.Shared.DTOs;
 
@@ -340,6 +338,31 @@ internal class ClubService : IClubService
         return new PaginationResult<IEnumerable<GetParticipantsResponse>>(data, totalRecords, currentPage, pageSize);
     }
 
+    private async Task<IEnumerable<DroneResponseDto>> GetDronesByIds(IEnumerable<Guid> droneIds)
+    {
+        var ids = droneIds
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+        if (ids.Count == 0)
+            return [];
+        try
+        {
+            return await _academyMicroserviceClient.GetDronesBulk(ids);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Không lấy được thông tin drones khi gọi API. Error: {ex.Message}");
+            Console.WriteLine($"Exception Type: {ex.GetType().Name}");
+            Console.WriteLine($"Stack Trace: {ex.StackTrace}");
+            if (ex.InnerException != null)
+            {
+                Console.WriteLine($"Inner Exception: {ex.InnerException.Message}");
+            }
+            return [];
+        }
+    }
+
     private async Task<IEnumerable<UserResponse>> GetUsersByIds(IEnumerable<Guid> userIds)
     {
         var ids = userIds
@@ -540,12 +563,17 @@ internal class ClubService : IClubService
         var users = await GetUsersByIds(userIds);
         var userDict = users.ToDictionary(u => u.UserId, u => u);
 
+        var droneIds = clubList.Select(c => c.DroneID).Where(id => id != Guid.Empty).Distinct().ToList();
+        var drones = await GetDronesByIds(droneIds);
+        var droneDict = drones.ToDictionary(d => d.DroneID, d => d);
+
         var clubStats = await GetClubStatsByClubIds(clubList.Select(c => c.ClubID));
 
         return clubList.Select(club =>
         {
             userDict.TryGetValue(club.CreatedBy, out var creator);
-            return BuildClubResponseDto(club, clubStats, creator);
+            droneDict.TryGetValue(club.DroneID, out var drone);
+            return BuildClubResponseDto(club, clubStats, creator, drone);
         });
     }
 
@@ -604,21 +632,24 @@ internal class ClubService : IClubService
         return await BuildClubResponseDto(club);
     }
 
-    private async Task<ClubResponseDto> BuildClubResponseDto(Club club, UserResponse? creator = null)
+    private async Task<ClubResponseDto> BuildClubResponseDto(Club club, UserResponse? creator = null, DroneResponseDto? drone = null)
     {
         var clubStats = await GetClubStatsByClubIds([club.ClubID]);
         creator ??= await GetUserById(club.CreatedBy);
+        drone ??= await GetDroneById(club.DroneID);
 
-        return BuildClubResponseDto(club, clubStats, creator);
+        return BuildClubResponseDto(club, clubStats, creator, drone);
     }
 
     private ClubResponseDto BuildClubResponseDto(
         Club club,
         IReadOnlyDictionary<Guid, (int MemberCount, int CourseCount)> clubStats,
-        UserResponse? creator)
+        UserResponse? creator,
+        DroneResponseDto? drone)
     {
         var response = _mapper.Map<ClubResponseDto>(club);
         response.Creator = creator;
+        response.Drone = drone;
 
         var (memberCount, courseCount) = clubStats.GetValueOrDefault(club.ClubID, (0, 0));
         response.TotalMembers = memberCount;
@@ -630,6 +661,11 @@ internal class ClubService : IClubService
     private async Task<Dictionary<Guid, (int MemberCount, int CourseCount)>> GetClubStatsByClubIds(IEnumerable<Guid> clubIds)
     {
         return await _unitOfWork.Clubs.GetClubStatsByClubIds(clubIds);
+    }
+
+    private async Task<DroneResponseDto?> GetDroneById(Guid droneId)
+    {
+        return (await GetDronesByIds([droneId])).FirstOrDefault();
     }
 
     private async Task<UserResponse?> GetUserById(Guid userId)

@@ -1,4 +1,5 @@
 ﻿using Droniverse.Community.Domain.Enums;
+using Droniverse.Shared.DTOs.Response;
 
 namespace Droniverse.Community.Application.DTO.Response;
 
@@ -8,7 +9,6 @@ public class ClubCreationRequestResponseDto
     public string NameVN { get; set; } = string.Empty;
     public string NameEN { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    public bool IsPublic { get; set; }
     public int LimitParticipant { get; set; }
     public int LimitClubManager { get; set; }
     public string? ImageUrl { get; set; }
@@ -25,5 +25,5 @@ public class ClubCreationRequestResponseDto
     public string? RequesterEmail { get; set; }
     public ClubCreationRequestStatus Status { get; set; }
     public MediaResponseDto Media { get; set; }
-    public Guid DroneID { get; set; }
+    public DroneResponseDto Drone { get; set; }
 }

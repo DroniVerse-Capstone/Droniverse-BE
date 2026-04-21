@@ -9,6 +9,7 @@ using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Filters;
+using Droniverse.Shared.DTOs.Response;
 
 namespace Droniverse.Academy.API.Controllers;
 
@@ -130,14 +131,30 @@ public class DroneController : ControllerBase
         }
     }
 
-    private static DroneStatus? MapDroneStatus(DroneStatusFilter status)
+    [HttpPost("bulk")]
+    [Authorize(Roles = Roles.SystemRoles)]
+    public async Task<IActionResult> GetDronesByIds([FromBody] IEnumerable<Guid> droneIds)
+    {
+        try
+        {
+            var drones = await _droneService.GetDronesByIdsAsync(droneIds);
+            return Ok(drones);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lấy danh sách drone thất bại.");
+            throw;
+        }
+    }
+
+    private static Domain.Enums.DroneStatus? MapDroneStatus(DroneStatusFilter status)
     {
         return status switch
         {
             DroneStatusFilter.All => null,
-            DroneStatusFilter.Active => DroneStatus.ACTIVE,
-            DroneStatusFilter.Inactive => DroneStatus.INACTIVE,
-            DroneStatusFilter.Deprecated => DroneStatus.DEPRECATED,
+            DroneStatusFilter.Active => Domain.Enums.DroneStatus.ACTIVE,
+            DroneStatusFilter.Inactive => Domain.Enums.DroneStatus.INACTIVE,
+            DroneStatusFilter.Deprecated => Domain.Enums.DroneStatus.DEPRECATED,
             _ => null
         };
     }

@@ -26,6 +26,7 @@ namespace Droniverse.Community.Application.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IdentityMicroserviceClient _identityMicroserviceClient;
+        private readonly AcademyMicroserviceClient _academyMicroserviceClient;
         private readonly ICurrentUserService _currentUserService;
         private readonly IClock _clock;
         private readonly IMapper _mapper;
@@ -34,12 +35,14 @@ namespace Droniverse.Community.Application.Services
             IUnitOfWork unitOfWork,
             IMapper mapper,
             IdentityMicroserviceClient identityMicroserviceClient,
+            AcademyMicroserviceClient academyMicroserviceClient,
             ICurrentUserService currentUserService,
             IClock clock)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _identityMicroserviceClient = identityMicroserviceClient;
+            _academyMicroserviceClient = academyMicroserviceClient;
             _currentUserService = currentUserService;
             _clock = clock;
         }
@@ -60,7 +63,6 @@ namespace Droniverse.Community.Application.Services
                 dto.NameVN,
                 dto.NameEN,
                 dto.Description,
-                dto.IsPublic,
                 dto.LimitParticipant,
                 1, //limit club manager mặc định là 1
                 dto.Image,
@@ -111,11 +113,31 @@ namespace Droniverse.Community.Application.Services
                 }
             }
 
-            var userDict = users.ToDictionary(u => u.UserId, u => u);
+            var droneIds = requests
+                .Select(x => x.DroneID)
+                .Where(id => id != Guid.Empty)
+                .Distinct()
+                .ToList();
+            IEnumerable<DroneResponseDto> drones = Enumerable.Empty<DroneResponseDto>();
+            if (droneIds.Count != 0)
+            {
+                try
+                {
+                    drones = await _academyMicroserviceClient.GetDronesBulk(droneIds);
+                }
+                catch
+                {
+                    Console.WriteLine("Không lấy được thông tin drone từ academy service.");
+                }
+            }
 
-            var result = requests.Select(x => 
+            var userDict = users.ToDictionary(u => u.UserId, u => u);
+            var droneDict = drones.ToDictionary(d => d.DroneID, d => d);
+
+            var tasks = requests.Select(async x =>
             {
                 userDict.TryGetValue(x.RequesterID, out var requester);
+                droneDict.TryGetValue(x.DroneID, out var drone);
                 var approver = x.ApproverID.HasValue && userDict.TryGetValue(x.ApproverID.Value, out var a) ? a : null;
 
                 return new ClubCreationRequestResponseDto
@@ -124,7 +146,6 @@ namespace Droniverse.Community.Application.Services
                     NameVN = x.NameVN,
                     NameEN = x.NameEN,
                     Description = x.Description,
-                    IsPublic = x.IsPublic,
                     LimitParticipant = x.LimitParticipant,
                     LimitClubManager = x.LimitClubManager,
                     ImageUrl = x.ImageUrl,
@@ -141,10 +162,11 @@ namespace Droniverse.Community.Application.Services
                     ApproverEmail = approver?.Email,
                     Status = x.Status,
                     Media = _mapper.Map<MediaResponseDto>(x.Media),
-                    DroneID = x.DroneID,
+                    Drone = drone,
                 };
             });
 
+            var result = await Task.WhenAll(tasks);
             return result.ToPaginationResult(searchRequest);
         }
 
@@ -181,18 +203,37 @@ namespace Droniverse.Community.Application.Services
 
             var userDict = users.ToDictionary(u => u.UserId, u => u);
 
-            return requests.Select(x =>
+            var droneIds = requests
+                .Select(x => x.DroneID)
+                .Where(id => id != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            IEnumerable<DroneResponseDto> drones = [];
+            if (droneIds.Any())
+            {
+                try
+                {
+                    drones = await _academyMicroserviceClient.GetDronesBulk(droneIds);
+                }
+                catch
+                {
+                    Console.WriteLine("Không lấy được thông tin drone từ academy service.");
+                }
+            }
+
+            var droneDict = drones.ToDictionary(d => d.DroneID, d => d);
+            var tasks = requests.Select(async x =>
             {
                 userDict.TryGetValue(x.RequesterID, out var requester);
                 var approver = x.ApproverID.HasValue && userDict.TryGetValue(x.ApproverID.Value, out var a) ? a : null;
-
+                droneDict.TryGetValue(x.DroneID, out var drone);
                 return new ClubCreationRequestResponseDto
                 {
                     ClubCreationRequestID = x.ClubCreationRequestID,
                     NameVN = x.NameVN,
                     NameEN = x.NameEN,
                     Description = x.Description,
-                    IsPublic = x.IsPublic,
                     LimitParticipant = x.LimitParticipant,
                     LimitClubManager = x.LimitClubManager,
                     ImageUrl = x.ImageUrl,
@@ -207,9 +248,13 @@ namespace Droniverse.Community.Application.Services
                     RequesterEmail = requester?.Email,
                     ApproverName = AppHelper.GetFullName(approver),
                     ApproverEmail = approver?.Email,
-                    Status = x.Status
+                    Status = x.Status,
+                    Media = _mapper.Map<MediaResponseDto>(x.Media),
+                    Drone = drone,
                 };
             });
+
+            return await Task.WhenAll(tasks);
         }
 
         public async Task<ClubCreationRequestResponseDto> GetClubCreationRequestById(Guid id)
@@ -245,7 +290,6 @@ namespace Droniverse.Community.Application.Services
                 NameVN = request.NameVN,
                 NameEN = request.NameEN,
                 Description = request.Description,
-                IsPublic = request.IsPublic,
                 LimitParticipant = request.LimitParticipant,
                 LimitClubManager = request.LimitClubManager,
                 ImageUrl = request.ImageUrl,
@@ -400,7 +444,6 @@ namespace Droniverse.Community.Application.Services
                 NameVN = updatedRequest.NameVN,
                 NameEN = updatedRequest.NameEN,
                 Description = updatedRequest.Description,
-                IsPublic = updatedRequest.IsPublic,
                 LimitParticipant = updatedRequest.LimitParticipant,
                 LimitClubManager = updatedRequest.LimitClubManager,
                 ImageUrl = updatedRequest.ImageUrl,

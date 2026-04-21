@@ -13,13 +13,12 @@ public record ClubResponseDto
     public required string DescriptionEN { get; init; }
     public required string ClubCode { get; init; }
     public ClubStatus Status { get; init; }
-    public bool IsPublic { get; init; }
     public string? ImageUrl { get; init; }
     public int LimitParticipation { get; init; }
     public int LimitClubManagers { get; init; }
     public int TotalMembers { get; set; }
     public int TotalCourses { get; set; }
     public string? SuspendedReason { get; set; }
-    public Guid DroneID { get; set; }
+    public DroneResponseDto Drone { get; set; }
     public UserResponse? Creator { get; set; }
 }
