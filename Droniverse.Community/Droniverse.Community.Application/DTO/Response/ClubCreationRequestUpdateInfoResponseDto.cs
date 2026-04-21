@@ -14,7 +14,8 @@ namespace Droniverse.Community.Application.DTO.Response
         public DateTime? UpdatedAt { get; set; }
         public ClubCreationRequestStatus Status { get; set; }
         public Guid DroneID { get; set; }
-        public string? ClubPolicy { get; set; }
+        public string? ClubPolicyVN { get; set; }
+        public string? ClubPolicyEN { get; set; }
         public MediaResponseDto Media { get; set; }
     }
 }

@@ -9,7 +9,8 @@ public class Club
     public Guid CreatedBy { get; set; }
     public Guid ManagerID { get; set; }
     public Guid DroneID { get; set; }
-    public string ClubPolicy { get; set; }
+    public string ClubPolicyVN { get; set; }
+    public string ClubPolicyEN { get; set; }
     public ICollection<Participation> Participations { get; set; }
     public ICollection<Competition> Competitions { get; set; }
     public ICollection<ClubAttemptRequest> ClubRequests { get; set; }
@@ -56,7 +57,8 @@ public class Club
         string? imageUrl,
         Guid managerID,
         Guid droneID,
-        string clubPolicy)
+        string clubPolicyVN,
+        string clubPolicyEN)    
     {
         ClubID = Guid.NewGuid();
         NameVN = nameVN;
@@ -77,7 +79,8 @@ public class Club
 
         ManagerID = managerID;
         DroneID = droneID;
-        ClubPolicy = clubPolicy;
+        ClubPolicyVN = clubPolicyVN;
+        ClubPolicyEN = clubPolicyEN;
     }
 
     // ===== Domain Methods =====

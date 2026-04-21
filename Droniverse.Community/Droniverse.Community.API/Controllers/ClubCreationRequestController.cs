@@ -101,7 +101,7 @@ namespace Droniverse.Community.API.Controllers
         /// <summary>
         /// API cập nhật trạng thái của request
         /// </summary>
-        /// <param name="id">ClubCreationRequestID : 453d5f2d-5f79-401f-a970-09df2f2deeff</param>
+        /// <param name="id">ClubCreationRequestID : 548accad-a382-4c63-8053-7cc621d25615</param>
         /// <param name="request"></param>
         /// <remarks>
         /// [0: PENDING, 1: APPROVED, 2: REJECTED, 3: CANCELLED]

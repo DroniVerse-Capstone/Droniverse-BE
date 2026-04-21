@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Droniverse.Community.Application.DTO.Extensions;
 using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.HttpClients;
@@ -6,19 +7,19 @@ using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository;
-using Droniverse.Shared.DTOs;
-using Droniverse.Shared.Exceptions;
-using Droniverse.Shared.Services;
 using Droniverse.Shared.Constants;
+using Droniverse.Shared.DTOs;
+using Droniverse.Shared.DTOs.Response;
+using Droniverse.Shared.Exceptions;
+using Droniverse.Shared.Helpers;
+using Droniverse.Shared.Services;
 using Microsoft.EntityFrameworkCore;
+using Org.BouncyCastle.Asn1.Ocsp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Droniverse.Shared.DTOs.Response;
-using Droniverse.Community.Application.DTO.Extensions;
-using Droniverse.Shared.Helpers;
 
 namespace Droniverse.Community.Application.Services
 {
@@ -69,7 +70,8 @@ namespace Droniverse.Community.Application.Services
                 requesterID,
                 dto.DroneID,
                 dto.Media,
-                dto.ClubPolicy
+                dto.ClubPolicyVN,
+                dto.ClubPolicyEN
             );
 
             await _unitOfWork.ClubCreationRequests.Add(request);
@@ -160,6 +162,8 @@ namespace Droniverse.Community.Application.Services
                     RequesterEmail = requester?.Email,
                     ApproverName = AppHelper.GetFullName(approver),
                     ApproverEmail = approver?.Email,
+                    ClubPolicyVN = x.ClubPolicyVN,
+                    ClubPolicyEN = x.ClubPolicyEN,
                     Status = x.Status,
                     Media = _mapper.Map<MediaResponseDto>(x.Media),
                     Drone = drone,
@@ -176,7 +180,7 @@ namespace Droniverse.Community.Application.Services
 
             var requests = await _unitOfWork.ClubCreationRequests.GetManyByCondition(
                                         x => x.RequesterID == managerId && (!status.HasValue || x.Status == status.Value),
-                                        q => q.OrderByDescending(c => c.CreatedAt)
+                                        q => q.Include(x => x.Media).OrderByDescending(c => c.CreatedAt)
                                     );
 
             if (requests == null || !requests.Any())
@@ -248,6 +252,8 @@ namespace Droniverse.Community.Application.Services
                     RequesterEmail = requester?.Email,
                     ApproverName = AppHelper.GetFullName(approver),
                     ApproverEmail = approver?.Email,
+                    ClubPolicyVN = x.ClubPolicyVN,
+                    ClubPolicyEN = x.ClubPolicyEN,
                     Status = x.Status,
                     Media = _mapper.Map<MediaResponseDto>(x.Media),
                     Drone = drone,
@@ -260,8 +266,8 @@ namespace Droniverse.Community.Application.Services
         public async Task<ClubCreationRequestResponseDto> GetClubCreationRequestById(Guid id)
         {
             var request = await _unitOfWork.ClubCreationRequests.GetByCondition(
-                                        x => x.ClubCreationRequestID == id,
-                                        q => q.Include(x => x.Media));
+                                x => x.ClubCreationRequestID == id,
+                                q => q.Include(x => x.Media));
 
             if (request == null)
                 throw new KeyNotFoundException($"Club creation request with ID [{id}] not found.");
@@ -270,7 +276,29 @@ namespace Droniverse.Community.Application.Services
             if (request.ApproverID.HasValue)
                 userIds.Add(request.ApproverID.Value);
 
-            IEnumerable<UserResponse> users = Enumerable.Empty<UserResponse>();
+            // Get drones
+            var droneIds = request.DroneID != Guid.Empty 
+                ? new List<Guid> { request.DroneID } 
+                : new List<Guid>();
+
+            IEnumerable<DroneResponseDto> drones = [];
+            if (droneIds.Any())
+            {
+                try
+                {
+                    drones = await _academyMicroserviceClient.GetDronesBulk(droneIds);
+                }
+                catch
+                {
+                    Console.WriteLine("Không lấy được thông tin drone từ academy service.");
+                }
+            }
+
+            var droneDict = drones.ToDictionary(d => d.DroneID, d => d);
+            droneDict.TryGetValue(request.DroneID, out var drone);
+
+            // Get users
+            IEnumerable<UserResponse> users = [];
             try
             {
                 users = await _identityMicroserviceClient.GetUsersBulk(userIds.Distinct());
@@ -305,7 +333,8 @@ namespace Droniverse.Community.Application.Services
                 ApproverName = AppHelper.GetFullName(approver),
                 ApproverEmail = approver?.Email,
                 Status = request.Status,
-                Media = _mapper.Map<MediaResponseDto>(request.Media)
+                Media = _mapper.Map<MediaResponseDto>(request.Media),
+                Drone = drone,
             };
         }
 
@@ -344,7 +373,8 @@ namespace Droniverse.Community.Application.Services
                         request.ImageUrl,
                         managerID: request.RequesterID,
                         droneID: request.DroneID,
-                        clubPolicy: request.ClubPolicy
+                        clubPolicyVN: request.ClubPolicyVN,
+                        clubPolicyEN: request.ClubPolicyEN
                     );
 
                     await _unitOfWork.Clubs.Add(newClub);
@@ -423,7 +453,8 @@ namespace Droniverse.Community.Application.Services
                 dto.Image,
                 requesterId,
                 dto.DroneID,
-                dto.ClubPolicy,
+                dto.ClubPolicyVN,
+                dto.ClubPolicyEN,
                 dto.Media
             );
 
@@ -450,7 +481,8 @@ namespace Droniverse.Community.Application.Services
                 UpdatedAt = updatedRequest.UpdatedAt,
                 Status = updatedRequest.Status,
                 DroneID = updatedRequest.DroneID,
-                ClubPolicy = updatedRequest.ClubPolicy,
+                ClubPolicyVN = updatedRequest.ClubPolicyVN,
+                ClubPolicyEN = updatedRequest.ClubPolicyEN,
                 Media = _mapper.Map<MediaResponseDto>(updatedRequest.Media)
 
             };

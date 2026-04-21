@@ -18,7 +18,10 @@ namespace Droniverse.Community.Infrastructure.Persistence.MySql.Configurations
             builder.Property(x => x.MediaID)
                 .HasColumnType("char(36)");
 
-            builder.Property(x => x.ClubPolicy)
+            builder.Property(x => x.ClubPolicyVN)
+                .HasColumnType("text");
+
+            builder.Property(x => x.ClubPolicyEN)
                 .HasColumnType("text");
 
             builder.Property(x => x.NameVN)
