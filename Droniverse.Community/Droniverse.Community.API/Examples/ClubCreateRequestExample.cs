@@ -11,7 +11,8 @@ namespace Droniverse.Community.API.Examples
             {
                 DroneID = Guid.Parse("30876cff-7818-44ab-8fee-bc2b99c36e7c"),
                 Media = Guid.Parse("0105131f-f0bd-46f9-abef-ecc64f88f4cc"),
-                ClubPolicy = "Nội quy của câu lạc bộ VN",
+                ClubPolicyVN = "Nội quy của câu lạc bộ VN",
+                ClubPolicyEN = "Club policy: All members must comply with the new regulations.",
                 NameVN = "Câu lạc bộ Drone Việt Nam",
                 NameEN = "Vietnam Drone Club",
                 Description = "Câu lạc bộ dành cho những người yêu thích drone và công nghệ bay không người lái.",

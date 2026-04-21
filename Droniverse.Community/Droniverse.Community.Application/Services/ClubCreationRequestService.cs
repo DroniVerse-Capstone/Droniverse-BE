@@ -69,7 +69,8 @@ namespace Droniverse.Community.Application.Services
                 requesterID,
                 dto.DroneID,
                 dto.Media,
-                dto.ClubPolicy
+                dto.ClubPolicyVN,
+                dto.ClubPolicyEN
             );
 
             await _unitOfWork.ClubCreationRequests.Add(request);
@@ -344,7 +345,8 @@ namespace Droniverse.Community.Application.Services
                         request.ImageUrl,
                         managerID: request.RequesterID,
                         droneID: request.DroneID,
-                        clubPolicy: request.ClubPolicy
+                        clubPolicyVN: request.ClubPolicyVN,
+                        clubPolicyEN: request.ClubPolicyEN
                     );
 
                     await _unitOfWork.Clubs.Add(newClub);
@@ -423,7 +425,8 @@ namespace Droniverse.Community.Application.Services
                 dto.Image,
                 requesterId,
                 dto.DroneID,
-                dto.ClubPolicy,
+                dto.ClubPolicyVN,
+                dto.ClubPolicyEN,
                 dto.Media
             );
 
@@ -450,7 +453,8 @@ namespace Droniverse.Community.Application.Services
                 UpdatedAt = updatedRequest.UpdatedAt,
                 Status = updatedRequest.Status,
                 DroneID = updatedRequest.DroneID,
-                ClubPolicy = updatedRequest.ClubPolicy,
+                ClubPolicyVN = updatedRequest.ClubPolicyVN,
+                ClubPolicyEN = updatedRequest.ClubPolicyEN,
                 Media = _mapper.Map<MediaResponseDto>(updatedRequest.Media)
 
             };

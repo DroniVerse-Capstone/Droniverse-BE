@@ -93,7 +93,11 @@ namespace Droniverse.Community.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("char(6)");
 
-                    b.Property<string>("ClubPolicy")
+                    b.Property<string>("ClubPolicyEN")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ClubPolicyVN")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -204,7 +208,10 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     b.Property<Guid?>("ClubID")
                         .HasColumnType("char(36)");
 
-                    b.Property<string>("ClubPolicy")
+                    b.Property<string>("ClubPolicyEN")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ClubPolicyVN")
                         .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")

@@ -20,7 +20,8 @@ namespace Droniverse.Community.Domain.Entities
         public string? ImageUrl { get; set; }
         public Guid MediaID { get; set; }
         public Media? Media { get; set; }
-        public string? ClubPolicy { get; set; }
+        public string? ClubPolicyVN { get; set; }
+        public string? ClubPolicyEN { get; set; }
 
         // ===== System Fields =====
         public Guid DroneID { get; set; }
@@ -50,7 +51,8 @@ namespace Droniverse.Community.Domain.Entities
             Guid requesterId,
             Guid droneID,
             Guid mediaID,
-            string clubPolicy)
+            string clubPolicyVN,
+            string? clubPolicyEN)
         {
             ClubCreationRequestID = Guid.NewGuid();
             NameVN = nameVN;
@@ -64,8 +66,9 @@ namespace Droniverse.Community.Domain.Entities
             CreatedAt = DateTime.UtcNow.AddHours(7);
             Status = ClubCreationRequestStatus.PENDING;
             DroneID = droneID;
-            ClubPolicy = clubPolicy;
+            ClubPolicyVN = clubPolicyVN;
             MediaID = mediaID;
+            ClubPolicyEN = clubPolicyEN;
         }
 
         // ===== Domain Methods =====
@@ -120,7 +123,8 @@ namespace Droniverse.Community.Domain.Entities
             string imageUrl,
             Guid requesterId,
             Guid droneID,
-            string clubPolicy,
+            string clubPolicyVN,
+            string clubPolicyEN,
             Guid mediaID)
         {
             if (Status != ClubCreationRequestStatus.PENDING)
@@ -138,7 +142,8 @@ namespace Droniverse.Community.Domain.Entities
             UpdatedAt = DateTime.UtcNow;
 
             DroneID = DroneID;
-            ClubPolicy = clubPolicy;
+            ClubPolicyVN = clubPolicyVN;
+            ClubPolicyEN = clubPolicyEN;
             MediaID = mediaID;
         }
     }

@@ -23,7 +23,8 @@ public class ClubConfiguration : IEntityTypeConfiguration<Club>
         builder.Property(c => c.NameVN).HasMaxLength(255).IsRequired();
         builder.Property(c => c.NameEN).HasMaxLength(255).IsRequired();
         builder.Property(c => c.Description).HasColumnType("varchar(255)");
-        builder.Property(c => c.ClubPolicy).HasColumnType("text");
+        builder.Property(c => c.ClubPolicyVN).HasColumnType("text");
+        builder.Property(c => c.ClubPolicyEN).HasColumnType("text");
         builder.Property(c => c.ClubCode).HasColumnType("char(6)").IsRequired();
         builder.Property(c => c.ImageUrl).HasColumnType("varchar(255)");
         builder.Property(c => c.Status).HasColumnType("tinyint").HasConversion<byte>().IsRequired();

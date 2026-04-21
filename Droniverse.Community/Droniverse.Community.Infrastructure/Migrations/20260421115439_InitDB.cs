@@ -7,7 +7,7 @@ using MySql.EntityFrameworkCore.Metadata;
 namespace Droniverse.Community.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class Initial : Migration
+    public partial class InitDB : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -23,14 +23,14 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     CreatedBy = table.Column<Guid>(type: "char(36)", nullable: false),
                     ManagerID = table.Column<Guid>(type: "char(36)", nullable: false),
                     DroneID = table.Column<Guid>(type: "char(36)", nullable: false),
-                    ClubPolicy = table.Column<string>(type: "text", nullable: false),
+                    ClubPolicyVN = table.Column<string>(type: "text", nullable: false),
+                    ClubPolicyEN = table.Column<string>(type: "text", nullable: false),
                     NameVN = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false),
                     NameEN = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false),
                     Description = table.Column<string>(type: "varchar(255)", nullable: false),
                     ClubCode = table.Column<string>(type: "char(6)", nullable: false),
                     Status = table.Column<sbyte>(type: "tinyint", nullable: false),
                     ImageUrl = table.Column<string>(type: "varchar(255)", nullable: true),
-                    IsPublic = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     LimitParticipation = table.Column<int>(type: "int", nullable: false),
                     LimitClubManagers = table.Column<int>(type: "int", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false),
@@ -173,7 +173,7 @@ namespace Droniverse.Community.Infrastructure.Migrations
                 {
                     MediaID = table.Column<Guid>(type: "char(36)", nullable: false),
                     MediaTypeID = table.Column<Guid>(type: "char(36)", nullable: false),
-                    ImageUrl = table.Column<string>(type: "text", nullable: false),
+                    Url = table.Column<string>(type: "text", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
                         .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
                     UpdatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
@@ -397,12 +397,12 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     NameVN = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false),
                     NameEN = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false),
                     Description = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false),
-                    IsPublic = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     LimitParticipant = table.Column<int>(type: "int", nullable: false),
                     LimitClubManager = table.Column<int>(type: "int", nullable: false),
                     ImageUrl = table.Column<string>(type: "text", nullable: true),
                     MediaID = table.Column<Guid>(type: "char(36)", nullable: false),
-                    ClubPolicy = table.Column<string>(type: "text", nullable: true),
+                    ClubPolicyVN = table.Column<string>(type: "text", nullable: true),
+                    ClubPolicyEN = table.Column<string>(type: "text", nullable: true),
                     DroneID = table.Column<Guid>(type: "char(36)", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),

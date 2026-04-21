@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Droniverse.Community.Infrastructure.Migrations
 {
     [DbContext(typeof(MySqlDbContext))]
-    [Migration("20260421020617_Remove_IsPublish_In_Club")]
-    partial class Remove_IsPublish_In_Club
+    [Migration("20260421115439_InitDB")]
+    partial class InitDB
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -96,7 +96,11 @@ namespace Droniverse.Community.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("char(6)");
 
-                    b.Property<string>("ClubPolicy")
+                    b.Property<string>("ClubPolicyEN")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ClubPolicyVN")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -207,7 +211,10 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     b.Property<Guid?>("ClubID")
                         .HasColumnType("char(36)");
 
-                    b.Property<string>("ClubPolicy")
+                    b.Property<string>("ClubPolicyEN")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ClubPolicyVN")
                         .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
@@ -223,9 +230,6 @@ namespace Droniverse.Community.Infrastructure.Migrations
 
                     b.Property<string>("ImageUrl")
                         .HasColumnType("text");
-
-                    b.Property<bool>("IsPublic")
-                        .HasColumnType("tinyint(1)");
 
                     b.Property<int>("LimitClubManager")
                         .HasColumnType("int");

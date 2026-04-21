@@ -13,7 +13,10 @@ public class ClubCreationRequestCreateDto
     public Guid DroneID { get; set; }
 
     [Required]
-    public string ClubPolicy { get; set; }
+    public string ClubPolicyVN { get; set; }
+
+    [Required]
+    public string ClubPolicyEN { get; set; }
 
     [Required]
     public Guid Media { get; set; }
