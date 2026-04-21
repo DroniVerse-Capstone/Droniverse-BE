@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Droniverse.Academy.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("academy/level")]
     [ApiController]
     public class LevelController : ControllerBase
     {

@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Droniverse.Academy.API.Controllers;
 
-[Route("api/courses/{courseId:guid}/prerequisites")]
+[Route("academy/courses/{courseId:guid}/prerequisites")]
 [ApiController]
 public class PrerequisiteCourseController : ControllerBase
 {
