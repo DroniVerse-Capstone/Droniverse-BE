@@ -28,28 +28,14 @@ public class PrerequisiteCourseController : ControllerBase
     [HttpPost]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> AddPrerequisiteCourse(Guid courseId, [FromBody] PrerequisiteCoursesRequestDTO request, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> AddPrerequisiteCourse(Guid courseId, [FromBody] PrerequisiteCoursesRequestDTO? request, CancellationToken cancellationToken = default)
     {
         try
         {
             if (courseId == Guid.Empty)
                 return BadRequest(SuccessResponse<object>.Create(null!, "Course không hợp lệ."));
 
-            if (request?.PrerequisiteCourseIds == null || !request.PrerequisiteCourseIds.Any())
-                return BadRequest(SuccessResponse<object>.Create(null!, "Danh sách prerequisiteCourseIds không được để trống."));
-
-            var distinctIds = request.PrerequisiteCourseIds
-                .Where(id => id != Guid.Empty)
-                .Distinct()
-                .ToList();
-
-            // Prevent self reference
-            distinctIds.RemoveAll(id => id == courseId);
-
-            if (distinctIds.Count == 0)
-                return BadRequest(SuccessResponse<object>.Create(null!, "Danh sách prerequisiteCourseIds không chứa id hợp lệ hoặc chỉ chứa chính khóa học."));
-
-            var createdCount = await _service.ReplacePrerequisitesAsync(courseId, distinctIds, cancellationToken);
+            var createdCount = await _service.ReplacePrerequisitesAsync(courseId, request?.PrerequisiteCourseIds, cancellationToken);
 
             return Ok(SuccessResponse<object>.Create(new { created = createdCount }, "Cập nhật prerequisite thành công."));
         }

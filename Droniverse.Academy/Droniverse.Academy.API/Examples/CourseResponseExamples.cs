@@ -22,6 +22,18 @@ public class CourseDetailSuccessResponseExample : IExamplesProvider<SuccessRespo
                 },
                 CreateAt = DateTime.UtcNow,
                 Status = CourseStatus.DRAFT,
+                Level = new LevelMiniResponse
+                {
+                    LevelID = Guid.Parse("35f8f786-f8d2-46be-a1e4-90d09fa0e588"),
+                    LevelNumber = 1,
+                    Name = "Beginner"
+                },
+                Drone = new DroneMiniResponse
+                {
+                    DroneID = Guid.Parse("56dfb447-2f1c-4a66-b5ec-0f3ac7385d9b"),
+                    Name = "DJI Mini 3",
+                    ImgURL = "https://cdn.example.com/drone.jpg"
+                },
                 MiniProduct = new ProductMiniResponseDTO
                 {
                     ProductId = Guid.Parse("5f534d31-88ee-4d86-9d79-bad8f402378e"),
@@ -56,6 +68,18 @@ public class CourseOverviewSuccessResponseExample : IExamplesProvider<SuccessRes
             {
                 EnrollmentID = Guid.Parse("a12b7c3d-8a3f-4f9f-9261-4bc1a2f0d9ab"),
                 CourseVersionID = Guid.Parse("7d8aa3db-7477-4af6-a06c-783f26450484"),
+                Level = new LevelMiniResponse
+                {
+                    LevelID = Guid.Parse("35f8f786-f8d2-46be-a1e4-90d09fa0e588"),
+                    LevelNumber = 1,
+                    Name = "Beginner"
+                },
+                Drone = new DroneMiniResponse
+                {
+                    DroneID = Guid.Parse("56dfb447-2f1c-4a66-b5ec-0f3ac7385d9b"),
+                    Name = "DJI Mini 3",
+                    ImgURL = "https://cdn.example.com/drone.jpg"
+                },
                 TitleVN = "Lập trình drone cơ bản",
                 TitleEN = "Drone Programming Basics",
                 DescriptionVN = "Tổng quan khóa học.",
@@ -119,6 +143,18 @@ public class CoursesByIdsSuccessResponseExample : IExamplesProvider<SuccessRespo
                         CourseVersionId = Guid.Parse("7d8aa3db-7477-4af6-a06c-783f26450484"),
                         TitleVN = "Lập trình drone cơ bản",
                         TitleEN = "Drone Programming Basics",
+                        Level = new CourseLevelMiniResponseDTO
+                        {
+                            LevelID = Guid.Parse("35f8f786-f8d2-46be-a1e4-90d09fa0e588"),
+                            LevelNumber = 1,
+                            Name = "Beginner"
+                        },
+                        Drone = new CourseDroneMiniResponseDTO
+                        {
+                            DroneID = Guid.Parse("56dfb447-2f1c-4a66-b5ec-0f3ac7385d9b"),
+                            Name = "DJI Mini 3",
+                            ImgURL = "https://cdn.example.com/drone.jpg"
+                        },
                         EstimatedDuration = 120,
                         Price = 499000,
                         ClubCourseOwned = new ClubCourseOwnedResponse(),
@@ -132,6 +168,18 @@ public class CoursesByIdsSuccessResponseExample : IExamplesProvider<SuccessRespo
                         CourseVersionId = Guid.Parse("90f8eeb6-dafb-4ecf-a2b6-e7acf53db86f"),
                         TitleVN = "Drone nâng cao",
                         TitleEN = "Advanced Drone",
+                        Level = new CourseLevelMiniResponseDTO
+                        {
+                            LevelID = Guid.Parse("a27dc0ff-b08b-4617-af69-d051de24dc72"),
+                            LevelNumber = 2,
+                            Name = "Intermediate"
+                        },
+                        Drone = new CourseDroneMiniResponseDTO
+                        {
+                            DroneID = Guid.Parse("f59b0b20-a76c-43f1-91db-7148a8f13370"),
+                            Name = "DJI Air 3",
+                            ImgURL = "https://cdn.example.com/drone-2.jpg"
+                        },
                         EstimatedDuration = 180,
                         Price = 899000,
                         ClubCourseOwned = new ClubCourseOwnedResponse(),

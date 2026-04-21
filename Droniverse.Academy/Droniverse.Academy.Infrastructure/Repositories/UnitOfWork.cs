@@ -31,6 +31,7 @@ internal class UnitOfWork : IUnitOfWork
     private IUserLessonRepository _userLesson;
     private IUserModuleRepository _userModule;
     private ILevelRepository _level;
+    private IPrerequisiteCourseRepository _prerequisiteCourse;
 
     public UnitOfWork(MySqlDbContext mySqlContext)
     {
@@ -84,6 +85,8 @@ internal class UnitOfWork : IUnitOfWork
     public IUserModuleRepository UserModules => _userModule ??= new UserModuleRepository(_mySqlContext);
 
     public ILevelRepository Levels => _level ??= new LevelRepository(_mySqlContext);
+
+    public IPrerequisiteCourseRepository PrerequisiteCourses => _prerequisiteCourse ??= new PrerequisiteCourseRepository(_mySqlContext);
 
     public void Dispose()
     {

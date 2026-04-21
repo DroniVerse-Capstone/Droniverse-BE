@@ -23,7 +23,7 @@ public class AdminEnrollmentService : IAdminEnrollmentService
         _mapper = mapper;
     }
 
-    public async Task<PaginationResult<IEnumerable<EnrollmentResponseDTO>>> GetEnrollmentsAsync(int pageIndex = 1, int pageSize = 10, Guid? userId = null, Guid? courseVersionId = null, EnrollStatus? status = null)
+    public async Task<PaginationResult<IEnumerable<EnrollmentResponseDTO>>> GetEnrollmentsAsync(int pageIndex = 1, int pageSize = 10, Guid? userId = null, Guid? courseVersionId = null, Guid? droneId = null, Guid? levelId = null, Guid? clubId = null, EnrollStatus? status = null)
     {
         Expression<Func<Enrollment, bool>> filter = x => true;
 
@@ -37,6 +37,24 @@ public class AdminEnrollmentService : IAdminEnrollmentService
         {
             var value = courseVersionId.Value;
             filter = filter.And(x => x.CourseVersionID == value);
+        }
+
+        if (droneId.HasValue)
+        {
+            var value = droneId.Value;
+            filter = filter.And(x => x.Course.DroneID == value);
+        }
+
+        if (levelId.HasValue)
+        {
+            var value = levelId.Value;
+            filter = filter.And(x => x.Course.LevelID == value);
+        }
+
+        if (clubId.HasValue)
+        {
+            var value = clubId.Value;
+            filter = filter.And(x => x.ClubID == value);
         }
 
         if (status.HasValue)

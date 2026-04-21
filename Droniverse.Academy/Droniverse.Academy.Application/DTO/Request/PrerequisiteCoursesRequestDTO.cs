@@ -8,5 +8,5 @@ public class PrerequisiteCoursesRequestDTO
     /// <summary>
     /// Danh sách courseId của các khóa học tiền đề.
     /// </summary>
-    public IEnumerable<Guid> PrerequisiteCourseIds { get; set; } = new List<Guid>();
+    public IEnumerable<Guid>? PrerequisiteCourseIds { get; set; }
 }

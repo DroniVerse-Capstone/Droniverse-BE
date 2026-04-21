@@ -64,8 +64,11 @@ public class CourseService : ICourseService
         course.CurrentVersionID = version.CourseVersionID;
         await _unitOfWork.SaveChangesAsync();
 
-        var response = _mapper.Map<CourseDetailResponseDTO>(course);
-        response.Creator = await ResolveUserAsync(course.CreateBy);
+        var createdCourse = await _unitOfWork.Courses.GetByIdWithAllVersionsAsync(course.CourseID)
+            ?? course;
+
+        var response = _mapper.Map<CourseDetailResponseDTO>(createdCourse);
+        response.Creator = await ResolveUserAsync(createdCourse.CreateBy);
 
         return response;
     }
@@ -83,7 +86,13 @@ public class CourseService : ICourseService
         await _unitOfWork.SaveChangesAsync();
     }
 
-    public async Task<PaginationResult<IEnumerable<CourseResponseDTO>>> GetAllCoursesAsync(int pageIndex, int pageSize, string? search = null, CourseStatus? status = null)
+    public async Task<PaginationResult<IEnumerable<CourseResponseDTO>>> GetAllCoursesAsync(
+        int pageIndex,
+        int pageSize,
+        string? search = null,
+        CourseStatus? status = null,
+        Guid? droneId = null,
+        Guid? levelId = null)
     {
         Expression<Func<Course, bool>> filter = c => true;
 
@@ -99,6 +108,18 @@ public class CourseService : ICourseService
             filter = filter.And(c => c.CurrentVersion != null
                 && ((c.CurrentVersion.TitleEN != null && c.CurrentVersion.TitleEN.Contains(s))
                     || (c.CurrentVersion.TitleVN != null && c.CurrentVersion.TitleVN.Contains(s))));
+        }
+
+        if (droneId.HasValue && droneId.Value != Guid.Empty)
+        {
+            var filterDroneId = droneId.Value;
+            filter = filter.And(c => c.DroneID == filterDroneId);
+        }
+
+        if (levelId.HasValue && levelId.Value != Guid.Empty)
+        {
+            var filterLevelId = levelId.Value;
+            filter = filter.And(c => c.LevelID == filterLevelId);
         }
 
         var result = await _unitOfWork.Courses
@@ -180,6 +201,8 @@ public class CourseService : ICourseService
             throw new NotFoundException($"Không tìm thấy phiên bản khóa học với id {courseVersionId}.");
 
         var response = _mapper.Map<CourseOverviewResponseDTO>(overviewData);
+        response.Level = _mapper.Map<LevelMiniResponse?>(course.Level);
+        response.Drone = _mapper.Map<DroneMiniResponse?>(course.Drone);
 
         var enrollment = await _unitOfWork.Enrollments.GetByConditionAsync(
             x => x.UserID == currentUserId
@@ -281,6 +304,8 @@ public class CourseService : ICourseService
         Expression<Func<Course, bool>> filter = c =>
             c.CurrentVersion != null &&
             c.Status == CourseStatus.PUBLISH &&
+            (!searchRequest.DroneId.HasValue || searchRequest.DroneId.Value == Guid.Empty || c.DroneID == searchRequest.DroneId.Value) &&
+            (!searchRequest.LevelId.HasValue || searchRequest.LevelId.Value == Guid.Empty || c.LevelID == searchRequest.LevelId.Value) &&
             (
                 string.IsNullOrWhiteSpace(normalizedCourseName) ||
                 (c.CurrentVersion.TitleEN != null && c.CurrentVersion.TitleEN.Contains(normalizedCourseName)) ||
@@ -337,6 +362,22 @@ public class CourseService : ICourseService
                     CourseVersionId = versionId,
                     TitleVN = currentVersion.TitleVN,
                     TitleEN = currentVersion.TitleEN,
+                    Level = c.Level == null
+                        ? null
+                        : new CourseLevelMiniResponseDTO
+                        {
+                            LevelID = c.Level.LevelID,
+                            LevelNumber = c.Level.LevelNumber,
+                            Name = c.Level.Name
+                        },
+                    Drone = c.Drone == null
+                        ? null
+                        : new CourseDroneMiniResponseDTO
+                        {
+                            DroneID = c.Drone.DroneID,
+                            Name = c.Drone.DroneNameEN,
+                            ImgURL = c.Drone.ImgURL
+                        },
                     EstimatedDuration = currentVersion.EstimatedDuration,
                     Price = null,
                     ClubCourseOwned = new ClubCourseOwnedResponse(),
@@ -395,6 +436,29 @@ public class CourseService : ICourseService
                 TotalItems = 0,
                 Items = []
             };
+        }
+
+        if ((searchRequest.DroneId.HasValue && searchRequest.DroneId.Value != Guid.Empty)
+            || (searchRequest.LevelId.HasValue && searchRequest.LevelId.Value != Guid.Empty))
+        {
+            Expression<Func<Course, bool>> filter = c => ids.Contains(c.CourseID)
+                && (!searchRequest.DroneId.HasValue || searchRequest.DroneId.Value == Guid.Empty || c.DroneID == searchRequest.DroneId.Value)
+                && (!searchRequest.LevelId.HasValue || searchRequest.LevelId.Value == Guid.Empty || c.LevelID == searchRequest.LevelId.Value);
+
+            var filteredCourses = await _unitOfWork.Courses.GetAllWithCurrentVersionNoPagingAsync(filter: filter);
+            ids = filteredCourses
+                .Select(c => c.CourseID)
+                .Distinct()
+                .ToList();
+
+            if (ids.Count == 0)
+            {
+                return new PagedCourseBulkResponse
+                {
+                    TotalItems = 0,
+                    Items = []
+                };
+            }
         }
 
         var courseResult = await _unitOfWork.Courses.GetHotCoursesByIdsWithCurrentVersionAsync(
@@ -591,7 +655,9 @@ public class CourseService : ICourseService
 
         Expression<Func<Course, bool>> filter = c =>
             c.CurrentVersion != null &&
-            filteredCourseIds.Contains(c.CourseID);
+            filteredCourseIds.Contains(c.CourseID) &&
+            (!searchRequest.DroneId.HasValue || searchRequest.DroneId.Value == Guid.Empty || c.DroneID == searchRequest.DroneId.Value) &&
+            (!searchRequest.LevelId.HasValue || searchRequest.LevelId.Value == Guid.Empty || c.LevelID == searchRequest.LevelId.Value);
 
         var orderBy = BuildManagerCoursesOrderBy(searchRequest);
 

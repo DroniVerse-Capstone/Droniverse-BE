@@ -7,5 +7,7 @@ namespace Droniverse.Shared.DTOs.Request
         public CourseParticipationSort? ParticipationSort { get; set; }
         public CourseOwnerFilter CourseOwner { get; set; } = CourseOwnerFilter.All;
         public string? CourseName { get; set; }
+        public Guid? DroneId { get; set; }
+        public Guid? LevelId { get; set; }
     }
 }

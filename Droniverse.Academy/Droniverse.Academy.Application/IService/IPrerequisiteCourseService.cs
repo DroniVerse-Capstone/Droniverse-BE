@@ -11,5 +11,5 @@ public interface IPrerequisiteCourseService
     /// Replace existing prerequisites for a course with given list. Returns number of inserted records.
     /// Operation should run in a transaction inside implementation.
     /// </summary>
-    Task<int> ReplacePrerequisitesAsync(Guid courseId, IEnumerable<Guid> prerequisiteCourseIds, CancellationToken cancellationToken = default);
+    Task<int> ReplacePrerequisitesAsync(Guid courseId, IEnumerable<Guid>? prerequisiteCourseIds, CancellationToken cancellationToken = default);
 }
