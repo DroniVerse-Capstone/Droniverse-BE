@@ -38,10 +38,12 @@ public static class DependencyInjection
         services.AddHttpClient<AcademyMicroserviceClient>(client =>
         {
             client.BaseAddress = new Uri($"http://{configuration["AcademyMicroserviceName"]}:{configuration["AcademyMicroservicePort"]}");
+            client.Timeout = TimeSpan.FromSeconds(30); // Set timeout to 30 seconds
         }).AddHttpMessageHandler<AuthorizationDelegatingHandler>(); ;
         services.AddHttpClient<CommunityMicroserviceClient>(client =>
         {
             client.BaseAddress = new Uri($"http://{configuration["CommunityMicroserviceName"]}:{configuration["CommunityMicroservicePort"]}");
+            client.Timeout = TimeSpan.FromSeconds(30); // Set timeout to 30 seconds
         }).AddHttpMessageHandler<AuthorizationDelegatingHandler>();
 
         // Đăng ký Redis
