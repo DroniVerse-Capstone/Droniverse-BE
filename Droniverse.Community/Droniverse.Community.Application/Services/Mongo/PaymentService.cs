@@ -480,7 +480,7 @@ internal class PaymentService : IPaymentService
                             Quantity = order.Item.Quantity
                         };
 
-                        CodeResponse codeResponse = await _academyMicroserviceClient.GenerateAssignCodesAsync(codeRequest, order.UserEmail);
+                        CodeResponse codeResponse = await _academyMicroserviceClient.GenerateAssignCodesAsync(codeRequest, userEmail);
 
                         if (codeResponse == null || codeResponse.CodeID == null)
                         {
