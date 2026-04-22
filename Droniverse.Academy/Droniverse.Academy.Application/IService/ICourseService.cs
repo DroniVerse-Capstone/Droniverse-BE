@@ -33,9 +33,8 @@ public interface ICourseService
 
     Task DeleteCourseAsync(Guid courseId);
 
-    Task<PagedCourseBulkResponse> GetCoursesByIdsAsync(
-        CourseBulkSearchRequest searchRequest,
-        IEnumerable<Guid> courseIds);
+    Task<PagedCourseBulkResponse> GetCoursesClub(
+        CourseBulkSearchRequest searchRequest);
 
     Task<PagedCourseBulkResponse> GetHotCoursesByIdsAsync(
         HotCoursesSearchRequest searchRequest,

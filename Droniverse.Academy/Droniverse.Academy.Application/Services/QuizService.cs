@@ -20,15 +20,15 @@ public class QuizService : IQuizService
     private readonly IMapper _mapper;
     private readonly ICurrentUserService _currentUser;
     private readonly IClock _clock;
-    private readonly IUserDisplayNameService _userDisplayNameService;
+    private readonly IUserLookupService _userLookupService;
 
-    public QuizService(IUnitOfWork unitOfWork, IMapper mapper, ICurrentUserService currentUser, IClock clock, IUserDisplayNameService userDisplayNameService)
+    public QuizService(IUnitOfWork unitOfWork, IMapper mapper, ICurrentUserService currentUser, IClock clock, IUserLookupService userLookupService)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _currentUser = currentUser;
         _clock = clock;
-        _userDisplayNameService = userDisplayNameService;
+        _userLookupService = userLookupService;
     }
 
     public async Task<QuizClientViewDTO> CreateQuizAsync(CreateQuizRequestDTO request)
@@ -189,8 +189,7 @@ public class QuizService : IQuizService
 
     private async Task<(SimpleUserReponse? Creator, SimpleUserReponse? Updater)> ResolveUsersAsync(Guid createBy, Guid updateBy)
     {
-        var users = await _userDisplayNameService.GetListUserAsync(new[] { createBy, updateBy });
-        var userLookup = users.ToDictionary(u => u.UserId, u => (SimpleUserReponse?)u);
+        var userLookup = await _userLookupService.BuildUserLookupAsync(new[] { createBy, updateBy });
 
         userLookup.TryGetValue(createBy, out var creator);
         userLookup.TryGetValue(updateBy, out var updater);
@@ -204,15 +203,7 @@ public class QuizService : IQuizService
             .SelectMany(q => new[] { q.CreateBy, q.UpdateBy })
             .ToDistinctValidIds();
 
-        var users = await _userDisplayNameService.GetListUserAsync(userIds);
-        var lookup = users.ToDictionary(u => u.UserId, u => (SimpleUserReponse?)u);
-
-        foreach (var userId in userIds)
-        {
-            lookup.TryAdd(userId, null);
-        }
-
-        return lookup;
+        return await _userLookupService.BuildUserLookupAsync(userIds);
     }
 
     private static List<QuizClientViewDTO> MapQuizzesUsers(

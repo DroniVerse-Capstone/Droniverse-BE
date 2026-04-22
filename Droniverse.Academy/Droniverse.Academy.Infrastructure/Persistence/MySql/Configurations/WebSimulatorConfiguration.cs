@@ -28,6 +28,21 @@ public class WebSimulatorConfiguration : IEntityTypeConfiguration<WebSimulator>
             .HasMaxLength(20)
             .IsRequired();
 
+        builder.Property(x => x.ObjectivesVN)
+            .HasColumnType("varchar(255)")
+            .HasMaxLength(255)
+            .IsRequired();
+
+        builder.Property(x => x.ObjectivesEN)
+            .HasColumnType("varchar(255)")
+            .HasMaxLength(255)
+            .IsRequired();
+
+        builder.Property(x => x.Code)
+            .HasColumnType("char(20)")
+            .HasMaxLength(20)
+            .IsRequired();
+
         builder.Property(x => x.CreateBy)
             .HasColumnType("char(36)")
             .IsRequired();

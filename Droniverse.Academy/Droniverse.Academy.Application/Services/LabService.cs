@@ -26,7 +26,7 @@ public class LabService : ILabService
     private readonly IMapper _mapper;
     private readonly ICurrentUserService _currentUser;
     private readonly IClock _clock;
-    private readonly IUserDisplayNameService _userDisplayNameService;
+    private readonly IUserLookupService _userLookupService;
     private readonly ILogger<LabService> _logger;
 
     public LabService(
@@ -35,7 +35,7 @@ public class LabService : ILabService
         IMapper mapper,
         ICurrentUserService currentUser,
         IClock clock,
-        IUserDisplayNameService userDisplayNameService,
+        IUserLookupService userLookupService,
         ILogger<LabService> logger)
     {
         _unitOfWork = unitOfWork;
@@ -43,7 +43,7 @@ public class LabService : ILabService
         _mapper = mapper;
         _currentUser = currentUser;
         _clock = clock;
-        _userDisplayNameService = userDisplayNameService;
+        _userLookupService = userLookupService;
         _logger = logger;
     }
 
@@ -367,8 +367,7 @@ public class LabService : ILabService
 
     private async Task<(SimpleUserReponse? Creator, SimpleUserReponse? Updater)> ResolveUsersAsync(Guid createBy, Guid updateBy)
     {
-        var users = await _userDisplayNameService.GetListUserAsync(new[] { createBy, updateBy });
-        var userLookup = users.ToDictionary(u => u.UserId, u => (SimpleUserReponse?)u);
+        var userLookup = await _userLookupService.BuildUserLookupAsync(new[] { createBy, updateBy });
 
         userLookup.TryGetValue(createBy, out var creator);
         userLookup.TryGetValue(updateBy, out var updater);
@@ -382,15 +381,7 @@ public class LabService : ILabService
             .SelectMany(l => new[] { l.CreateBy, l.UpdateBy })
             .ToDistinctValidIds();
 
-        var users = await _userDisplayNameService.GetListUserAsync(userIds);
-        var lookup = users.ToDictionary(u => u.UserId, u => (SimpleUserReponse?)u);
-
-        foreach (var userId in userIds)
-        {
-            lookup.TryAdd(userId, null);
-        }
-
-        return lookup;
+        return await _userLookupService.BuildUserLookupAsync(userIds);
     }
 
     private static List<LabClientViewDTO> MapLabsUsers(

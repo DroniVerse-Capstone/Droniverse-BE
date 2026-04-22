@@ -6,6 +6,9 @@ public class WebSimulator
     public string TitleEN { get; set; } = string.Empty;
     public string TitleVN { get; set; } = string.Empty;
     public string Type { get; set; } = string.Empty;
+    public string ObjectivesVN { get; set; } = string.Empty;
+    public string ObjectivesEN { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
     public Guid CreateBy { get; private set; }
     public Guid UpdateBy { get; private set; }
     public DateTime CreateAt { get; private set; }

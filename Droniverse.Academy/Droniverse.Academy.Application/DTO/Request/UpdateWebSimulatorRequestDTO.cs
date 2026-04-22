@@ -5,5 +5,8 @@ public class UpdateWebSimulatorRequestDTO
     public string TitleVN { get; set; } = null!;
     public string TitleEN { get; set; } = null!;
     public string Type { get; set; } = null!;
+    public string ObjectivesVN { get; set; } = null!;
+    public string ObjectivesEN { get; set; } = null!;
+    public string Code { get; set; } = null!;
     public int EstimatedTime { get; set; }
 }

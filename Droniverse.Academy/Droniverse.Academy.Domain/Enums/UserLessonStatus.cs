@@ -4,5 +4,5 @@ public enum UserLessonStatus
 {
     INCOMPLETED = 0,
     COMPLETED = 1,
-    LOCKED = 2
+    LOCKED = 2  
 }

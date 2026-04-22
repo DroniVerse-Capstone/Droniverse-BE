@@ -8,6 +8,9 @@ public class WebSimulatorClientViewDTO
     public string TitleVN { get; set; } = null!;
     public string TitleEN { get; set; } = null!;
     public string Type { get; set; } = null!;
+    public string ObjectivesVN { get; set; } = null!;
+    public string ObjectivesEN { get; set; } = null!;
+    public string Code { get; set; } = null!;
     public int EstimatedTime { get; set; }
     public DateTime CreateAt { get; set; }
     public SimpleUserReponse? Creator { get; set; }

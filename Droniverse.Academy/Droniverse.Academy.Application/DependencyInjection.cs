@@ -58,6 +58,7 @@ public static class DependencyInjection
         services.AddScoped<IAdminUserLearningService, AdminUserLearningService>();
         services.AddScoped<ILabContentService, LabContentService>();
         services.AddScoped<IUserDisplayNameService, UserDisplayNameService>();
+        services.AddScoped<IUserLookupService, UserLookupService>();
 
         services.AddScoped<ICourseVersionDuplicator, CourseVersionDuplicator>();
         services.AddScoped<IModuleDuplicator, ModuleDuplicator>();

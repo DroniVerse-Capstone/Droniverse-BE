@@ -56,18 +56,17 @@ namespace Droniverse.Academy.API.Controllers
         /// <param name="request">Danh sách <c>CourseId</c> cần truy vấn.</param>
         /// <param name="searchRequest">Bộ lọc + phân trang.</param>
         /// <returns>Danh sách khóa học tương ứng với các ID được gửi lên.</returns>
-        // POST academy/courses/by-ids
-        [HttpPost("by-ids")]
+        // Get academy/courses/club
+        [HttpGet("club")]
         [SwaggerRequestExample(typeof(GetCoursesByIdsRequestDTO), typeof(GetCoursesByIdsExample))]
         [SwaggerResponseExample(StatusCodes.Status200OK, typeof(CoursesByIdsSuccessResponseExample))]
         [ProducesResponseType(typeof(PagedCourseBulkResponse), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetCoursesByIds(
-            [FromQuery] CourseBulkSearchRequest searchRequest,
-            [FromBody] GetCoursesByIdsRequestDTO request)
+        public async Task<IActionResult> GetCoursesOfClub(
+            [FromQuery] CourseBulkSearchRequest searchRequest)
         {
             try
             {
-                var result = await _courseService.GetCoursesByIdsAsync(searchRequest, request.CourseIds);
+                var result = await _courseService.GetCoursesClub(searchRequest);
                 return Ok(result);
             }
             catch (Exception ex)

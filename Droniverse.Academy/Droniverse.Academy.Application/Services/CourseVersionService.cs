@@ -23,7 +23,7 @@ public class CourseVersionService : ICourseVersionService
     private readonly ICurrentUserService _currentUser;
     private readonly IClock _clock;
     private readonly IMapper _mapper;
-    private readonly IUserDisplayNameService _userDisplayNameService;
+    private readonly IUserLookupService _userLookupService;
     private readonly CommunityMicroserviceClient _communityMicroserviceClient;
     private readonly ICourseVersionDuplicator _courseVersionDuplicator;
     private readonly ILabContentSyncService _labContentSyncService;
@@ -33,7 +33,7 @@ public class CourseVersionService : ICourseVersionService
         ICurrentUserService current,
         IClock clock,
         IMapper mapper,
-        IUserDisplayNameService userDisplayNameService,
+        IUserLookupService userLookupService,
         CommunityMicroserviceClient communityMicroserviceClient,
         ICourseVersionDuplicator courseVersionDuplicator,
         ILabContentSyncService labContentSyncService)
@@ -42,7 +42,7 @@ public class CourseVersionService : ICourseVersionService
         _currentUser = current;
         _clock = clock;
         _mapper = mapper;
-        _userDisplayNameService = userDisplayNameService;
+        _userLookupService = userLookupService;
         _communityMicroserviceClient = communityMicroserviceClient;
         _courseVersionDuplicator = courseVersionDuplicator;
         _labContentSyncService = labContentSyncService;
@@ -278,8 +278,10 @@ public class CourseVersionService : ICourseVersionService
         if (!updateBy.HasValue || updateBy.Value == Guid.Empty)
             return null;
 
-        var users = await _userDisplayNameService.GetListUserAsync(new[] { updateBy.Value });
-        return users.FirstOrDefault();
+        var userLookup = await _userLookupService.BuildUserLookupAsync(new[] { updateBy.Value });
+        userLookup.TryGetValue(updateBy.Value, out var user);
+
+        return user;
     }
 
     private async Task<Dictionary<Guid, SimpleUserReponse?>> BuildUpdaterLookupAsync(IEnumerable<CourseVersion> versions)
@@ -288,15 +290,7 @@ public class CourseVersionService : ICourseVersionService
             .Select(v => v.UpdateBy)
             .ToDistinctValidIds();
 
-        var users = await _userDisplayNameService.GetListUserAsync(userIds);
-        var lookup = users.ToDictionary(u => u.UserId, u => (SimpleUserReponse?)u);
-
-        foreach (var userId in userIds)
-        {
-            lookup.TryAdd(userId, null);
-        }
-
-        return lookup;
+        return await _userLookupService.BuildUserLookupAsync(userIds);
     }
 
     private static List<CourseVersionResponseDTO> MapVersionsUpdater(

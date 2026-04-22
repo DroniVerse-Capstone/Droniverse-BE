@@ -36,7 +36,14 @@ public class WebSimulatorService : IWebSimulatorService
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
-        ValidateData(request.TitleVN, request.TitleEN, request.Type, request.EstimatedTime);
+        ValidateData(
+            request.TitleVN,
+            request.TitleEN,
+            request.Type,
+            request.ObjectivesVN,
+            request.ObjectivesEN,
+            request.Code,
+            request.EstimatedTime);
 
         await CourseVersionDraftGuard.EnsureDraftByModuleIdAsync(
             _unitOfWork,
@@ -56,6 +63,9 @@ public class WebSimulatorService : IWebSimulatorService
             TitleVN = request.TitleVN,
             TitleEN = request.TitleEN,
             Type = request.Type,
+            ObjectivesVN = request.ObjectivesVN,
+            ObjectivesEN = request.ObjectivesEN,
+            Code = request.Code,
             EstimatedTime = request.EstimatedTime
         };
         webSimulator.SetAuditOnCreate(_currentUser.UserId, _clock.Now);
@@ -126,7 +136,14 @@ public class WebSimulatorService : IWebSimulatorService
             "web",
             "Chỉ được chỉnh sửa lesson web simulator khi phiên bản khóa học ở trạng thái Draft.");
 
-        ValidateData(request.TitleVN, request.TitleEN, request.Type, request.EstimatedTime);
+        ValidateData(
+            request.TitleVN,
+            request.TitleEN,
+            request.Type,
+            request.ObjectivesVN,
+            request.ObjectivesEN,
+            request.Code,
+            request.EstimatedTime);
 
         var webSimulator = await _unitOfWork.WebSimulators.GetByIdAsync(webSimulatorId);
         if (webSimulator == null)
@@ -135,6 +152,9 @@ public class WebSimulatorService : IWebSimulatorService
         webSimulator.TitleVN = request.TitleVN;
         webSimulator.TitleEN = request.TitleEN;
         webSimulator.Type = request.Type;
+        webSimulator.ObjectivesVN = request.ObjectivesVN;
+        webSimulator.ObjectivesEN = request.ObjectivesEN;
+        webSimulator.Code = request.Code;
         webSimulator.EstimatedTime = request.EstimatedTime;
         webSimulator.SetAuditOnUpdate(_currentUser.UserId, _clock.Now);
 
@@ -171,7 +191,14 @@ public class WebSimulatorService : IWebSimulatorService
         await _unitOfWork.SaveChangesAsync();
     }
 
-    private static void ValidateData(string titleVN, string titleEN, string type, int estimatedTime)
+    private static void ValidateData(
+        string titleVN,
+        string titleEN,
+        string type,
+        string objectivesVN,
+        string objectivesEN,
+        string code,
+        int estimatedTime)
     {
         if (string.IsNullOrWhiteSpace(titleVN))
             throw new ValidationException("Tiêu đề tiếng Việt là bắt buộc.");
@@ -181,6 +208,24 @@ public class WebSimulatorService : IWebSimulatorService
 
         if (string.IsNullOrWhiteSpace(type))
             throw new ValidationException("Loại web simulator là bắt buộc.");
+
+        if (string.IsNullOrWhiteSpace(objectivesVN))
+            throw new ValidationException("Mục tiêu tiếng Việt là bắt buộc.");
+
+        if (objectivesVN.Length > 255)
+            throw new ValidationException("Mục tiêu tiếng Việt không được vượt quá 255 ký tự.");
+
+        if (string.IsNullOrWhiteSpace(objectivesEN))
+            throw new ValidationException("Mục tiêu tiếng Anh là bắt buộc.");
+
+        if (objectivesEN.Length > 255)
+            throw new ValidationException("Mục tiêu tiếng Anh không được vượt quá 255 ký tự.");
+
+        if (string.IsNullOrWhiteSpace(code))
+            throw new ValidationException("Code web simulator là bắt buộc.");
+
+        if (code.Length > 20)
+            throw new ValidationException("Code web simulator không được vượt quá 20 ký tự.");
 
         if (estimatedTime <= 0)
             throw new ValidationException("EstimatedTime phải lớn hơn 0.");
@@ -218,6 +263,9 @@ public class WebSimulatorService : IWebSimulatorService
             TitleVN = webSimulator.TitleVN,
             TitleEN = webSimulator.TitleEN,
             Type = webSimulator.Type,
+            ObjectivesVN = webSimulator.ObjectivesVN,
+            ObjectivesEN = webSimulator.ObjectivesEN,
+            Code = webSimulator.Code,
             EstimatedTime = webSimulator.EstimatedTime,
             CreateAt = webSimulator.CreateAt,
             UpdateAt = webSimulator.UpdateAt

@@ -26,15 +26,15 @@ public class CourseService : ICourseService
     private readonly ICurrentUserService _currentUser;
     private readonly IClock _clock;
     private readonly IMapper _mapper;
-    private readonly IUserDisplayNameService _userDisplayNameService;
+    private readonly IUserLookupService _userLookupService;
     private readonly CommunityMicroserviceClient _communityMicroserviceClient;
-    public CourseService(IUnitOfWork unitOfWork, IClock clock, ICurrentUserService current, IMapper mapper, IUserDisplayNameService userDisplayNameService, CommunityMicroserviceClient communityMicroserviceClient)
+    public CourseService(IUnitOfWork unitOfWork, IClock clock, ICurrentUserService current, IMapper mapper, IUserLookupService userLookupService, CommunityMicroserviceClient communityMicroserviceClient)
     {
         _unitOfWork = unitOfWork;
         _clock = clock;
         _currentUser = current;
         _mapper = mapper;
-        _userDisplayNameService = userDisplayNameService;
+        _userLookupService = userLookupService;
         _communityMicroserviceClient = communityMicroserviceClient;
     }
 
@@ -228,8 +228,7 @@ public class CourseService : ICourseService
             userIds.Add(overviewData.LastUpdatedById.Value);
         }
 
-        var users = await _userDisplayNameService.GetListUserAsync(userIds.Distinct());
-        var userLookup = users.ToDictionary(u => u.UserId, u => (SimpleUserReponse?)u);
+        var userLookup = await _userLookupService.BuildUserLookupAsync(userIds.Distinct());
 
         if (userLookup.TryGetValue(overviewData.AuthorId, out var author))
         {
@@ -294,9 +293,7 @@ public class CourseService : ICourseService
         await _unitOfWork.SaveChangesAsync();
     }
 
-    public async Task<PagedCourseBulkResponse> GetCoursesByIdsAsync(
-    CourseBulkSearchRequest searchRequest,
-    IEnumerable<Guid> courseIds)
+    public async Task<PagedCourseBulkResponse> GetCoursesClub(CourseBulkSearchRequest searchRequest)
     {
         searchRequest ??= new CourseBulkSearchRequest();
 
@@ -304,29 +301,25 @@ public class CourseService : ICourseService
         var pageSize = searchRequest.PageSize < 1 ? 5 : searchRequest.PageSize;
         var normalizedCourseName = searchRequest.CourseName?.Trim();
 
-        var ids = courseIds.ToDistinctValidIds();
-
-        if (searchRequest.CourseOwner == CourseOwnerFilter.Owned && ids.Count == 0)
-            return new PagedCourseBulkResponse
-            {
-                TotalItems = 0,
-                Items = []
-            };
-
         Expression<Func<Course, bool>> filter = c =>
             c.CurrentVersion != null &&
             c.Status == CourseStatus.PUBLISH &&
-            (!searchRequest.DroneId.HasValue || searchRequest.DroneId.Value == Guid.Empty || c.DroneID == searchRequest.DroneId.Value) &&
-            (!searchRequest.LevelId.HasValue || searchRequest.LevelId.Value == Guid.Empty || c.LevelID == searchRequest.LevelId.Value) &&
+
+            // Filter theo Drone
+            (!searchRequest.DroneId.HasValue ||
+             searchRequest.DroneId.Value == Guid.Empty ||
+             c.DroneID == searchRequest.DroneId.Value) &&
+
+            // Filter theo Level
+            (!searchRequest.LevelId.HasValue ||
+             searchRequest.LevelId.Value == Guid.Empty ||
+             c.LevelID == searchRequest.LevelId.Value) &&
+
+            // Filter theo tên
             (
                 string.IsNullOrWhiteSpace(normalizedCourseName) ||
                 (c.CurrentVersion.TitleEN != null && c.CurrentVersion.TitleEN.Contains(normalizedCourseName)) ||
                 (c.CurrentVersion.TitleVN != null && c.CurrentVersion.TitleVN.Contains(normalizedCourseName))
-            ) &&
-            (
-                searchRequest.CourseOwner == CourseOwnerFilter.All ||
-                (searchRequest.CourseOwner == CourseOwnerFilter.Owned && ids.Contains(c.CourseID)) ||
-                (searchRequest.CourseOwner == CourseOwnerFilter.NotOwned && !ids.Contains(c.CourseID))
             );
 
         var courseResult = await _unitOfWork.Courses.GetAllWithCurrentVersionAsync(
@@ -338,87 +331,77 @@ public class CourseService : ICourseService
         var courses = courseResult.Data.ToList();
 
         if (courses.Count == 0)
+        {
             return new PagedCourseBulkResponse
             {
                 TotalItems = courseResult.TotalRecords,
                 Items = []
             };
+        }
 
+        // Lấy list versionId
         var courseVersionIds = courses
             .Select(c => c.CurrentVersion!.CourseVersionID)
             .Distinct()
             .ToList();
 
+        // Lấy thống kê
         var participantCountByVersionId = await _unitOfWork.Enrollments
             .GetActiveOrCompletedParticipantCountsByCourseVersionIdsAsync(courseVersionIds);
+
         var ratingByVersionId = await _unitOfWork.Feedbacks
             .GetAverageRatingsByCourseVersionIdsAsync(courseVersionIds);
 
-        var useInputOrder = searchRequest.CourseOwner == CourseOwnerFilter.Owned && ids.Count > 0;
-        var idOrder = useInputOrder
-            ? ids.Select((id, index) => new { id, index }).ToDictionary(x => x.id, x => x.index)
-            : null;
+        // Map DTO
+        var data = courses.Select(c =>
+        {
+            var currentVersion = c.CurrentVersion!;
+            var versionId = currentVersion.CourseVersionID;
 
-        var data = courses
-            .Select(c =>
+            participantCountByVersionId.TryGetValue(versionId, out var numberOfParticipants);
+            ratingByVersionId.TryGetValue(versionId, out var rating);
+
+            return new CourseBulkResponseDTO
             {
-                var currentVersion = c.CurrentVersion!;
-                var versionId = currentVersion.CourseVersionID;
+                CourseId = c.CourseID,
+                CourseVersionId = versionId,
+                TitleVN = currentVersion.TitleVN,
+                TitleEN = currentVersion.TitleEN,
 
-                participantCountByVersionId.TryGetValue(versionId, out var numberOfParticipants);
-                ratingByVersionId.TryGetValue(versionId, out var rating);
-
-                return new CourseBulkResponseDTO
+                Level = c.Level == null ? null : new CourseLevelMiniResponseDTO
                 {
-                    CourseId = c.CourseID,
-                    CourseVersionId = versionId,
-                    TitleVN = currentVersion.TitleVN,
-                    TitleEN = currentVersion.TitleEN,
-                    Level = c.Level == null
-                        ? null
-                        : new CourseLevelMiniResponseDTO
-                        {
-                            LevelID = c.Level.LevelID,
-                            LevelNumber = c.Level.LevelNumber,
-                            Name = c.Level.Name
-                        },
-                    Drone = c.Drone == null
-                        ? null
-                        : new CourseDroneMiniResponseDTO
-                        {
-                            DroneID = c.Drone.DroneID,
-                            Name = c.Drone.DroneNameEN,
-                            ImgURL = c.Drone.ImgURL
-                        },
-                    EstimatedDuration = currentVersion.EstimatedDuration,
-                    Price = null,
-                    ClubCourseOwned = new ClubCourseOwnedResponse(),
-                    Rating = rating,
-                    NumberOfParticipants = numberOfParticipants,
-                    ImageUrl = currentVersion.ImageUrl
-                };
-            })
-            .ToList();
+                    LevelID = c.Level.LevelID,
+                    LevelNumber = c.Level.LevelNumber,
+                    Name = c.Level.Name
+                },
 
+                Drone = c.Drone == null ? null : new CourseDroneMiniResponseDTO
+                {
+                    DroneID = c.Drone.DroneID,
+                    Name = c.Drone.DroneNameEN,
+                    ImgURL = c.Drone.ImgURL
+                },
+
+                EstimatedDuration = currentVersion.EstimatedDuration,
+                Price = null,
+                ClubCourseOwned = new ClubCourseOwnedResponse(),
+
+                Rating = rating,
+                NumberOfParticipants = numberOfParticipants,
+                ImageUrl = currentVersion.ImageUrl
+            };
+        }).ToList();
+
+        // Sort
         var orderedData = searchRequest.ParticipationSort switch
         {
-            CourseParticipationSort.MostPopular when useInputOrder => data
-                .OrderByDescending(x => x.NumberOfParticipants)
-                .ThenBy(x => idOrder![x.CourseId]),
+            CourseParticipationSort.MostPopular =>
+                data.OrderByDescending(x => x.NumberOfParticipants)
+                    .ThenBy(x => x.CourseId),
 
-            CourseParticipationSort.MostPopular => data
-                .OrderByDescending(x => x.NumberOfParticipants)
-                .ThenBy(x => x.CourseId),
-
-            CourseParticipationSort.LeastPopular when useInputOrder => data
-                .OrderBy(x => x.NumberOfParticipants)
-                .ThenBy(x => idOrder![x.CourseId]),
-
-            CourseParticipationSort.LeastPopular => data
-                .OrderBy(x => x.NumberOfParticipants)
-                .ThenBy(x => x.CourseId),
-
-            _ when useInputOrder => data.OrderBy(x => idOrder![x.CourseId]),
+            CourseParticipationSort.LeastPopular =>
+                data.OrderBy(x => x.NumberOfParticipants)
+                    .ThenBy(x => x.CourseId),
 
             _ => data.OrderBy(x => x.CourseId)
         };
@@ -582,8 +565,10 @@ public class CourseService : ICourseService
         if (!userId.HasValue || userId.Value == Guid.Empty)
             return null;
 
-        var users = await _userDisplayNameService.GetListUserAsync(new[] { userId.Value });
-        return users.FirstOrDefault();
+        var userLookup = await _userLookupService.BuildUserLookupAsync(new[] { userId.Value });
+        userLookup.TryGetValue(userId.Value, out var user);
+
+        return user;
     }
 
     private async Task<Dictionary<Guid, SimpleUserReponse?>> BuildUserLookupAsync(IEnumerable<Course> courses)
@@ -592,15 +577,7 @@ public class CourseService : ICourseService
             .SelectMany(c => new Guid?[] { c.CreateBy, c.CurrentVersion?.UpdateBy })
             .ToDistinctValidIds();
 
-        var users = await _userDisplayNameService.GetListUserAsync(userIds);
-        var lookup = users.ToDictionary(u => u.UserId, u => (SimpleUserReponse?)u);
-
-        foreach (var userId in userIds)
-        {
-            lookup.TryAdd(userId, null);
-        }
-
-        return lookup;
+        return await _userLookupService.BuildUserLookupAsync(userIds);
     }
 
     private static List<CourseResponseDTO> MapCoursesUsers(
