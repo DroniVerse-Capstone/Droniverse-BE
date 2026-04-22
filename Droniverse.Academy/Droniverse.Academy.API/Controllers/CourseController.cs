@@ -179,7 +179,8 @@ namespace Droniverse.Academy.API.Controllers
         // GET academy/courses/{courseId}
         [HttpGet("{courseId:guid}")]
         [SwaggerResponseExample(StatusCodes.Status200OK, typeof(CourseDetailSuccessResponseExample))]
-        [ProducesResponseType(typeof(SuccessResponse<CourseResponseDTO>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(SuccessResponse<
+            CourseResponseDTO>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetCourseById(Guid courseId)
         {
             try

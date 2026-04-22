@@ -6,6 +6,7 @@ namespace Droniverse.Academy.Application.DTO.Response;
 public class WebSimulatorClientViewDTO
 {
     public Guid WebSimulatorID { get; set; }
+    public Guid DroneID { get; set; }
     public string TitleVN { get; set; } = null!;
     public string TitleEN { get; set; } = null!;
     public WebSimulatorType Type { get; set; }

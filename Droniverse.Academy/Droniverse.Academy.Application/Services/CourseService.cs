@@ -628,6 +628,8 @@ public class CourseService : ICourseService
                 .Select(x => new PrerequisiteCourseMiniReponse
                 {
                     CourseID = x.PrerequisiteCourseID,
+                    Level = x.RequiredCourse!.Level == null ? null : _mapper.Map<LevelMiniResponse>(x.RequiredCourse.Level),
+                    ImageUrl = x.RequiredCourse.CurrentVersion?.ImageUrl ?? string.Empty,
                     TitleVN = x.RequiredCourse!.CurrentVersion!.TitleVN,
                     TitleEN = x.RequiredCourse.CurrentVersion.TitleEN
                 })

@@ -15,6 +15,10 @@ public class WebSimulatorConfiguration : IEntityTypeConfiguration<WebSimulator>
         builder.Property(x => x.WebSimulatorID)
             .HasColumnType("char(36)");
 
+        builder.Property(x => x.DroneID)
+            .HasColumnType("char(36)")
+            .IsRequired();
+
         builder.Property(x => x.TitleEN)
             .HasColumnType("text")
             .IsRequired();
@@ -63,6 +67,11 @@ public class WebSimulatorConfiguration : IEntityTypeConfiguration<WebSimulator>
         builder.Property(x => x.EstimatedTime)
             .HasColumnType("int")
             .IsRequired();
+
+        builder.HasOne(x => x.Drone)
+            .WithMany()
+            .HasForeignKey(x => x.DroneID)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.ToTable(t =>
             t.HasCheckConstraint(

@@ -47,6 +47,13 @@ public class CourseDetailSuccessResponseExample : IExamplesProvider<SuccessRespo
                     new PrerequisiteCourseMiniReponse
                     {
                         CourseID = Guid.Parse("2f7a7dc5-b4e2-4d36-a014-5f85366a2d28"),
+                        Level = new LevelMiniResponse
+                        {
+                            LevelID = Guid.Parse("35f8f786-f8d2-46be-a1e4-90d09fa0e588"),
+                            LevelNumber = 1,
+                            Name = "Beginner"
+                        },
+                        ImageUrl = "https://cdn.example.com/course.jpg",
                         TitleVN = "Cơ bản điều khiển drone",
                         TitleEN = "Drone Control Basics"
                     }
@@ -132,6 +139,13 @@ public class CourseOverviewSuccessResponseExample : IExamplesProvider<SuccessRes
                     new PrerequisiteCourseMiniReponse
                     {
                         CourseID = Guid.Parse("2f7a7dc5-b4e2-4d36-a014-5f85366a2d28"),
+                        Level = new LevelMiniResponse
+                        {
+                            LevelID = Guid.Parse("35f8f786-f8d2-46be-a1e4-90d09fa0e588"),
+                            LevelNumber = 1,
+                            Name = "Beginner"
+                        },
+                        ImageUrl = "https://cdn.example.com/course.jpg",
                         TitleVN = "Cơ bản điều khiển drone",
                         TitleEN = "Drone Control Basics"
                     }

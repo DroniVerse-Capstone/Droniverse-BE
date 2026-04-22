@@ -1,6 +1,7 @@
 ﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.Domain.Enums;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
@@ -63,13 +64,15 @@ public class WebSimulatorController : ControllerBase
     /// <summary>
     /// Lấy danh sách web simulator.
     /// </summary>
+    /// <param name="type">Lọc theo loại web simulator.</param>
+    /// <param name="droneId">Lọc theo droneID của web simulator.</param>
     [HttpGet]
     [Authorize(Roles = Roles.AdminOrSystemManager)]
-    public async Task<IActionResult> GetWebSimulators()
+    public async Task<IActionResult> GetWebSimulators([FromQuery] WebSimulatorType? type = null, [FromQuery] Guid? droneId = null)
     {
         try
         {
-            var webSimulators = await _webSimulatorService.GetWebSimulatorsAsync();
+            var webSimulators = await _webSimulatorService.GetWebSimulatorsAsync(type, droneId);
             return Ok(SuccessResponse<IEnumerable<WebSimulatorClientViewDTO>>.Create(webSimulators, "Lấy danh sách web simulator thành công."));
         }
         catch (Exception ex)

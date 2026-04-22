@@ -37,6 +37,8 @@ internal class PrerequisiteCourseRepository : MySqlRepository<PrerequisiteCourse
             .Where(x => ids.Contains(x.CourseID))
             .Include(x => x.RequiredCourse)
                 .ThenInclude(c => c.CurrentVersion)
+            .Include(x => x.RequiredCourse)
+                .ThenInclude(c => c.Level)
             .ToListAsync(cancellationToken);
     }
 
