@@ -306,22 +306,30 @@ public class CourseService : ICourseService
         await _unitOfWork.SaveChangesAsync();
     }
 
-    public async Task<PagedCourseBulkResponse> GetCoursesClub(CourseBulkSearchRequest searchRequest)
+    public async Task<PagedCourseBulkResponse> GetCoursesClub(
+        Guid clubId,
+        CourseBulkSearchRequest searchRequest)
     {
         searchRequest ??= new CourseBulkSearchRequest();
+        var droneId = await _communityMicroserviceClient.GetDroneFromClubAsync(clubId);
 
         var pageIndex = searchRequest.CurrentPage < 1 ? 1 : searchRequest.CurrentPage;
         var pageSize = searchRequest.PageSize < 1 ? 5 : searchRequest.PageSize;
         var normalizedCourseName = searchRequest.CourseName?.Trim();
 
+        if (droneId == Guid.Empty)
+        {
+            return new PagedCourseBulkResponse
+            {
+                TotalItems = 0,
+                Items = []
+            };
+        }
+
         Expression<Func<Course, bool>> filter = c =>
             c.CurrentVersion != null &&
             c.Status == CourseStatus.PUBLISH &&
-
-            // Filter theo Drone
-            (!searchRequest.DroneId.HasValue ||
-             searchRequest.DroneId.Value == Guid.Empty ||
-             c.DroneID == searchRequest.DroneId.Value) &&
+            c.DroneID == droneId &&
 
             // Filter theo Level
             (!searchRequest.LevelId.HasValue ||
@@ -427,17 +435,16 @@ public class CourseService : ICourseService
     }
 
     public async Task<PagedCourseBulkResponse> GetHotCoursesByIdsAsync(
-        HotCoursesSearchRequest searchRequest,
-        IEnumerable<Guid> courseIds)
+        Guid clubId,
+        HotCoursesSearchRequest searchRequest)
     {
         searchRequest ??= new HotCoursesSearchRequest();
+        var droneId = await _communityMicroserviceClient.GetDroneFromClubAsync(clubId);
 
         var pageIndex = searchRequest.CurrentPage < 1 ? 1 : searchRequest.CurrentPage;
         var pageSize = searchRequest.PageSize < 1 ? 5 : searchRequest.PageSize;
 
-        var ids = courseIds.ToDistinctValidIds();
-
-        if (ids.Count == 0)
+        if (droneId == Guid.Empty)
         {
             return new PagedCourseBulkResponse
             {
@@ -446,27 +453,25 @@ public class CourseService : ICourseService
             };
         }
 
-        if ((searchRequest.DroneId.HasValue && searchRequest.DroneId.Value != Guid.Empty)
-            || (searchRequest.LevelId.HasValue && searchRequest.LevelId.Value != Guid.Empty))
+        Expression<Func<Course, bool>> filter = c =>
+            c.CurrentVersion != null &&
+            c.Status == CourseStatus.PUBLISH &&
+            c.DroneID == droneId &&
+            (!searchRequest.LevelId.HasValue || searchRequest.LevelId.Value == Guid.Empty || c.LevelID == searchRequest.LevelId.Value);
+
+        var filteredCourses = await _unitOfWork.Courses.GetAllWithCurrentVersionNoPagingAsync(filter: filter);
+        var ids = filteredCourses
+            .Select(c => c.CourseID)
+            .Distinct()
+            .ToList();
+
+        if (ids.Count == 0)
         {
-            Expression<Func<Course, bool>> filter = c => ids.Contains(c.CourseID)
-                && (!searchRequest.DroneId.HasValue || searchRequest.DroneId.Value == Guid.Empty || c.DroneID == searchRequest.DroneId.Value)
-                && (!searchRequest.LevelId.HasValue || searchRequest.LevelId.Value == Guid.Empty || c.LevelID == searchRequest.LevelId.Value);
-
-            var filteredCourses = await _unitOfWork.Courses.GetAllWithCurrentVersionNoPagingAsync(filter: filter);
-            ids = filteredCourses
-                .Select(c => c.CourseID)
-                .Distinct()
-                .ToList();
-
-            if (ids.Count == 0)
+            return new PagedCourseBulkResponse
             {
-                return new PagedCourseBulkResponse
-                {
-                    TotalItems = 0,
-                    Items = []
-                };
-            }
+                TotalItems = 0,
+                Items = []
+            };
         }
 
         var courseResult = await _unitOfWork.Courses.GetHotCoursesByIdsWithCurrentVersionAsync(
@@ -546,12 +551,26 @@ public class CourseService : ICourseService
         };
     }
 
-    public async Task<IEnumerable<SimpleCourseResponse>> GetCoursesByIdsSimpleAsync(GetCoursesByIdsRequestDTO request)
+    public async Task<IEnumerable<SimpleCourseResponse>> GetCoursesByIdsSimpleAsync(Guid clubId)
     {
-        var ids = request?.CourseIds?
+        var droneId = await _communityMicroserviceClient.GetDroneFromClubAsync(clubId);
+
+        if (droneId == Guid.Empty)
+        {
+            return [];
+        }
+
+        Expression<Func<Course, bool>> filter = c =>
+            c.CurrentVersion != null &&
+            c.Status == CourseStatus.PUBLISH &&
+            c.DroneID == droneId;
+
+        var coursesByDrone = await _unitOfWork.Courses.GetAllWithCurrentVersionNoPagingAsync(filter);
+        var ids = coursesByDrone
+            .Select(c => c.CourseID)
             .Where(x => x != Guid.Empty)
             .Distinct()
-            .ToList() ?? [];
+            .ToList();
 
         if (ids.Count == 0)
         {
@@ -664,48 +683,23 @@ public class CourseService : ICourseService
     }
 
     public async Task<PagedManagerCoursesBulkResponse> GetCoursesByIdsManagementAsync(
-        ManagerCourseBulkSearchRequest searchRequest,
-        GetCoursesByIdsRequestDTO courseIds)
+        Guid clubId,
+        ManagerCourseBulkSearchRequest searchRequest)
     {
         searchRequest ??= new ManagerCourseBulkSearchRequest();
+        var droneId = await _communityMicroserviceClient.GetDroneFromClubAsync(clubId);
 
         var pageIndex = searchRequest.CurrentPage < 1 ? 1 : searchRequest.CurrentPage;
         var pageSize = searchRequest.PageSize < 1 ? 5 : searchRequest.PageSize;
 
-        var ids = courseIds?.CourseIds.ToDistinctValidIds() ?? [];
-
-        if (ids.Count == 0)
+        if (droneId == Guid.Empty)
         {
             return CreateEmptyManagerCoursesPagedResponse(pageIndex, pageSize);
         }
 
-        var filteredCourseIds = ids;
-        var priceByCourseId = new Dictionary<Guid, decimal>();
-
-        //if (searchRequest.ProfitType.HasValue)
-        //{
-        //    var products = await _communityMicroserviceClient.GetProductsBulkByReferenceIdsAsync(ids);
-        //    priceByCourseId = products
-        //        .Where(p => p.ReferenceId != Guid.Empty)
-        //        .GroupBy(p => p.ReferenceId)
-        //        .ToDictionary(g => g.Key, g => g.First().Price);
-
-        //    filteredCourseIds = ids
-        //        .Where(id => MatchProfitType(
-        //            priceByCourseId.TryGetValue(id, out var price) ? price : (decimal?)null,
-        //            searchRequest.ProfitType))
-        //        .ToList();
-
-        //    if (filteredCourseIds.Count == 0)
-        //    {
-        //        return CreateEmptyManagerCoursesPagedResponse(pageIndex, pageSize);
-        //    }
-        //}
-
         Expression<Func<Course, bool>> filter = c =>
             c.CurrentVersion != null &&
-            filteredCourseIds.Contains(c.CourseID) &&
-            (!searchRequest.DroneId.HasValue || searchRequest.DroneId.Value == Guid.Empty || c.DroneID == searchRequest.DroneId.Value) &&
+            c.DroneID == droneId &&
             (!searchRequest.LevelId.HasValue || searchRequest.LevelId.Value == Guid.Empty || c.LevelID == searchRequest.LevelId.Value);
 
         var orderBy = BuildManagerCoursesOrderBy(searchRequest);

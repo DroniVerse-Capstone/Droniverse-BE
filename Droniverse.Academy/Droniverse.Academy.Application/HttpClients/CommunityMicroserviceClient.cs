@@ -119,5 +119,12 @@ namespace Droniverse.Academy.Application.HttpClients
             return await _clubClient.CheckParticipantByClubAsync(clubId, userId, status, cancellationToken);
         }
 
+        public async Task<Guid> GetDroneFromClubAsync(
+            Guid clubId,
+            CancellationToken cancellationToken = default)
+        {
+            return await _clubClient.GetDroneFromClubAsync(clubId, cancellationToken);
+        }
+
     }
 }

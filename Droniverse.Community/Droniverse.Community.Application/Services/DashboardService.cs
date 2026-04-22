@@ -140,9 +140,12 @@ namespace Droniverse.Community.Application.Services
                 return new ClubCourseRevenueResponse { RevenueByCourse = [] };
 
             var courseIds = expenseByCourseId.Keys.ToList();
-            var academyCourses = await _academyMicroserviceClient.GetCoursesByIdsSimple(courseIds);
+            var academyCourses = await _academyMicroserviceClient.GetCoursesByIdsSimple(clubId);
+            var filteredAcademyCourses = academyCourses
+                .Where(c => courseIds.Contains(c.CourseId))
+                .ToList();
 
-            var courseById = academyCourses
+            var courseById = filteredAcademyCourses
                 .GroupBy(c => c.CourseId)
                 .ToDictionary(g => g.Key, g => g.First());
 
@@ -369,10 +372,14 @@ namespace Droniverse.Community.Application.Services
             if (revenueByCourseId.Count == 0)
                 return new ClubCourseRevenueResponse { RevenueByCourse = [] };
 
-            var courseIds = revenueByCourseId.Keys.ToList();
-            var academyCourses = await _academyMicroserviceClient.GetCoursesByIdsSimple(courseIds);
+            var allCourses = new List<SimpleCourseResponse>();
+            foreach (var club in clubList)
+            {
+                var coursesByClub = await _academyMicroserviceClient.GetCoursesByIdsSimple(club.ClubID);
+                allCourses.AddRange(coursesByClub);
+            }
 
-            var courseById = academyCourses
+            var courseById = allCourses
                 .GroupBy(c => c.CourseId)
                 .ToDictionary(g => g.Key, g => g.First());
 
@@ -457,8 +464,10 @@ namespace Droniverse.Community.Application.Services
                         if (courseIds.Count > 0)
                         {
                             // Fetch course details from Academy service
-                            var academyCourses = await _academyMicroserviceClient.GetCoursesByIdsSimple(courseIds);
-                            courses = academyCourses?.ToList() ?? [];
+                            var academyCourses = await _academyMicroserviceClient.GetCoursesByIdsSimple(club.ClubID);
+                            courses = academyCourses
+                                .Where(c => courseIds.Contains(c.CourseId))
+                                .ToList();
                         }
                     }
                     catch

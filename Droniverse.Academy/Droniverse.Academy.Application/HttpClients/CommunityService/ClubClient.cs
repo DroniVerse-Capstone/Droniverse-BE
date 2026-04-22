@@ -264,5 +264,40 @@ internal sealed class ClubClient : CommunityBaseClient
             null,
             response.StatusCode);
     }
+
+    public async Task<Guid> GetDroneFromClubAsync(
+        Guid clubId,
+        CancellationToken cancellationToken = default)
+    {
+        if (clubId == Guid.Empty)
+        {
+            return Guid.Empty;
+        }
+
+        var url = BuildCommunityPath($"clubs/{clubId}/get-drone-from-club");
+        var response = await HttpClient.GetAsync(url, cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                return Guid.Empty;
+            }
+
+            Logger.LogError(
+                "Error when getting droneId for club {ClubId}. Status: {StatusCode}, Response: {Response}",
+                clubId,
+                response.StatusCode,
+                await response.Content.ReadAsStringAsync(cancellationToken));
+
+            throw new HttpRequestException(
+                $"Community API error: {response.StatusCode}",
+                null,
+                response.StatusCode);
+        }
+
+        var droneId = await response.Content.ReadFromJsonAsync<Guid>(JsonSerializerOptions, cancellationToken);
+        return droneId;
+    }
 }
  

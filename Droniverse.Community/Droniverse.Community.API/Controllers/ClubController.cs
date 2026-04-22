@@ -37,11 +37,13 @@ namespace Droniverse.Community.API.Controllers
             _competitionService = competitionService;
         }
 
-        [HttpGet("/{clubId}/get-drone-from-club")]
-        public async Task<ApiResponse> GetDroneFromClub(Guid clubId)
+        [HttpGet("{clubId:guid}/get-drone-from-club")]
+        [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
+        public async Task<ActionResult<Guid>> GetDroneFromClub(Guid clubId)
         {
             Guid result = await _clubService.GetDroneFromClub(clubId);
-            return SuccessResponse<Guid>.Create(result, "Lấy thông tin drone của club thành công!");
+            return Ok(result);
+
         }
 
         /// <summary>

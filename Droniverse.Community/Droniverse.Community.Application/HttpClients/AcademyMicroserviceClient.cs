@@ -1,5 +1,4 @@
-﻿using Droniverse.Academy.Application.Enums;
-using Droniverse.Community.Application.DTO.Response;
+﻿using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.DTOs.Response;
@@ -556,18 +555,16 @@ public class AcademyMicroserviceClient
     }
 
     public async Task<PagedCourseBulkResponse> GetCourseById(
-        IEnumerable<Guid> courseIds,
+        Guid clubId,
         CourseBulkSearchRequest searchRequest)
     {
         searchRequest ??= new CourseBulkSearchRequest();
 
-        var ids = courseIds?
-            .Where(x => x != Guid.Empty)
-            .Distinct()
-            .ToList() ?? [];
+        if (clubId == Guid.Empty)
+            return CreatePagedCourseResponse([], 0);
 
         string queryString = BuildCourseBulkSearchQuery(searchRequest);
-        var pageCacheKey = BuildBulkCoursesPageCacheKey(ids, queryString);
+        var pageCacheKey = BuildBulkCoursesPageCacheKey(clubId, queryString);
 
         var cachedValue = await _distributedCache.GetStringAsync(pageCacheKey);
         if (!string.IsNullOrWhiteSpace(cachedValue))
@@ -584,113 +581,62 @@ public class AcademyMicroserviceClient
             }
         }
 
-        // ALL/NotOwned: luôn gọi trực tiếp Academy để service bên kia tự lọc theo query + danh sách ids truyền vào
-        if (searchRequest.CourseOwner is CourseOwnerFilter.All or CourseOwnerFilter.NotOwned)
+
+        HttpResponseMessage response = await _httpClient.GetAsync(
+            $"{BuildAcademyPath($"courses/club/{clubId}")}?{queryString}");
+
+        if (!response.IsSuccessStatusCode)
         {
-            HttpResponseMessage httpResponseMsg = await _httpClient.PostAsJsonAsync(
-                $"{BuildAcademyPath("courses/by-ids")}?{queryString}",
-                new GetCoursesByIdsRequestDTO { CourseIds = ids });
-
-            if (!httpResponseMsg.IsSuccessStatusCode)
-            {
-                if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
-                {
-                    _logger.LogError("Dịch vụ Academy tạm thời không khả dụng.");
-                    return CreatePagedCourseResponse([], 0);
-                }
-                else if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.NotFound)
-                {
-                    _logger.LogWarning("Không tìm thấy khóa học trong Academy Microservice.");
-                    return CreatePagedCourseResponse([], 0);
-                }
-                else if (httpResponseMsg.StatusCode == System.Net.HttpStatusCode.BadRequest)
-                {
-                    throw new HttpRequestException("Yêu cầu không hợp lệ khi gọi Academy service.", null, System.Net.HttpStatusCode.BadRequest);
-                }
-                else
-                {
-                    throw new HttpRequestException(
-                        $"Lỗi Academy service: {httpResponseMsg.StatusCode}",
-                        null,
-                        httpResponseMsg.StatusCode);
-                }
-            }
-
-            var pagedCourses = await httpResponseMsg.Content.ReadFromJsonAsync<PagedCourseBulkResponse>(_jsonOptions);
-            var result = pagedCourses ?? CreatePagedCourseResponse([], 0);
-
-            var cacheString = JsonSerializer.Serialize(result);
-            await _distributedCache.SetStringAsync(pageCacheKey, cacheString, CourseCacheOptions);
-
-            return result;
-        }
-
-        // Owned nhưng không có course nào thuộc club
-        if (ids.Count == 0)
-            return CreatePagedCourseResponse([], 0);
-
-        HttpResponseMessage ownedHttpResponseMsg = await _httpClient.PostAsJsonAsync(
-            $"{BuildAcademyPath("courses/by-ids")}?{queryString}",
-            new GetCoursesByIdsRequestDTO { CourseIds = ids });
-
-        if (!ownedHttpResponseMsg.IsSuccessStatusCode)
-        {
-            if (ownedHttpResponseMsg.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+            if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
             {
                 _logger.LogError("Dịch vụ Academy tạm thời không khả dụng.");
                 return CreatePagedCourseResponse([], 0);
             }
-            else if (ownedHttpResponseMsg.StatusCode == System.Net.HttpStatusCode.NotFound)
+            else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
                 _logger.LogWarning("Không tìm thấy khóa học trong Academy Microservice.");
                 return CreatePagedCourseResponse([], 0);
             }
-            else if (ownedHttpResponseMsg.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            else if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
             {
                 throw new HttpRequestException("Yêu cầu không hợp lệ khi gọi Academy service.", null, System.Net.HttpStatusCode.BadRequest);
             }
             else
             {
                 throw new HttpRequestException(
-                    $"Lỗi Academy service: {ownedHttpResponseMsg.StatusCode}",
+                    $"Lỗi Academy service: {response.StatusCode}",
                     null,
-                    ownedHttpResponseMsg.StatusCode);
+                    response.StatusCode);
             }
         }
 
-        var ownedPagedCourses = await ownedHttpResponseMsg.Content.ReadFromJsonAsync<PagedCourseBulkResponse>(_jsonOptions);
-        var ownedResult = ownedPagedCourses ?? CreatePagedCourseResponse([], 0);
+        var payload = await response.Content.ReadFromJsonAsync<PagedCourseBulkResponse>(_jsonOptions);
+        var result = payload ?? CreatePagedCourseResponse([], 0);
 
-        var ownedCacheString = JsonSerializer.Serialize(ownedResult);
-        await _distributedCache.SetStringAsync(pageCacheKey, ownedCacheString, CourseCacheOptions);
+        var cacheString = JsonSerializer.Serialize(result);
+        await _distributedCache.SetStringAsync(pageCacheKey, cacheString, CourseCacheOptions);
 
-        return ownedResult;
+        return result;
     }
 
     public async Task<IEnumerable<SimpleCourseResponse>> GetCoursesByIdsSimple(
-        IEnumerable<Guid> courseIds,
+        Guid clubId,
         CancellationToken cancellationToken = default)
     {
-        var ids = courseIds?
-            .Where(x => x != Guid.Empty)
-            .Distinct()
-            .ToList() ?? [];
-
-        if (ids.Count == 0)
+        if (clubId == Guid.Empty)
             return [];
 
         try
         {
-            var response = await _httpClient.PostAsJsonAsync(
-                BuildAcademyPath("courses/by-ids/simple"),
-                new GetCoursesByIdsRequestDTO { CourseIds = ids },
+            var response = await _httpClient.GetAsync(
+                BuildAcademyPath($"courses/club/{clubId}/simple"),
                 cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
                 if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 {
-                    _logger.LogWarning("Không tìm thấy khóa học khi gọi courses/by-ids/simple.");
+                    _logger.LogWarning("Không tìm thấy khóa học khi gọi courses/club/{ClubId}/simple.", clubId);
                     return [];
                 }
 
@@ -699,7 +645,7 @@ public class AcademyMicroserviceClient
                     throw new HttpRequestException("Yêu cầu không hợp lệ khi gọi Academy service.", null, System.Net.HttpStatusCode.BadRequest);
                 }
 
-                _logger.LogWarning("Academy service lỗi khi gọi courses/by-ids/simple: {StatusCode}", response.StatusCode);
+                _logger.LogWarning("Academy service lỗi khi gọi courses/club/{ClubId}/simple: {StatusCode}", clubId, response.StatusCode);
                 return [];
             }
 
@@ -711,12 +657,12 @@ public class AcademyMicroserviceClient
         }
         catch (TaskCanceledException)
         {
-            _logger.LogError("Timeout khi gọi courses/by-ids/simple");
+            _logger.LogError("Timeout khi gọi courses/club/{ClubId}/simple", clubId);
             return [];
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Lỗi khi gọi courses/by-ids/simple");
+            _logger.LogError(ex, "Lỗi khi gọi courses/club/{ClubId}/simple", clubId);
             return [];
         }
     }
@@ -725,25 +671,20 @@ public class AcademyMicroserviceClient
     /// Lấy danh sách khóa học HOT theo danh sách ID (có phân trang) từ Academy Microservice.
     /// Dữ liệu được cache theo tập ID + tham số phân trang để giảm số lần gọi mạng.
     /// </summary>
-    /// <param name="courseIds">Danh sách ID khóa học cần lấy.</param>
+    /// <param name="clubId">ID câu lạc bộ cần lấy khóa học.</param>
     /// <param name="searchRequest">Thông tin phân trang cho dữ liệu khóa học hot.</param>
     /// <returns>Kết quả danh sách khóa học hot theo trang hiện tại.</returns>
     public async Task<PagedCourseBulkResponse> GetHotCoursesByIds(
-        IEnumerable<Guid> courseIds,
+        Guid clubId,
         HotCoursesSearchRequest searchRequest)
     {
         searchRequest ??= new HotCoursesSearchRequest();
 
-        var ids = courseIds?
-            .Where(x => x != Guid.Empty)
-            .Distinct()
-            .ToList() ?? [];
-
-        if (ids.Count == 0)
+        if (clubId == Guid.Empty)
             return CreatePagedCourseResponse([], 0);
 
         var queryString = BuildHotCoursesSearchQuery(searchRequest);
-        var cacheKey = BuildHotBulkCoursesCacheKey(ids, queryString);
+        var cacheKey = BuildHotBulkCoursesCacheKey(clubId, queryString);
 
         var cachedValue = await _distributedCache.GetStringAsync(cacheKey);
         if (!string.IsNullOrWhiteSpace(cachedValue))
@@ -762,16 +703,15 @@ public class AcademyMicroserviceClient
 
         try
         {
-            var response = await _httpClient.PostAsJsonAsync(
-                $"{BuildAcademyPath("courses/by-ids/hot")}?{queryString}",
-                new GetCoursesByIdsRequestDTO { CourseIds = ids });
+            var response = await _httpClient.GetAsync(
+                $"{BuildAcademyPath($"courses/club/{clubId}/hot")}?{queryString}");
 
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning(
                     "Gọi Academy API lấy khóa học hot thất bại. StatusCode: {StatusCode}, Số lượng CourseId: {Count}",
                     response.StatusCode,
-                    ids.Count);
+                    0);
 
                 return CreatePagedCourseResponse([], 0);
             }
@@ -792,34 +732,28 @@ public class AcademyMicroserviceClient
         {
             _logger.LogError(ex,
                 "Lỗi khi gọi Academy API lấy danh sách khóa học hot. Số lượng CourseId: {Count}",
-                ids.Count);
+                0);
 
             return CreatePagedCourseResponse([], 0);
         }
     }
 
     public async Task<PagedCourseBulkResponse> GetCoursesByIdsManagement(
-    IEnumerable<Guid> courseIds,
+    Guid clubId,
     ManagerCourseBulkSearchRequest searchRequest,
     CancellationToken cancellationToken = default)
     {
         searchRequest ??= new ManagerCourseBulkSearchRequest();
 
-        var ids = courseIds?
-            .Where(x => x != Guid.Empty)
-            .Distinct()
-            .ToList() ?? [];
-
-        if (!ids.Any())
+        if (clubId == Guid.Empty)
             return CreatePagedCourseResponse([], 0);
 
         var queryString = BuildManagerCourseBulkSearchQuery(searchRequest);
 
         try
         {
-            var response = await _httpClient.PostAsJsonAsync(
-                $"{BuildAcademyPath("courses/by-ids/management")}?{queryString}",
-                new GetCoursesByIdsRequestDTO { CourseIds = ids },
+            var response = await _httpClient.GetAsync(
+                $"{BuildAcademyPath($"courses/club/{clubId}/management")}?{queryString}",
                 cancellationToken);
 
             if (!response.IsSuccessStatusCode)
@@ -883,6 +817,11 @@ public class AcademyMicroserviceClient
             queryParts.Add($"ProfitType={(int)request.ProfitType.Value}");
         }
 
+        if (request.LevelId.HasValue && request.LevelId.Value != Guid.Empty)
+        {
+            queryParts.Add($"LevelId={request.LevelId.Value}");
+        }
+
         // SortBy (có default nên luôn gửi)
         queryParts.Add($"CourseSortBy={(int)request.CourseSortBy!.Value}");
 
@@ -892,28 +831,18 @@ public class AcademyMicroserviceClient
         return string.Join("&", queryParts);
     }
 
-    private static string BuildBulkCoursesPageCacheKey(IEnumerable<Guid> courseIds, string queryString)
+    private static string BuildBulkCoursesPageCacheKey(Guid clubId, string queryString)
     {
-        var sortedIds = courseIds
-            .OrderBy(x => x)
-            .Select(x => x.ToString())
-            .ToList();
-
-        var raw = $"{string.Join(',', sortedIds)}|{queryString}";
+        var raw = $"{clubId}|{queryString}";
         var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(raw));
         var hash = Convert.ToHexString(hashBytes);
 
         return $"course:bulk:page:{hash}";
     }
 
-    private static string BuildHotBulkCoursesCacheKey(IEnumerable<Guid> courseIds, string queryString)
+    private static string BuildHotBulkCoursesCacheKey(Guid clubId, string queryString)
     {
-        var sortedIds = courseIds
-            .OrderBy(x => x)
-            .Select(x => x.ToString())
-            .ToList();
-
-        var raw = $"{string.Join(',', sortedIds)}|{queryString}";
+        var raw = $"{clubId}|{queryString}";
         var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(raw));
         var hash = Convert.ToHexString(hashBytes);
 
@@ -930,8 +859,7 @@ public class AcademyMicroserviceClient
         var queryParts = new List<string>
         {
             $"CurrentPage={searchRequest.CurrentPage}",
-            $"PageSize={searchRequest.PageSize}",
-            $"CourseOwner={(int)searchRequest.CourseOwner}"
+            $"PageSize={searchRequest.PageSize}"
         };
 
         //if (searchRequest.Level.HasValue)
@@ -944,6 +872,11 @@ public class AcademyMicroserviceClient
             queryParts.Add($"ParticipationSort={(int)searchRequest.ParticipationSort.Value}");
         }
 
+        if (searchRequest.LevelId.HasValue && searchRequest.LevelId.Value != Guid.Empty)
+        {
+            queryParts.Add($"LevelId={searchRequest.LevelId.Value}");
+        }
+
         if (!string.IsNullOrWhiteSpace(searchRequest.CourseName))
         {
             queryParts.Add($"CourseName={Uri.EscapeDataString(searchRequest.CourseName.Trim())}");
@@ -954,7 +887,18 @@ public class AcademyMicroserviceClient
 
     private static string BuildHotCoursesSearchQuery(HotCoursesSearchRequest searchRequest)
     {
-        return $"CurrentPage={searchRequest.CurrentPage}&PageSize={searchRequest.PageSize}";
+        var queryParts = new List<string>
+        {
+            $"CurrentPage={searchRequest.CurrentPage}",
+            $"PageSize={searchRequest.PageSize}"
+        };
+
+        if (searchRequest.LevelId.HasValue && searchRequest.LevelId.Value != Guid.Empty)
+        {
+            queryParts.Add($"LevelId={searchRequest.LevelId.Value}");
+        }
+
+        return string.Join("&", queryParts);
     }
 
     private static PagedCourseBulkResponse CreatePagedCourseResponse(IEnumerable<CourseBulkResponseDTO> items, int totalItems)
