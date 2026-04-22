@@ -38,7 +38,8 @@ public class LessonReferenceDuplicator : ILessonReferenceDuplicator
             LessonType.THEORY => await _theoryDuplicator.DuplicateAsync(sourceLesson.ReferenceID, context),
             LessonType.QUIZ => await _quizDuplicator.DuplicateAsync(sourceLesson.ReferenceID, context),
             LessonType.LAB => await _labDuplicator.DuplicateAsync(sourceLesson.ReferenceID, context),
-            LessonType.WEB => await _webSimulatorDuplicator.DuplicateAsync(sourceLesson.ReferenceID, context),
+            LessonType.PHYSIC => await _webSimulatorDuplicator.DuplicateAsync(sourceLesson.ReferenceID, context),
+            LessonType.LAB_PHYSIC => await _webSimulatorDuplicator.DuplicateAsync(sourceLesson.ReferenceID, context),
             LessonType.VR => await _vrSimulatorDuplicator.DuplicateAsync(sourceLesson.ReferenceID, context),
             _ => sourceLesson.ReferenceID
         };

@@ -214,11 +214,11 @@ public class LearningService : ILearningService
 
     private static void EnsureLessonCanBeCompletedInMode(Lesson lesson, CompletionMode mode)
     {
-        if (mode == CompletionMode.Direct && lesson.Type is not (LessonType.THEORY or LessonType.WEB or LessonType.VR))
-            throw new ForbiddenException("Chỉ lesson theory, web hoặc vr mới có thể hoàn thành trực tiếp.");
+        if (mode == CompletionMode.Direct && lesson.Type is not (LessonType.THEORY or LessonType.PHYSIC or LessonType.LAB_PHYSIC))
+            throw new ForbiddenException("Chỉ lesson theory, physic, lab_physic mới có thể hoàn thành trực tiếp.");
 
-        if (mode == CompletionMode.Assessment && lesson.Type is not (LessonType.QUIZ or LessonType.LAB))
-            throw new ForbiddenException("Chỉ lesson quiz hoặc lab mới có thể hoàn thành qua nộp bài.");
+        if (mode == CompletionMode.Assessment && lesson.Type is not (LessonType.QUIZ or LessonType.LAB or LessonType.VR))
+            throw new ForbiddenException("Chỉ lesson quiz hoặc lab hoặc vr mới có thể hoàn thành qua nộp bài.");
     }
 
     private async Task<CompletionContext> BuildCompletionContextAsync(Guid enrollmentId, Guid lessonId)

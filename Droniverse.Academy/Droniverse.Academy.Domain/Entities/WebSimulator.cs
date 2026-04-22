@@ -1,11 +1,13 @@
-﻿namespace Droniverse.Academy.Domain.Entities;
+﻿using Droniverse.Academy.Domain.Enums;
+
+namespace Droniverse.Academy.Domain.Entities;
 
 public class WebSimulator
 {
     public Guid WebSimulatorID { get; set; }
     public string TitleEN { get; set; } = string.Empty;
     public string TitleVN { get; set; } = string.Empty;
-    public string Type { get; set; } = string.Empty;
+    public WebSimulatorType Type { get; set; }
     public string ObjectivesVN { get; set; } = string.Empty;
     public string ObjectivesEN { get; set; } = string.Empty;
     public string Code { get; set; } = string.Empty;

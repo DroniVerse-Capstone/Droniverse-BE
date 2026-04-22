@@ -26,6 +26,7 @@ public class WebSimulatorConfiguration : IEntityTypeConfiguration<WebSimulator>
         builder.Property(x => x.Type)
             .HasColumnType("varchar(20)")
             .HasMaxLength(20)
+            .HasConversion<string>()
             .IsRequired();
 
         builder.Property(x => x.ObjectivesVN)
@@ -72,7 +73,7 @@ public class WebSimulatorConfiguration : IEntityTypeConfiguration<WebSimulator>
         builder.ToTable(t =>
             t.HasCheckConstraint(
                 "CK_WebSimulator_Type",
-                "`Type` IN ('Physic', 'LabPhysic')"
+                "`Type` IN ('PHYSIC', 'LAB_PHYSIC')"
             ));
     }
 }

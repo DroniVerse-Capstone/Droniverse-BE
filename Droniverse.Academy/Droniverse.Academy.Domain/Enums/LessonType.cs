@@ -4,6 +4,7 @@ public enum LessonType
     THEORY,
     QUIZ,
     LAB,
-    WEB,
+    PHYSIC,
+    LAB_PHYSIC,
     VR
 }

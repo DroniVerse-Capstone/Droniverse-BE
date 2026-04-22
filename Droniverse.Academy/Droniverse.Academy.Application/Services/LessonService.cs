@@ -193,7 +193,8 @@ public class LessonService : ILessonService
                     MapLabToDto(lab, dto);
                 }
                 break;
-            case LessonType.WEB:
+            case LessonType.PHYSIC:
+            case LessonType.LAB_PHYSIC:
                 var webSimulator = await _unitOfWork.WebSimulators.GetByIdAsync(lesson.ReferenceID);
                 if (webSimulator != null)
                 {
@@ -215,7 +216,7 @@ public class LessonService : ILessonService
         var theoryIds = GetReferenceIdsByType(lessons, LessonType.THEORY);
         var quizIds = GetReferenceIdsByType(lessons, LessonType.QUIZ);
         var labIds = GetReferenceIdsByType(lessons, LessonType.LAB);
-        var webSimulatorIds = GetReferenceIdsByType(lessons, LessonType.WEB);
+        var webSimulatorIds = GetReferenceIdsByTypes(lessons, LessonType.PHYSIC, LessonType.LAB_PHYSIC);
         var vrSimulatorIds = GetReferenceIdsByType(lessons, LessonType.VR);
 
         var theoryLookup = await GetTheoryLookupAsync(theoryIds);
@@ -231,6 +232,15 @@ public class LessonService : ILessonService
     {
         return lessons
             .Where(l => l.Type == type && l.ReferenceID != Guid.Empty)
+            .Select(l => l.ReferenceID)
+            .ToHashSet();
+    }
+
+    private static HashSet<Guid> GetReferenceIdsByTypes(IEnumerable<Lesson> lessons, params LessonType[] types)
+    {
+        var typeSet = types.ToHashSet();
+        return lessons
+            .Where(l => typeSet.Contains(l.Type) && l.ReferenceID != Guid.Empty)
             .Select(l => l.ReferenceID)
             .ToHashSet();
     }
@@ -299,7 +309,8 @@ public class LessonService : ILessonService
                     MapLabToDto(lab, dto);
                 }
                 break;
-            case LessonType.WEB:
+            case LessonType.PHYSIC:
+            case LessonType.LAB_PHYSIC:
                 if (lookups.WebSimulators.TryGetValue(lesson.ReferenceID, out var webSimulator))
                 {
                     MapWebSimulatorToDto(webSimulator, dto);
@@ -410,7 +421,8 @@ public class LessonService : ILessonService
                         await _unitOfWork.Quizs.DeleteAsync(quiz);
                     }
                     break;
-                case LessonType.WEB:
+                case LessonType.PHYSIC:
+                case LessonType.LAB_PHYSIC:
                     var webSimulator = await _unitOfWork.WebSimulators.GetByIdAsync(lesson.ReferenceID);
                     if (webSimulator != null)
                     {
@@ -487,7 +499,8 @@ public class LessonService : ILessonService
                 if (lab.Status != LabStatus.ACTIVE)
                     throw new ValidationException("Chỉ có thể thêm bài lab ở trạng thái Active vào lesson.");
                 break;
-            case LessonType.WEB:
+            case LessonType.PHYSIC:
+            case LessonType.LAB_PHYSIC:
                 if (await _unitOfWork.WebSimulators.GetByIdAsync(referenceId) == null)
                     throw new ValidationException("Không tìm thấy tham chiếu web simulator.");
                 break;

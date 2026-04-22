@@ -77,7 +77,7 @@ public class WebSimulatorService : IWebSimulatorService
             LessonID = Guid.NewGuid(),
             ModuleID = request.ModuleID,
             OrderIndex = orderIndex,
-            Type = LessonType.WEB,
+            Type = MapToLessonType(request.Type),
             ReferenceID = webSimulator.WebSimulatorID
         };
 
@@ -129,11 +129,10 @@ public class WebSimulatorService : IWebSimulatorService
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
-        await CourseVersionDraftGuard.EnsureDraftByReferenceAsync(
+        var lesson = await GetWebSimulatorLessonAsync(webSimulatorId);
+        await CourseVersionDraftGuard.EnsureDraftByModuleIdAsync(
             _unitOfWork,
-            webSimulatorId,
-            LessonType.WEB,
-            "web",
+            lesson.ModuleID,
             "Chỉ được chỉnh sửa lesson web simulator khi phiên bản khóa học ở trạng thái Draft.");
 
         ValidateData(
@@ -158,6 +157,9 @@ public class WebSimulatorService : IWebSimulatorService
         webSimulator.EstimatedTime = request.EstimatedTime;
         webSimulator.SetAuditOnUpdate(_currentUser.UserId, _clock.Now);
 
+        lesson.Type = MapToLessonType(request.Type);
+
+        await _unitOfWork.Lessons.UpdateAsync(lesson);
         await _unitOfWork.WebSimulators.UpdateAsync(webSimulator);
         await _unitOfWork.SaveChangesAsync();
 
@@ -169,23 +171,18 @@ public class WebSimulatorService : IWebSimulatorService
 
     public async Task DeleteWebSimulatorAsync(Guid webSimulatorId)
     {
-        await CourseVersionDraftGuard.EnsureDraftByReferenceAsync(
+        var lesson = await GetWebSimulatorLessonAsync(webSimulatorId);
+        await CourseVersionDraftGuard.EnsureDraftByModuleIdAsync(
             _unitOfWork,
-            webSimulatorId,
-            LessonType.WEB,
-            "web",
+            lesson.ModuleID,
             "Chỉ được chỉnh sửa lesson web simulator khi phiên bản khóa học ở trạng thái Draft.");
 
         var webSimulator = await _unitOfWork.WebSimulators.GetByIdAsync(webSimulatorId);
         if (webSimulator == null)
             throw new BaseException("Không tìm thấy web simulator.", "NOT_FOUND");
 
-        var lesson = await _unitOfWork.Lessons.GetByConditionAsync(l => l.Type == LessonType.WEB && l.ReferenceID == webSimulator.WebSimulatorID);
-        if (lesson != null)
-        {
-            lesson.ReferenceID = Guid.Empty;
-            await _unitOfWork.Lessons.UpdateAsync(lesson);
-        }
+        lesson.ReferenceID = Guid.Empty;
+        await _unitOfWork.Lessons.UpdateAsync(lesson);
 
         await _unitOfWork.WebSimulators.DeleteAsync(webSimulator);
         await _unitOfWork.SaveChangesAsync();
@@ -194,7 +191,7 @@ public class WebSimulatorService : IWebSimulatorService
     private static void ValidateData(
         string titleVN,
         string titleEN,
-        string type,
+        WebSimulatorType type,
         string objectivesVN,
         string objectivesEN,
         string code,
@@ -206,8 +203,8 @@ public class WebSimulatorService : IWebSimulatorService
         if (string.IsNullOrWhiteSpace(titleEN))
             throw new ValidationException("Tiêu đề tiếng Anh là bắt buộc.");
 
-        if (string.IsNullOrWhiteSpace(type))
-            throw new ValidationException("Loại web simulator là bắt buộc.");
+        if (!Enum.IsDefined(type))
+            throw new ValidationException("Loại web simulator không hợp lệ.");
 
         if (string.IsNullOrWhiteSpace(objectivesVN))
             throw new ValidationException("Mục tiêu tiếng Việt là bắt buộc.");
@@ -253,6 +250,24 @@ public class WebSimulatorService : IWebSimulatorService
 
         if (duplicated != null)
             throw new ValidationException("OrderIndex phải là duy nhất trong mô-đun.");
+    }
+
+    private async Task<Lesson> GetWebSimulatorLessonAsync(Guid webSimulatorId)
+    {
+        return await _unitOfWork.Lessons.GetByConditionAsync(
+            l => l.ReferenceID == webSimulatorId
+                 && (l.Type == LessonType.PHYSIC || l.Type == LessonType.LAB_PHYSIC))
+            ?? throw new ValidationException("Không tìm thấy lesson web simulator tham chiếu.");
+    }
+
+    private static LessonType MapToLessonType(WebSimulatorType type)
+    {
+        return type switch
+        {
+            WebSimulatorType.PHYSIC => LessonType.PHYSIC,
+            WebSimulatorType.LAB_PHYSIC => LessonType.LAB_PHYSIC,
+            _ => throw new ValidationException("Loại web simulator không hợp lệ.")
+        };
     }
 
     private static WebSimulatorClientViewDTO MapToResponse(WebSimulator webSimulator)
