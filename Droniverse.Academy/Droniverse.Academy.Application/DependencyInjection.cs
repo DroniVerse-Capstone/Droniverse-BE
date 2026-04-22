@@ -27,6 +27,8 @@ public static class DependencyInjection
         services.AddScoped<IQuizService, QuizService>();
         services.AddScoped<IQuizQuestionService, QuizQuestionService>();
         services.AddScoped<ITheoryService, TheoryService>();
+        services.AddScoped<IWebSimulatorService, WebSimulatorService>();
+        services.AddScoped<IVRSimulatorService, VRSimulatorService>();
         services.AddScoped<IDroneTypeService, DroneTypeService>();
         services.AddScoped<IDroneService, DroneService>();
         services.AddScoped<ICertificateService, CertificateService>();
@@ -45,6 +47,7 @@ public static class DependencyInjection
         services.AddScoped<IUserModuleService, UserModuleService>();
         services.AddScoped<IUserLessonService, UserLessonService>();
         services.AddScoped<IUserLabService, UserLabService>();
+        services.AddScoped<IUserLevelService, UserLevelService>();
         services.AddScoped<IUserQuizAttemptService, UserQuizAttemptService>();
         services.AddScoped<IUserQuizQuestionAttemptService, UserQuizQuestionAttemptService>();
         services.AddScoped<IFeedbackService, FeedbackService>();

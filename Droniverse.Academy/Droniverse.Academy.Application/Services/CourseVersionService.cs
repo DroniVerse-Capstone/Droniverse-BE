@@ -5,6 +5,7 @@ using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService.Duplication;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.Application.Validators;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
@@ -49,6 +50,11 @@ public class CourseVersionService : ICourseVersionService
 
     public async Task<CourseVersionResponseDTO> CreateCourseVersionAsync(Guid courseId, CreateCourseVersionRequestDTO request)
     {
+        if (request == null)
+            throw new ArgumentNullException(nameof(request));
+
+        CourseVersionValidator.ValidateCreateData(request);
+
         var course = await _unitOfWork.Courses.GetByIdWithAllVersionsAsync(courseId);
         if (course == null)
             throw new BaseException("Không tìm thấy khóa học.", "NOT_FOUND");
@@ -230,9 +236,17 @@ public class CourseVersionService : ICourseVersionService
 
     public async Task<CourseVersionResponseDTO> UpdateCourseVersionAsync(Guid courseId, Guid versionId, UpdateCourseVersionRequestDTO request)
     {
+        if (request == null)
+            throw new ArgumentNullException(nameof(request));
+
+        CourseVersionValidator.ValidateUpdateData(request);
+
         var course = await _unitOfWork.Courses.GetByIdWithAllVersionsAsync(courseId);
         if (course == null)
             throw new BaseException("Không tìm thấy khóa học.", "NOT_FOUND");
+
+        if (course.Status == CourseStatus.PUBLISH)
+            throw new ValidationException("Khóa học đang Publish, không thể chỉnh sửa nội dung phiên bản.");
 
         if (course.Status == CourseStatus.ARCHIVED)
             throw new ValidationException("Khóa học đã lưu trữ chỉ được xem, không thể thao tác.");
@@ -243,6 +257,9 @@ public class CourseVersionService : ICourseVersionService
 
         if (cv.Status == CourseVersionStatus.INACTIVE)
             throw new ValidationException("Phiên bản đã xóa mềm chỉ được xem, không thể thao tác.");
+
+        if (cv.Status == CourseVersionStatus.ACTIVE)
+            throw new ValidationException("Phiên bản đang Active, không thể chỉnh sửa.");
 
         cv.UpdateContent(request.TitleVN, request.TitleEN, request.DescriptionVN, request.DescriptionEN, request.ContextVN, request.ContextEN, request.ImageUrl, request.EstimatedDuration, request.ChangeLog, _currentUser.UserId, _clock.Now);
 

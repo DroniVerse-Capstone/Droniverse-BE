@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Droniverse.Academy.Application.Helpers;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
@@ -25,6 +26,10 @@ public class LessonService : ILessonService
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
+        await CourseVersionDraftGuard.EnsureDraftByModuleIdAsync(
+            _unitOfWork,
+            moduleId,
+            "Chỉ được chỉnh sửa lesson khi phiên bản khóa học ở trạng thái Draft.");
         await EnsureModuleExistsAsync(moduleId);
         await ValidateReferenceAsync(request.Type, request.ReferenceID);
 
@@ -65,6 +70,10 @@ public class LessonService : ILessonService
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
+        await CourseVersionDraftGuard.EnsureDraftByModuleIdAsync(
+            _unitOfWork,
+            moduleId,
+            "Chỉ được chỉnh sửa lesson khi phiên bản khóa học ở trạng thái Draft.");
         var lesson = await GetLessonAsync(moduleId, lessonId);
         await ValidateReferenceAsync(request.Type, request.ReferenceID);
 
@@ -84,6 +93,10 @@ public class LessonService : ILessonService
 
     public async Task<IEnumerable<LessonClientViewDTO>> ReorderLessonsAsync(Guid moduleId, ReorderLessonsRequestDTO request)
     {
+        await CourseVersionDraftGuard.EnsureDraftByModuleIdAsync(
+            _unitOfWork,
+            moduleId,
+            "Chỉ được chỉnh sửa lesson khi phiên bản khóa học ở trạng thái Draft.");
         await EnsureModuleExistsAsync(moduleId);
 
         if (request.Lessons.Count == 0)
@@ -361,6 +374,10 @@ public class LessonService : ILessonService
 
     public async Task DeleteLessonAsync(Guid moduleId, Guid lessonId)
     {
+        await CourseVersionDraftGuard.EnsureDraftByModuleIdAsync(
+            _unitOfWork,
+            moduleId,
+            "Chỉ được chỉnh sửa lesson khi phiên bản khóa học ở trạng thái Draft.");
         var lesson = await GetLessonAsync(moduleId, lessonId);
         var deletedOrderIndex = lesson.OrderIndex;
 

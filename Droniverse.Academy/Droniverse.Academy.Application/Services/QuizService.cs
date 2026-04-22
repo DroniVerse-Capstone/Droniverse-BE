@@ -2,6 +2,7 @@
 using Droniverse.Academy.Application.Common.Extensions;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
+using Droniverse.Academy.Application.Helpers;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Application.Validators;
 using Droniverse.Academy.Domain.Entities;
@@ -36,6 +37,11 @@ public class QuizService : IQuizService
             throw new ArgumentNullException(nameof(request));
 
         QuizValidator.ValidateQuizData(request.TimeLimit, request.TotalScore, request.PassScore);
+
+        await CourseVersionDraftGuard.EnsureDraftByModuleIdAsync(
+            _unitOfWork,
+            request.ModuleID,
+            "Chỉ được chỉnh sửa lesson quiz khi phiên bản khóa học ở trạng thái Draft.");
 
         var module = await _unitOfWork.Modules.GetByIdAsync(request.ModuleID);
         if (module == null)
@@ -106,6 +112,13 @@ public class QuizService : IQuizService
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
+        await CourseVersionDraftGuard.EnsureDraftByReferenceAsync(
+            _unitOfWork,
+            quizId,
+            LessonType.QUIZ,
+            "quiz",
+            "Chỉ được chỉnh sửa lesson quiz khi phiên bản khóa học ở trạng thái Draft.");
+
         QuizValidator.ValidateQuizData(request.TimeLimit, request.TotalScore, request.PassScore);
 
         var quiz = await _unitOfWork.Quizs.GetByIdAsync(quizId);
@@ -128,6 +141,13 @@ public class QuizService : IQuizService
 
     public async Task DeleteQuizAsync(Guid quizId)
     {
+        await CourseVersionDraftGuard.EnsureDraftByReferenceAsync(
+            _unitOfWork,
+            quizId,
+            LessonType.QUIZ,
+            "quiz",
+            "Chỉ được chỉnh sửa lesson quiz khi phiên bản khóa học ở trạng thái Draft.");
+
         var quiz = await _unitOfWork.Quizs.GetByIdAsync(quizId);
         if (quiz == null)
             throw new BaseException("Không tìm thấy bài kiểm tra.", "NOT_FOUND");
