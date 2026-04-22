@@ -125,7 +125,7 @@ internal class OrderService : IOrderService
             OrderType = isMember ? OrderType.USER_PURCHASE : OrderType.CLUB_IMPORT,
             Item = orderItem,
             Status = OrderStatus.PENDING,
-            TotalAmount = isMember ? CalculateTotal(product.Price, quantity) * 1.1m : CalculateTotal(product.Price, quantity),
+            TotalAmount = CalculateTotal(product.Price, quantity),
             Payment = null // Chưa có payment khi tạo order
         };
 

@@ -479,7 +479,7 @@ internal class PaymentService : IPaymentService
                             CourseId = product.ReferenceID,
                             Quantity = order.Item.Quantity
                         };
-
+                        _logger.LogInformation("USER-EMAIL: {UserEmail}", userEmail);
                         CodeResponse codeResponse = await _academyMicroserviceClient.GenerateAssignCodesAsync(codeRequest, userEmail);
 
                         if (codeResponse == null || codeResponse.CodeID == null)
