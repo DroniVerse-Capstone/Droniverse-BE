@@ -79,6 +79,7 @@ public class CodeController : ControllerBase
     /// Api để call chéo service
     /// </summary>
     [HttpPost("generate-assign")]
+    [AllowAnonymous]
     //[Authorize(Roles = Roles.ClubMember)]
     public async Task<IActionResult> GenerateCode([FromBody] Shared.DTOs.Request.GenerateWithAssignCodeRequestDTO request)
     {
