@@ -111,9 +111,10 @@ public class WebSimulatorService : IWebSimulatorService
         };
     }
 
-    public async Task<IEnumerable<WebSimulatorClientViewDTO>> GetWebSimulatorsAsync()
+    public async Task<IEnumerable<WebSimulatorClientViewDTO>> GetWebSimulatorsAsync(WebSimulatorType? type = null)
     {
         var webSimulators = await _unitOfWork.WebSimulators.GetAllAsync(
+            filter: type.HasValue ? x => x.Type == type.Value : null,
             orderBy: q => q.OrderByDescending(x => x.CreateAt),
             pageIndex: 1,
             pageSize: int.MaxValue);

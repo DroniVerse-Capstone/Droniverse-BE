@@ -36,6 +36,42 @@ namespace Droniverse.Academy.Application.Services
             return _mapper.Map<IEnumerable<LevelMiniResponse>>(levels.Data);
         }
 
+        public async Task<IEnumerable<LevelPathResponseDTO>> GetLevelPathAsync(Guid droneId, CancellationToken cancellationToken = default)
+        {
+            var levelsResult = await _unitOfWork.Levels.GetAllAsync(
+                filter: l => l.DroneID == droneId && l.LevelNumber >= 1 && l.LevelNumber <= 4,
+                orderBy: q => q.OrderBy(l => l.LevelNumber),
+                pageIndex: 1,
+                pageSize: int.MaxValue,
+                includeProperties: "LevelCourseRequirements.Course.CurrentVersion,LevelCourseRequirements.Course.Level",
+                cancellationToken: cancellationToken);
+
+            var levels = levelsResult.Data?.ToList() ?? [];
+
+            return levels.Select(level => new LevelPathResponseDTO
+            {
+                Level = _mapper.Map<LevelMiniResponse>(level),
+                Courses = level.LevelCourseRequirements?
+                    .Select(x => x.Course)
+                    .Where(course => course != null)
+                    .Select(course => new CourseMiniResponseDTO
+                    {
+                        CourseID = course!.CourseID,
+                        Level = course.Level == null ? null : _mapper.Map<LevelMiniResponse>(course.Level),
+                        CurrentVersion = course.CurrentVersion == null ? null : new CourseVersionMiniResponseDTO
+                        {
+                            CourseVersionID = course.CurrentVersion.CourseVersionID,
+                            TitleVN = course.CurrentVersion.TitleVN,
+                            TitleEN = course.CurrentVersion.TitleEN,
+                            Version = course.CurrentVersion.Version
+                        }
+                    })
+                    .OrderBy(x => x.Level?.LevelNumber)
+                    .ThenBy(x => x.CurrentVersion?.Version)
+                    .ToList() ?? []
+            }).ToList();
+        }
+
         public async Task<int> ReplaceLevelCoursesAsync(Guid levelId, IEnumerable<Guid>? courseIds, CancellationToken cancellationToken = default)
         {
             if (levelId == Guid.Empty)

@@ -12,6 +12,8 @@ namespace Droniverse.Academy.Application.IService
     {
         Task<IEnumerable<LevelMiniResponse>> GetLevelByDroneAsync(Guid droneId);
 
+        Task<IEnumerable<LevelPathResponseDTO>> GetLevelPathAsync(Guid droneId, CancellationToken cancellationToken = default);
+
         Task<int> ReplaceLevelCoursesAsync(Guid levelId, IEnumerable<Guid>? courseIds, CancellationToken cancellationToken = default);
     }
 }
