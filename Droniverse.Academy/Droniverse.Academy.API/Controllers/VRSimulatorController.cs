@@ -25,7 +25,6 @@ public class VRSimulatorController : ControllerBase
     /// Tạo mới vr simulator.
     /// </summary>
     [HttpPost]
-    [Authorize(Roles = Roles.AdminOrSystemManager)]
     [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> CreateVRSimulator([FromBody] CreateVRSimulatorRequestDTO request)
     {
@@ -45,7 +44,6 @@ public class VRSimulatorController : ControllerBase
     /// Tạo lesson từ vr simulator có sẵn.
     /// </summary>
     [HttpPost("{vrSimulatorId:guid}/lessons")]
-    [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> CreateLessonFromVRSimulator(Guid vrSimulatorId, [FromBody] CreateVRSimulatorLessonRequestDTO request)
     {
         try
@@ -64,7 +62,6 @@ public class VRSimulatorController : ControllerBase
     /// Lấy danh sách vr simulator.
     /// </summary>
     [HttpGet]
-    [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> GetVRSimulators()
     {
         try
@@ -83,7 +80,6 @@ public class VRSimulatorController : ControllerBase
     /// Lấy chi tiết vr simulator.
     /// </summary>
     [HttpGet("{vrSimulatorId:guid}")]
-    [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> GetVRSimulatorById(Guid vrSimulatorId)
     {
         try
@@ -102,7 +98,6 @@ public class VRSimulatorController : ControllerBase
     /// Cập nhật vr simulator.
     /// </summary>
     [HttpPut("{vrSimulatorId:guid}")]
-    [Authorize(Roles = Roles.AdminOrSystemManager)]
     [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> UpdateVRSimulator(Guid vrSimulatorId, [FromBody] UpdateVRSimulatorRequestDTO request)
     {
@@ -122,7 +117,6 @@ public class VRSimulatorController : ControllerBase
     /// Xóa vr simulator.
     /// </summary>
     [HttpDelete("{vrSimulatorId:guid}")]
-    [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> DeleteVRSimulator(Guid vrSimulatorId)
     {
         try
