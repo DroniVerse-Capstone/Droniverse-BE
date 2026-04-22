@@ -49,7 +49,6 @@ public class CourseService : ICourseService
         CourseVersionValidator.ValidateCreateData(request.Version);
 
         var level = await _unitOfWork.Levels.GetByIdAsync(request.LevelID);
-
         if (level == null)
             throw new BaseException("Không tìm thấy level.", "NOT_FOUND");
 
@@ -81,6 +80,7 @@ public class CourseService : ICourseService
 
         var response = _mapper.Map<CourseDetailResponseDTO>(createdCourse);
         response.Creator = await ResolveUserAsync(createdCourse.CreateBy);
+        response.PrerequisiteCourses = [];
 
         return response;
     }
@@ -143,6 +143,7 @@ public class CourseService : ICourseService
 
         var entities = result.Data.ToList();
         var mapped = entities.Select(c => _mapper.Map<CourseResponseDTO>(c)).ToList();
+        var prerequisiteLookup = await BuildPrerequisiteLookupAsync(entities.Select(x => x.CourseID));
 
         var referenceIds = entities
             .Select(c => c.CourseID)
@@ -162,6 +163,10 @@ public class CourseService : ICourseService
             {
                 dto.MiniProduct = _mapper.Map<ProductMiniResponseDTO>(miniProduct);
             }
+
+            dto.PrerequisiteCourses = prerequisiteLookup.TryGetValue(referenceId, out var prerequisiteCourses)
+                ? prerequisiteCourses
+                : [];
         }
 
         var userCache = await BuildUserLookupAsync(entities);
@@ -176,6 +181,10 @@ public class CourseService : ICourseService
             ?? throw new BaseException("Không tìm thấy khóa học.", "NOT_FOUND");
 
         var courseResponse = _mapper.Map<CourseResponseDTO>(course);
+        var prerequisiteLookup = await BuildPrerequisiteLookupAsync([course.CourseID]);
+        courseResponse.PrerequisiteCourses = prerequisiteLookup.TryGetValue(course.CourseID, out var prerequisiteCourses)
+            ? prerequisiteCourses
+            : [];
         courseResponse.Creator = await ResolveUserAsync(course.CreateBy);
         if (courseResponse.CurrentVersion != null)
         {
@@ -213,6 +222,10 @@ public class CourseService : ICourseService
             throw new NotFoundException($"Không tìm thấy phiên bản khóa học với id {courseVersionId}.");
 
         var response = _mapper.Map<CourseOverviewResponseDTO>(overviewData);
+        var prerequisiteLookup = await BuildPrerequisiteLookupAsync([overviewData.CourseID]);
+        response.PrerequisiteCourses = prerequisiteLookup.TryGetValue(overviewData.CourseID, out var prerequisiteCourses)
+            ? prerequisiteCourses
+            : [];
         response.Level = _mapper.Map<LevelMiniResponse?>(course.Level);
         response.Drone = _mapper.Map<DroneMiniResponse?>(course.Drone);
 
@@ -578,6 +591,51 @@ public class CourseService : ICourseService
             .ToDistinctValidIds();
 
         return await _userLookupService.BuildUserLookupAsync(userIds);
+    }
+
+    private async Task<Dictionary<Guid, List<PrerequisiteCourseMiniReponse>>> BuildPrerequisiteLookupAsync(
+        IEnumerable<Guid> courseIds)
+    {
+        var ids = courseIds
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        var prerequisites = await _unitOfWork.PrerequisiteCourses
+            .GetByCourseIdsWithRequiredCourseAsync(ids);
+
+        // STEP 1: Filter + Group
+        var filteredGroups = prerequisites
+            //.Where(x =>
+            //    x.RequiredCourse != null
+            //    && x.RequiredCourse.Status == CourseStatus.PUBLISH
+            //    && x.RequiredCourse.CurrentVersion != null
+            //    && x.RequiredCourse.CurrentVersion.Status == CourseVersionStatus.ACTIVE)
+            .Where(x => x.RequiredCourse != null)
+            .GroupBy(x => x.CourseID)
+            .ToList(); // materialize để debug
+
+
+        // STEP 2: Map sang Dictionary
+        var result = filteredGroups.ToDictionary(
+            g => g.Key,
+            g => g
+                .Select(x => new PrerequisiteCourseMiniReponse
+                {
+                    CourseID = x.PrerequisiteCourseID,
+                    TitleVN = x.RequiredCourse!.CurrentVersion!.TitleVN,
+                    TitleEN = x.RequiredCourse.CurrentVersion.TitleEN
+                })
+                .DistinctBy(x => x.CourseID)
+                .ToList()
+        );
+
+        return result;
     }
 
     private static List<CourseResponseDTO> MapCoursesUsers(

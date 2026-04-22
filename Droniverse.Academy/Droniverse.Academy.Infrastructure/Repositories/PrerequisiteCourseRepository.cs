@@ -18,6 +18,28 @@ internal class PrerequisiteCourseRepository : MySqlRepository<PrerequisiteCourse
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<List<PrerequisiteCourse>> GetByCourseIdsWithRequiredCourseAsync(
+        IEnumerable<Guid> courseIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = courseIds?
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToList() ?? [];
+
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        return await _dbSet
+            .AsNoTracking()
+            .Where(x => ids.Contains(x.CourseID))
+            .Include(x => x.RequiredCourse)
+                .ThenInclude(c => c.CurrentVersion)
+            .ToListAsync(cancellationToken);
+    }
+
     public void RemoveRange(IEnumerable<PrerequisiteCourse> entities)
     {
         _dbSet.RemoveRange(entities);

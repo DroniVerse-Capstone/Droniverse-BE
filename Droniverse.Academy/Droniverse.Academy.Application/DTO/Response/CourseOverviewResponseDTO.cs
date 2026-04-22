@@ -34,6 +34,7 @@ public class CourseOverviewResponseDTO
     public bool IsUnlock { get; set; }
     public SimpleUserReponse? LastUpdatedBy { get; set; }
     public DateTime? LastUpdatedAt { get; set; }
+    public List<PrerequisiteCourseMiniReponse> PrerequisiteCourses { get; set; } = [];
 
     public ProductMiniResponseDTO? MiniProduct { get; set; }
     public ClubCourseOwn? ClubCourseOwn { get; set; }

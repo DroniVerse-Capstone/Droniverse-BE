@@ -12,5 +12,6 @@ public class CourseDetailResponseDTO
     public LevelMiniResponse? Level { get; set; }
     public DroneMiniResponse? Drone { get; set; }
     public CourseVersionResponseDTO? CurrentVersion { get; set; }
+    public List<PrerequisiteCourseMiniReponse> PrerequisiteCourses { get; set; } = [];
     public ICollection<CourseVersionResponseDTO> CourseVersions { get; set; } = [];
 }

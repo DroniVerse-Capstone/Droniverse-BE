@@ -42,6 +42,15 @@ public class CourseDetailSuccessResponseExample : IExamplesProvider<SuccessRespo
                     Currency = CurrencyType.VND,
                     Status = ProductStatus.Active
                 },
+                PrerequisiteCourses =
+                [
+                    new PrerequisiteCourseMiniReponse
+                    {
+                        CourseID = Guid.Parse("2f7a7dc5-b4e2-4d36-a014-5f85366a2d28"),
+                        TitleVN = "Cơ bản điều khiển drone",
+                        TitleEN = "Drone Control Basics"
+                    }
+                ],
                 CurrentVersion = new CourseVersionResponseDTO
                 {
                     CourseVersionID = Guid.Parse("7d8aa3db-7477-4af6-a06c-783f26450484"),
@@ -118,6 +127,15 @@ public class CourseOverviewSuccessResponseExample : IExamplesProvider<SuccessRes
                     Email = "thib@example.com"
                 },
                 LastUpdatedAt = DateTime.UtcNow,
+                PrerequisiteCourses =
+                [
+                    new PrerequisiteCourseMiniReponse
+                    {
+                        CourseID = Guid.Parse("2f7a7dc5-b4e2-4d36-a014-5f85366a2d28"),
+                        TitleVN = "Cơ bản điều khiển drone",
+                        TitleEN = "Drone Control Basics"
+                    }
+                ],
                 ClubCourseOwn = new ClubCourseOwn
                 {
                     RemainingQuantity = 25
