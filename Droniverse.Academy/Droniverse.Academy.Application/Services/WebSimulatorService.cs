@@ -45,17 +45,7 @@ public class WebSimulatorService : IWebSimulatorService
             request.Code,
             request.EstimatedTime);
 
-        await CourseVersionDraftGuard.EnsureDraftByModuleIdAsync(
-            _unitOfWork,
-            request.ModuleID,
-            "Chỉ được chỉnh sửa lesson web simulator khi phiên bản khóa học ở trạng thái Draft.");
-
-        var module = await _unitOfWork.Modules.GetByIdAsync(request.ModuleID);
-        if (module == null)
-            throw new BaseException("Không tìm thấy mô-đun.", "NOT_FOUND");
-
-        var orderIndex = request.OrderIndex ?? await GetNextOrderIndexAsync(request.ModuleID);
-        await ValidateOrderIndexAsync(request.ModuleID, orderIndex);
+        await EnsureTitlesUniqueAsync(request.TitleVN, request.TitleEN);
 
         var webSimulator = new WebSimulator
         {
@@ -71,23 +61,54 @@ public class WebSimulatorService : IWebSimulatorService
         webSimulator.SetAuditOnCreate(_currentUser.UserId, _clock.Now);
 
         await _unitOfWork.WebSimulators.AddAsync(webSimulator);
-
-        var lesson = new Lesson
-        {
-            LessonID = Guid.NewGuid(),
-            ModuleID = request.ModuleID,
-            OrderIndex = orderIndex,
-            Type = MapToLessonType(request.Type),
-            ReferenceID = webSimulator.WebSimulatorID
-        };
-
-        await _unitOfWork.Lessons.AddAsync(lesson);
         await _unitOfWork.SaveChangesAsync();
 
         var response = MapToResponse(webSimulator);
         await PopulateUsersAsync(response, webSimulator.CreateBy, webSimulator.UpdateBy);
 
         return response;
+    }
+
+    public async Task<LessonClientViewDTO> CreateLessonFromWebSimulatorAsync(Guid webSimulatorId, CreateWebSimulatorLessonRequestDTO request)
+    {
+        if (request == null)
+            throw new ArgumentNullException(nameof(request));
+
+        await CourseVersionDraftGuard.EnsureDraftByModuleIdAsync(
+            _unitOfWork,
+            request.ModuleID,
+            "Chỉ được chỉnh sửa lesson web simulator khi phiên bản khóa học ở trạng thái Draft.");
+
+        var webSimulator = await _unitOfWork.WebSimulators.GetByIdAsync(webSimulatorId);
+        if (webSimulator == null)
+            throw new BaseException("Không tìm thấy web simulator.", "NOT_FOUND");
+
+        var orderIndex = request.OrderIndex ?? await GetNextOrderIndexAsync(request.ModuleID);
+        await ValidateOrderIndexAsync(request.ModuleID, orderIndex);
+
+        var lesson = new Lesson
+        {
+            LessonID = Guid.NewGuid(),
+            ModuleID = request.ModuleID,
+            OrderIndex = orderIndex,
+            Type = MapToLessonType(webSimulator.Type),
+            ReferenceID = webSimulator.WebSimulatorID
+        };
+
+        await _unitOfWork.Lessons.AddAsync(lesson);
+        await _unitOfWork.SaveChangesAsync();
+
+        return new LessonClientViewDTO
+        {
+            LessonID = lesson.LessonID,
+            ModuleID = lesson.ModuleID,
+            OrderIndex = lesson.OrderIndex,
+            Type = lesson.Type,
+            ReferenceID = lesson.ReferenceID,
+            TitleVN = webSimulator.TitleVN,
+            TitleEN = webSimulator.TitleEN,
+            EstimatedTime = webSimulator.EstimatedTime
+        };
     }
 
     public async Task<IEnumerable<WebSimulatorClientViewDTO>> GetWebSimulatorsAsync()
@@ -129,12 +150,6 @@ public class WebSimulatorService : IWebSimulatorService
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
-        var lesson = await GetWebSimulatorLessonAsync(webSimulatorId);
-        await CourseVersionDraftGuard.EnsureDraftByModuleIdAsync(
-            _unitOfWork,
-            lesson.ModuleID,
-            "Chỉ được chỉnh sửa lesson web simulator khi phiên bản khóa học ở trạng thái Draft.");
-
         ValidateData(
             request.TitleVN,
             request.TitleEN,
@@ -144,9 +159,20 @@ public class WebSimulatorService : IWebSimulatorService
             request.Code,
             request.EstimatedTime);
 
+        await EnsureTitlesUniqueAsync(request.TitleVN, request.TitleEN, webSimulatorId);
+
         var webSimulator = await _unitOfWork.WebSimulators.GetByIdAsync(webSimulatorId);
         if (webSimulator == null)
             throw new BaseException("Không tìm thấy web simulator.", "NOT_FOUND");
+
+        var mappedLessons = await GetMappedWebLessonsAsync(webSimulatorId);
+        foreach (var lesson in mappedLessons)
+        {
+            await CourseVersionDraftGuard.EnsureDraftByModuleIdAsync(
+                _unitOfWork,
+                lesson.ModuleID,
+                "Chỉ được chỉnh sửa lesson web simulator khi phiên bản khóa học ở trạng thái Draft.");
+        }
 
         webSimulator.TitleVN = request.TitleVN;
         webSimulator.TitleEN = request.TitleEN;
@@ -157,9 +183,12 @@ public class WebSimulatorService : IWebSimulatorService
         webSimulator.EstimatedTime = request.EstimatedTime;
         webSimulator.SetAuditOnUpdate(_currentUser.UserId, _clock.Now);
 
-        lesson.Type = MapToLessonType(request.Type);
+        foreach (var lesson in mappedLessons)
+        {
+            lesson.Type = MapToLessonType(request.Type);
+            await _unitOfWork.Lessons.UpdateAsync(lesson);
+        }
 
-        await _unitOfWork.Lessons.UpdateAsync(lesson);
         await _unitOfWork.WebSimulators.UpdateAsync(webSimulator);
         await _unitOfWork.SaveChangesAsync();
 
@@ -171,18 +200,21 @@ public class WebSimulatorService : IWebSimulatorService
 
     public async Task DeleteWebSimulatorAsync(Guid webSimulatorId)
     {
-        var lesson = await GetWebSimulatorLessonAsync(webSimulatorId);
-        await CourseVersionDraftGuard.EnsureDraftByModuleIdAsync(
-            _unitOfWork,
-            lesson.ModuleID,
-            "Chỉ được chỉnh sửa lesson web simulator khi phiên bản khóa học ở trạng thái Draft.");
-
         var webSimulator = await _unitOfWork.WebSimulators.GetByIdAsync(webSimulatorId);
         if (webSimulator == null)
             throw new BaseException("Không tìm thấy web simulator.", "NOT_FOUND");
 
-        lesson.ReferenceID = Guid.Empty;
-        await _unitOfWork.Lessons.UpdateAsync(lesson);
+        var mappedLessons = await GetMappedWebLessonsAsync(webSimulatorId);
+        foreach (var lesson in mappedLessons)
+        {
+            await CourseVersionDraftGuard.EnsureDraftByModuleIdAsync(
+                _unitOfWork,
+                lesson.ModuleID,
+                "Chỉ được chỉnh sửa lesson web simulator khi phiên bản khóa học ở trạng thái Draft.");
+
+            lesson.ReferenceID = Guid.Empty;
+            await _unitOfWork.Lessons.UpdateAsync(lesson);
+        }
 
         await _unitOfWork.WebSimulators.DeleteAsync(webSimulator);
         await _unitOfWork.SaveChangesAsync();
@@ -252,12 +284,32 @@ public class WebSimulatorService : IWebSimulatorService
             throw new ValidationException("OrderIndex phải là duy nhất trong mô-đun.");
     }
 
-    private async Task<Lesson> GetWebSimulatorLessonAsync(Guid webSimulatorId)
+    private async Task EnsureTitlesUniqueAsync(string titleVN, string titleEN, Guid? excludeWebSimulatorId = null)
     {
-        return await _unitOfWork.Lessons.GetByConditionAsync(
-            l => l.ReferenceID == webSimulatorId
-                 && (l.Type == LessonType.PHYSIC || l.Type == LessonType.LAB_PHYSIC))
-            ?? throw new ValidationException("Không tìm thấy lesson web simulator tham chiếu.");
+        var normalizedVn = titleVN.Trim();
+        var normalizedEn = titleEN.Trim();
+
+        var duplicated = await _unitOfWork.WebSimulators.GetByConditionAsync(ws =>
+            (!excludeWebSimulatorId.HasValue || ws.WebSimulatorID != excludeWebSimulatorId.Value)
+            && (ws.Type == WebSimulatorType.PHYSIC || ws.Type == WebSimulatorType.LAB_PHYSIC)
+            && (ws.TitleVN == normalizedVn
+                || ws.TitleEN == normalizedVn
+                || ws.TitleVN == normalizedEn
+                || ws.TitleEN == normalizedEn));
+
+        if (duplicated != null)
+            throw new ValidationException("Tiêu đề web simulator bị trùng. TitleVN/TitleEN phải khác toàn bộ TitleVN/TitleEN của các web simulator khác.");
+    }
+
+    private async Task<List<Lesson>> GetMappedWebLessonsAsync(Guid webSimulatorId)
+    {
+        var lessons = await _unitOfWork.Lessons.GetAllAsync(
+            filter: l => l.ReferenceID == webSimulatorId
+                && (l.Type == LessonType.PHYSIC || l.Type == LessonType.LAB_PHYSIC),
+            pageIndex: 1,
+            pageSize: int.MaxValue);
+
+        return lessons.Data.ToList();
     }
 
     private static LessonType MapToLessonType(WebSimulatorType type)

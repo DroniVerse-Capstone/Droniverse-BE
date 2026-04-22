@@ -64,6 +64,61 @@ public class LearningService : ILearningService
             userModules);
     }
 
+    public async Task<IEnumerable<IncompleteVRLessonResponseDTO>> GetListVRsAsync()
+    {
+        var userLessonsResult = await _unitOfWork.UserLessons.GetAllAsync(
+            filter: x => x.UserID == _currentUser.UserId
+                         && x.Status == UserLessonStatus.INCOMPLETED
+                         && x.Lesson.Type == LessonType.VR,
+            orderBy: q => q.OrderByDescending(x => x.LastAccessDate),
+            pageIndex: 1,
+            pageSize: int.MaxValue,
+            includeProperties: "Lesson");
+
+        var userLessons = userLessonsResult.Data.ToList();
+        if (userLessons.Count == 0)
+            return [];
+
+        var vrReferenceIds = userLessons
+            .Select(x => x.Lesson.ReferenceID)
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToArray();
+
+        var vrLookup = new Dictionary<Guid, VRSimulator>();
+        if (vrReferenceIds.Length > 0)
+        {
+            var vrResult = await _unitOfWork.VRSimulators.GetAllAsync(
+                filter: x => vrReferenceIds.Contains(x.VRSimulatorID),
+                pageIndex: 1,
+                pageSize: int.MaxValue);
+
+            vrLookup = vrResult.Data.ToDictionary(x => x.VRSimulatorID);
+        }
+
+        return userLessons.Select(userLesson =>
+        {
+            var lesson = userLesson.Lesson;
+            vrLookup.TryGetValue(lesson.ReferenceID, out var vrSimulator);
+
+            return new IncompleteVRLessonResponseDTO
+            {
+                UserLessonID = userLesson.UserLessonID,
+                LessonID = lesson.LessonID,
+                ModuleID = lesson.ModuleID,
+                OrderIndex = lesson.OrderIndex,
+                ReferenceID = lesson.ReferenceID,
+                Type = lesson.Type,
+                TitleVN = vrSimulator?.TitleVN,
+                TitleEN = vrSimulator?.TitleEN,
+                EstimatedTime = vrSimulator?.EstimatedTime,
+                Status = userLesson.Status,
+                Progress = userLesson.Progress,
+                LastAccessDate = userLesson.LastAccessDate
+            };
+        });
+    }
+
     public async Task<UserLessonResponseDTO> CreateUserLessonAsync(Guid enrollmentId, Guid lessonId)
     {
         await ValidateLessonAccessAsync(enrollmentId, lessonId);
@@ -214,11 +269,11 @@ public class LearningService : ILearningService
 
     private static void EnsureLessonCanBeCompletedInMode(Lesson lesson, CompletionMode mode)
     {
-        if (mode == CompletionMode.Direct && lesson.Type is not (LessonType.THEORY or LessonType.PHYSIC or LessonType.LAB_PHYSIC))
-            throw new ForbiddenException("Chỉ lesson theory, physic, lab_physic mới có thể hoàn thành trực tiếp.");
+        if (mode == CompletionMode.Direct && lesson.Type is not (LessonType.THEORY or LessonType.PHYSIC or LessonType.LAB_PHYSIC or LessonType.VR))
+            throw new ForbiddenException("Chỉ lesson theory, physic, lab_physic hoặc VR mới có thể hoàn thành trực tiếp.");
 
-        if (mode == CompletionMode.Assessment && lesson.Type is not (LessonType.QUIZ or LessonType.LAB or LessonType.VR))
-            throw new ForbiddenException("Chỉ lesson quiz hoặc lab hoặc vr mới có thể hoàn thành qua nộp bài.");
+        if (mode == CompletionMode.Assessment && lesson.Type is not (LessonType.QUIZ or LessonType.LAB ))
+            throw new ForbiddenException("Chỉ lesson quiz hoặc lab mới có thể hoàn thành qua nộp bài.");
     }
 
     private async Task<CompletionContext> BuildCompletionContextAsync(Guid enrollmentId, Guid lessonId)

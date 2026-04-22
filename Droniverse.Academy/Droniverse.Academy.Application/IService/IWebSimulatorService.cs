@@ -6,6 +6,7 @@ namespace Droniverse.Academy.Application.IService;
 public interface IWebSimulatorService
 {
     Task<WebSimulatorClientViewDTO> CreateWebSimulatorAsync(CreateWebSimulatorRequestDTO request);
+    Task<LessonClientViewDTO> CreateLessonFromWebSimulatorAsync(Guid webSimulatorId, CreateWebSimulatorLessonRequestDTO request);
     Task<IEnumerable<WebSimulatorClientViewDTO>> GetWebSimulatorsAsync();
     Task<WebSimulatorClientViewDTO> GetWebSimulatorByIdAsync(Guid webSimulatorId);
     Task<WebSimulatorClientViewDTO> UpdateWebSimulatorAsync(Guid webSimulatorId, UpdateWebSimulatorRequestDTO request);

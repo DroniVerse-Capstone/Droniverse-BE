@@ -1,7 +1,7 @@
 ﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
-using Droniverse.Shared.Constants;
+using Droniverse.Shared.Constants;         
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -37,6 +37,25 @@ public class VRSimulatorController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Tạo vr simulator thất bại.");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Tạo lesson từ vr simulator có sẵn.
+    /// </summary>
+    [HttpPost("{vrSimulatorId:guid}/lessons")]
+    [Authorize(Roles = Roles.AdminOrSystemManager)]
+    public async Task<IActionResult> CreateLessonFromVRSimulator(Guid vrSimulatorId, [FromBody] CreateVRSimulatorLessonRequestDTO request)
+    {
+        try
+        {
+            var created = await _vrSimulatorService.CreateLessonFromVRSimulatorAsync(vrSimulatorId, request);
+            return StatusCode(201, SuccessResponse<LessonClientViewDTO>.Create(created, "Tạo lesson từ vr simulator thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Tạo lesson từ vr simulator thất bại.");
             throw;
         }
     }
