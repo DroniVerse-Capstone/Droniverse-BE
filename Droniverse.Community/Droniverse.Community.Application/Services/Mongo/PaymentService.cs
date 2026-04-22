@@ -480,7 +480,7 @@ internal class PaymentService : IPaymentService
                             Quantity = order.Item.Quantity
                         };
 
-                        CodeResponse codeResponse = await _academyMicroserviceClient.GenerateAssignCodesAsync(codeRequest);
+                        CodeResponse codeResponse = await _academyMicroserviceClient.GenerateAssignCodesAsync(codeRequest, order.UserEmail);
 
                         if (codeResponse == null || codeResponse.CodeID == null)
                         {
@@ -507,7 +507,7 @@ internal class PaymentService : IPaymentService
                     try
                     {
                         Guid managerId = club.ManagerID;
-                        decimal commissionAmount = order.TotalAmount * 0.10m;
+                        decimal commissionAmount = order.TotalAmount;
                         Wallet? wallet = await _unitOfWork.Wallets.GetByCondition(w => w.OwnerID == managerId);
                         if (wallet == null)
                             throw new NotFoundException("Không tìm thấy ví cho managerId: " + managerId);

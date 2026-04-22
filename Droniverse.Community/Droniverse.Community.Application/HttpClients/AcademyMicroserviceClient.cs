@@ -221,14 +221,14 @@ public class AcademyMicroserviceClient
         return drone;
     }
 
-    public async Task<CodeResponse> GenerateAssignCodesAsync(GenerateCodesRequestDTO request)
+    public async Task<CodeResponse> GenerateAssignCodesAsync(GenerateCodesRequestDTO request, string email)
     {
         if (request == null)
             throw new ArgumentNullException(nameof(request));
         try
         {
             // Get user email and name from current user context
-            var email = _currentUserService.Email;
+            //var email = _currentUserService.Email;
             if (string.IsNullOrWhiteSpace(email))
                 throw new InvalidOperationException("Không thể lấy email của người dùng hiện tại.");
 
