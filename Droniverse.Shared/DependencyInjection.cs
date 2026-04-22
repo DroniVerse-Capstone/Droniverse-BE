@@ -19,6 +19,10 @@ public static class DependencyInjection
             configuration.GetSection(JwtSettings.SectionName)
         );
 
+        services.Configure<AppSettings>(
+            configuration.GetSection(AppSettings.SectionName)
+        );
+
         // Email Service
         services.Configure<SendGridSettings>(configuration.GetSection("SendGrid"));
         services.AddScoped<IEmailService, EmailService>();

@@ -74,6 +74,26 @@ public class EmailService : IEmailService
         }
     }
 
+    public async Task SendEmailVerificationAsync(
+        string email, string fullName, string verificationUrl, string verificationToken)
+    {
+        try
+        {
+            string htmlContent = await LoadTemplateAsync("VerifyEmailTemplate.html");
+            htmlContent = htmlContent
+                .Replace("{Email}", email)
+                .Replace("{FullName}", fullName)
+                .Replace("{VerificationUrl}", verificationUrl)
+                .Replace("{VerificationToken}", verificationToken);
+            await SendEmailAsync(email, "Xác thực email tài khoản Droniverse của bạn", htmlContent);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Lỗi: {ex.Message}");
+            throw;
+        }
+    }
+
     public async Task SendEmailAsync(string email, string subject, string message)
     {
         var client = new SendGridClient(_settings.ApiKey);

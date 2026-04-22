@@ -11,5 +11,6 @@ public interface IAuthService
     Task<AuthResponse> RegisterUser(RegisterDto registerDto);
     Task<UserResponse?> GetCurrentUserInfo();
     Task<UserResponse?> UpdateProfileAsync(ProfileUpdateDto userUpdateDto);
+    Task<UserResponse?> VerifyEmailAsync(string token);
 }
 

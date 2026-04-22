@@ -65,6 +65,9 @@ public class AccountConfiguration : IEntityTypeConfiguration<Account>
             .IsRequired(false)
             .ValueGeneratedOnUpdate();
 
+        builder.Property(a => a.VerificationToken).IsRequired(false);
+        builder.Property(a => a.VerificationTokenExpiryTime).HasColumnType("datetime").IsRequired(false);
+
         builder.Property(a => a.Status)
             .HasColumnType("tinyint")
             .IsRequired()

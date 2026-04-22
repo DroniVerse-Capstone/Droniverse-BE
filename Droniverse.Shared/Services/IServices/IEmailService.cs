@@ -15,6 +15,12 @@ public interface IEmailService
         string registrationDate,
         string confirmationUrl);
 
+    Task SendEmailVerificationAsync(
+        string email,
+        string fullName,
+        string verificationUrl,
+        string verificationToken);
+
     Task SendEmailAsync(string email, string subject, string message);
 
     Task<string> LoadTemplateAsync(string templateName);
