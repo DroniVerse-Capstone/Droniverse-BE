@@ -263,7 +263,7 @@ namespace Droniverse.Community.Application.Services
             Wallet? wallet = await _unitOfWork.Wallets.GetByCondition(w => w.OwnerID == userId);
             if (wallet == null)
             {
-                throw new Exception("Người dùng hiện tại chưa có ví.");
+                throw new NotFoundException("Người dùng hiện tại chưa có ví.");
             }
             UserResponse? user = await _identityMicroserviceClient.GetUserByUserID(userId);
             if (user == null)
