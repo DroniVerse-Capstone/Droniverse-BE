@@ -45,6 +45,8 @@ public class WebSimulatorService : IWebSimulatorService
             request.Code,
             request.EstimatedTime);
 
+        await EnsureTitlesUniqueAsync(request.TitleVN, request.TitleEN);
+
         await CourseVersionDraftGuard.EnsureDraftByModuleIdAsync(
             _unitOfWork,
             request.ModuleID,
@@ -143,6 +145,8 @@ public class WebSimulatorService : IWebSimulatorService
             request.ObjectivesEN,
             request.Code,
             request.EstimatedTime);
+
+        await EnsureTitlesUniqueAsync(request.TitleVN, request.TitleEN, webSimulatorId);
 
         var webSimulator = await _unitOfWork.WebSimulators.GetByIdAsync(webSimulatorId);
         if (webSimulator == null)
@@ -250,6 +254,23 @@ public class WebSimulatorService : IWebSimulatorService
 
         if (duplicated != null)
             throw new ValidationException("OrderIndex phải là duy nhất trong mô-đun.");
+    }
+
+    private async Task EnsureTitlesUniqueAsync(string titleVN, string titleEN, Guid? excludeWebSimulatorId = null)
+    {
+        var normalizedVn = titleVN.Trim();
+        var normalizedEn = titleEN.Trim();
+
+        var duplicated = await _unitOfWork.WebSimulators.GetByConditionAsync(ws =>
+            (!excludeWebSimulatorId.HasValue || ws.WebSimulatorID != excludeWebSimulatorId.Value)
+            && (ws.Type == WebSimulatorType.PHYSIC || ws.Type == WebSimulatorType.LAB_PHYSIC)
+            && (ws.TitleVN == normalizedVn
+                || ws.TitleEN == normalizedVn
+                || ws.TitleVN == normalizedEn
+                || ws.TitleEN == normalizedEn));
+
+        if (duplicated != null)
+            throw new ValidationException("Tiêu đề web simulator bị trùng. TitleVN/TitleEN phải khác toàn bộ TitleVN/TitleEN của các web simulator khác.");
     }
 
     private async Task<Lesson> GetWebSimulatorLessonAsync(Guid webSimulatorId)

@@ -22,6 +22,26 @@ public class UserLearningLessonController : ControllerBase
     }
 
     /// <summary>
+    /// Lấy danh sách lesson VR đang học dở (INCOMPLETED) của người dùng hiện tại.
+    /// </summary>
+    /// <example>/academy/user/lessons/vrs/incompleted</example>
+    [HttpGet("~/academy/user/lessons/vrs/incompleted")]
+    [ProducesResponseType(typeof(SuccessResponse<IEnumerable<IncompleteVRLessonResponseDTO>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetListVRs()
+    {
+        try
+        {
+            var result = await _service.GetListVRsAsync();
+            return Ok(SuccessResponse<IEnumerable<IncompleteVRLessonResponseDTO>>.Create(result, "Lấy danh sách lesson VR đang học dở thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lấy danh sách lesson VR đang học dở thất bại.");
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Tạo dữ liệu học lesson theo enrollment.
     /// </summary>
     /// <param name="enrollmentId">Mã enrollment.</param>

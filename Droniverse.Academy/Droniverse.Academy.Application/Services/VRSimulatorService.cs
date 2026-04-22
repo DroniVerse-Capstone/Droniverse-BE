@@ -37,6 +37,7 @@ public class VRSimulatorService : IVRSimulatorService
             throw new ArgumentNullException(nameof(request));
 
         ValidateData(request.TitleVN, request.TitleEN, request.EstimatedTime);
+        await EnsureTitlesUniqueAsync(request.TitleVN, request.TitleEN);
 
         await CourseVersionDraftGuard.EnsureDraftByModuleIdAsync(
             _unitOfWork,
@@ -126,6 +127,7 @@ public class VRSimulatorService : IVRSimulatorService
             "Chỉ được chỉnh sửa lesson vr simulator khi phiên bản khóa học ở trạng thái Draft.");
 
         ValidateData(request.TitleVN, request.TitleEN, request.EstimatedTime);
+        await EnsureTitlesUniqueAsync(request.TitleVN, request.TitleEN, vrSimulatorId);
 
         var vrSimulator = await _unitOfWork.VRSimulators.GetByIdAsync(vrSimulatorId);
         if (vrSimulator == null)
@@ -203,6 +205,22 @@ public class VRSimulatorService : IVRSimulatorService
 
         if (duplicated != null)
             throw new ValidationException("OrderIndex phải là duy nhất trong mô-đun.");
+    }
+
+    private async Task EnsureTitlesUniqueAsync(string titleVN, string titleEN, Guid? excludeVrSimulatorId = null)
+    {
+        var normalizedVn = titleVN.Trim();
+        var normalizedEn = titleEN.Trim();
+
+        var duplicated = await _unitOfWork.VRSimulators.GetByConditionAsync(vr =>
+            (!excludeVrSimulatorId.HasValue || vr.VRSimulatorID != excludeVrSimulatorId.Value)
+            && (vr.TitleVN == normalizedVn
+                || vr.TitleEN == normalizedVn
+                || vr.TitleVN == normalizedEn
+                || vr.TitleEN == normalizedEn));
+
+        if (duplicated != null)
+            throw new ValidationException("Tiêu đề vr simulator bị trùng. TitleVN/TitleEN phải khác toàn bộ TitleVN/TitleEN của các vr simulator khác.");
     }
 
     private static VRSimulatorClientViewDTO MapToResponse(VRSimulator vrSimulator)
