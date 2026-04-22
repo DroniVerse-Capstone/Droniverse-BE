@@ -1,4 +1,6 @@
 ﻿using Droniverse.Identity.Domain.Enums;
+using Droniverse.Shared.DTOs;
+using Droniverse.Shared.DTOs.Response;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,5 +20,7 @@ namespace Droniverse.Community.Application.DTO.Response
         public string? ImageUrl { get; init; }
         public GenderOptions Gender { get; init; }
         public DateTime JoinDate { get; init; }
+        public LevelMiniResponseDto? Level { get; init; }
+        public DroneMiniResponseDto? Drone { get; init; }
     }
 }
