@@ -5,6 +5,7 @@ using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.Enums;
 using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.Application.Validators;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
@@ -39,7 +40,18 @@ public class CourseService : ICourseService
 
     public async Task<CourseDetailResponseDTO> CreateCourseAsync(CreateCourseRequest request)
     {
+        if (request == null)
+            throw new ArgumentNullException(nameof(request));
+
+        if (request.Version == null)
+            throw new ValidationException("Thông tin phiên bản khóa học là bắt buộc.");
+
+        CourseVersionValidator.ValidateCreateData(request.Version);
+
         var level = await _unitOfWork.Levels.GetByIdAsync(request.LevelID);
+
+        if (level == null)
+            throw new BaseException("Không tìm thấy level.", "NOT_FOUND");
 
         var course = new Course
         {

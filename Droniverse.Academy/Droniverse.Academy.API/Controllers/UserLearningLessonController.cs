@@ -68,10 +68,10 @@ public class UserLearningLessonController : ControllerBase
     }
 
     /// <summary>
-    /// Đánh dấu hoàn thành lesson lý thuyết.
+    /// Đánh dấu hoàn thành lesson trực tiếp.
     /// </summary>
     /// <param name="enrollmentId">Mã enrollment.</param>
-    /// <param name="lessonId">Mã lesson lý thuyết.</param>
+    /// <param name="lessonId">Mã lesson (THEORY, WEB, VR).</param>
     /// <example>/academy/user/enrollments/{enrollmentId}/lessons/{lessonId}/complete</example>
     /// <example>/academy/user/enrollments/11111111-1111-1111-1111-111111111111/lessons/22222222-2222-2222-2222-222222222222/complete</example>
     [HttpPost("{lessonId:guid}/complete")]

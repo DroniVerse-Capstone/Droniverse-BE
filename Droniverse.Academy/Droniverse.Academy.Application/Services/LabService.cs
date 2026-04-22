@@ -2,6 +2,7 @@
 using Droniverse.Academy.Application.Common.Extensions;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
+using Droniverse.Academy.Application.Helpers;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Application.IService.Mongo;
 using Droniverse.Academy.Application.Validators;
@@ -123,6 +124,11 @@ public class LabService : ILabService
     {
         if (request == null)
             throw new ArgumentNullException(nameof(request));
+
+        await CourseVersionDraftGuard.EnsureDraftByModuleIdAsync(
+            _unitOfWork,
+            request.ModuleID,
+            "Chỉ được chỉnh sửa lesson lab khi phiên bản khóa học ở trạng thái Draft.");
 
         var lab = await _unitOfWork.Labs.GetByIdAsync(labId);
         if (lab == null)

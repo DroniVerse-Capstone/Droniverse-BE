@@ -1,8 +1,10 @@
 ﻿using AutoMapper;
+using Droniverse.Academy.Application.Helpers;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
+using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
 using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Services.IServices;
@@ -24,6 +26,11 @@ public class ModuleService : IModuleService
 
     public async Task<ModuleClientViewDTO> CreateModuleAsync(Guid courseId, Guid versionId, CreateModuleRequestDTO request)
     {
+        await CourseVersionDraftGuard.EnsureDraftByCourseVersionAsync(
+            _unitOfWork,
+            courseId,
+            versionId,
+            "Chỉ được chỉnh sửa module khi phiên bản khóa học ở trạng thái Draft.");
         await EnsureCourseVersionExistsAsync(courseId, versionId);
         await ValidateModuleNumberAsync(versionId, request.ModuleNumber);
 
@@ -60,6 +67,11 @@ public class ModuleService : IModuleService
 
     public async Task<ModuleClientViewDTO> UpdateModuleAsync(Guid courseId, Guid versionId, Guid moduleId, UpdateModuleRequestDTO request)
     {
+        await CourseVersionDraftGuard.EnsureDraftByCourseVersionAsync(
+            _unitOfWork,
+            courseId,
+            versionId,
+            "Chỉ được chỉnh sửa module khi phiên bản khóa học ở trạng thái Draft.");
         var module = await GetModuleEntityAsync(courseId, versionId, moduleId);
         await ValidateModuleNumberAsync(versionId, request.ModuleNumber, moduleId);
 
@@ -74,6 +86,11 @@ public class ModuleService : IModuleService
 
     public async Task DeleteModuleAsync(Guid courseId, Guid versionId, Guid moduleId)
     {
+        await CourseVersionDraftGuard.EnsureDraftByCourseVersionAsync(
+            _unitOfWork,
+            courseId,
+            versionId,
+            "Chỉ được chỉnh sửa module khi phiên bản khóa học ở trạng thái Draft.");
         var module = await GetModuleEntityAsync(courseId, versionId, moduleId);
         var deletedModuleNumber = module.ModuleNumber;
 
@@ -98,6 +115,11 @@ public class ModuleService : IModuleService
 
     public async Task<IEnumerable<ModuleClientViewDTO>> ReorderModulesAsync(Guid courseId, Guid versionId, ReorderModulesRequestDTO request)
     {
+        await CourseVersionDraftGuard.EnsureDraftByCourseVersionAsync(
+            _unitOfWork,
+            courseId,
+            versionId,
+            "Chỉ được chỉnh sửa module khi phiên bản khóa học ở trạng thái Draft.");
         await EnsureCourseVersionExistsAsync(courseId, versionId);
 
         if (request.Modules.Count == 0)

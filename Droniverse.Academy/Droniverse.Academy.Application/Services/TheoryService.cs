@@ -2,6 +2,7 @@
 using Droniverse.Academy.Application.Common.Extensions;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
+using Droniverse.Academy.Application.Helpers;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Application.Validators;
 using Droniverse.Academy.Domain.Entities;
@@ -40,6 +41,11 @@ public class TheoryService : ITheoryService
         var module = await _unitOfWork.Modules.GetByIdAsync(request.ModuleID);
         if (module == null)
             throw new BaseException("Không tìm thấy mô-đun.", "NOT_FOUND");
+
+        await CourseVersionDraftGuard.EnsureDraftByModuleIdAsync(
+            _unitOfWork,
+            request.ModuleID,
+            "Chỉ được chỉnh sửa lesson lý thuyết khi phiên bản khóa học ở trạng thái Draft.");
 
         var orderIndex = request.OrderIndex ?? await GetNextOrderIndexAsync(request.ModuleID);
         await ValidateOrderIndexAsync(request.ModuleID, orderIndex);
@@ -102,6 +108,13 @@ public class TheoryService : ITheoryService
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
+        await CourseVersionDraftGuard.EnsureDraftByReferenceAsync(
+            _unitOfWork,
+            theoryId,
+            LessonType.THEORY,
+            "lý thuyết",
+            "Chỉ được chỉnh sửa lesson lý thuyết khi phiên bản khóa học ở trạng thái Draft.");
+
         TheoryValidator.ValidateTheoryData(request.EstimatedTime, request.TitleVN, request.TitleEN, request.ContentVN, request.ContentEN);
 
         var theory = await _unitOfWork.Theories.GetByIdAsync(theoryId);
@@ -122,6 +135,13 @@ public class TheoryService : ITheoryService
 
     public async Task DeleteTheoryAsync(Guid theoryId)
     {
+        await CourseVersionDraftGuard.EnsureDraftByReferenceAsync(
+            _unitOfWork,
+            theoryId,
+            LessonType.THEORY,
+            "lý thuyết",
+            "Chỉ được chỉnh sửa lesson lý thuyết khi phiên bản khóa học ở trạng thái Draft.");
+
         var theory = await _unitOfWork.Theories.GetByIdAsync(theoryId);
         if (theory == null)
             throw new BaseException("Không tìm thấy bài lý thuyết.", "NOT_FOUND");
