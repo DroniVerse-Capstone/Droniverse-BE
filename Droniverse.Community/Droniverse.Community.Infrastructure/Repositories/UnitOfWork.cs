@@ -18,6 +18,7 @@ internal class UnitOfWork : IUnitOfWork
     private IRoundRepository _round;
     private IClubCreationRequestRepository _clubCreationRequest;
     private ICompetitionPrizeRepository _competitionPrize;
+    private ITransactionRepository _transaction;
     private IUserPrizeRepository _userPrize;
     private IUserCompetitionRepository _userCompetition;
     private IUserRoundRepository _userRound;
@@ -65,6 +66,8 @@ internal class UnitOfWork : IUnitOfWork
     public IWalletRepository Wallets => _wallet ??= new WalletRepository(_context);
 
     public IWithdrawRequestRepository WithdrawRequests => _withdrawRequest ??= new WithdrawRequestRepository(_context);
+
+    public ITransactionRepository Transactions => _transaction ??= new TransactionRepository(_context);
 
     public async Task<int> SaveChangeAsync()
     {

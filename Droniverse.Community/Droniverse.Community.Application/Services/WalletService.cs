@@ -176,6 +176,12 @@ namespace Droniverse.Community.Application.Services
                 withdrawRequest.UpdateStatus(WithdrawStatus.APPROVED);
                 withdrawRequest.ApproverID = _currentUserService.UserId;
                 withdrawRequest.ApprovedAt = _clock.Now;
+                Transaction transaction = new Transaction(
+                    walletId: wallet.WalletID,
+                    amount: (int) withdrawRequest.Amount,
+                    type: TransactionType.WITHDRAWAL,
+                    referenceID: withdrawRequest.WithdrawRequestID); // referenceID có thể là withdrawID
+
             }
             else if (request.Status == WithdrawStatus.REJECTED)
             {

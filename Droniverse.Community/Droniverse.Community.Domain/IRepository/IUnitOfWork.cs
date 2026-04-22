@@ -15,6 +15,7 @@ public interface IUnitOfWork : IDisposable
     IProductRepository Products { get; }
     IRoundRepository Rounds { get; }
     ICompetitionPrizeRepository CompetitionPrizes { get; }
+    ITransactionRepository Transactions { get; }
     IUserPrizeRepository UserPrizes { get; }
     IUserCompetitionRepository UserCompetitions { get; }
     IUserRoundRepository UserRounds { get; }

@@ -514,6 +514,16 @@ internal class PaymentService : IPaymentService
 
                         wallet.UpdateBalance(commissionAmount);
                         await _unitOfWork.Wallets.Update(wallet);
+
+                        //tạo transaction
+                        Transaction transaction = new Transaction(
+                            walletId: wallet.WalletID,
+                            amount: (int)commissionAmount,
+                            type: TransactionType.COMMISSION,
+                            referenceID: order._id);
+
+                        await _unitOfWork.Transactions.Add(transaction);
+
                         await _unitOfWork.SaveChangeAsync();
 
                         _logger.LogInformation("Added commission {CommissionAmount} to manager {ManagerId} wallet",

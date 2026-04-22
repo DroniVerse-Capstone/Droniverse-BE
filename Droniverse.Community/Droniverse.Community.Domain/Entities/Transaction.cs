@@ -10,7 +10,6 @@ public class Transaction
     public Wallet Wallet { get; set; }
     public int Amount { get; set; }
     public TransactionType Type { get; set; }
-    public TransactionStatusEnum Status { get; set; }
     public Guid ReferenceID { get; set; }
     public DateTime CreatedAt { get; set; }
 
@@ -20,14 +19,12 @@ public class Transaction
         Guid walletId,
         int amount,
         TransactionType type,
-        TransactionStatusEnum status,
         Guid referenceID
       )
     {
         WalletID = walletId;
         Amount = amount;
         Type = type;
-        Status = status;
         ReferenceID = referenceID;
     }
 
