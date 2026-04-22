@@ -16,24 +16,30 @@ public class UserLevelService : IUserLevelService
         _mapper = mapper;
     }
 
-    public async Task<IEnumerable<LevelMiniResponse>> GetUserLevelsAsync(Guid userId)
+    public async Task<IEnumerable<UserLevelResponse>> GetUserLevelsAsync(Guid userId)
     {
         var levels = await _unitOfWork.Levels.GetAllAsync(
             filter: l => l.UserLevels.Any(ul => ul.UserID == userId),
             orderBy: q => q.OrderBy(l => l.DroneID).ThenBy(l => l.LevelNumber),
             pageIndex: 1,
-            pageSize: int.MaxValue);
+            pageSize: int.MaxValue,
+            includeProperties: "Drone");
 
-        return _mapper.Map<IEnumerable<LevelMiniResponse>>(levels.Data);
+        return levels.Data.Select(level => new UserLevelResponse
+        {
+            Level = _mapper.Map<LevelMiniResponse>(level),
+            Drone = _mapper.Map<DroneMiniResponse>(level.Drone)
+        });
     }
 
-    public async Task<IEnumerable<LevelMiniResponse>> GetMaxUserLevelsAsync(Guid userId)
+    public async Task<IEnumerable<UserLevelResponse>> GetMaxUserLevelsAsync(Guid userId)
     {
         var levels = await _unitOfWork.Levels.GetAllAsync(
             filter: l => l.UserLevels.Any(ul => ul.UserID == userId),
             orderBy: q => q.OrderBy(l => l.DroneID).ThenByDescending(l => l.LevelNumber),
             pageIndex: 1,
-            pageSize: int.MaxValue);
+            pageSize: int.MaxValue,
+            includeProperties: "Drone");
 
         var maxLevels = levels.Data
             .GroupBy(l => l.DroneID)
@@ -41,6 +47,10 @@ public class UserLevelService : IUserLevelService
             .OrderBy(l => l.DroneID)
             .ToList();
 
-        return _mapper.Map<IEnumerable<LevelMiniResponse>>(maxLevels);
+        return maxLevels.Select(level => new UserLevelResponse
+        {
+            Level = _mapper.Map<LevelMiniResponse>(level),
+            Drone = _mapper.Map<DroneMiniResponse>(level.Drone)
+        });
     }
 }
