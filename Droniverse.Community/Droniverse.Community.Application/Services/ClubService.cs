@@ -308,6 +308,48 @@ internal class ClubService : IClubService
             userMap = pageUsers.ToDictionary(x => x.UserId, x => x);
         }
 
+        // Fetch level info for all users in this page
+        var levelDict = new Dictionary<Guid, LevelMiniResponseDto>();
+        foreach (var userId in pageUserIds)
+        {
+            try
+            {
+                var level = await _academyMicroserviceClient.GetUserLevelMaxAsync(userId);
+                if (level != null)
+                {
+                    levelDict[userId] = level;
+                }
+            }
+            catch
+            {
+                // Silently ignore level fetch errors
+            }
+        }
+
+        // Fetch drone info for the club
+        DroneMiniResponseDto? clubDrone = null;
+        if (club.DroneID != Guid.Empty)
+        {
+            try
+            {
+                var drones = await _academyMicroserviceClient.GetDronesBulk(new[] { club.DroneID });
+                var drone = drones.FirstOrDefault();
+                if (drone != null)
+                {
+                    clubDrone = new DroneMiniResponseDto
+                    {
+                        DroneID = drone.DroneID,
+                        DroneNameVN = drone.DroneNameVN,
+                        DroneNameEN = drone.DroneNameEN
+                    };
+                }
+            }
+            catch
+            {
+                // Silently ignore drone fetch errors
+            }
+        }
+
         var data = participationList
             .Select(p =>
             {
@@ -324,6 +366,8 @@ internal class ClubService : IClubService
                     ImageUrl = string.Empty
                 };
 
+                levelDict.TryGetValue(user.UserId, out var level);
+
                 return new GetParticipantsResponse
                 {
                     UserId = user.UserId,
@@ -334,7 +378,9 @@ internal class ClubService : IClubService
                     DateOfBirth = user.DateOfBirth,
                     ImageUrl = user.ImageUrl,
                     Gender = user.Gender,
-                    JoinDate = p.JoinDate
+                    JoinDate = p.JoinDate,
+                    Level = level,
+                    Drone = clubDrone
                 };
             })
             .OrderByDescending(u => u.JoinDate)

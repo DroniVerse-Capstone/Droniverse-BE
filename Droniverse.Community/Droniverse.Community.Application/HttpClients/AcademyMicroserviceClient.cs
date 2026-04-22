@@ -966,6 +966,43 @@ public class AcademyMicroserviceClient
         };
     }
 
+    public async Task<LevelMiniResponseDto?> GetUserLevelMaxAsync(Guid userId)
+    {
+        try
+        {
+            var url = BuildAcademyPath($"/user/levels/max?userId={userId}");
+            var response = await _httpClient.GetAsync(url);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Failed to get user level max for user {UserId}: {StatusCode}", userId, response.StatusCode);
+                return null;
+            }
+
+            var successResponse = await response.Content
+                .ReadFromJsonAsync<SuccessResponse<IEnumerable<LevelMiniResponseDto>>>(_jsonOptions);
+
+            if (successResponse?.Data == null)
+            {
+                _logger.LogWarning("User level max response data is null for user {UserId}", userId);
+                return null;
+            }
+
+            var result = successResponse.Data.FirstOrDefault();
+            if (result == null)
+            {
+                _logger.LogWarning("No level found in response for user {UserId}", userId);
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching user level max for user {UserId} from Academy service.", userId);
+            return null;
+        }
+    }
+
     private string BuildAcademyPath(string relativePath)
     {
         return $"{GetEndpoint().TrimEnd('/')}/{relativePath.TrimStart('/')}";

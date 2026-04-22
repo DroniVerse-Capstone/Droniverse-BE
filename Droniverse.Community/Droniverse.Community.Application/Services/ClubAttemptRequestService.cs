@@ -8,6 +8,7 @@ using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository;
+using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Services;
 using Microsoft.EntityFrameworkCore;
@@ -19,13 +20,15 @@ namespace Droniverse.Community.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IdentityMicroserviceClient _identityMicroserviceClient;
+        private readonly AcademyMicroserviceClient _academyMicroserviceClient;
         private readonly ICurrentUserService _currentUserService;
 
-        public ClubAttemptRequestService(IUnitOfWork unitOfWork, IMapper mapper, IdentityMicroserviceClient identityMicroserviceClient, ICurrentUserService currentUserService)
+        public ClubAttemptRequestService(IUnitOfWork unitOfWork, IMapper mapper, IdentityMicroserviceClient identityMicroserviceClient, AcademyMicroserviceClient academyMicroserviceClient, ICurrentUserService currentUserService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _identityMicroserviceClient = identityMicroserviceClient;
+            _academyMicroserviceClient = academyMicroserviceClient;
             _currentUserService = currentUserService;
         }
 
@@ -71,11 +74,70 @@ namespace Droniverse.Community.Application.Services
 
             var users = await _identityMicroserviceClient.GetUsersBulk((IEnumerable<Guid>)userIds);
             var userDict = users.ToDictionary(u => u.UserId, u => u);
+
+            // Fetch drone info
+            var droneIds = clubRequests
+                .Select(r => r.Club.DroneID)
+                .Where(d => d != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            var droneDict = new Dictionary<Guid, DroneMiniResponseDto>();
+            if (droneIds.Any())
+            {
+                try
+                {
+                    var drones = await _academyMicroserviceClient.GetDronesBulk(droneIds);
+                    foreach (var drone in drones)
+                    {
+                        if (drone != null)
+                        {
+                            droneDict[drone.DroneID] = new DroneMiniResponseDto
+                            {
+                                DroneID = drone.DroneID,
+                                DroneNameVN = drone.DroneNameVN,
+                                DroneNameEN = drone.DroneNameEN
+                            };
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to fetch drones from Academy service: {ex.Message}");
+                }
+            }
+
+            // Fetch level info for each requester
+            var levelDict = new Dictionary<Guid, LevelMiniResponseDto>();
+            var requesterIds = clubRequests.Select(r => r.RequesterID).Distinct().ToList();
+            foreach (var requesterId in requesterIds)
+            {
+                try
+                {
+                    var level = await _academyMicroserviceClient.GetUserLevelMaxAsync(requesterId);
+                    if (level != null)
+                    {
+                        levelDict[requesterId] = level;
+                    }
+                    else
+                    {
+                        Console.WriteLine($"No level data returned for user {requesterId}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to fetch level for user {requesterId}: {ex.Message}");
+                }
+            }
+
             var result = clubRequests.Select(clubRequest =>
             {
                 userDict.TryGetValue(clubRequest.RequesterID, out var requester);
 
                 var approver = clubRequest.ApproverID.HasValue && userDict.TryGetValue((Guid)clubRequest.ApproverID, out var a) ? a : null;
+
+                droneDict.TryGetValue(clubRequest.Club.DroneID, out var drone);
+                levelDict.TryGetValue(clubRequest.RequesterID, out var level);
 
                 return new ClubRequestResponseDto(
                     clubRequest.ClubRequestID,
@@ -92,7 +154,9 @@ namespace Droniverse.Community.Application.Services
                     clubRequest.Status,
                     clubRequest.CreatedAt,
                     clubRequest.ProcessedAt,
-                    _mapper.Map<MediaResponseDto?>(clubRequest.MediaID.HasValue ? clubRequest.Media : null)
+                    _mapper.Map<MediaResponseDto?>(clubRequest.MediaID.HasValue ? clubRequest.Media : null),
+                    drone,
+                    level
                 );
             });
 
@@ -215,6 +279,58 @@ namespace Droniverse.Community.Application.Services
             }
 
             var userDict = users.ToDictionary(u => u.UserId, u => u);
+
+            // Fetch drone and level info
+            var droneIds = clubRequests
+                .Select(r => r.Club.DroneID)
+                .Where(d => d != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            var droneDict = new Dictionary<Guid, DroneMiniResponseDto>();
+            if (droneIds.Any())
+            {
+                try
+                {
+                    var drones = await _academyMicroserviceClient.GetDronesBulk(droneIds);
+                    foreach (var drone in drones)
+                    {
+                        if (drone != null)
+                        {
+                            droneDict[drone.DroneID] = new DroneMiniResponseDto
+                            {
+                                DroneID = drone.DroneID,
+                                DroneNameVN = drone.DroneNameVN,
+                                DroneNameEN = drone.DroneNameEN
+                            };
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to fetch drones from Academy service: {ex.Message}");
+                }
+            }
+
+            // Get level info for the requester
+            var levelDict = new Dictionary<Guid, LevelMiniResponseDto>();
+            try
+            {
+                var level = await _academyMicroserviceClient.GetUserLevelMaxAsync(requesterID);
+                if (level != null)
+                {
+                    levelDict[requesterID] = level;
+                }
+                else
+                {
+                    Console.WriteLine($"No level data returned for user {requesterID}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to fetch level for user {requesterID}: {ex.Message}");
+            }
+
             var result = clubRequests
                 .Where(c => c != null)
                 .Select(clubRequest =>
@@ -225,6 +341,9 @@ namespace Droniverse.Community.Application.Services
                                    userDict.TryGetValue(clubRequest.ApproverID.Value, out var a)
                                    ? a
                                    : null;
+
+                    droneDict.TryGetValue(clubRequest.Club.DroneID, out var drone);
+                    levelDict.TryGetValue(clubRequest.RequesterID, out var level);
 
                     return new ClubRequestResponseDto(
                         clubRequest.ClubRequestID,
@@ -241,7 +360,9 @@ namespace Droniverse.Community.Application.Services
                         clubRequest.Status,
                         clubRequest.CreatedAt,
                         clubRequest.ProcessedAt,
-                        _mapper.Map<MediaResponseDto?>(clubRequest.MediaID.HasValue ? clubRequest.Media : null)
+                        _mapper.Map<MediaResponseDto?>(clubRequest.MediaID.HasValue ? clubRequest.Media : null),
+                        drone,
+                        level
                     );
                 });
 
@@ -292,6 +413,61 @@ namespace Droniverse.Community.Application.Services
 
             var userDict = users.ToDictionary(u => u.UserId);
 
+            // Fetch drone and level info
+            var droneIds = requests
+                .Select(r => r.Club.DroneID)
+                .Where(d => d != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            var droneDict = new Dictionary<Guid, DroneMiniResponseDto>();
+            if (droneIds.Any())
+            {
+                try
+                {
+                    var drones = await _academyMicroserviceClient.GetDronesBulk(droneIds);
+                    foreach (var drone in drones)
+                    {
+                        if (drone != null)
+                        {
+                            droneDict[drone.DroneID] = new DroneMiniResponseDto
+                            {
+                                DroneID = drone.DroneID,
+                                DroneNameVN = drone.DroneNameVN,
+                                DroneNameEN = drone.DroneNameEN
+                            };
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to fetch drones from Academy service: {ex.Message}");
+                }
+            }
+
+            // Get Level info for each requester from Academy
+            var levelDict = new Dictionary<Guid, LevelMiniResponseDto>();
+            var requesterIds = requests.Select(r => r.RequesterID).Distinct().ToList();
+            foreach (var requesterId in requesterIds)
+            {
+                try
+                {
+                    var level = await _academyMicroserviceClient.GetUserLevelMaxAsync(requesterId);
+                    if (level != null)
+                    {
+                        levelDict[requesterId] = level;
+                    }
+                    else
+                    {
+                        Console.WriteLine($"No level data returned for user {requesterId}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to fetch level for user {requesterId}: {ex.Message}");
+                }
+            }
+
             var responseDtos = requests.Select(request =>
             {
                 userDict.TryGetValue(request.RequesterID, out var requester);
@@ -299,6 +475,9 @@ namespace Droniverse.Community.Application.Services
                 UserResponse? approver = null;
                 if (request.ApproverID.HasValue)
                     userDict.TryGetValue(request.ApproverID.Value, out approver);
+
+                droneDict.TryGetValue(request.Club.DroneID, out var drone);
+                levelDict.TryGetValue(request.RequesterID, out var level);
 
                 return new ClubRequestResponseDto(
                     request.ClubRequestID,
@@ -315,7 +494,9 @@ namespace Droniverse.Community.Application.Services
                     request.Status,
                     request.CreatedAt,
                     request.ProcessedAt,
-                    _mapper.Map<MediaResponseDto?>(request.MediaID.HasValue ? request.Media : null)
+                    _mapper.Map<MediaResponseDto?>(request.MediaID.HasValue ? request.Media : null),
+                    drone,
+                    level
                 );
             }).ToList();
 
