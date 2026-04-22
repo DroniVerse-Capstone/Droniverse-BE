@@ -37,6 +37,7 @@ public class WebSimulatorService : IWebSimulatorService
             throw new ArgumentNullException(nameof(request));
 
         ValidateData(
+            request.DroneID,
             request.TitleVN,
             request.TitleEN,
             request.Type,
@@ -45,11 +46,16 @@ public class WebSimulatorService : IWebSimulatorService
             request.Code,
             request.EstimatedTime);
 
+        var drone = await _unitOfWork.Drones.GetByIdAsync(request.DroneID);
+        if (drone == null)
+            throw new BaseException("Không tìm thấy drone.", "NOT_FOUND");
+
         await EnsureTitlesUniqueAsync(request.TitleVN, request.TitleEN);
 
         var webSimulator = new WebSimulator
         {
             WebSimulatorID = Guid.NewGuid(),
+            DroneID = request.DroneID,
             TitleVN = request.TitleVN,
             TitleEN = request.TitleEN,
             Type = request.Type,
@@ -111,10 +117,11 @@ public class WebSimulatorService : IWebSimulatorService
         };
     }
 
-    public async Task<IEnumerable<WebSimulatorClientViewDTO>> GetWebSimulatorsAsync(WebSimulatorType? type = null)
+    public async Task<IEnumerable<WebSimulatorClientViewDTO>> GetWebSimulatorsAsync(WebSimulatorType? type = null, Guid? droneId = null)
     {
         var webSimulators = await _unitOfWork.WebSimulators.GetAllAsync(
-            filter: type.HasValue ? x => x.Type == type.Value : null,
+            filter: x => (!type.HasValue || x.Type == type.Value)
+                && (!droneId.HasValue || x.DroneID == droneId.Value),
             orderBy: q => q.OrderByDescending(x => x.CreateAt),
             pageIndex: 1,
             pageSize: int.MaxValue);
@@ -152,6 +159,7 @@ public class WebSimulatorService : IWebSimulatorService
             throw new ArgumentNullException(nameof(request));
 
         ValidateData(
+            request.DroneID,
             request.TitleVN,
             request.TitleEN,
             request.Type,
@@ -159,6 +167,10 @@ public class WebSimulatorService : IWebSimulatorService
             request.ObjectivesEN,
             request.Code,
             request.EstimatedTime);
+
+        var drone = await _unitOfWork.Drones.GetByIdAsync(request.DroneID);
+        if (drone == null)
+            throw new BaseException("Không tìm thấy drone.", "NOT_FOUND");
 
         await EnsureTitlesUniqueAsync(request.TitleVN, request.TitleEN, webSimulatorId);
 
@@ -177,6 +189,7 @@ public class WebSimulatorService : IWebSimulatorService
 
         webSimulator.TitleVN = request.TitleVN;
         webSimulator.TitleEN = request.TitleEN;
+        webSimulator.DroneID = request.DroneID;
         webSimulator.Type = request.Type;
         webSimulator.ObjectivesVN = request.ObjectivesVN;
         webSimulator.ObjectivesEN = request.ObjectivesEN;
@@ -222,6 +235,7 @@ public class WebSimulatorService : IWebSimulatorService
     }
 
     private static void ValidateData(
+        Guid droneId,
         string titleVN,
         string titleEN,
         WebSimulatorType type,
@@ -230,6 +244,9 @@ public class WebSimulatorService : IWebSimulatorService
         string code,
         int estimatedTime)
     {
+        if (droneId == Guid.Empty)
+            throw new ValidationException("DroneID không hợp lệ.");
+
         if (string.IsNullOrWhiteSpace(titleVN))
             throw new ValidationException("Tiêu đề tiếng Việt là bắt buộc.");
 
@@ -328,6 +345,7 @@ public class WebSimulatorService : IWebSimulatorService
         return new WebSimulatorClientViewDTO
         {
             WebSimulatorID = webSimulator.WebSimulatorID,
+            DroneID = webSimulator.DroneID,
             TitleVN = webSimulator.TitleVN,
             TitleEN = webSimulator.TitleEN,
             Type = webSimulator.Type,

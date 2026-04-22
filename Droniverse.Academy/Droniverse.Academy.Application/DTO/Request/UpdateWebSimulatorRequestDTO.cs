@@ -4,6 +4,7 @@ namespace Droniverse.Academy.Application.DTO.Request;
 
 public class UpdateWebSimulatorRequestDTO
 {
+    public Guid DroneID { get; set; }
     public string TitleVN { get; set; } = null!;
     public string TitleEN { get; set; } = null!;
     public WebSimulatorType Type { get; set; }

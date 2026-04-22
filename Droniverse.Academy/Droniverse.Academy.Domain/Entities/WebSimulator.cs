@@ -5,6 +5,7 @@ namespace Droniverse.Academy.Domain.Entities;
 public class WebSimulator
 {
     public Guid WebSimulatorID { get; set; }
+    public Guid DroneID { get; set; }
     public string TitleEN { get; set; } = string.Empty;
     public string TitleVN { get; set; } = string.Empty;
     public WebSimulatorType Type { get; set; }
@@ -16,6 +17,7 @@ public class WebSimulator
     public DateTime CreateAt { get; private set; }
     public DateTime UpdateAt { get; private set; }
     public int EstimatedTime { get; set; }
+    public Drone Drone { get; set; } = null!;
 
     public void SetAuditOnCreate(Guid userId, DateTime now)
     {
