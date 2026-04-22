@@ -105,10 +105,10 @@ internal class UserService : IUserService
             throw new ArgumentException($"User info id not found #{id}");
         }
 
-        UserResponse userResponse = await _academyMicroserviceClient.GetUserWithUserLevelMaxAsync(id);
+        var level= await _academyMicroserviceClient.GetUserLevelMaxAsync(id);
 
-        //UserResponse userResponse = _mapper.Map<UserResponse>(account);
-        return userResponse;
+        UserResponse userResponse = _mapper.Map<UserResponse>(account);
+        return userResponse with { Level = level };
     }
 
     public async Task<UserResponse> UpdateUser(Guid userId, UserUpdateDto userUpdateDto)

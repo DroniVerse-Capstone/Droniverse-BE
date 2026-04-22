@@ -20,7 +20,6 @@ public class AcademyMicroserviceClient
     private readonly IDistributedCache _distributedCache;
     private readonly IHostEnvironment _environment;
     private readonly ILogger<AcademyMicroserviceClient> _logger;
-    private readonly IUserService _userService;
 
     private static readonly JsonSerializerOptions _jsonOptions = new()
     {
@@ -32,86 +31,25 @@ public class AcademyMicroserviceClient
         HttpClient httpClient,
         IDistributedCache distributedCache,
         IHostEnvironment environment,
-        ILogger<AcademyMicroserviceClient> logger,
-        IUserService userService
+        ILogger<AcademyMicroserviceClient> logger
     )
     {
         _httpClient = httpClient;
         _distributedCache = distributedCache;
         _environment = environment;
         _logger = logger;
-        _userService = userService;
     }
-
-    public async Task<UserResponse> GetUserWithUserLevelMaxAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<LevelMiniResponseDto?> GetUserLevelMaxAsync(Guid userId)
     {
-        if (userId == Guid.Empty)
-        {
-            return null;
-        }
+        var url = BuildAcademyPath($"/user/levels/max?userId={userId}");
+        var response = await _httpClient.GetAsync(url);
 
-        try
-        {
-            var url = BuildAcademyPath($"/user/levels/max?userId={userId}");
-            var response = await _httpClient.GetAsync(url, cancellationToken);
+        response.EnsureSuccessStatusCode();
 
-            if (!response.IsSuccessStatusCode)
-            {
-                if (response.StatusCode == HttpStatusCode.ServiceUnavailable)
-                {
-                    _logger.LogError(
-                        "Academy service unavailable when getting user levels for user {UserId}",
-                        userId);
+        var successResponse = await response.Content
+            .ReadFromJsonAsync<SuccessResponse<IEnumerable<LevelMiniResponseDto>>>(_jsonOptions);
 
-                    throw new HttpRequestException(
-                        "Academy service unavailable",
-                        null,
-                        HttpStatusCode.ServiceUnavailable);
-                }
-
-                if (response.StatusCode == HttpStatusCode.BadRequest)
-                {
-                    _logger.LogWarning(
-                        "Bad request when getting user levels for user {UserId}. Response: {Response}",
-                        userId,
-                        await response.Content.ReadAsStringAsync(cancellationToken));
-
-                    throw new HttpRequestException(
-                        "Bad request when calling Academy API",
-                        null,
-                        HttpStatusCode.BadRequest);
-                }
-
-                _logger.LogError(
-                    "Error when getting user levels for user {UserId}. Status: {StatusCode}, Response: {Response}",
-                    userId,
-                    response.StatusCode,
-                    await response.Content.ReadAsStringAsync(cancellationToken));
-
-                throw new HttpRequestException(
-                    $"Academy API error: {response.StatusCode}",
-                    null,
-                    response.StatusCode);
-            }
-
-            var successResponse = await response.Content.ReadFromJsonAsync<SuccessResponse<IEnumerable<LevelMiniResponseDto>>>(_jsonOptions, cancellationToken);
-            var result = successResponse?.Data;
-            
-            _logger.LogInformation(
-                "Successfully retrieved user levels for user {UserId}. Levels count: {LevelsCount}",
-                userId,
-                result?.Count() ?? 0);
-
-            UserResponse userResponse = await _userService.GetUserById(userId);
-            return userResponse with { Level = result?.FirstOrDefault() };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex,
-                "Error calling Academy API GetUserWithUserLevelMax for user {UserId}",
-                userId);
-            throw;
-        }
+        return successResponse?.Data?.FirstOrDefault();
     }
 
     private string BuildAcademyPath(string relativePath)

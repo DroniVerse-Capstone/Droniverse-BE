@@ -29,12 +29,12 @@ namespace Droniverse.Identity.API.Controllers
             _academyMicroserviceClient = academyMicroserviceClient;
         }
 
-        [HttpGet("test-call-cheo-Academy/{userId}")]
-        public async Task<IActionResult> GetUserWithLevelMax(Guid userId)
-        {
-            UserResponse response = await _academyMicroserviceClient.GetUserWithUserLevelMaxAsync(userId);
-            return Ok(response);
-        }
+        //[HttpGet("test-call-cheo-Academy/{userId}")]
+        //public async Task<IActionResult> GetUserWithLevelMax(Guid userId)
+        //{
+        //    UserResponse response = await _academyMicroserviceClient.GetUserWithUserLevelMaxAsync(userId);
+        //    return Ok(response);
+        //}
 
         [HttpGet("test")]
         public IActionResult Test()
