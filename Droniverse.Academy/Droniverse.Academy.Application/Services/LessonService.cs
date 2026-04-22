@@ -421,21 +421,6 @@ public class LessonService : ILessonService
                         await _unitOfWork.Quizs.DeleteAsync(quiz);
                     }
                     break;
-                case LessonType.PHYSIC:
-                case LessonType.LAB_PHYSIC:
-                    var webSimulator = await _unitOfWork.WebSimulators.GetByIdAsync(lesson.ReferenceID);
-                    if (webSimulator != null)
-                    {
-                        await _unitOfWork.WebSimulators.DeleteAsync(webSimulator);
-                    }
-                    break;
-                case LessonType.VR:
-                    var vrSimulator = await _unitOfWork.VRSimulators.GetByIdAsync(lesson.ReferenceID);
-                    if (vrSimulator != null)
-                    {
-                        await _unitOfWork.VRSimulators.DeleteAsync(vrSimulator);
-                    }
-                    break;
             }
         }
 

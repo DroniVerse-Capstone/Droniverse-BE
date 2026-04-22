@@ -42,6 +42,25 @@ public class WebSimulatorController : ControllerBase
     }
 
     /// <summary>
+    /// Tạo lesson từ web simulator có sẵn.
+    /// </summary>
+    [HttpPost("{webSimulatorId:guid}/lessons")]
+    [Authorize(Roles = Roles.AdminOrSystemManager)]
+    public async Task<IActionResult> CreateLessonFromWebSimulator(Guid webSimulatorId, [FromBody] CreateWebSimulatorLessonRequestDTO request)
+    {
+        try
+        {
+            var created = await _webSimulatorService.CreateLessonFromWebSimulatorAsync(webSimulatorId, request);
+            return StatusCode(201, SuccessResponse<LessonClientViewDTO>.Create(created, "Tạo lesson từ web simulator thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Tạo lesson từ web simulator thất bại.");
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Lấy danh sách web simulator.
     /// </summary>
     [HttpGet]

@@ -39,18 +39,6 @@ public class VRSimulatorService : IVRSimulatorService
         ValidateData(request.TitleVN, request.TitleEN, request.EstimatedTime);
         await EnsureTitlesUniqueAsync(request.TitleVN, request.TitleEN);
 
-        await CourseVersionDraftGuard.EnsureDraftByModuleIdAsync(
-            _unitOfWork,
-            request.ModuleID,
-            "Chỉ được chỉnh sửa lesson vr simulator khi phiên bản khóa học ở trạng thái Draft.");
-
-        var module = await _unitOfWork.Modules.GetByIdAsync(request.ModuleID);
-        if (module == null)
-            throw new BaseException("Không tìm thấy mô-đun.", "NOT_FOUND");
-
-        var orderIndex = request.OrderIndex ?? await GetNextOrderIndexAsync(request.ModuleID);
-        await ValidateOrderIndexAsync(request.ModuleID, orderIndex);
-
         var vrSimulator = new VRSimulator
         {
             VRSimulatorID = Guid.NewGuid(),
@@ -61,6 +49,30 @@ public class VRSimulatorService : IVRSimulatorService
         vrSimulator.SetAuditOnCreate(_currentUser.UserId, _clock.Now);
 
         await _unitOfWork.VRSimulators.AddAsync(vrSimulator);
+        await _unitOfWork.SaveChangesAsync();
+
+        var response = MapToResponse(vrSimulator);
+        await PopulateUsersAsync(response, vrSimulator.CreateBy, vrSimulator.UpdateBy);
+
+        return response;
+    }
+
+    public async Task<LessonClientViewDTO> CreateLessonFromVRSimulatorAsync(Guid vrSimulatorId, CreateVRSimulatorLessonRequestDTO request)
+    {
+        if (request == null)
+            throw new ArgumentNullException(nameof(request));
+
+        await CourseVersionDraftGuard.EnsureDraftByModuleIdAsync(
+            _unitOfWork,
+            request.ModuleID,
+            "Chỉ được chỉnh sửa lesson vr simulator khi phiên bản khóa học ở trạng thái Draft.");
+
+        var vrSimulator = await _unitOfWork.VRSimulators.GetByIdAsync(vrSimulatorId);
+        if (vrSimulator == null)
+            throw new BaseException("Không tìm thấy vr simulator.", "NOT_FOUND");
+
+        var orderIndex = request.OrderIndex ?? await GetNextOrderIndexAsync(request.ModuleID);
+        await ValidateOrderIndexAsync(request.ModuleID, orderIndex);
 
         var lesson = new Lesson
         {
@@ -74,10 +86,17 @@ public class VRSimulatorService : IVRSimulatorService
         await _unitOfWork.Lessons.AddAsync(lesson);
         await _unitOfWork.SaveChangesAsync();
 
-        var response = MapToResponse(vrSimulator);
-        await PopulateUsersAsync(response, vrSimulator.CreateBy, vrSimulator.UpdateBy);
-
-        return response;
+        return new LessonClientViewDTO
+        {
+            LessonID = lesson.LessonID,
+            ModuleID = lesson.ModuleID,
+            OrderIndex = lesson.OrderIndex,
+            Type = lesson.Type,
+            ReferenceID = lesson.ReferenceID,
+            TitleVN = vrSimulator.TitleVN,
+            TitleEN = vrSimulator.TitleEN,
+            EstimatedTime = vrSimulator.EstimatedTime
+        };
     }
 
     public async Task<IEnumerable<VRSimulatorClientViewDTO>> GetVRSimulatorsAsync()
@@ -119,19 +138,21 @@ public class VRSimulatorService : IVRSimulatorService
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
-        await CourseVersionDraftGuard.EnsureDraftByReferenceAsync(
-            _unitOfWork,
-            vrSimulatorId,
-            LessonType.VR,
-            "vr",
-            "Chỉ được chỉnh sửa lesson vr simulator khi phiên bản khóa học ở trạng thái Draft.");
-
         ValidateData(request.TitleVN, request.TitleEN, request.EstimatedTime);
         await EnsureTitlesUniqueAsync(request.TitleVN, request.TitleEN, vrSimulatorId);
 
         var vrSimulator = await _unitOfWork.VRSimulators.GetByIdAsync(vrSimulatorId);
         if (vrSimulator == null)
             throw new BaseException("Không tìm thấy vr simulator.", "NOT_FOUND");
+
+        var mappedLessons = await GetMappedVRLessonsAsync(vrSimulatorId);
+        foreach (var lesson in mappedLessons)
+        {
+            await CourseVersionDraftGuard.EnsureDraftByModuleIdAsync(
+                _unitOfWork,
+                lesson.ModuleID,
+                "Chỉ được chỉnh sửa lesson vr simulator khi phiên bản khóa học ở trạng thái Draft.");
+        }
 
         vrSimulator.TitleVN = request.TitleVN;
         vrSimulator.TitleEN = request.TitleEN;
@@ -149,20 +170,18 @@ public class VRSimulatorService : IVRSimulatorService
 
     public async Task DeleteVRSimulatorAsync(Guid vrSimulatorId)
     {
-        await CourseVersionDraftGuard.EnsureDraftByReferenceAsync(
-            _unitOfWork,
-            vrSimulatorId,
-            LessonType.VR,
-            "vr",
-            "Chỉ được chỉnh sửa lesson vr simulator khi phiên bản khóa học ở trạng thái Draft.");
-
         var vrSimulator = await _unitOfWork.VRSimulators.GetByIdAsync(vrSimulatorId);
         if (vrSimulator == null)
             throw new BaseException("Không tìm thấy vr simulator.", "NOT_FOUND");
 
-        var lesson = await _unitOfWork.Lessons.GetByConditionAsync(l => l.Type == LessonType.VR && l.ReferenceID == vrSimulator.VRSimulatorID);
-        if (lesson != null)
+        var mappedLessons = await GetMappedVRLessonsAsync(vrSimulatorId);
+        foreach (var lesson in mappedLessons)
         {
+            await CourseVersionDraftGuard.EnsureDraftByModuleIdAsync(
+                _unitOfWork,
+                lesson.ModuleID,
+                "Chỉ được chỉnh sửa lesson vr simulator khi phiên bản khóa học ở trạng thái Draft.");
+
             lesson.ReferenceID = Guid.Empty;
             await _unitOfWork.Lessons.UpdateAsync(lesson);
         }
@@ -205,6 +224,16 @@ public class VRSimulatorService : IVRSimulatorService
 
         if (duplicated != null)
             throw new ValidationException("OrderIndex phải là duy nhất trong mô-đun.");
+    }
+
+    private async Task<List<Lesson>> GetMappedVRLessonsAsync(Guid vrSimulatorId)
+    {
+        var lessons = await _unitOfWork.Lessons.GetAllAsync(
+            filter: l => l.Type == LessonType.VR && l.ReferenceID == vrSimulatorId,
+            pageIndex: 1,
+            pageSize: int.MaxValue);
+
+        return lessons.Data.ToList();
     }
 
     private async Task EnsureTitlesUniqueAsync(string titleVN, string titleEN, Guid? excludeVrSimulatorId = null)

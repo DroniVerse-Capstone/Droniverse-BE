@@ -2,6 +2,7 @@
 using Droniverse.Academy.Application;
 using Droniverse.Academy.Infrastructure;
 using Droniverse.Academy.Infrastructure.Persistence.MySql;
+using Droniverse.Academy.API.Swagger;
 using Droniverse.Shared;
 using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Settings;
@@ -65,6 +66,7 @@ builder.Services.AddSwaggerGen(c =>
     }
 
     c.CustomSchemaIds(type => type.FullName);
+    c.SchemaFilter<EnumSchemaFilter>();
 
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
