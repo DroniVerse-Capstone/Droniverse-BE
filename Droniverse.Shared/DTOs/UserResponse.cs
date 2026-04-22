@@ -10,10 +10,11 @@ public record UserResponse(
     DateTime? DateOfBirth,
     string RoleName,
     string? ImageUrl,
-    GenderOptions Gender
+    GenderOptions Gender,
+    LevelMiniResponseDto? Level
     )
 {
-    public UserResponse() : this(Guid.Empty, string.Empty, string.Empty, string.Empty, string.Empty, null, string.Empty, string.Empty, default)
+    public UserResponse() : this(Guid.Empty, string.Empty, string.Empty, string.Empty, string.Empty, null, string.Empty, string.Empty, default, default)
     {
     }
 }
