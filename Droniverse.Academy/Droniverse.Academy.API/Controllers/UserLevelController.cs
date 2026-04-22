@@ -30,7 +30,7 @@ public class UserLevelController : ControllerBase
         try
         {
             var levels = await _service.GetUserLevelsAsync(userId);
-            return Ok(SuccessResponse<IEnumerable<LevelMiniResponse>>.Create(levels, "Lấy danh sách level của người dùng thành công."));
+            return Ok(SuccessResponse<IEnumerable<UserLevelResponse>>.Create(levels, "Lấy danh sách level của người dùng thành công."));
         }
         catch (Exception ex)
         {
@@ -48,7 +48,7 @@ public class UserLevelController : ControllerBase
         try
         {
             var levels = await _service.GetMaxUserLevelsAsync(userId);
-            return Ok(SuccessResponse<IEnumerable<LevelMiniResponse>>.Create(levels, "Lấy level cao nhất theo từng drone thành công."));
+            return Ok(SuccessResponse<IEnumerable<UserLevelResponse>>.Create(levels, "Lấy level cao nhất theo từng drone thành công."));
         }
         catch (Exception ex)
         {

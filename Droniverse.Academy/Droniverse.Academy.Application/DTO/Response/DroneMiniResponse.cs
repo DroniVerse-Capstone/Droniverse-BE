@@ -13,4 +13,5 @@ namespace Droniverse.Academy.Application.DTO.Response
         public string ImgURL { get; set; } 
 
     }
+
 }
