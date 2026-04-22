@@ -15,6 +15,7 @@ using Droniverse.Shared.Services;
 using Droniverse.Shared.Services.IServices;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Droniverse.Identity.Application.Services;
 internal class UserService : IUserService
@@ -25,6 +26,7 @@ internal class UserService : IUserService
     private readonly ICloudinaryService _cloudinaryService;
     private readonly ICacheService _cacheService;
     private readonly AcademyMicroserviceClient _academyMicroserviceClient;
+    private readonly ILogger<UserService> _logger;
 
     private static string GetUserCacheKey(Guid userId) => $"identity:user:{userId}";
 
@@ -34,7 +36,8 @@ internal class UserService : IUserService
         IUserPublisher publisher,
         ICloudinaryService cloudinaryService,
         ICacheService cacheService,
-        AcademyMicroserviceClient academyMicroserviceClient)
+        AcademyMicroserviceClient academyMicroserviceClient,
+        ILogger<UserService> logger)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
@@ -42,6 +45,7 @@ internal class UserService : IUserService
         _cloudinaryService = cloudinaryService;
         _academyMicroserviceClient = academyMicroserviceClient;
         _cacheService = cacheService;
+        _logger = logger;
     }
 
     public async Task<PaginationResult<IEnumerable<UserResponse>>> GetAllUsers(
@@ -105,7 +109,17 @@ internal class UserService : IUserService
             throw new ArgumentException($"User info id not found #{id}");
         }
 
-        var level= await _academyMicroserviceClient.GetUserLevelMaxAsync(id);
+        // Try to get user level from Academy service, but don't fail if unavailable
+        LevelMiniResponseDto? level = null;
+        try
+        {
+            level = await _academyMicroserviceClient.GetUserLevelMaxAsync(id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning($"Failed to get user level from Academy service for user {id}: {ex.Message}");
+            // Continue without level if Academy service is unavailable
+        }
 
         UserResponse userResponse = _mapper.Map<UserResponse>(account);
         return userResponse with { Level = level };
