@@ -26,7 +26,6 @@ public class WebSimulatorController : ControllerBase
     /// Tạo mới web simulator.
     /// </summary>
     [HttpPost]
-    [Authorize(Roles = Roles.AdminOrSystemManager)]
     [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> CreateWebSimulator([FromBody] CreateWebSimulatorRequestDTO request)
     {
@@ -46,7 +45,6 @@ public class WebSimulatorController : ControllerBase
     /// Tạo lesson từ web simulator có sẵn.
     /// </summary>
     [HttpPost("{webSimulatorId:guid}/lessons")]
-    [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> CreateLessonFromWebSimulator(Guid webSimulatorId, [FromBody] CreateWebSimulatorLessonRequestDTO request)
     {
         try
@@ -67,7 +65,6 @@ public class WebSimulatorController : ControllerBase
     /// <param name="type">Lọc theo loại web simulator.</param>
     /// <param name="droneId">Lọc theo droneID của web simulator.</param>
     [HttpGet]
-    [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> GetWebSimulators([FromQuery] WebSimulatorType? type = null, [FromQuery] Guid? droneId = null)
     {
         try
@@ -86,7 +83,6 @@ public class WebSimulatorController : ControllerBase
     /// Lấy chi tiết web simulator.
     /// </summary>
     [HttpGet("{webSimulatorId:guid}")]
-    [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> GetWebSimulatorById(Guid webSimulatorId)
     {
         try
@@ -105,7 +101,6 @@ public class WebSimulatorController : ControllerBase
     /// Cập nhật web simulator.
     /// </summary>
     [HttpPut("{webSimulatorId:guid}")]
-    [Authorize(Roles = Roles.AdminOrSystemManager)]
     [ProducesResponseType(typeof(SuccessResponse<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> UpdateWebSimulator(Guid webSimulatorId, [FromBody] UpdateWebSimulatorRequestDTO request)
     {
@@ -125,7 +120,6 @@ public class WebSimulatorController : ControllerBase
     /// Xóa web simulator.
     /// </summary>
     [HttpDelete("{webSimulatorId:guid}")]
-    [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> DeleteWebSimulator(Guid webSimulatorId)
     {
         try

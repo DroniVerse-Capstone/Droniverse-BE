@@ -29,6 +29,7 @@ internal class UnitOfWork : IUnitOfWork
     private IUserCertificateRepository _userCertificate;
     private IUserLabRepository _userLab;
     private IUserLessonRepository _userLesson;
+    private IUserLevelRepository _userLevel;
     private IUserModuleRepository _userModule;
     private ILevelRepository _level;
     private ILevelCourseRequirementRepository _levelCourseRequirement;
@@ -82,6 +83,8 @@ internal class UnitOfWork : IUnitOfWork
     public IUserLabRepository UserLabs => _userLab ??= new UserLabRepository(_mySqlContext);
 
     public IUserLessonRepository UserLessons => _userLesson ??= new UserLessonRepository(_mySqlContext);
+
+    public IUserLevelRepository UserLevels => _userLevel ??= new UserLevelRepository(_mySqlContext);
 
     public IUserModuleRepository UserModules => _userModule ??= new UserModuleRepository(_mySqlContext);
 

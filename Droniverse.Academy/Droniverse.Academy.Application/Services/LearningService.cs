@@ -20,6 +20,7 @@ public class LearningService : ILearningService
     private readonly LearningProgressService _learningProgressService;
     private readonly LearningPathAssembler _learningPathAssembler;
     private readonly LearningCertificateService _learningCertificateService;
+    private readonly IUserLevelService _userLevelService;
 
     public LearningService(
         IUnitOfWork unitOfWork,
@@ -29,7 +30,8 @@ public class LearningService : ILearningService
         LearningContextLoader learningContextLoader,
         LearningProgressService learningProgressService,
         LearningPathAssembler learningPathAssembler,
-        LearningCertificateService learningCertificateService)
+        LearningCertificateService learningCertificateService,
+        IUserLevelService userLevelService)
     {
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
@@ -39,6 +41,7 @@ public class LearningService : ILearningService
         _learningProgressService = learningProgressService;
         _learningPathAssembler = learningPathAssembler;
         _learningCertificateService = learningCertificateService;
+        _userLevelService = userLevelService;
     }
 
     public async Task<LearningPathDTO> GetMyLearningPathAsync(Guid enrollmentId)
@@ -256,6 +259,8 @@ public class LearningService : ILearningService
                 context.UserModules,
                 now);
 
+            await TryUpgradeUserLevelAsync(context.Enrollment);
+
             var certificateIssued = await _learningCertificateService.TryIssueCertificateAsync(
                 context.Enrollment,
                 _currentUser.UserId,
@@ -360,6 +365,22 @@ public class LearningService : ILearningService
             IsEnrollmentCompleted = context.Enrollment.Status == EnrollStatus.COMPLETED,
             IsCertificateIssued = certificateIssued
         };
+    }
+
+    private async Task TryUpgradeUserLevelAsync(Enrollment enrollment)
+    {
+        if (enrollment.Status != EnrollStatus.COMPLETED)
+            return;
+
+        var course = await _unitOfWork.Courses.GetByIdAsync(enrollment.CourseID);
+        if (course?.DroneID == null || course.DroneID == Guid.Empty)
+            return;
+
+        var canUpgrade = await _userLevelService.CanUserUpgradeAsync(_currentUser.UserId, course.DroneID.Value);
+        if (!canUpgrade)
+            return;
+
+        await _userLevelService.UpgradeUserLevelAsync(_currentUser.UserId, course.DroneID.Value);
     }
 
 

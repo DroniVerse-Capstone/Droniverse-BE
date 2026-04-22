@@ -17,13 +17,20 @@ public class EnrollmentService : IEnrollmentService
     private readonly IMapper _mapper;
     private readonly ICurrentUserService _currentUser;
     private readonly IClock _clock;
+    private readonly IUserLevelService _userLevelService;
 
-    public EnrollmentService(IUnitOfWork unitOfWork, IMapper mapper, ICurrentUserService currentUser, IClock clock)
+    public EnrollmentService(
+        IUnitOfWork unitOfWork,
+        IMapper mapper,
+        ICurrentUserService currentUser,
+        IClock clock,
+        IUserLevelService userLevelService)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _currentUser = currentUser;
         _clock = clock;
+        _userLevelService = userLevelService;
     }
 
     public async Task<EnrollmentResponseDTO> CreateEnrollmentAsync(CreateEnrollmentRequestDTO request)
@@ -50,6 +57,7 @@ public class EnrollmentService : IEnrollmentService
         {
             await _unitOfWork.Enrollments.AddAsync(enrollment);
             await CreateUserModulesAsync(courseVersion, enrollment.EnrollDate);
+            await _userLevelService.CreateLevelOneIfFirstEnrollmentAsync(userId, request.CourseVersionID);
             await _unitOfWork.SaveChangesAsync();
         });
 

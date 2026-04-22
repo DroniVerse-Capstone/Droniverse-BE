@@ -25,6 +25,7 @@ namespace Droniverse.Academy.Domain.IRepository
         IUserCertificateRepository UserCertificates { get; }
         IUserLabRepository UserLabs { get; }
         IUserLessonRepository UserLessons { get; }
+        IUserLevelRepository UserLevels { get; }
         IUserModuleRepository UserModules { get; }
         ILevelRepository Levels { get; }
         ILevelCourseRequirementRepository LevelCourseRequirements { get; }
