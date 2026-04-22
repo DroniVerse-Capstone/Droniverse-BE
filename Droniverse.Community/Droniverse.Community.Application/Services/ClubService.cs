@@ -12,6 +12,7 @@ using Droniverse.Shared.DTOs.Response;
 using Microsoft.EntityFrameworkCore;
 using Droniverse.Shared.Enums;
 using Droniverse.Shared.DTOs;
+using Droniverse.Shared.Exceptions;
 
 namespace Droniverse.Community.Application.Services;
 
@@ -671,7 +672,7 @@ internal class ClubService : IClubService
     {
         if (droneId == Guid.Empty)
             return null;
-        
+
         return (await GetDronesByIds([droneId])).FirstOrDefault();
     }
 
@@ -782,6 +783,17 @@ internal class ClubService : IClubService
             throw new InvalidOperationException(
                 $"Câu lạc bộ đang ở trạng thái {club.ClubStatus}, không thể thực hiện thao tác này.");
         }
+    }
+
+    public async Task<Guid> GetDroneFromClub(Guid clubId)
+    {
+        var club = await _unitOfWork.Clubs.GetByCondition(c => c.ClubID == clubId);
+
+        if (club == null)
+            //throw new NotFoundException($"Club with ID {clubId} not found.");
+            return Guid.Empty;
+
+        return club.DroneID;
     }
 }
 

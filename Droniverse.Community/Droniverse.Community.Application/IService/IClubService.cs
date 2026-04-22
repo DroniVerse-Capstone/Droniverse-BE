@@ -11,6 +11,7 @@ using Droniverse.Shared.Enums;
 namespace Droniverse.Community.Application.IService;
 public interface IClubService
 {
+    Task<Guid> GetDroneFromClub(Guid clubId);
     Task<PaginationResult<IEnumerable<ClubResponseDto>>> GetAllClubs(GetAllClubsSearchRequest request);
     Task<ClubResponseDto> GetClubById(Guid id);
     Task<ClubResponseDto> GetClubByClubCode(string clubCode);
