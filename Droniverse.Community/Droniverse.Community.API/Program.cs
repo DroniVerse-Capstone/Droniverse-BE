@@ -174,7 +174,13 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins("http://localhost:3000")
+        policy.WithOrigins(
+            "http://localhost:3000",      // Frontend
+            "http://localhost:5000",      // Identity Service
+            "http://localhost:5001",      // Academy Service
+            "http://localhost:5125",      // Community Service
+            "https://localhost:7193"      // Community HTTPS
+        )
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();

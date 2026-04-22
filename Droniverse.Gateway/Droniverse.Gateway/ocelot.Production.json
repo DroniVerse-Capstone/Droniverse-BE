@@ -5,8 +5,8 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "academy-service",
-          "Port": 5000
+          "Host": "academy-microservice",
+          "Port": 8080
         }
       ],
       "UpstreamPathTemplate": "/api/academy/{everything}",
@@ -21,8 +21,8 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "community-service",
-          "Port": 5001
+          "Host": "community-microservice",
+          "Port": 8080
         }
       ],
       "UpstreamPathTemplate": "/api/community/{everything}",
@@ -34,8 +34,8 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "identity-service",
-          "Port": 5002
+          "Host": "identity-microservice",
+          "Port": 8080
         }
       ],
       "UpstreamPathTemplate": "/api/identity/{everything}",
