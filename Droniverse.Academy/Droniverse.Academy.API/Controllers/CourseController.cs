@@ -59,7 +59,7 @@ namespace Droniverse.Academy.API.Controllers
         // Get academy/courses/club/{clubId}
         [HttpGet("club/{clubId:guid}")]
         [SwaggerResponseExample(StatusCodes.Status200OK, typeof(CoursesByIdsSuccessResponseExample))]
-        [ProducesResponseType(typeof(PagedCourseBulkResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<CourseBulkResponseDTO>>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetCoursesOfClub(
             Guid clubId,
             [FromQuery] CourseBulkSearchRequest searchRequest)
@@ -67,7 +67,12 @@ namespace Droniverse.Academy.API.Controllers
             try
             {
                 var result = await _courseService.GetCoursesClub(clubId, searchRequest);
-                return Ok(result);
+                var paginationResult = new PaginationResult<IEnumerable<CourseBulkResponseDTO>>(
+                    result.Items,
+                    result.TotalItems,
+                    searchRequest.CurrentPage,
+                    searchRequest.PageSize);
+                return Ok(SuccessResponse<PaginationResult<IEnumerable<CourseBulkResponseDTO>>>.Create(paginationResult, "Lấy danh sách course theo club thành công."));
             }
             catch (Exception ex)
             {
@@ -78,7 +83,7 @@ namespace Droniverse.Academy.API.Controllers
 
         [HttpGet("club/{clubId:guid}/management")]
         [SwaggerResponseExample(StatusCodes.Status200OK, typeof(CoursesByIdsSuccessResponseExample))]
-        [ProducesResponseType(typeof(PagedCourseBulkResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<ManagerCoursesBulkResponseDTO>>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetCoursesByIdsManagement(
             Guid clubId,
             [FromQuery] ManagerCourseBulkSearchRequest searchRequest)
@@ -86,7 +91,12 @@ namespace Droniverse.Academy.API.Controllers
             try
             {
                 var result = await _courseService.GetCoursesByIdsManagementAsync(clubId, searchRequest);
-                return Ok(result);
+                var paginationResult = new PaginationResult<IEnumerable<ManagerCoursesBulkResponseDTO>>(
+                    result.Items,
+                    result.TotalItems,
+                    searchRequest.CurrentPage,
+                    searchRequest.PageSize);
+                return Ok(SuccessResponse<PaginationResult<IEnumerable<ManagerCoursesBulkResponseDTO>>>.Create(paginationResult, "Lấy danh sách course management thành công."));
             }
             catch (Exception ex)
             {
@@ -101,14 +111,14 @@ namespace Droniverse.Academy.API.Controllers
         /// <returns>Danh sách khóa học rút gọn theo drone của câu lạc bộ.</returns>
         [HttpGet("club/{clubId:guid}/simple")]
         [SwaggerResponseExample(StatusCodes.Status200OK, typeof(SimpleCoursesByIdsSuccessResponseExample))]
-        [ProducesResponseType(typeof(IEnumerable<SimpleCourseResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(SuccessResponse<IEnumerable<SimpleCourseResponse>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetCoursesByIdsSimple(
             Guid clubId)
         {
             try
             {
                 var result = await _courseService.GetCoursesByIdsSimpleAsync(clubId);
-                return Ok(result);
+                return Ok(SuccessResponse<IEnumerable<SimpleCourseResponse>>.Create(result, "Lấy danh sách khóa học đơn giản thành công."));
             }
             catch (Exception ex)
             {
@@ -151,7 +161,7 @@ namespace Droniverse.Academy.API.Controllers
         /// <returns>Danh sách khóa học hot theo trang hiện tại.</returns>
         // GET academy/courses/club/{clubId}/hot
         [HttpGet("club/{clubId:guid}/hot")]
-        [ProducesResponseType(typeof(SuccessResponse<PagedCourseBulkResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<CourseBulkResponseDTO>>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetHotCoursesByIds(
             Guid clubId,
             [FromQuery] HotCoursesSearchRequest searchRequest)
@@ -159,7 +169,12 @@ namespace Droniverse.Academy.API.Controllers
             try
             {
                 var result = await _courseService.GetHotCoursesByIdsAsync(clubId, searchRequest);
-                return Ok(result);
+                var paginationResult = new PaginationResult<IEnumerable<CourseBulkResponseDTO>>(
+                    result.Items,
+                    result.TotalItems,
+                    searchRequest.CurrentPage,
+                    searchRequest.PageSize);
+                return Ok(SuccessResponse<PaginationResult<IEnumerable<CourseBulkResponseDTO>>>.Create(paginationResult, "Lấy danh sách khóa học hot thành công."));
             }
             catch (Exception ex)
             {

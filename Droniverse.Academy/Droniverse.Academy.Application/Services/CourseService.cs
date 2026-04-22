@@ -366,12 +366,23 @@ public class CourseService : ICourseService
             .Distinct()
             .ToList();
 
+        var courseIds = courses
+            .Select(c => c.CourseID)
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
         // Lấy thống kê
         var participantCountByVersionId = await _unitOfWork.Enrollments
             .GetActiveOrCompletedParticipantCountsByCourseVersionIdsAsync(courseVersionIds);
 
         var ratingByVersionId = await _unitOfWork.Feedbacks
             .GetAverageRatingsByCourseVersionIdsAsync(courseVersionIds);
+
+        var productByCourseId = (await _communityMicroserviceClient.GetProductsBulkByReferenceIdsAsync(courseIds))
+            .Where(p => p.ReferenceId != Guid.Empty)
+            .GroupBy(p => p.ReferenceId)
+            .ToDictionary(g => g.Key, g => g.First().Price);
 
         // Map DTO
         var data = courses.Select(c =>
@@ -404,7 +415,7 @@ public class CourseService : ICourseService
                 },
 
                 EstimatedDuration = currentVersion.EstimatedDuration,
-                Price = null,
+                Price = productByCourseId.TryGetValue(c.CourseID, out var price) ? price : null,
                 ClubCourseOwned = new ClubCourseOwnedResponse(),
 
                 Rating = rating,
@@ -628,6 +639,7 @@ public class CourseService : ICourseService
         var prerequisites = await _unitOfWork.PrerequisiteCourses
             .GetByCourseIdsWithRequiredCourseAsync(ids);
 
+        //ToDo: mở lại filter khi đã có data thực tế, hiện tại dữ liệu test chưa đầy đủ nên tạm thời bỏ filter để test end-to-end dễ dàng hơn
         // STEP 1: Filter + Group
         var filteredGroups = prerequisites
             //.Where(x =>
@@ -729,6 +741,17 @@ public class CourseService : ICourseService
         var participantByVersionId = await _unitOfWork.Enrollments
             .GetActiveOrCompletedParticipantCountsByCourseVersionIdsAsync(versionIds);
 
+        var courseIds = courses
+            .Select(c => c.CourseID)
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        var productByCourseId = (await _communityMicroserviceClient.GetProductsBulkByReferenceIdsAsync(courseIds))
+            .Where(p => p.ReferenceId != Guid.Empty)
+            .GroupBy(p => p.ReferenceId)
+            .ToDictionary(g => g.Key, g => g.First().Price);
+
         var items = courses
             .Where(c => c.CurrentVersion != null)
             .Select(c =>
@@ -746,7 +769,7 @@ public class CourseService : ICourseService
                     ClubCourseInfo = null,
                     NumberOfParticipants = participants,
                     EstimatedDuration = currentVersion.EstimatedDuration,
-                    Price = null
+                    Price = productByCourseId.TryGetValue(c.CourseID, out var price) ? price : null
                 };
             })
             .ToList();
