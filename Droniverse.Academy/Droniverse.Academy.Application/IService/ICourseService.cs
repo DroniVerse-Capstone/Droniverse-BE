@@ -34,14 +34,17 @@ public interface ICourseService
     Task DeleteCourseAsync(Guid courseId);
 
     Task<PagedCourseBulkResponse> GetCoursesClub(
+        Guid clubId,
         CourseBulkSearchRequest searchRequest);
 
     Task<PagedCourseBulkResponse> GetHotCoursesByIdsAsync(
-        HotCoursesSearchRequest searchRequest,
-        IEnumerable<Guid> courseIds);
+        Guid clubId,
+        HotCoursesSearchRequest searchRequest);
 
-    Task<PagedManagerCoursesBulkResponse> GetCoursesByIdsManagementAsync(ManagerCourseBulkSearchRequest searchRequest, GetCoursesByIdsRequestDTO courseIds);
+    Task<PagedManagerCoursesBulkResponse> GetCoursesByIdsManagementAsync(
+        Guid clubId,
+        ManagerCourseBulkSearchRequest searchRequest);
 
-    Task<IEnumerable<SimpleCourseResponse>> GetCoursesByIdsSimpleAsync(GetCoursesByIdsRequestDTO request);
+    Task<IEnumerable<SimpleCourseResponse>> GetCoursesByIdsSimpleAsync(Guid clubId);
 }
 

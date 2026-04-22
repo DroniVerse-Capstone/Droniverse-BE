@@ -56,17 +56,17 @@ namespace Droniverse.Academy.API.Controllers
         /// <param name="request">Danh sách <c>CourseId</c> cần truy vấn.</param>
         /// <param name="searchRequest">Bộ lọc + phân trang.</param>
         /// <returns>Danh sách khóa học tương ứng với các ID được gửi lên.</returns>
-        // Get academy/courses/club
-        [HttpGet("club")]
-        [SwaggerRequestExample(typeof(GetCoursesByIdsRequestDTO), typeof(GetCoursesByIdsExample))]
+        // Get academy/courses/club/{clubId}
+        [HttpGet("club/{clubId:guid}")]
         [SwaggerResponseExample(StatusCodes.Status200OK, typeof(CoursesByIdsSuccessResponseExample))]
         [ProducesResponseType(typeof(PagedCourseBulkResponse), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetCoursesOfClub(
+            Guid clubId,
             [FromQuery] CourseBulkSearchRequest searchRequest)
         {
             try
             {
-                var result = await _courseService.GetCoursesClub(searchRequest);
+                var result = await _courseService.GetCoursesClub(clubId, searchRequest);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -76,17 +76,16 @@ namespace Droniverse.Academy.API.Controllers
             }
         }
 
-        [HttpPost("by-ids/management")]
-        [SwaggerRequestExample(typeof(GetCoursesByIdsRequestDTO), typeof(GetCoursesByIdsExample))]
+        [HttpGet("club/{clubId:guid}/management")]
         [SwaggerResponseExample(StatusCodes.Status200OK, typeof(CoursesByIdsSuccessResponseExample))]
         [ProducesResponseType(typeof(PagedCourseBulkResponse), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetCoursesByIdsManagement(
-         [FromQuery] ManagerCourseBulkSearchRequest searchRequest,
-         [FromBody] GetCoursesByIdsRequestDTO request)
+            Guid clubId,
+            [FromQuery] ManagerCourseBulkSearchRequest searchRequest)
         {
             try
             {
-                var result = await _courseService.GetCoursesByIdsManagementAsync(searchRequest, request);
+                var result = await _courseService.GetCoursesByIdsManagementAsync(clubId, searchRequest);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -97,20 +96,18 @@ namespace Droniverse.Academy.API.Controllers
         }
 
         /// <summary>
-        /// Lấy danh sách khóa học đơn giản theo danh sách ID.
+        /// Lấy danh sách khóa học đơn giản theo câu lạc bộ.
         /// </summary>
-        /// <param name="request">Danh sách <c>CourseId</c> cần truy vấn.</param>
-        /// <returns>Danh sách khóa học rút gọn tương ứng với các ID hợp lệ.</returns>
-        [HttpPost("by-ids/simple")]
-        [SwaggerRequestExample(typeof(GetCoursesByIdsRequestDTO), typeof(GetCoursesByIdsExample))]
+        /// <returns>Danh sách khóa học rút gọn theo drone của câu lạc bộ.</returns>
+        [HttpGet("club/{clubId:guid}/simple")]
         [SwaggerResponseExample(StatusCodes.Status200OK, typeof(SimpleCoursesByIdsSuccessResponseExample))]
         [ProducesResponseType(typeof(IEnumerable<SimpleCourseResponse>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetCoursesByIdsSimple(
-        [FromBody] GetCoursesByIdsRequestDTO request)
+            Guid clubId)
         {
             try
             {
-                var result = await _courseService.GetCoursesByIdsSimpleAsync(request);
+                var result = await _courseService.GetCoursesByIdsSimpleAsync(clubId);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -148,22 +145,20 @@ namespace Droniverse.Academy.API.Controllers
         //}
 
         /// <summary>
-        /// Lấy danh sách khóa học hot theo danh sách ID (sắp xếp theo độ hot và có phân trang).
+        /// Lấy danh sách khóa học hot theo câu lạc bộ (sắp xếp theo độ hot và có phân trang).
         /// </summary>
-        /// <param name="request">Danh sách <c>CourseId</c> cần truy vấn.</param>
         /// <param name="searchRequest">Thông tin phân trang.</param>
         /// <returns>Danh sách khóa học hot theo trang hiện tại.</returns>
-        // POST academy/courses/by-ids/hot
-        [HttpPost("by-ids/hot")]
-        [SwaggerRequestExample(typeof(GetCoursesByIdsRequestDTO), typeof(GetCoursesByIdsExample))]
+        // GET academy/courses/club/{clubId}/hot
+        [HttpGet("club/{clubId:guid}/hot")]
         [ProducesResponseType(typeof(SuccessResponse<PagedCourseBulkResponse>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetHotCoursesByIds(
-            [FromQuery] HotCoursesSearchRequest searchRequest,
-            [FromBody] GetCoursesByIdsRequestDTO request)
+            Guid clubId,
+            [FromQuery] HotCoursesSearchRequest searchRequest)
         {
             try
             {
-                var result = await _courseService.GetHotCoursesByIdsAsync(searchRequest, request.CourseIds);
+                var result = await _courseService.GetHotCoursesByIdsAsync(clubId, searchRequest);
                 return Ok(result);
             }
             catch (Exception ex)
