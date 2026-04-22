@@ -507,7 +507,7 @@ internal class PaymentService : IPaymentService
                     try
                     {
                         Guid managerId = club.ManagerID;
-                        decimal commissionAmount = order.TotalAmount;
+                        decimal commissionAmount = order.TotalAmount * 0.1m;
                         Wallet? wallet = await _unitOfWork.Wallets.GetByCondition(w => w.OwnerID == managerId);
                         if (wallet == null)
                             throw new NotFoundException("Không tìm thấy ví cho managerId: " + managerId);

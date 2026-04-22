@@ -110,7 +110,7 @@ internal class OrderService : IOrderService
             Type = orderAddRequest.Item.Type,
             UnitOfPrice = product.Price,
             Quantity = quantity,
-            Total = isMember ? CalculateTotal(product.Price, quantity) * 1.1m : CalculateTotal(product.Price, quantity),
+            Total = CalculateTotal(product.Price, quantity),
         };
 
         // Tạo order
