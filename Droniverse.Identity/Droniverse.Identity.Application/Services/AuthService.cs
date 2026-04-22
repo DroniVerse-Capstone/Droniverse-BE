@@ -5,6 +5,7 @@ using Droniverse.Identity.Application.DTO.Response;
 using Droniverse.Identity.Application.HttpClients;
 using Droniverse.Identity.Application.IService;
 using Droniverse.Identity.Domain.Entities;
+using Droniverse.Identity.Domain.Enums;
 using Droniverse.Identity.Domain.Interfaces;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Exceptions;
@@ -36,8 +37,8 @@ internal class AuthService : IAuthService
     private readonly AcademyMicroserviceClient _academyMicroserviceClient;
 
     public AuthService(
-        IUnitOfWork unitOfWork, 
-        IMapper mapper, 
+        IUnitOfWork unitOfWork,
+        IMapper mapper,
         IOptions<JwtSettings> jwtSettings,
         IOptions<AppSettings> appSettings,
         ICurrentUserService currentUserService,
@@ -116,11 +117,11 @@ internal class AuthService : IAuthService
         {
             // Tạo verification URL từ appsettings
             string verificationUrl = $"{_appSettings.FrontendUrl}/verify-email?token={verificationToken}";
-            
+
             //gửi mail xác thực email
             await _emailService.SendEmailVerificationAsync(
-                newAccount.Email, 
-                newAccount.Username, 
+                newAccount.Email,
+                newAccount.Username,
                 verificationUrl,
                 verificationToken);
         }
@@ -146,15 +147,18 @@ internal class AuthService : IAuthService
         {
             throw new UnauthorizedAccessException("Invalid email or password.");
         }
-        if(!account.IsEmailVerified)
+        if (!account.IsEmailVerified)
             throw new UnauthorizedAccessException("Email is not verified.");
+        if (account.Status != AccountStatus.ACTIVE)
+            throw new UnauthorizedAccessException("Account is not active.");
         UserResponse user = _mapper.Map<UserResponse>(account);
         string accessToken = GenerateAccessToken(account);
         string refreshToken = GenerateRefreshToken(account);
 
         //Lưu refresh token & refresh token expiryTime vào db
         account.RefreshToken = refreshToken;
-        account.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays); // ✅ From settings
+        account.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays);
+        account.LastLogin = DateTime.UtcNow.AddHours(7);
         await _unitOfWork.SaveChangeAsync();
         //lưu vào redis
 
@@ -284,7 +288,7 @@ internal class AuthService : IAuthService
     public async Task<UserResponse?> UpdateProfileAsync(ProfileUpdateDto userUpdateDto)
     {
         Account? account = await _unitOfWork.Accounts.GetByCondition(a => a.UserID == _currentUserService.UserId);
-        if(account is null)
+        if (account is null)
         {
             throw new UnauthorizedAccessException("Chưa xác thực. Cập nhật thông tin người dùng thất bại.");
         }
@@ -321,6 +325,7 @@ internal class AuthService : IAuthService
         }
 
         // Cập nhật account
+        account.Status = AccountStatus.ACTIVE;
         account.IsEmailVerified = true;
         account.VerificationToken = null;
         account.VerificationTokenExpiryTime = null;
