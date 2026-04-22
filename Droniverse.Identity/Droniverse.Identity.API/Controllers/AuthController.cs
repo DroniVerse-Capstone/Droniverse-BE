@@ -55,6 +55,14 @@ namespace Droniverse.Identity.API.Controllers
             return Ok(SuccessResponse<string>.Create(null, "Logout successfully."));
         }
 
+        [HttpPost("verify-email")]
+        public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailDto request)
+        {
+            UserResponse? response = await _authService.VerifyEmailAsync(request.Token);
+            _logger.LogInformation($"Email verified successfully.");
+            return Ok(SuccessResponse<UserResponse>.Create(response, "Email verified successfully."));
+        }
+
         [Authorize]
         [HttpGet("me")]
         public async Task<IActionResult> GetCurrentUser()

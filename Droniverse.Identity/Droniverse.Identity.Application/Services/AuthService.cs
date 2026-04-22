@@ -18,6 +18,7 @@ using System.Data.Common;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
+using System.Security.Principal;
 using System.Text;
 
 namespace Droniverse.Identity.Application.Services;
@@ -27,6 +28,7 @@ internal class AuthService : IAuthService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly JwtSettings _jwtSettings;
+    private readonly AppSettings _appSettings;
     private readonly ICurrentUserService _currentUserService;
     private readonly IEmailService _emailService;
     private readonly INotificationService _notificationService;
@@ -37,6 +39,7 @@ internal class AuthService : IAuthService
         IUnitOfWork unitOfWork, 
         IMapper mapper, 
         IOptions<JwtSettings> jwtSettings,
+        IOptions<AppSettings> appSettings,
         ICurrentUserService currentUserService,
         IEmailService emailService,
         INotificationService notificationService,
@@ -46,6 +49,7 @@ internal class AuthService : IAuthService
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _jwtSettings = jwtSettings.Value;
+        _appSettings = appSettings.Value;
         _currentUserService = currentUserService;
         _academyMicroserviceClient = academyMicroserviceClient;
         _emailService = emailService;
@@ -98,38 +102,32 @@ internal class AuthService : IAuthService
         newAccount.RoleID = r.RoleID;
         newAccount.Username = registerDto.FirstName + " " + registerDto.LastName;
         newAccount.PasswordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password);
+        newAccount.IsEmailVerified = false;
+
+        // Tạo verification token
+        string verificationToken = GenerateVerificationToken(newAccount);
+        newAccount.VerificationToken = verificationToken;
+        newAccount.VerificationTokenExpiryTime = DateTime.UtcNow.AddHours(24); // Token hết hạn sau 24 giờ
+
         await _unitOfWork.Accounts.Add(newAccount);
         await _unitOfWork.SaveChangeAsync();
 
-        // Tạo và gửi notification ngay khi register thành công (Real-time)
         try
         {
-            await _notificationService.SendAndCreateNotificationAsync(
-                newAccount.UserID,
-                "Đăng ký thành công",
-                $"Chào mừng {newAccount.Username}! Bạn đã đăng ký thành công vào Droniverse.",
-                Domain.Enums.NotificationType.EMAIL,
-                newAccount.Email
-            );
-        }
-        catch (Exception notificationEx)
-        {
-            _logger.LogError($"Failed to send notification: {notificationEx.Message}");
-        }
-
-        try
-        {
-            //gửi mail xác nhận register thành công
-            await _emailService.SendRegistrationEmailAsync(
+            // Tạo verification URL từ appsettings
+            string verificationUrl = $"{_appSettings.FrontendUrl}/verify-email?token={verificationToken}";
+            
+            //gửi mail xác thực email
+            await _emailService.SendEmailVerificationAsync(
                 newAccount.Email, 
                 newAccount.Username, 
-                DateTime.UtcNow.AddHours(7).ToString(), 
-                null);
+                verificationUrl,
+                verificationToken);
         }
         catch (Exception emailEx)
         {
             _logger.LogError($"Failed to send email: {emailEx.Message}");
-            throw new Exception("Failed to send confirmation email.", emailEx);
+            throw new Exception("Failed to send verification email.", emailEx);
         }
 
 
@@ -148,6 +146,8 @@ internal class AuthService : IAuthService
         {
             throw new UnauthorizedAccessException("Invalid email or password.");
         }
+        if(!account.IsEmailVerified)
+            throw new UnauthorizedAccessException("Email is not verified.");
         UserResponse user = _mapper.Map<UserResponse>(account);
         string accessToken = GenerateAccessToken(account);
         string refreshToken = GenerateRefreshToken(account);
@@ -297,6 +297,79 @@ internal class AuthService : IAuthService
         await _unitOfWork.SaveChangeAsync();
         UserResponse userResponse = _mapper.Map<UserResponse>(updatedAccount);
         return userResponse;
+    }
+
+    public async Task<UserResponse?> VerifyEmailAsync(string token)
+    {
+        // Validate token
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            throw new UnauthorizedAccessException("Invalid verification token.");
+        }
+
+        // Tìm account có verification token
+        Account? account = await _unitOfWork.Accounts.GetByCondition(a => a.VerificationToken == token);
+        if (account is null)
+        {
+            throw new UnauthorizedAccessException("Invalid verification token.");
+        }
+
+        // Kiểm tra xem token có hết hạn không
+        if (account.VerificationTokenExpiryTime < DateTime.UtcNow)
+        {
+            throw new UnauthorizedAccessException("Verification token has expired. Please request a new one.");
+        }
+
+        // Cập nhật account
+        account.IsEmailVerified = true;
+        account.VerificationToken = null;
+        account.VerificationTokenExpiryTime = null;
+
+        await _unitOfWork.Accounts.Update(account);
+        await _unitOfWork.SaveChangeAsync();
+
+        // Tạo và gửi notification ngay khi register thành công (Real-time)
+        try
+        {
+            await _notificationService.SendAndCreateNotificationAsync(
+                account.UserID,
+                "Đăng ký thành công",
+                $"Chào mừng {account.Username}! Bạn đã đăng ký thành công vào Droniverse.",
+                Domain.Enums.NotificationType.EMAIL,
+                account.Email
+            );
+        }
+        catch (Exception notificationEx)
+        {
+            _logger.LogError($"Failed to send notification: {notificationEx.Message}");
+        }
+
+        UserResponse userResponse = _mapper.Map<UserResponse>(account);
+        return userResponse;
+    }
+
+    private string GenerateVerificationToken(Account account)
+    {
+        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));
+        var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+        var claims = new[]
+        {
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim(ClaimTypes.Email, account.Email),
+            new Claim("TokenType", "VerificationToken"),
+            new Claim(("UserID"), account.UserID.ToString())
+        };
+
+        var token = new JwtSecurityToken(
+            issuer: _jwtSettings.Issuer,
+            audience: _jwtSettings.Audience,
+            claims: claims,
+            expires: DateTime.UtcNow.AddHours(24), // Verification token hết hạn sau 24 giờ
+            signingCredentials: credentials
+        );
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }
 
