@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Droniverse.Identity.Application.DTO.Extension;
 using Droniverse.Identity.Application.DTO.Request;
+using Droniverse.Identity.Application.HttpClients;
 using Droniverse.Identity.Application.IService;
 using Droniverse.Identity.Domain.Entities;
 using Droniverse.Identity.Domain.Interfaces;
@@ -23,6 +24,7 @@ internal class UserService : IUserService
     private readonly IUserPublisher _publisher;
     private readonly ICloudinaryService _cloudinaryService;
     private readonly ICacheService _cacheService;
+    private readonly AcademyMicroserviceClient _academyMicroserviceClient;
 
     private static string GetUserCacheKey(Guid userId) => $"identity:user:{userId}";
 
@@ -31,12 +33,14 @@ internal class UserService : IUserService
         IMapper mapper,
         IUserPublisher publisher,
         ICloudinaryService cloudinaryService,
-        ICacheService cacheService)
+        ICacheService cacheService,
+        AcademyMicroserviceClient academyMicroserviceClient)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _publisher = publisher;
         _cloudinaryService = cloudinaryService;
+        _academyMicroserviceClient = academyMicroserviceClient;
         _cacheService = cacheService;
     }
 
@@ -86,7 +90,7 @@ internal class UserService : IUserService
 
         UserResponse userResponse = _mapper.Map<UserResponse>(createdAccount);
         return userResponse;
-    }
+    } 
 
     public async Task<UserResponse> GetUserById(Guid id)
     {
@@ -101,7 +105,9 @@ internal class UserService : IUserService
             throw new ArgumentException($"User info id not found #{id}");
         }
 
-        UserResponse userResponse = _mapper.Map<UserResponse>(account);
+        UserResponse userResponse = await _academyMicroserviceClient.GetUserWithUserLevelMaxAsync(id);
+
+        //UserResponse userResponse = _mapper.Map<UserResponse>(account);
         return userResponse;
     }
 

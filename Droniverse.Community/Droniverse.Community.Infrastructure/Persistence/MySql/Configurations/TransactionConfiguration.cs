@@ -22,9 +22,6 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
             .HasColumnType("varchar(20)")
             .HasConversion<string>()
             .IsRequired();
-        builder.Property(t => t.Status)
-            .HasColumnType("tinyint")
-            .HasConversion<int>();
         builder.Property(t => t.ReferenceID).HasColumnType("char(36)");
         builder.Property(t => t.CreatedAt).HasColumnType("datetime").ValueGeneratedOnAdd();
         builder.ToTable(t =>

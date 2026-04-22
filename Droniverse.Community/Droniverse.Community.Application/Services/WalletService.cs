@@ -106,6 +106,18 @@ namespace Droniverse.Community.Application.Services
                 walletId: wallet.WalletID);
 
             WithdrawRequest createdWithdrawRequest = await _unitOfWork.WithdrawRequests.Add(withdrawRequest);
+            wallet.UpdateBalance(-request.Amount);
+            await _unitOfWork.Wallets.Update(wallet);
+
+            Transaction transaction = new Transaction
+            (
+                walletId: wallet.WalletID,
+                amount: (int)request.Amount,
+                type: TransactionType.WITHDRAWAL,
+                referenceID: createdWithdrawRequest.WithdrawRequestID // referenceID có thể là withdrawID
+            );
+            await _unitOfWork.Transactions.Add(transaction);
+
             await _unitOfWork.SaveChangeAsync();
 
             UserResponse? user = await _identityMicroserviceClient.GetUserByUserID(userId);
@@ -170,26 +182,41 @@ namespace Droniverse.Community.Application.Services
             }
             if (request.Status == WithdrawStatus.APPROVED)
             {
-                //trừ tiền trong ví
-                wallet.UpdateBalance(-withdrawRequest.Amount);
                 //cập nhật lại thành approved
                 withdrawRequest.UpdateStatus(WithdrawStatus.APPROVED);
                 withdrawRequest.ApproverID = _currentUserService.UserId;
-                withdrawRequest.ApprovedAt = _clock.Now;
+                withdrawRequest.ApprovedAt = _clock.Now; // referenceID có thể là withdrawID
+
             }
-            else if (request.Status == WithdrawStatus.REJECTED)
+            else if (request.Status == WithdrawStatus.REJECTED) // vi pham policy
             {
+                wallet.UpdateBalance(withdrawRequest.Amount); // hoàn tiền vào ví
                 withdrawRequest.RejectReason = request.RejectReason;
                 withdrawRequest.UpdateStatus(WithdrawStatus.REJECTED);
                 withdrawRequest.ApproverID = _currentUserService.UserId;
                 withdrawRequest.ApprovedAt = _clock.Now;
-
+                Transaction transaction = new Transaction
+                (
+                    walletId: wallet.WalletID,
+                    amount: (int)withdrawRequest.Amount,
+                    type: TransactionType.REFUND,
+                    referenceID: withdrawRequest.WithdrawRequestID // referenceID có thể là withdrawID
+                );
             }
-            else if(request.Status == WithdrawStatus.CANCELED)
+            else if(request.Status == WithdrawStatus.CANCELED) //
             {
+                wallet.UpdateBalance(withdrawRequest.Amount); // hoàn tiền vào ví
                 withdrawRequest.UpdateStatus(WithdrawStatus.CANCELED);
                 withdrawRequest.ApproverID = _currentUserService.UserId;
                 withdrawRequest.ApprovedAt = _clock.Now;
+
+                Transaction transaction = new Transaction
+                (
+                    walletId: wallet.WalletID,
+                    amount: (int)withdrawRequest.Amount,
+                    type: TransactionType.REFUND,
+                    referenceID: withdrawRequest.WithdrawRequestID // referenceID có thể là withdrawID
+                );
             }
             else
             {
@@ -236,7 +263,7 @@ namespace Droniverse.Community.Application.Services
             Wallet? wallet = await _unitOfWork.Wallets.GetByCondition(w => w.OwnerID == userId);
             if (wallet == null)
             {
-                throw new Exception("Người dùng hiện tại chưa có ví.");
+                throw new NotFoundException("Người dùng hiện tại chưa có ví.");
             }
             UserResponse? user = await _identityMicroserviceClient.GetUserByUserID(userId);
             if (user == null)

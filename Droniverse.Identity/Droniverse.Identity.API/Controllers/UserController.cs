@@ -2,6 +2,7 @@
 using Droniverse.Identity.Application.DTO.Extension;
 using Droniverse.Identity.Application.DTO.Request;
 using Droniverse.Identity.Application.DTO.Response;
+using Droniverse.Identity.Application.HttpClients;
 using Droniverse.Identity.Application.IService;
 using Droniverse.Identity.Domain.Entities;
 using Droniverse.Shared.DTOs;
@@ -20,10 +21,19 @@ namespace Droniverse.Identity.API.Controllers
     {
         private readonly IUserService _userService;
         private readonly IRoleService _roleService;
-        public UserController(IUserService userService, IRoleService roleService)
+        private readonly AcademyMicroserviceClient _academyMicroserviceClient;
+        public UserController(IUserService userService, IRoleService roleService, AcademyMicroserviceClient academyMicroserviceClient)
         {
             _userService = userService;
             _roleService = roleService;
+            _academyMicroserviceClient = academyMicroserviceClient;
+        }
+
+        [HttpGet("test-call-cheo-Academy/{userId}")]
+        public async Task<IActionResult> GetUserWithLevelMax(Guid userId)
+        {
+            UserResponse response = await _academyMicroserviceClient.GetUserWithUserLevelMaxAsync(userId);
+            return Ok(response);
         }
 
         [HttpGet("test")]

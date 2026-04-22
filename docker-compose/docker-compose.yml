@@ -89,6 +89,10 @@ services:
       - MYSQL_DATABASE=IdentityDB
       - MYSQL_USER=avnadmin
       - MYSQL_PASSWORD=AVNS_-X0xwlWefp-g6mMhVdK
+      - AcademyMicroserviceName=droniverse-gateway
+      - AcademyMicroservicePort=8080
+      - CommunityMicroserviceName=droniverse-gateway
+      - CommunityMicroservicePort=8080
     ports:
       - "4000:8080"
     develop:

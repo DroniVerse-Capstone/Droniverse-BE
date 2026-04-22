@@ -104,7 +104,7 @@ namespace Droniverse.Community.API.Controllers
         }
 
         [HttpPut("withdraw-request/{id}/status")]
-        [Authorize(Roles = Roles.AdminOrManagerRoles)]
+        [Authorize(Roles = Roles.AdminOrSystemManager)]
         [SwaggerRequestExample(typeof(WithdrawApproveRequestDto), typeof(WithdrawApproveRequestExample))]
         public async Task<ApiResponse> UpdateWithdrawRequestStatus(Guid id, [FromBody] WithdrawApproveRequestDto request)
         {
