@@ -10,9 +10,7 @@ public class WalletMappingProfile : Profile
     public WalletMappingProfile()
     {
         //  Wallet
-        CreateMap<Wallet, WalletResponseDto>()
-            .ForMember(dest => dest.OwnerName, opt => opt.Ignore());
-
+        CreateMap<Wallet, WalletResponseDto>();
     }
 }
 

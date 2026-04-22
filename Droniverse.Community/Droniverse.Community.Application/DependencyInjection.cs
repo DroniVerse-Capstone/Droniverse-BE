@@ -19,8 +19,7 @@ public static class DependencyInjection
     {
         // Chỉ cần thêm 1 mapping profile là đc
         services.AddAutoMapper(typeof(ClubMappingProfile).Assembly);
-        services.AddAutoMapper(typeof(ClubRequestMappingProfile).Assembly);
-        services.AddScoped<INotificationService, EmailNotificationService>();
+        services.AddAutoMapper(typeof(ClubRequestMappingProfile).Assembly);        services.AddAutoMapper(typeof(TransactionMappingProfile).Assembly);        services.AddScoped<INotificationService, EmailNotificationService>();
         services.AddScoped<IClubService, ClubService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IClubAttemptRequestService, ClubAttemptRequestService>();
@@ -57,6 +56,7 @@ public static class DependencyInjection
         services.AddScoped<RoundLifecycleService>();
         services.AddScoped<IMediaService, MediaService>();
         services.AddScoped<IWalletService, WalletService>();
+        services.AddScoped<ITransactionService, TransactionService>();
 
         //Đăng ký DelegatingHandler
         services.AddTransient<AuthorizationDelegatingHandler>();
