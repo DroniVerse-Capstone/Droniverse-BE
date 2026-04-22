@@ -2,6 +2,7 @@
 using BCrypt.Net;
 using Droniverse.Identity.Application.DTO.Request;
 using Droniverse.Identity.Application.DTO.Response;
+using Droniverse.Identity.Application.HttpClients;
 using Droniverse.Identity.Application.IService;
 using Droniverse.Identity.Domain.Entities;
 using Droniverse.Identity.Domain.Interfaces;
@@ -30,6 +31,7 @@ internal class AuthService : IAuthService
     private readonly IEmailService _emailService;
     private readonly INotificationService _notificationService;
     private readonly ILogger<AuthService> _logger;
+    private readonly AcademyMicroserviceClient _academyMicroserviceClient;
 
     public AuthService(
         IUnitOfWork unitOfWork, 
@@ -38,12 +40,14 @@ internal class AuthService : IAuthService
         ICurrentUserService currentUserService,
         IEmailService emailService,
         INotificationService notificationService,
-        ILogger<AuthService> logger)
+        ILogger<AuthService> logger,
+        AcademyMicroserviceClient academyMicroserviceClient)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _jwtSettings = jwtSettings.Value;
         _currentUserService = currentUserService;
+        _academyMicroserviceClient = academyMicroserviceClient;
         _emailService = emailService;
         _notificationService = notificationService;
         _logger = logger;
@@ -256,13 +260,25 @@ internal class AuthService : IAuthService
 
     public async Task<UserResponse?> GetCurrentUserInfo()
     {
-        Account? account = await _unitOfWork.Accounts.GetByCondition(a => a.Email == _currentUserService.Email);
+        Account? account = await _unitOfWork.Accounts.GetByCondition(a => a.UserID == _currentUserService.UserId);
         if (account is null)
         {
             throw new UnauthorizedAccessException("Chưa xác thực. Lấy thông tin người dùng thất bại.");
         }
+
+        LevelMiniResponseDto? level = null;
+        try
+        {
+            level = await _academyMicroserviceClient.GetUserLevelMaxAsync(account.UserID);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning($"Failed to get user level from Academy service for user {account.UserID}: {ex.Message}");
+            // Continue without level if Academy service is unavailable
+        }
+
         UserResponse userResponse = _mapper.Map<UserResponse>(account);
-        return userResponse;
+        return userResponse with { Level = level };
     }
 
     public async Task<UserResponse?> UpdateProfileAsync(ProfileUpdateDto userUpdateDto)

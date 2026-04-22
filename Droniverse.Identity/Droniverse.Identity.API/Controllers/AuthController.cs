@@ -61,7 +61,7 @@ namespace Droniverse.Identity.API.Controllers
         {
             UserResponse? response = await _authService.GetCurrentUserInfo();
             _logger.LogInformation($"Get current user info successfully.");
-            return Ok(SuccessResponse<UserResponse>.Create(response, "Get current user info successfully."));
+            return Ok(SuccessResponse<UserResponse?>.Create(response, "Get current user info successfully."));
         }
 
         [Authorize]

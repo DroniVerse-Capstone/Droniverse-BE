@@ -158,7 +158,7 @@ builder.Services.AddHangfire(config =>
     ));
 });
 
-builder.Services.AddHangfireServer();
+//builder.Services.AddHangfireServer();
 
 var app = builder.Build();
 
@@ -237,10 +237,10 @@ app.UseCors();
 
 app.UseRouting();
 app.UseAuthentication();
-app.UseHangfireDashboard("/hangfire", new DashboardOptions
-{
-    Authorization = new IDashboardAuthorizationFilter[] { }
-});
+//app.UseHangfireDashboard("/hangfire", new DashboardOptions
+//{
+//    Authorization = new IDashboardAuthorizationFilter[] { }
+//});
 app.UseAuthorization();
 
 
