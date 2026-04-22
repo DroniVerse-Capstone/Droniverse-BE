@@ -497,6 +497,38 @@ internal class PaymentService : IPaymentService
                     _logger.LogError(ex, "Error processing ClubCourse/Codes for successful payment - OrderId: {OrderId}", order._id);
                     // Don't throw here - payment is already successful, just log the error
                 }
+
+                // Club manager nhận hoa hồng 10%
+                Club? club = await _unitOfWork.Clubs.GetByCondition(
+                    c => c.ClubID == order.ClubID,
+                    query => query.AsNoTracking());
+                if (club != null)
+                {
+                    try
+                    {
+                        Guid managerId = club.ManagerID;
+                        decimal commissionAmount = order.TotalAmount * 0.10m;
+                        Wallet? wallet = await _unitOfWork.Wallets.GetByCondition(w => w.OwnerID == managerId);
+                        if (wallet == null)
+                            throw new NotFoundException("Không tìm thấy ví cho managerId: " + managerId);
+
+                        wallet.UpdateBalance(commissionAmount);
+                        await _unitOfWork.Wallets.Update(wallet);
+                        await _unitOfWork.SaveChangeAsync();
+
+                        _logger.LogInformation("Added commission {CommissionAmount} to manager {ManagerId} wallet",
+                            commissionAmount, managerId);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error adding commission to manager wallet - OrderId: {OrderId}", order._id);
+                        // Có thể decide là throw hay log warning tùy business logic
+                        throw;
+                    }
+                } else
+                {
+                    throw new NotFoundException($"Không tìm thấy club cho ClubID: {order.ClubID}");
+                }
             }
             else if (webhook.Code == "05")
             {
