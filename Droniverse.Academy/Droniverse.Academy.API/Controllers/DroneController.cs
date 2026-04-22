@@ -132,7 +132,7 @@ public class DroneController : ControllerBase
     }
 
     [HttpPost("bulk")]
-    [Authorize(Roles = Roles.SystemRoles)]
+    [Authorize(Roles = Roles.AllRoles)]
     public async Task<IActionResult> GetDronesByIds([FromBody] IEnumerable<Guid> droneIds)
     {
         try

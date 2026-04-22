@@ -142,7 +142,11 @@ internal class ClubService : IClubService
             throw new KeyNotFoundException($"Club with club code [{clubCode}] not found.");
         }
 
-        return await BuildClubResponseDto(club);
+        var creator = await GetUserById(club.CreatedBy);
+        var drone = await GetDroneById(club.DroneID);
+        var clubStats = await GetClubStatsByClubIds([club.ClubID]);
+
+        return BuildClubResponseDto(club, clubStats, creator, drone);
     }
 
     public async Task<ClubResponseDto> UpdateClub(Guid id, ClubUpdateDto clubUpdateDto)
@@ -665,6 +669,9 @@ internal class ClubService : IClubService
 
     private async Task<DroneResponseDto?> GetDroneById(Guid droneId)
     {
+        if (droneId == Guid.Empty)
+            return null;
+        
         return (await GetDronesByIds([droneId])).FirstOrDefault();
     }
 

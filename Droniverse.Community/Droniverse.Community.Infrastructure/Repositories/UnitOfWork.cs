@@ -22,6 +22,7 @@ internal class UnitOfWork : IUnitOfWork
     private IUserCompetitionRepository _userCompetition;
     private IUserRoundRepository _userRound;
     private IWalletRepository _wallet;
+    private IWithdrawRequestRepository _withdrawRequest;
     public UnitOfWork(MySqlDbContext context)
     {
         _context = context;
@@ -62,6 +63,8 @@ internal class UnitOfWork : IUnitOfWork
     public IUserRoundRepository UserRounds => _userRound ??= new UserRoundRepository(_context);
 
     public IWalletRepository Wallets => _wallet ??= new WalletRepository(_context);
+
+    public IWithdrawRequestRepository WithdrawRequests => _withdrawRequest ??= new WithdrawRequestRepository(_context);
 
     public async Task<int> SaveChangeAsync()
     {

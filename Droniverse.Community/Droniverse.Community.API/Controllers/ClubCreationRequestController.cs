@@ -6,7 +6,6 @@ using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Enums;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
-using Droniverse.Shared.DTOs.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Filters;

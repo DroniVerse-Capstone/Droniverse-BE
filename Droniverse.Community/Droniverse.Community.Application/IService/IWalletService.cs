@@ -8,5 +8,7 @@ public interface IWalletService
     Task<WalletResponseDto> UpdateWallet(WalletRequestDto request);
     Task<WalletResponseDto> GetWalletById(Guid walletId);
     Task<WalletResponseDto> GetMyWallet();
+    Task<WithdrawResponseDto> UpdateWithdrawRequestStatus(Guid withdrawRequestId, WithdrawApproveRequestDto request);
+    Task<IEnumerable<WithdrawResponseDto>> GetMyWithdrawRequestAsync();
 }
 

@@ -21,11 +21,24 @@ namespace Droniverse.Community.API.Controllers
             _walletService = walletService;
         }
 
+        [HttpGet("withdraw-request/me")]
+        public async Task<ApiResponse> GetMyWithdrawRequest()
+        {
+            IEnumerable<WithdrawResponseDto> response = await _walletService.GetMyWithdrawRequestAsync();
+            return SuccessResponse<IEnumerable<WithdrawResponseDto>>.Create(response, "Lấy danh sách gửi yêu cầu rút tiền của club manager hiện tại thành công.");
+        }
+
+
+        /// <summary>
+        /// Club manager tạo yêu cầu rút tiền
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
         [HttpPost("withdraw-request")]
         public async Task<ApiResponse> CreateWithdrawRequest([FromBody] WithdrawRequestDto request)
         {
-            await _walletService.CreateWithdrawRequest(request);
-            return SuccessResponse<string>.Create("Yêu cầu rút tiền đã được gửi thành công");
+            WithdrawResponseDto response =  await _walletService.CreateWithdrawRequest(request);
+            return SuccessResponse<WithdrawResponseDto>.Create(response, "Yêu cầu rút tiền đã được gửi thành công");
         }
 
 
@@ -48,7 +61,7 @@ namespace Droniverse.Community.API.Controllers
         /// <param name="id"></param>
         /// <returns></returns>
         [HttpGet("{id}")]
-        [Authorize(Roles = Roles.ClubManager)]
+        [Authorize(Roles = Roles.SystemRoles)]
         public async Task<ApiResponse> GetById(Guid id)
         {
             WalletResponseDto result = await _walletService.GetWalletById(id);
@@ -83,11 +96,20 @@ namespace Droniverse.Community.API.Controllers
         [HttpPut("{id}")]
         [Authorize(Roles = Roles.ClubManager)]
         [SwaggerRequestExample(typeof(WalletRequestDto), typeof(WalletRequestExample))]
-        public async Task<ApiResponse> Update(Guid id, [FromBody] WalletRequestDto request)
+        public async Task<ApiResponse> UpdateWalletInfo(Guid id, [FromBody] WalletRequestDto request)
         {
             WalletResponseDto result = await _walletService.UpdateWallet(request);
             return SuccessResponse<WalletResponseDto>.Create(result, "Cập nhật ví thành công");
 
+        }
+
+        [HttpPut("withdraw-request/{id}/status")]
+        [Authorize(Roles = Roles.AdminOrManagerRoles)]
+        [SwaggerRequestExample(typeof(WithdrawApproveRequestDto), typeof(WithdrawApproveRequestExample))]
+        public async Task<ApiResponse> UpdateWithdrawRequestStatus(Guid id, [FromBody] WithdrawApproveRequestDto request)
+        {
+            WithdrawResponseDto result = await _walletService.UpdateWithdrawRequestStatus(id, request);
+            return SuccessResponse<WithdrawResponseDto>.Create(result, "Cập nhật trạng thái yêu cầu rút tiền thành công");
         }
     }
 }

@@ -19,6 +19,6 @@ public interface IUnitOfWork : IDisposable
     IUserCompetitionRepository UserCompetitions { get; }
     IUserRoundRepository UserRounds { get; }
     IWalletRepository Wallets { get; }
-
+    IWithdrawRequestRepository WithdrawRequests { get; }
     Task<int> SaveChangeAsync();
 }

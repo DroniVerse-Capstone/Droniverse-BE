@@ -3,6 +3,7 @@ using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Entities;
+using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Community.Domain.IRepository.Mongo;
 using Droniverse.Shared.DTOs.Response;
@@ -97,8 +98,131 @@ namespace Droniverse.Community.Application.Services
             {
                 throw new InvalidOperationException("Số dư trong ví không đủ để thực hiện rút tiền.");
             }
-            return new WithdrawResponseDto { };
 
+            WithdrawRequest withdrawRequest = new WithdrawRequest(
+                requesterId: userId,
+                note: request.Note,
+                amount: request.Amount,
+                walletId: wallet.WalletID);
+
+            WithdrawRequest createdWithdrawRequest = await _unitOfWork.WithdrawRequests.Add(withdrawRequest);
+            await _unitOfWork.SaveChangeAsync();
+
+            UserResponse? user = await _identityMicroserviceClient.GetUserByUserID(userId);
+            if (user == null)
+            {
+                throw new NotFoundException("Không tìm thấy Người dùng với ID: " + userId);
+            }
+
+            WithdrawResponseDto response = new()
+            {
+                WithdrawID = createdWithdrawRequest.WithdrawRequestID,
+                Amount = createdWithdrawRequest.Amount,
+                Status = withdrawRequest.Status,
+                CreatedAt = createdWithdrawRequest.CreatedAt,
+                UpdatedAt = createdWithdrawRequest.UpdatedAt,
+                ApprovedAt = createdWithdrawRequest.ApprovedAt,
+                RequesterID = userId,
+                ApproverID = createdWithdrawRequest.ApproverID,
+                Note = request.Note,
+                RejectReason = createdWithdrawRequest.RejectReason,
+                Wallet = new WalletResponseDto
+                {
+                    WalletID = wallet.WalletID,
+                    Bank = wallet.Bank,
+                    BankNumber = wallet.BankNumber,
+                    Balance = wallet.Balance,
+                    OwnerID = wallet.OwnerID,
+                    OwnerName = user.Username,
+                    CreatedAt = wallet.CreatedAt,
+                    UpdatedAt = wallet.UpdatedAt
+                }
+            };
+            return response;
+        }
+
+        public async Task<WithdrawResponseDto> UpdateWithdrawRequestStatus(Guid withdrawRequestId, WithdrawApproveRequestDto request)
+        {
+            if (request == null)
+            {
+                throw new ArgumentNullException(nameof(request));
+            }
+
+            WithdrawRequest? withdrawRequest = await _unitOfWork.WithdrawRequests.GetByCondition(w => w.WithdrawRequestID == withdrawRequestId);
+            if (withdrawRequest == null)
+                throw new NotFoundException("Không tìm thấy Yêu cầu rút tiền với ID: " + withdrawRequestId);
+
+
+            UserResponse? user = await _identityMicroserviceClient.GetUserByUserID(withdrawRequest.RequesterID);
+            if (user == null)
+            {
+                throw new NotFoundException("Không tìm thấy Người dùng với ID: " + withdrawRequest.RequesterID);
+            }
+
+            // trừ tiền trong wallet
+            Wallet? wallet = await _unitOfWork.Wallets.GetByCondition(w => w.OwnerID == user.UserId);
+            if (wallet == null)
+                throw new NotFoundException("Không tìm thấy Ví của Người dùng với ID: " + user.UserId);
+            
+            if(withdrawRequest.Status != WithdrawStatus.PENDING)
+            {
+                throw new InvalidOperationException("Chỉ có thể cập nhật trạng thái cho các yêu cầu đang ở trạng thái PENDING.");
+            }
+            if (request.Status == WithdrawStatus.APPROVED)
+            {
+                //trừ tiền trong ví
+                wallet.UpdateBalance(-withdrawRequest.Amount);
+                //cập nhật lại thành approved
+                withdrawRequest.UpdateStatus(WithdrawStatus.APPROVED);
+                withdrawRequest.ApproverID = _currentUserService.UserId;
+                withdrawRequest.ApprovedAt = _clock.Now;
+            }
+            else if (request.Status == WithdrawStatus.REJECTED)
+            {
+                withdrawRequest.RejectReason = request.RejectReason;
+                withdrawRequest.UpdateStatus(WithdrawStatus.REJECTED);
+                withdrawRequest.ApproverID = _currentUserService.UserId;
+                withdrawRequest.ApprovedAt = _clock.Now;
+
+            }
+            else if(request.Status == WithdrawStatus.CANCELED)
+            {
+                withdrawRequest.UpdateStatus(WithdrawStatus.CANCELED);
+                withdrawRequest.ApproverID = _currentUserService.UserId;
+                withdrawRequest.ApprovedAt = _clock.Now;
+            }
+            else
+            {
+                throw new ArgumentException("Trạng thái không hợp lệ.");
+            }
+
+            await _unitOfWork.SaveChangeAsync();
+
+            WithdrawResponseDto response = new()
+            {
+                WithdrawID = withdrawRequest.WithdrawRequestID,
+                Amount = withdrawRequest.Amount,
+                Status = withdrawRequest.Status,
+                CreatedAt = withdrawRequest.CreatedAt,
+                UpdatedAt = withdrawRequest.UpdatedAt,
+                ApprovedAt = withdrawRequest.ApprovedAt,
+                RequesterID = user.UserId,
+                ApproverID = withdrawRequest.ApproverID,
+                Note = withdrawRequest.Note,
+                RejectReason = withdrawRequest.RejectReason,
+                Wallet = new WalletResponseDto
+                {
+                    WalletID = wallet.WalletID,
+                    Bank = wallet.Bank,
+                    BankNumber = wallet.BankNumber,
+                    Balance = wallet.Balance,
+                    OwnerID = wallet.OwnerID,
+                    OwnerName = user.Username,
+                    CreatedAt = wallet.CreatedAt,
+                    UpdatedAt = wallet.UpdatedAt
+                }
+            };
+            return response;
         }
 
         public async Task<WalletResponseDto> GetMyWallet()
@@ -114,8 +238,12 @@ namespace Droniverse.Community.Application.Services
             {
                 throw new Exception("Người dùng hiện tại chưa có ví.");
             }
-            WalletResponseDto response = _mapper.Map<WalletResponseDto>(wallet);
+            UserResponse? user = await _identityMicroserviceClient.GetUserByUserID(userId);
+            if (user == null)
+                throw new NotFoundException("Không tìm thấy người dùng hiện tại");
 
+            WalletResponseDto response = _mapper.Map<WalletResponseDto>(wallet);
+            response.OwnerName = user.Username;
             return response;
         }
 
@@ -178,6 +306,58 @@ namespace Droniverse.Community.Application.Services
         {
             Wallet? existingWallet = await _unitOfWork.Wallets.GetByCondition(w => w.Bank == request.Bank && w.BankNumber == request.BankNumber);
             return existingWallet != null;
+        }
+
+        public async Task<IEnumerable<WithdrawResponseDto>> GetMyWithdrawRequestAsync()
+        {
+            Guid userId = _currentUserService.UserId;
+            if (userId == Guid.Empty)
+            {
+                throw new UnauthorizedAccessException("Người dùng chưa xác thực.");
+            }
+
+            UserResponse? user = await _identityMicroserviceClient.GetUserByUserID(userId);
+            if (user == null)
+                throw new NotFoundException("Không tìm thấy người dùng hiện tại");
+
+            IEnumerable<WithdrawRequest> withdrawReqList = await _unitOfWork.WithdrawRequests.GetManyByCondition(w => w.RequesterID == user.UserId);
+
+            if(withdrawReqList == null || !withdrawReqList.Any())
+            {
+                return new List<WithdrawResponseDto>();
+            }
+
+            Wallet? wallet = await _unitOfWork.Wallets.GetByCondition(w => w.OwnerID == user.UserId);
+            if (wallet == null)
+                throw new NotFoundException("Không tìm thấy Ví của Người dùng với ID: " + user.UserId);
+
+            // Map từ IEnumerable<WithdrawRequest> sang IEnumerable<WithdrawResponseDto>
+            var responses = withdrawReqList.Select(withdrawRequest => new WithdrawResponseDto
+            {
+                WithdrawID = withdrawRequest.WithdrawRequestID,
+                Amount = withdrawRequest.Amount,
+                Status = withdrawRequest.Status,
+                CreatedAt = withdrawRequest.CreatedAt,
+                UpdatedAt = withdrawRequest.UpdatedAt,
+                ApprovedAt = withdrawRequest.ApprovedAt,
+                RequesterID = user.UserId,
+                ApproverID = withdrawRequest.ApproverID,
+                Note = withdrawRequest.Note,
+                RejectReason = withdrawRequest.RejectReason,
+                Wallet = new WalletResponseDto
+                {
+                    WalletID = wallet.WalletID,
+                    Bank = wallet.Bank,
+                    BankNumber = wallet.BankNumber,
+                    Balance = wallet.Balance,
+                    OwnerID = wallet.OwnerID,
+                    OwnerName = user.Username,
+                    CreatedAt = wallet.CreatedAt,
+                    UpdatedAt = wallet.UpdatedAt
+                }
+            }).ToList();
+
+            return responses;
         }
     }
 }

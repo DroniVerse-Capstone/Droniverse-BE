@@ -115,49 +115,65 @@ namespace Droniverse.Community.Application.Services
 
             Guid? participationId = null;
 
-            switch (dto.Status)
+            try
             {
-                case ClubAttemptRequestStatus.APPROVED:
-                    request.Approve(approverId);
+                switch (dto.Status)
+                {
+                    case ClubAttemptRequestStatus.APPROVED:
+                        request.Approve(approverId);
 
-                    var participation = new Participation(
-                        request.RequesterID,
-                        request.ClubID,
-                        approverId
-                    );
+                        // Check if user already exists in club
+                        var existingParticipation = await _unitOfWork.Participations.GetByCondition(
+                            p => p.ClubID == request.ClubID && p.UserID == request.RequesterID);
+                        
+                        if (existingParticipation != null)
+                            throw new InvalidOperationException($"User {request.RequesterID} already exists in club {request.ClubID}");
 
-                    await _unitOfWork.Participations.Add(participation);
-                    participationId = participation.ParticipationID;
-                    break;
+                        var participation = new Participation(
+                            request.RequesterID,
+                            request.ClubID,
+                            approverId
+                        );
 
-                case ClubAttemptRequestStatus.REJECT:
-                    request.Reject(approverId);
-                    break;
+                        await _unitOfWork.Participations.Add(participation);
+                        participationId = participation.ParticipationID;
+                        break;
 
-                case ClubAttemptRequestStatus.PENDING:
-                    request.ResetToPending();
-                    break;
+                    case ClubAttemptRequestStatus.REJECT:
+                        request.Reject(approverId);
+                        break;
 
-                default:
-                    throw new InvalidOperationException($"Cannot update to status {dto.Status}.");
+                    case ClubAttemptRequestStatus.PENDING:
+                        request.ResetToPending();
+                        break;
+
+                    default:
+                        throw new InvalidOperationException($"Cannot update to status {dto.Status}.");
+                }
+
+                await _unitOfWork.ClubAttemptRequests.Update(request);
+                await _unitOfWork.SaveChangeAsync();
+
+                var response = new ClubAttemptRequestUpdateStatusResponseDto
+                {
+                    ClubRequestID = request.ClubRequestID,
+                    RequesterID = request.RequesterID,
+                    ClubID = request.ClubID,
+                    ClubNameVN = request.Club.NameVN,
+                    ClubNameEN = request.Club.NameEN,
+                    Status = request.Status,
+                    ProcessedAt = request.ProcessedAt,
+                    ParticipationID = participationId
+                };
+
+                return response;
             }
-
-            await _unitOfWork.ClubAttemptRequests.Update(request);
-            await _unitOfWork.SaveChangeAsync();
-
-            var response = new ClubAttemptRequestUpdateStatusResponseDto
+            catch (Exception ex)
             {
-                ClubRequestID = request.ClubRequestID,
-                RequesterID = request.RequesterID,
-                ClubID = request.ClubID,
-                ClubNameVN = request.Club.NameVN,
-                ClubNameEN = request.Club.NameEN,
-                Status = request.Status,
-                ProcessedAt = request.ProcessedAt,
-                ParticipationID = participationId
-            };
-
-            return response;
+                Console.WriteLine($"Error updating club attempt request: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                throw;
+            }
         }
 
         public async Task<IEnumerable<ClubRequestResponseDto>> GetClubAttemptRequestsByRequester(ClubAttemptRequestStatus? status)

@@ -84,7 +84,7 @@ namespace Droniverse.Community.API.Controllers
         /// <summary>
         /// Lấy thông tin chi tiết của một câu lạc bộ theo Club Code
         /// </summary>
-        /// <param name="clubCode">Test : NU5VL4</param>
+        /// <param name="clubCode">Test : X7J968, A6DD3J</param>
         /// <remarks>
         /// Nếu không tìm thấy club theo club code truyền vào, service có thể throw exception.
         /// </remarks>

@@ -17,4 +17,26 @@ public class WithdrawRequest
     public Guid WalletID { get; set; }
     public virtual Wallet Wallet { get; set; }
 
+    private WithdrawRequest() { }
+
+    public WithdrawRequest(
+        Guid requesterId,
+        string? note,
+        decimal amount,
+        Guid walletId)
+    {
+        RequesterID = requesterId;
+        CreatedAt = DateTime.UtcNow.AddHours(7);
+        Note = note;
+        Amount = amount;
+        Status = WithdrawStatus.PENDING;
+        WalletID = walletId;
+    }
+
+    public void UpdateStatus(WithdrawStatus status)
+    {
+        Status = status;
+        UpdatedAt = DateTime.UtcNow.AddHours(7);
+    }
+
 }

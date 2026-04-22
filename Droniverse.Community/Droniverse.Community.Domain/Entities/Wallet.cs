@@ -33,4 +33,14 @@ public class Wallet
         UpdatedAt = DateTime.UtcNow.AddHours(7);
     }
 
+    public void UpdateBalance(decimal amount)
+    {
+        if (amount < 0 && Balance + amount < 0)
+        {
+            throw new InvalidOperationException("Số dư trong ví không đủ để thực hiện giao dịch.");
+        }
+
+        Balance += amount;
+        UpdatedAt = DateTime.UtcNow.AddHours(7);
+    }
 }
