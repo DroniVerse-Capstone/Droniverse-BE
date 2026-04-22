@@ -4,6 +4,6 @@
     {
         public Guid LevelID { get; set; }
         public int LevelNumber { get; set; }
-        public string Name { get; set; }
+        public string Name { get; set; } 
     }
 }

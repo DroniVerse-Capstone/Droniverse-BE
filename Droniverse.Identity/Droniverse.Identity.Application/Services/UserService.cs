@@ -90,7 +90,7 @@ internal class UserService : IUserService
 
         UserResponse userResponse = _mapper.Map<UserResponse>(createdAccount);
         return userResponse;
-    }
+    } 
 
     public async Task<UserResponse> GetUserById(Guid id)
     {
