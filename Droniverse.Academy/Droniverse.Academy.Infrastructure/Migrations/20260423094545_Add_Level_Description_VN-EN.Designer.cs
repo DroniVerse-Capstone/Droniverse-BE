@@ -3,6 +3,7 @@ using System;
 using Droniverse.Academy.Infrastructure.Persistence.MySql;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Droniverse.Academy.Infrastructure.Migrations
 {
     [DbContext(typeof(MySqlDbContext))]
-    partial class MySqlDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260423094545_Add_Level_Description_VN-EN")]
+    partial class Add_Level_Description_VNEN
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -993,31 +996,6 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Droniverse.Academy.Domain.Entities.UserSimulator", b =>
-                {
-                    b.Property<Guid>("UserSimulatorID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("char(36)");
-
-                    b.Property<int>("FlightTime")
-                        .HasColumnType("int");
-
-                    b.Property<ulong>("IsSuccess")
-                        .HasColumnType("bit");
-
-                    b.Property<int?>("Score")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("UserLessonID")
-                        .HasColumnType("char(36)");
-
-                    b.HasKey("UserSimulatorID");
-
-                    b.HasIndex("UserLessonID");
-
-                    b.ToTable("UserSimulator", (string)null);
-                });
-
             modelBuilder.Entity("Droniverse.Academy.Domain.Entities.VRSimulator", b =>
                 {
                     b.Property<Guid>("VRSimulatorID")
@@ -1418,17 +1396,6 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Module");
-                });
-
-            modelBuilder.Entity("Droniverse.Academy.Domain.Entities.UserSimulator", b =>
-                {
-                    b.HasOne("Droniverse.Academy.Domain.Entities.UserLesson", "UserLesson")
-                        .WithMany()
-                        .HasForeignKey("UserLessonID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("UserLesson");
                 });
 
             modelBuilder.Entity("Droniverse.Academy.Domain.Entities.WebSimulator", b =>

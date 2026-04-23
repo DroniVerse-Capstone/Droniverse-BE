@@ -9,7 +9,7 @@ public class Round
     public Guid RoundID { get; private set; }
     public Guid CompetitionID { get; private set; }
     public Competition Competition { get; private set; }
-    public Guid LabID { get; private set; }
+    public Guid VRSimilatorID { get; private set; }
     public int RoundNumber { get; private set; }
     public DateTime StartTime { get; private set; }
     public DateTime EndTime { get; private set; }
@@ -42,7 +42,7 @@ public class Round
 
         RoundID = Guid.NewGuid();
         CompetitionID = competitionId;
-        LabID = labId;
+        VRSimilatorID = labId;
         RoundNumber = roundNumber;
         TimeLimit = timeLimit;
         StartTime = startTime;
@@ -60,7 +60,7 @@ public class Round
 
         RoundID = Guid.NewGuid();
         CompetitionID = competitionId;
-        LabID = labId;
+        VRSimilatorID = labId;
         RoundNumber = roundNumber;
         TimeLimit = timeLimit;
         StartTime = startTime;
@@ -147,7 +147,7 @@ public class Round
         if (startTime >= endTime)
             throw new ArgumentException("Thời gian bắt đầu phải trước thời gian kết thúc.");
 
-        LabID = labId;
+        VRSimilatorID = labId;
         StartTime = startTime;
         EndTime = endTime;
         Status = RoundStatus.Valid;
@@ -162,7 +162,7 @@ public class Round
         if (startTime >= endTime)
             throw new ArgumentException("Thời gian bắt đầu phải trước thời gian kết thúc.");
 
-        LabID = labId;
+        VRSimilatorID = labId;
         StartTime = startTime;
         EndTime = endTime;
         Status = RoundStatus.Valid;

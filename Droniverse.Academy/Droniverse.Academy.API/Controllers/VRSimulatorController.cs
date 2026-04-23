@@ -1,7 +1,7 @@
 ﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
-using Droniverse.Shared.Constants;         
+using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -129,5 +129,20 @@ public class VRSimulatorController : ControllerBase
             _logger.LogError(ex, "Xóa vr simulator thất bại.");
             throw;
         }
+    }
+
+    [HttpGet("{vrSimulatorId:Guid}/check")]
+    public async Task<SimpleVRSimulatorResponse> GetSimpleVRSimulator(Guid
+         vrSimulatorId)
+    {
+        var result = await _vrSimulatorService.GetSimpleVRSimulator(vrSimulatorId);
+        return result;
+    }
+
+    [HttpPost("check")]
+    public async Task<IEnumerable<SimpleVRSimulatorResponse>> GetVRSimulatorByIds([FromBody] IEnumerable<Guid> vrSimulatorIds)
+    {
+        var result = await _vrSimulatorService.GetVRSimulatorByIds(vrSimulatorIds);
+        return result;
     }
 }

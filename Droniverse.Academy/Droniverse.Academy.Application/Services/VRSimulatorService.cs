@@ -190,6 +190,21 @@ public class VRSimulatorService : IVRSimulatorService
         await _unitOfWork.SaveChangesAsync();
     }
 
+    public async Task<SimpleVRSimulatorResponse> GetSimpleVRSimulator(Guid vrSimulatorId)
+    {
+        SimpleVRSimulatorResponse? response = await _unitOfWork.VRSimulators.GetSimpleVRResponse(vrSimulatorId);
+
+        if (response == null)
+            throw new NotFoundException("Không tìm thấy bài tập này");
+
+        return response;
+    }
+
+    public async Task<IEnumerable<SimpleVRSimulatorResponse>> GetVRSimulatorByIds(IEnumerable<Guid> vrSimulatorIds)
+    {
+        return await _unitOfWork.VRSimulators.GetSimpleVRResponsesByIdsAsync(vrSimulatorIds);
+    }
+
     private static void ValidateData(string titleVN, string titleEN, int estimatedTime)
     {
         if (string.IsNullOrWhiteSpace(titleVN))
