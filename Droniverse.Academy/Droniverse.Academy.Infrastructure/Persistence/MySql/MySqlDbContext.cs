@@ -34,6 +34,7 @@ public class MySqlDbContext : DbContext
     public DbSet<UserLevel> UserLevels { get; set; }
     public DbSet<UserLesson> UserLessons { get; set; }
     public DbSet<UserModule> UserModules { get; set; }
+    public DbSet<UserSimulator> UserSimulators { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
