@@ -12,5 +12,10 @@ public interface IAuthService
     Task<UserResponse?> GetCurrentUserInfo();
     Task<UserResponse?> UpdateProfileAsync(ProfileUpdateDto userUpdateDto);
     Task<UserResponse?> VerifyEmailAsync(string token);
+    
+    /// <summary>
+    /// Generate service-to-service JWT token cho internal communication
+    /// </summary>
+    string GenerateServiceToken(string serviceId);
 }
 
