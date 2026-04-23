@@ -30,65 +30,83 @@ namespace Droniverse.Identity.API.Controllers
             _clock = clock;
         }
 
+        /// <summary>
+        /// Đăng nhập bằng email và mật khẩu. Trả về Thông tin người dùng, AccessToken và RefreshToken.
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns>A <see cref="AuthResponse"/> containing the access token, refresh token, and user information.</returns>
         [HttpPost("login")]
+        [ProducesResponseType(typeof(SuccessResponse<AuthResponse>), StatusCodes.Status200OK)]
         public async Task<IActionResult> Login([FromBody] LoginEmailDto request)
         {
             AuthResponse? response = await _authService.AuthenticatedUser(request);
             SetTokenCookies(response.AccessToken, response.RefreshToken);
 
             _logger.LogInformation($"User login with email {request.Email} successfully.");
-            return Ok(SuccessResponse<AuthResponse>.Create(response, "Login successfully."));
+            return Ok(SuccessResponse<AuthResponse>.Create(response, "Đăng nhập thành công."));
         }
+
+        /// <summary>
+        /// Đăng ký tài khoản mới bằng email và mật khẩu. Sau khi đăng ký thành công, người dùng sẽ nhận được email xác thực để kích hoạt tài khoản. Endpoint này trả về thông tin người dùng cùng với access token và refresh token, nhưng tài khoản sẽ chưa được kích hoạt cho đến khi người dùng xác thực email.
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns>A <see cref="AuthResponse"/> containing the access token, refresh token, and user information.</returns>
         [HttpPost("register")]
+        [ProducesResponseType(typeof(SuccessResponse<AuthResponse>), StatusCodes.Status200OK)]
         public async Task<IActionResult> Register([FromBody] RegisterDto request)
         {
             AuthResponse? response = await _authService.RegisterUser(request);
             _logger.LogInformation($"User register with email {request.Email} successfully.");
-            return Ok(SuccessResponse<AuthResponse>.Create(response, "Register successfully."));
+            return Ok(SuccessResponse<AuthResponse>.Create(response, "Đăng ký thành công. Vui lòng kiểm tra email để xác thực tài khoản."));
         }
 
+        [ProducesResponseType(typeof(SuccessResponse<AuthResponse>), StatusCodes.Status200OK)]
         [HttpPost("refresh-token")]
         public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenDto request)
         {
             AuthResponse? response = await _authService.RefreshToken(request.AccessToken, request.RefreshToken);
             _logger.LogInformation($"Token refreshed successfully.");
-            return Ok(SuccessResponse<AuthResponse>.Create(response, "Token refreshed successfully."));
+            return Ok(SuccessResponse<AuthResponse>.Create(response, "Token được làm mới thành công."));
         }
 
         [Authorize]
         [HttpPost("logout")]
+        [ProducesResponseType(typeof(SuccessResponse<string>), StatusCodes.Status200OK)]
         public async Task<IActionResult> Logout()
         {
 
             await _authService.Logout();
             _logger.LogInformation($"User logged out successfully.");
-            return Ok(SuccessResponse<string>.Create(null, "Logout successfully."));
+            return Ok(SuccessResponse<string>.Create(null, "Đăng xuất thành công."));
         }
 
         [HttpPost("verify-email")]
+        [ProducesResponseType(typeof(SuccessResponse<UserResponse>), StatusCodes.Status200OK)]
         public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailDto request)
         {
             UserResponse? response = await _authService.VerifyEmailAsync(request.Token);
             _logger.LogInformation($"Email verified successfully.");
-            return Ok(SuccessResponse<UserResponse>.Create(response, "Email verified successfully."));
+            return Ok(SuccessResponse<UserResponse>.Create(response, "Xác thực email thành công. Bạn có thể đăng nhập ngay bây giờ."));
         }
 
         [Authorize]
         [HttpGet("me")]
+        [ProducesResponseType(typeof(SuccessResponse<UserResponse>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetCurrentUser()
         {
             UserResponse? response = await _authService.GetCurrentUserInfo();
             _logger.LogInformation($"Get current user info successfully.");
-            return Ok(SuccessResponse<UserResponse?>.Create(response, "Get current user info successfully."));
+            return Ok(SuccessResponse<UserResponse?>.Create(response, "Lấy thông tin người dùng hiện tại thành công."));
         }
 
         [Authorize]
         [HttpPut("me")]
+        [ProducesResponseType(typeof(SuccessResponse<UserResponse>), StatusCodes.Status200OK)]
         public async Task<IActionResult> UpdateCurrentUser([FromBody] ProfileUpdateDto request)
         {
             UserResponse? response = await _authService.UpdateProfileAsync(request);
-            _logger.LogInformation($"Update current user info successfully.");
-            return Ok(SuccessResponse<UserResponse>.Create(response, "Update current user info successfully."));
+            _logger.LogInformation($"Cập nhật thông tin người dùng thành công.");
+            return Ok(SuccessResponse<UserResponse>.Create(response, "Cập nhật thông tin người dùng thành công."));
         }
 
         /// <summary>
@@ -101,6 +119,7 @@ namespace Droniverse.Identity.API.Controllers
         /// </remarks>
         [AllowAnonymous]
         [HttpPost("service-token")]
+        [ProducesResponseType(typeof(SuccessResponse<ServiceTokenResponse>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetServiceToken([FromBody] ServiceCredentialsRequest request)
         {
             try
@@ -108,8 +127,8 @@ namespace Droniverse.Identity.API.Controllers
                 // Validate request
                 if (string.IsNullOrWhiteSpace(request?.ServiceId) || string.IsNullOrWhiteSpace(request?.ApiKey))
                 {
-                    _logger.LogWarning("Service token request with missing credentials");
-                    return BadRequest(new { message = "ServiceId and ApiKey are required" });
+                    _logger.LogWarning("Yêu cầu service token thiếu ServiceId hoặc ApiKey");
+                    return BadRequest(new { message = "ServiceId và ApiKey là bắt buộc" });
                 }
 
                 // Validate API Key

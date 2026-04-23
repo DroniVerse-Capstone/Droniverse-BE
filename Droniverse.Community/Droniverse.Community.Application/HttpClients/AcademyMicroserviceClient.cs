@@ -241,9 +241,9 @@ public class AcademyMicroserviceClient
             };
 
             // Get dynamic service token
-            var serviceToken = await GetValidServiceTokenAsync();
+            //var serviceToken = await GetValidServiceTokenAsync();
 
-            // Service-to-service call with dynamic token
+            //// Service-to-service call with dynamic token
             var requestMessage = new HttpRequestMessage(HttpMethod.Post, BuildAcademyPath("codes/generate-assign"))
             {
                 Content = new StringContent(
@@ -253,8 +253,10 @@ public class AcademyMicroserviceClient
                 )
             };
 
-            // Add dynamic service token
-            requestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", serviceToken);
+            //// Add dynamic service token
+            //requestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", serviceToken);
+            const string ServiceToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJVc2VySUQiOiJiOWRkOTQyMC00NDYxLTRlYWEtYjNjMC1iOTAwMDA4YmMzMmYiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoibWluaHRob25nODA4QGdtYWlsLmNvbSIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL2VtYWlsYWRkcmVzcyI6Im1pbmh0aG9uZzgwOEBnbWFpbC5jb20iLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJDTFVCX01FTUJFUiIsIlRva2VuVHlwZSI6IkFjY2Vzc1Rva2VuIiwianRpIjoiZWY4YzcyYTgtNGJhNS00YWE1LThjODgtMGRiODNhZTAwODk5IiwiZXhwIjoxNzgyMDgyNDkwLCJpc3MiOiJEcm9uaXZlcnNlLklkZW50aXR5IiwiYXVkIjoiRHJvbml2ZXJzZS5JZGVudGl0eSJ9.lHFlW8rjBZS24HMiyMHBRvAkjzAJ1gdqVkhhA3_t5To";
+            requestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", ServiceToken);
 
             var response = await _httpClient.SendAsync(requestMessage);
 
