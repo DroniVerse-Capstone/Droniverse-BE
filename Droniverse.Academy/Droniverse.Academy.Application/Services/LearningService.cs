@@ -71,6 +71,7 @@ public class LearningService : ILearningService
     {
         var userLessonsResult = await _unitOfWork.UserLessons.GetAllAsync(
             filter: x => x.UserID == _currentUser.UserId
+                         && x.Status == UserLessonStatus.COMPLETED 
                          && x.Status == UserLessonStatus.INCOMPLETED
                          && x.Lesson.Type == LessonType.VR,
             orderBy: q => q.OrderByDescending(x => x.LastAccessDate),
