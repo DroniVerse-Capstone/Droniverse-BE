@@ -11,8 +11,9 @@ public class UserSimulatorMappingProfile : Profile
     {
         CreateMap<SubmitSimulatorRequestDto, UserSimulator>()
             .ForMember(dest => dest.UserSimulatorID, opt => opt.Ignore())
-            .ForMember(dest => dest.UserLessonID, opt => opt.Ignore())
-            .ForMember(dest => dest.UserLesson, opt => opt.Ignore())
+            .ForMember(dest => dest.UserID, opt => opt.Ignore())
+            .ForMember(dest => dest.LessonID, opt => opt.Ignore())
+            .ForMember(dest => dest.Lesson, opt => opt.Ignore())
             .ForMember(dest => dest.IsSuccess, opt => opt.Ignore());
 
         CreateMap<UserSimulator, UserSimulatorResponseDTO>();

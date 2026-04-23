@@ -25,16 +25,17 @@ namespace Droniverse.Academy.API.Controllers
         }
 
         /// <summary>
-        /// Lấy trạng thái học simulator của người dùng theo user lesson.
-        /// Trả về thông tin simulator và dữ liệu user simulator nếu đã có.
+        /// Lấy trạng thái học simulator của người dùng theo lesson.
+        /// Trả về dữ liệu user simulator và dữ liệu simulator (vr/web) tương ứng.
         /// </summary>
-        /// <param name="userLessonId">Mã user lesson.</param>
-        [HttpGet]
-        public async Task<IActionResult> GetSimulatorLearningState(Guid userLessonId)
+        /// <param name="enrollmentId">Mã enrollment của người học.</param>
+        /// <param name="lessonId">Mã lesson.</param>
+        [HttpGet("~/academy/user/enrollments/{enrollmentId:guid}/lessons/{lessonId:guid}/simulator")]
+        public async Task<IActionResult> GetSimulatorLearningState(Guid enrollmentId, Guid lessonId)
         {
             try
             {
-                var result = await _service.GetSimulatorLearningStateAsync(userLessonId);
+                var result = await _service.GetSimulatorLearningStateAsync(enrollmentId, lessonId);
                 return Ok(SuccessResponse<SimulatorLearningStateDTO>.Create(result, "Lấy dữ liệu simulator thành công."));
             }
             catch (Exception ex)

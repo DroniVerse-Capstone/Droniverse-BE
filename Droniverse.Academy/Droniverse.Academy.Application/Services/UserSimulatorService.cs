@@ -16,43 +16,46 @@ namespace Droniverse.Academy.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly ICurrentUserService _currentUser;
         private readonly IMapper _mapper;
+        private readonly ILearningService _learningService;
 
-        public UserSimulatorService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper)
+        public UserSimulatorService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper, ILearningService learningService)
         {
             _unitOfWork = unitOfWork;
             _currentUser = currentUser;
             _mapper = mapper;
+            _learningService = learningService;
         }
 
-        public async Task<SimulatorLearningStateDTO> GetSimulatorLearningStateAsync(Guid userLessonId)
+        public async Task<SimulatorLearningStateDTO> GetSimulatorLearningStateAsync(Guid enrollmentId, Guid lessonId)
         {
-            var userLesson = await _unitOfWork.UserLessons.GetByConditionAsync(
-                x => x.UserLessonID == userLessonId && x.UserID == _currentUser.UserId);
+            await _learningService.ValidateLessonAccessAsync(enrollmentId, lessonId);
 
-            if (userLesson == null)
-                throw new BaseException("Không tìm thấy user lesson.", "NOT_FOUND");
-
-            var lesson = await _unitOfWork.Lessons.GetByIdAsync(userLesson.LessonID)
+            var lesson = await _unitOfWork.Lessons.GetByIdAsync(lessonId)
                 ?? throw new BaseException("Không tìm thấy lesson.", "NOT_FOUND");
 
             if (lesson.ReferenceID == Guid.Empty)
                 throw new BaseException("Lesson simulator chưa được gán dữ liệu tham chiếu.", "NOT_FOUND");
 
-            LessonClientViewDTO simulator = lesson.Type switch
+            var state = new SimulatorLearningStateDTO();
+
+            switch (lesson.Type)
             {
-                LessonType.PHYSIC or LessonType.LAB_PHYSIC => await MapWebSimulatorAsync(lesson),
-                LessonType.VR => await MapVrSimulatorAsync(lesson),
-                _ => throw new ValidationException("Lesson không phải simulator."),
-            };
+                case LessonType.PHYSIC:
+                case LessonType.LAB_PHYSIC:
+                    state.WebSimulator = await MapWebSimulatorAsync(lesson);
+                    break;
+                case LessonType.VR:
+                    state.VRSimulator = await MapVrSimulatorAsync(lesson);
+                    break;
+                default:
+                    throw new ValidationException("Lesson không phải simulator.");
+            }
 
             var userSimulator = await _unitOfWork.UserSimulators.GetByConditionAsync(
-                x => x.UserLessonID == userLessonId);
+                x => x.UserID == _currentUser.UserId && x.LessonID == lessonId);
 
-            return new SimulatorLearningStateDTO
-            {
-                Simulator = simulator,
-                UserSimulator = userSimulator == null ? null : _mapper.Map<UserSimulatorResponseDTO>(userSimulator)
-            };
+            state.UserSimulator = userSimulator == null ? null : _mapper.Map<UserSimulatorResponseDTO>(userSimulator);
+            return state;
         }
 
         public async Task<bool> SubmitSimulatorAsync(Guid userLessonId, int flightTime, int? score)
@@ -64,11 +67,11 @@ namespace Droniverse.Academy.Application.Services
             var entity = new UserSimulator
             {
                 UserSimulatorID = Guid.NewGuid(),
-                UserLessonID = userLessonId,
+                UserID = _currentUser.UserId,
+                LessonID = userLesson.LessonID,
                 FlightTime = flightTime,
                 Score = score,
-                IsSuccess = score.HasValue && score.Value > 0,
-                UserLesson = userLesson
+                IsSuccess = score.HasValue && score.Value > 0
             };
 
             await _unitOfWork.UserSimulators.AddAsync(entity);
@@ -76,32 +79,41 @@ namespace Droniverse.Academy.Application.Services
             return true;
         }
 
-        private async Task<LessonClientViewDTO> MapWebSimulatorAsync(Lesson lesson)
+        private async Task<WebSimulatorClientViewDTO> MapWebSimulatorAsync(Lesson lesson)
         {
             var webSimulator = await _unitOfWork.WebSimulators.GetByIdAsync(lesson.ReferenceID)
                 ?? throw new BaseException("Không tìm thấy web simulator.", "NOT_FOUND");
 
-            var simulator = _mapper.Map<LessonClientViewDTO>(webSimulator);
-            simulator.LessonID = lesson.LessonID;
-            simulator.ModuleID = lesson.ModuleID;
-            simulator.OrderIndex = lesson.OrderIndex;
-            simulator.Type = lesson.Type;
-            simulator.ReferenceID = lesson.ReferenceID;
-            return simulator;
+            return new WebSimulatorClientViewDTO
+            {
+                WebSimulatorID = webSimulator.WebSimulatorID,
+                DroneID = webSimulator.DroneID,
+                TitleVN = webSimulator.TitleVN,
+                TitleEN = webSimulator.TitleEN,
+                Type = webSimulator.Type,
+                ObjectivesVN = webSimulator.ObjectivesVN,
+                ObjectivesEN = webSimulator.ObjectivesEN,
+                Code = webSimulator.Code,
+                EstimatedTime = webSimulator.EstimatedTime,
+                CreateAt = webSimulator.CreateAt,
+                UpdateAt = webSimulator.UpdateAt
+            };
         }
 
-        private async Task<LessonClientViewDTO> MapVrSimulatorAsync(Lesson lesson)
+        private async Task<VRSimulatorClientViewDTO> MapVrSimulatorAsync(Lesson lesson)
         {
             var vrSimulator = await _unitOfWork.VRSimulators.GetByIdAsync(lesson.ReferenceID)
                 ?? throw new BaseException("Không tìm thấy vr simulator.", "NOT_FOUND");
 
-            var simulator = _mapper.Map<LessonClientViewDTO>(vrSimulator);
-            simulator.LessonID = lesson.LessonID;
-            simulator.ModuleID = lesson.ModuleID;
-            simulator.OrderIndex = lesson.OrderIndex;
-            simulator.Type = lesson.Type;
-            simulator.ReferenceID = lesson.ReferenceID;
-            return simulator;
+            return new VRSimulatorClientViewDTO
+            {
+                VRSimulatorID = vrSimulator.VRSimulatorID,
+                TitleVN = vrSimulator.TitleVN,
+                TitleEN = vrSimulator.TitleEN,
+                EstimatedTime = vrSimulator.EstimatedTime,
+                CreateAt = vrSimulator.CreateAt,
+                UpdateAt = vrSimulator.UpdateAt
+            };
         }
     }
 }

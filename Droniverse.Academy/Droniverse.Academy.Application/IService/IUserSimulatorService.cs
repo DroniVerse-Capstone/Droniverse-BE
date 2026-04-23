@@ -6,7 +6,7 @@ namespace Droniverse.Academy.Application.IService
 {
     public interface IUserSimulatorService
     {
-        Task<SimulatorLearningStateDTO> GetSimulatorLearningStateAsync(Guid userLessonId);
+        Task<SimulatorLearningStateDTO> GetSimulatorLearningStateAsync(Guid enrollmentId, Guid lessonId);
         Task<bool> SubmitSimulatorAsync(Guid userLessonId, int flightTime, int? score);
     }
 }
