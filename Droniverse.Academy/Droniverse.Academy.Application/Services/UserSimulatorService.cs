@@ -1,4 +1,4 @@
-using Droniverse.Academy.Application.IService;
+﻿using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Application.DTO.Response;
 using AutoMapper;
@@ -58,17 +58,17 @@ namespace Droniverse.Academy.Application.Services
             return state;
         }
 
-        public async Task<bool> SubmitSimulatorAsync(Guid userLessonId, int flightTime, int? score)
+        public async Task<bool> SubmitSimulatorAsync(Guid lessonId, int flightTime, int? score)
         {
-            var userLesson = await _unitOfWork.UserLessons.GetByConditionAsync(
-                x => x.UserLessonID == userLessonId && x.UserID == _currentUser.UserId);
-            if (userLesson == null) return false;
+            var lesson = await _unitOfWork.Lessons.GetByConditionAsync(
+                x => x.LessonID == lessonId);
+            if (lesson == null) return false;
 
             var entity = new UserSimulator
             {
                 UserSimulatorID = Guid.NewGuid(),
                 UserID = _currentUser.UserId,
-                LessonID = userLesson.LessonID,
+                LessonID = lessonId,
                 FlightTime = flightTime,
                 Score = score,
                 IsSuccess = score.HasValue && score.Value > 0
