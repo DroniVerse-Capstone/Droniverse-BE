@@ -3,6 +3,7 @@ using System;
 using Droniverse.Community.Infrastructure.Persistence.MySql;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Droniverse.Community.Infrastructure.Migrations
 {
     [DbContext(typeof(MySqlDbContext))]
-    partial class MySqlDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260423183856_Update_UserRound")]
+    partial class Update_UserRound
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -361,21 +364,6 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     b.HasKey("CompetitionID", "CertificateID");
 
                     b.ToTable("CompetitionCertificate", (string)null);
-                });
-
-            modelBuilder.Entity("Droniverse.Community.Domain.Entities.CompetitionLevel", b =>
-                {
-                    b.Property<Guid>("CompetitionID")
-                        .HasColumnType("char(36)");
-
-                    b.Property<Guid>("LevelID")
-                        .HasColumnType("char(36)");
-
-                    b.HasKey("CompetitionID", "LevelID");
-
-                    b.HasIndex("LevelID");
-
-                    b.ToTable("CompetitionLevel", (string)null);
                 });
 
             modelBuilder.Entity("Droniverse.Community.Domain.Entities.Media", b =>
@@ -1007,17 +995,6 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     b.Navigation("Competition");
                 });
 
-            modelBuilder.Entity("Droniverse.Community.Domain.Entities.CompetitionLevel", b =>
-                {
-                    b.HasOne("Droniverse.Community.Domain.Entities.Competition", "Competition")
-                        .WithMany("CompetitionLevels")
-                        .HasForeignKey("CompetitionID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Competition");
-                });
-
             modelBuilder.Entity("Droniverse.Community.Domain.Entities.Media", b =>
                 {
                     b.HasOne("Droniverse.Community.Domain.Entities.MediaType", "MediaType")
@@ -1152,8 +1129,6 @@ namespace Droniverse.Community.Infrastructure.Migrations
             modelBuilder.Entity("Droniverse.Community.Domain.Entities.Competition", b =>
                 {
                     b.Navigation("CompetitionCertificates");
-
-                    b.Navigation("CompetitionLevels");
 
                     b.Navigation("CompetitionPrizes");
 

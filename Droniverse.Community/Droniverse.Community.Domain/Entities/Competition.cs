@@ -29,6 +29,7 @@ public class Competition
     public Guid? UpdatedBy { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
+    public ICollection<CompetitionLevel> CompetitionLevels { get; set; } = new List<CompetitionLevel>();
     public ICollection<CompetitionCertificate> CompetitionCertificates { get; private set; }
     public ICollection<UserCompetition> UserCompetitions { get; private set; }
     public ICollection<Round> Rounds { get; private set; }
@@ -413,6 +414,26 @@ public class Competition
         return competitionCertificate;
     }
 
+    public CompetitionLevel AddLevel(Guid levelId)
+    {
+        if (Status != CompetitionStatus.DRAFT)
+            throw new InvalidOperationException("Chỉ có thể thêm level khi cuộc thi đang ở trạng thái DRAFT.");
+
+        var existingLevel = CompetitionLevels.FirstOrDefault(cl => cl.LevelID == levelId);
+        if (existingLevel != null)
+            throw new InvalidOperationException("Level này đã được thêm vào cuộc thi rồi.");
+
+        var competitionLevel = new CompetitionLevel
+        {
+            CompetitionID = CompetitionID,
+            LevelID = levelId
+        };
+
+        CompetitionLevels.Add(competitionLevel);
+
+        return competitionLevel;
+    }
+
     public void RemoveCertificate(Guid certificateId)
     {
         if (Status != CompetitionStatus.DRAFT)
@@ -420,6 +441,15 @@ public class Competition
 
         var certificate = CompetitionCertificates.FirstOrDefault(cc => cc.CertificateID == certificateId) ?? throw new KeyNotFoundException("Không tìm thấy certificate trong cuộc thi này.");
         CompetitionCertificates.Remove(certificate);
+    }
+
+    public void RemoveLevel(Guid levelId)
+    {
+        if (Status != CompetitionStatus.DRAFT)
+            throw new InvalidOperationException("Chỉ có thể xóa level khi cuộc thi đang ở trạng thái DRAFT.");
+
+        var level = CompetitionLevels.FirstOrDefault(cl => cl.LevelID == levelId) ?? throw new KeyNotFoundException("Không tìm thấy level trong cuộc thi này.");
+        CompetitionLevels.Remove(level);
     }
 
     public void UpdateStatus(

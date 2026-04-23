@@ -19,7 +19,7 @@ public static class DependencyInjection
     {
         // Chỉ cần thêm 1 mapping profile là đc
         services.AddAutoMapper(typeof(ClubMappingProfile).Assembly);
-        services.AddAutoMapper(typeof(ClubRequestMappingProfile).Assembly);        services.AddAutoMapper(typeof(TransactionMappingProfile).Assembly);        services.AddScoped<INotificationService, EmailNotificationService>();
+        services.AddAutoMapper(typeof(ClubRequestMappingProfile).Assembly); services.AddAutoMapper(typeof(TransactionMappingProfile).Assembly); services.AddScoped<INotificationService, EmailNotificationService>();
         services.AddScoped<IClubService, ClubService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IClubAttemptRequestService, ClubAttemptRequestService>();
@@ -34,11 +34,12 @@ public static class DependencyInjection
         services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<IPaymentService, PaymentService>();
         services.AddScoped<IProductCategoryService, ProductCategoryService>();
+        services.AddScoped<ICompetitionLevelService, CompetitionLevelService>();
         services.AddScoped<ICompetitionState, DraftState>();
-        
+
         // Đăng ký RabbitMQ Publisher cho notification
         services.AddScoped<IOrderNotificationPublisher, OrderNotificationPublisher>();
-        
+
         // Đăng ký RabbitMQ Consumer cho user updates
         services.AddSingleton<UserNameUpdateConsumer>();
         services.AddScoped<ICompetitionState, PublishedState>();

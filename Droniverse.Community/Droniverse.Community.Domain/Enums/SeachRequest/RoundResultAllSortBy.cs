@@ -10,7 +10,6 @@ namespace Droniverse.Community.Domain.Enums.SeachRequest
     {
         Point,          // Sắp xếp theo điểm
         ExecutionTime,  // Sắp xếp theo thời gian làm bài
-        NumberOfSteps,  // Sắp xếp theo số bước thực hiện
         StartedAt,      // Sắp xếp theo thời gian bắt đầu
     }
 }
