@@ -3,6 +3,7 @@ using System;
 using Droniverse.Academy.Infrastructure.Persistence.MySql;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Droniverse.Academy.Infrastructure.Migrations
 {
     [DbContext(typeof(MySqlDbContext))]
-    partial class MySqlDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260423173340_Add_User_Simulator")]
+    partial class Add_User_Simulator
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -469,12 +472,6 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                     b.Property<Guid>("LevelID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
-
-                    b.Property<string>("DescriptionEN")
-                        .HasColumnType("text");
-
-                    b.Property<string>("DescriptionVN")
-                        .HasColumnType("text");
 
                     b.Property<Guid>("DroneID")
                         .HasColumnType("char(36)");
@@ -1005,20 +1002,15 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                     b.Property<ulong>("IsSuccess")
                         .HasColumnType("bit");
 
-                    b.Property<Guid>("LessonID")
-                        .HasColumnType("char(36)");
-
                     b.Property<int?>("Score")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("UserID")
+                    b.Property<Guid>("UserLessonID")
                         .HasColumnType("char(36)");
 
                     b.HasKey("UserSimulatorID");
 
-                    b.HasIndex("LessonID");
-
-                    b.HasIndex("UserID", "LessonID");
+                    b.HasIndex("UserLessonID");
 
                     b.ToTable("UserSimulator", (string)null);
                 });
@@ -1427,13 +1419,13 @@ namespace Droniverse.Academy.Infrastructure.Migrations
 
             modelBuilder.Entity("Droniverse.Academy.Domain.Entities.UserSimulator", b =>
                 {
-                    b.HasOne("Droniverse.Academy.Domain.Entities.Lesson", "Lesson")
+                    b.HasOne("Droniverse.Academy.Domain.Entities.UserLesson", "UserLesson")
                         .WithMany()
-                        .HasForeignKey("LessonID")
+                        .HasForeignKey("UserLessonID")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Lesson");
+                    b.Navigation("UserLesson");
                 });
 
             modelBuilder.Entity("Droniverse.Academy.Domain.Entities.WebSimulator", b =>
