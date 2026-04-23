@@ -27,6 +27,14 @@ public class LevelConfiguration : IEntityTypeConfiguration<Level>
             .HasColumnType("varchar(255)")
             .IsRequired();
 
+        builder.Property(l => l.DescriptionVN)
+            .HasColumnType("text")
+            .IsRequired(false);
+
+        builder.Property(l => l.DescriptionEN)
+            .HasColumnType("text")
+            .IsRequired(false);
+
         builder.HasOne(l => l.Drone)
             .WithMany()
             .HasForeignKey(l => l.DroneID)
