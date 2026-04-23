@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Droniverse.Academy.API.Controllers
 {
-    [Route("academy/user/lessons/{userLessonId:guid}/simulator")]
+    [Route("academy/user/lessons/{lessonId:guid}/simulator")]
     [ApiController]
     [Authorize(Roles = Roles.AllRoles)]
     public class UserLearningSimulatorController : ControllerBase
@@ -46,11 +46,11 @@ namespace Droniverse.Academy.API.Controllers
         }
 
         [HttpPost("submit")]
-        public async Task<IActionResult> Submit(Guid userLessonId, [FromBody] SubmitSimulatorRequestDto request)
+        public async Task<IActionResult> Submit(Guid lessonId, [FromBody] SubmitSimulatorRequestDto request)
         {
             try
             {
-                var result = await _service.SubmitSimulatorAsync(userLessonId, request.FlightTime, request.Score);
+                var result = await _service.SubmitSimulatorAsync(lessonId, request.FlightTime, request.Score);
                 return Ok(SuccessResponse<bool>.Create(result, result ? "Submit thành công" : "Submit thất bại"));
             }
             catch (Exception ex)
