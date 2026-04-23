@@ -7,18 +7,23 @@ namespace Droniverse.Academy.Domain.Entities;
 public class Code
 {
     public required string CodeID { get; set; }
+
     public required Guid ClubID { get; set; }
-    public Guid CourseID { get; set; }
-    public Course Course { get; set; }
+
+    public required Guid CourseID { get; set; }
+    public Course? Course { get; set; }
 
     public DateTime ExpireDate { get; set; }
-    public CodeStatus Status { get; private set; } = CodeStatus.Active;
+
+    public CodeStatus Status { get; set; } = CodeStatus.AVAILABLE;
 
     // Usage
     public Guid? UsedByUserID { get; set; }
     public DateTime? UsedDate { get; set; }
+
     public DateTime CreatedAt { get; set; }
-    public Guid CreatedBy { get; set; }
+    public required Guid CreatedBy { get; set; }
+
 
     [SetsRequiredMembers]
     public Code(
@@ -40,7 +45,7 @@ public class Code
         CreatedBy = createdBy;
         CreatedAt = now;
 
-        Status = CodeStatus.Active;
+        Status = CodeStatus.AVAILABLE;
     }
 
     // EF Core cần constructor rỗng
@@ -54,7 +59,7 @@ public class Code
 
     public void Redeem(Guid userId, DateTime now)
     {
-        if (Status != CodeStatus.Active)
+        if (Status != CodeStatus.AVAILABLE)
             throw new InvalidOperationException("Mã code không ở trạng thái hợp lệ để sử dụng.");
 
         if (IsExpired(now))
@@ -65,13 +70,13 @@ public class Code
 
         UsedByUserID = userId;
         UsedDate = now;
-        Status = CodeStatus.Used;
+        Status = CodeStatus.USED;
 
     }
 
     public void Expire(DateTime now)
     {
-        Status = CodeStatus.Expired;
+        Status = CodeStatus.EXPIRED;
     }
 
 
@@ -82,7 +87,7 @@ public class Code
 
     public bool IsAvailable(DateTime now)
     {
-        return Status == CodeStatus.Active && !IsExpired(now);
+        return Status == CodeStatus.AVAILABLE && !IsExpired(now);
     }
 
     public bool IsUsed()

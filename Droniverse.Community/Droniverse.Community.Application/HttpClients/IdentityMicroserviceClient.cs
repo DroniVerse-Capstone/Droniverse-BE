@@ -1,4 +1,5 @@
 ﻿    using Droniverse.Community.Application.DTO.Extensions;
+using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Enums;
@@ -286,6 +287,40 @@ public class IdentityMicroserviceClient
         return _environment.IsDevelopment()
             ? "/identity"
             : "/api/identity";
+    }
+
+    /// <summary>
+    /// Get service-to-service authentication token từ Identity service
+    /// </summary>
+    public async Task<string> GetServiceTokenAsync(string serviceId, string apiKey)
+    {
+        try
+        {
+            var requestBody = new { serviceId, apiKey };
+            var response = await _httpClient.PostAsJsonAsync(
+                BuildIdentityPath("auth/service-token"),
+                requestBody);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError($"Failed to get service token. Status: {response.StatusCode}");
+                throw new HttpRequestException($"Service token request failed: {response.StatusCode}");
+            }
+
+            var tokenResponse = await response.Content.ReadFromJsonAsync<ServiceTokenResponse>(JsonOptions);
+            if (tokenResponse == null || string.IsNullOrEmpty(tokenResponse.Token))
+            {
+                throw new InvalidOperationException("Invalid service token response");
+            }
+
+            _logger.LogInformation($"Service token obtained for service: {serviceId}");
+            return tokenResponse.Token;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error getting service token");
+            throw;
+        }
     }
 }
 

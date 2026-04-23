@@ -5,6 +5,7 @@ using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Enums;
 using Droniverse.Shared.Exceptions;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.ComponentModel.DataAnnotations;
@@ -36,6 +37,10 @@ public class AcademyMicroserviceClient
     private readonly IDistributedCache _distributedCache; //Redis Cache
     private readonly IHostEnvironment _environment;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IdentityMicroserviceClient _identityMicroserviceClient;
+    private readonly IConfiguration _configuration;
+    private string _cachedServiceToken = string.Empty;
+    private DateTime _tokenExpiresAt = DateTime.MinValue;
     private static readonly DistributedCacheEntryOptions CourseCacheOptions =
     new DistributedCacheEntryOptions()
         .SetAbsoluteExpiration(TimeSpan.FromMinutes(5))
@@ -62,7 +67,9 @@ public class AcademyMicroserviceClient
         ILogger<AcademyMicroserviceClient> logger,
         IDistributedCache distributedCache,
         IHostEnvironment environment,
-        ICurrentUserService currentUserService
+        ICurrentUserService currentUserService,
+        IdentityMicroserviceClient identityMicroserviceClient,
+        IConfiguration configuration
         )
     {
         _httpClient = httpClient;
@@ -70,6 +77,8 @@ public class AcademyMicroserviceClient
         _distributedCache = distributedCache;
         _environment = environment;
         _currentUserService = currentUserService;
+        _identityMicroserviceClient = identityMicroserviceClient;
+        _configuration = configuration;
     }
 
     public async Task<IEnumerable<DroneResponseDto>> GetDronesBulk(IEnumerable<Guid> droneIds)
@@ -221,14 +230,14 @@ public class AcademyMicroserviceClient
         return drone;
     }
 
-    public async Task<CodeResponse> GenerateAssignCodesAsync(GenerateCodesRequestDTO request)
+    public async Task<CodeResponse> GenerateAssignCodesAsync(GenerateCodesRequestDTO request, string email)
     {
         if (request == null)
             throw new ArgumentNullException(nameof(request));
         try
         {
             // Get user email and name from current user context
-            var email = _currentUserService.Email;
+            //var email = _currentUserService.Email;
             if (string.IsNullOrWhiteSpace(email))
                 throw new InvalidOperationException("Không thể lấy email của người dùng hiện tại.");
 
@@ -244,9 +253,23 @@ public class AcademyMicroserviceClient
                 FullName = fullName
             };
 
-            var response = await _httpClient.PostAsJsonAsync(
-                BuildAcademyPath("codes/generate-assign"),
-                generateWithAssignRequest);
+            // Get dynamic service token
+            var serviceToken = await GetValidServiceTokenAsync();
+
+            // Service-to-service call with dynamic token
+            var requestMessage = new HttpRequestMessage(HttpMethod.Post, BuildAcademyPath("codes/generate-assign"))
+            {
+                Content = new StringContent(
+                    System.Text.Json.JsonSerializer.Serialize(generateWithAssignRequest),
+                    System.Text.Encoding.UTF8,
+                    "application/json"
+                )
+            };
+            
+            // Add dynamic service token
+            requestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", serviceToken);
+
+            var response = await _httpClient.SendAsync(requestMessage);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -1000,6 +1023,46 @@ public class AcademyMicroserviceClient
         {
             _logger.LogError(ex, "Error fetching lab with ID {LabId} from Academy service.", labId);
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Get valid service token, with auto-refresh when expired
+    /// </summary>
+    private async Task<string> GetValidServiceTokenAsync()
+    {
+        try
+        {
+            // Return cached token if still valid
+            if (!string.IsNullOrEmpty(_cachedServiceToken) && DateTime.UtcNow < _tokenExpiresAt)
+            {
+                _logger.LogInformation("Using cached service token");
+                return _cachedServiceToken;
+            }
+
+            // Get new token from Identity service
+            var serviceId = "community-service";
+            var apiKey = _configuration["SERVICE_API_KEY"];
+
+            if (string.IsNullOrEmpty(apiKey))
+            {
+                throw new InvalidOperationException("SERVICE_API_KEY not configured");
+            }
+
+            _logger.LogInformation("Requesting new service token from Identity service");
+            var token = await _identityMicroserviceClient.GetServiceTokenAsync(serviceId, apiKey);
+
+            // Cache token with 50-minute expiration (service token TTL is 1 hour)
+            _cachedServiceToken = token;
+            _tokenExpiresAt = DateTime.UtcNow.AddMinutes(50);
+
+            _logger.LogInformation("Service token obtained and cached");
+            return token;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error obtaining service token");
+            throw;
         }
     }
 }

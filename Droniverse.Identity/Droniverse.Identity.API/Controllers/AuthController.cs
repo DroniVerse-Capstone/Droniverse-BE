@@ -3,6 +3,7 @@ using Droniverse.Identity.Application.DTO.Response;
 using Droniverse.Identity.Application.IService;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Response;
+using Droniverse.Shared.Services.IServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,10 +15,19 @@ namespace Droniverse.Identity.API.Controllers
     {
         private readonly ILogger<AuthController> _logger;
         private readonly IAuthService _authService;
-        public AuthController(ILogger<AuthController> logger, IAuthService authService)
+        private readonly IConfiguration _configuration;
+        private readonly IClock _clock;
+
+        public AuthController(
+            ILogger<AuthController> logger,
+            IAuthService authService,
+            IConfiguration configuration,
+            IClock clock)
         {
             _logger = logger;
             _authService = authService;
+            _configuration = configuration;
+            _clock = clock;
         }
 
         [HttpPost("login")]
@@ -79,6 +89,69 @@ namespace Droniverse.Identity.API.Controllers
             UserResponse? response = await _authService.UpdateProfileAsync(request);
             _logger.LogInformation($"Update current user info successfully.");
             return Ok(SuccessResponse<UserResponse>.Create(response, "Update current user info successfully."));
+        }
+
+        /// <summary>
+        /// Service-to-Service authentication endpoint
+        /// Được dùng bởi các microservice khác để lấy token cho internal communication
+        /// </summary>
+        /// <remarks>
+        /// Endpoint này không yêu cầu user JWT token (AllowAnonymous)
+        /// nhưng phải provide chính xác ServiceId + ApiKey từ config
+        /// </remarks>
+        [AllowAnonymous]
+        [HttpPost("service-token")]
+        public async Task<IActionResult> GetServiceToken([FromBody] ServiceCredentialsRequest request)
+        {
+            try
+            {
+                // Validate request
+                if (string.IsNullOrWhiteSpace(request?.ServiceId) || string.IsNullOrWhiteSpace(request?.ApiKey))
+                {
+                    _logger.LogWarning("Service token request with missing credentials");
+                    return BadRequest(new { message = "ServiceId and ApiKey are required" });
+                }
+
+                // Validate API Key
+                var expectedApiKey = _configuration["SERVICE_API_KEY"];
+                if (string.IsNullOrEmpty(expectedApiKey))
+                {
+                    _logger.LogError("SERVICE_API_KEY not configured in environment");
+                    return StatusCode(500, new { message = "Service configuration error" });
+                }
+
+                if (request.ApiKey != expectedApiKey)
+                {
+                    _logger.LogWarning($"Invalid API key attempt from service: {request.ServiceId}");
+                    return Unauthorized(new { message = "Invalid API key" });
+                }
+
+                // Validate Service ID (optional whitelist check)
+                var allowedServices = _configuration["SERVICE_ALLOWED_IDS"]?.Split(",") ?? new[] { "community-service", "academy-service", "notification-service" };
+                if (!allowedServices.Contains(request.ServiceId))
+                {
+                    _logger.LogWarning($"Unauthorized service token request from: {request.ServiceId}");
+                    return Unauthorized(new { message = "Service not allowed" });
+                }
+
+                // Generate service token
+                var token = _authService.GenerateServiceToken(request.ServiceId);
+                var expiresAt = _clock.Now.AddHours(1);
+
+                _logger.LogInformation($"Service token issued for: {request.ServiceId}");
+
+                return Ok(new ServiceTokenResponse
+                {
+                    Token = token,
+                    ExpiresIn = new DateTimeOffset(expiresAt).ToUnixTimeSeconds(),
+                    TokenType = "Bearer"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating service token");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
         }
 
         private void SetTokenCookies(string accessToken, string refreshToken)

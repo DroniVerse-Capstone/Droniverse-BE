@@ -91,8 +91,8 @@ internal class CodeRepository : MySqlRepository<Code>, ICodeRepository
         if (isUsed.HasValue)
         {
             query = isUsed.Value
-                ? query.Where(c => c.Status == CodeStatus.Used || c.UsedByUserID != null)
-                : query.Where(c => c.UsedByUserID == null && c.Status == CodeStatus.Active);
+                ? query.Where(c => c.Status == CodeStatus.USED || c.UsedByUserID != null)
+                : query.Where(c => c.UsedByUserID == null && c.Status == CodeStatus.AVAILABLE);
         }
 
         var totalRecords = await query.CountAsync();
@@ -164,7 +164,7 @@ internal class CodeRepository : MySqlRepository<Code>, ICodeRepository
                 c.ClubID == clubId &&
                 c.CourseID == courseId &&
                 c.UsedByUserID == userId &&
-                c.Status == CodeStatus.Active &&
+                c.Status == CodeStatus.AVAILABLE &&
                 c.ExpireDate >= now,
                 cancellationToken);
     }

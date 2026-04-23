@@ -77,7 +77,7 @@ internal class AuthService : IAuthService
         string newAccessToken = GenerateAccessToken(account);
         string newRefreshToken = GenerateRefreshToken(account);
         account.RefreshToken = newRefreshToken;
-        account.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays); // ✅ From settings
+        account.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays);
         await _unitOfWork.SaveChangeAsync();
         return new AuthResponse
         {
@@ -103,6 +103,7 @@ internal class AuthService : IAuthService
         newAccount.RoleID = r.RoleID;
         newAccount.Username = registerDto.FirstName + " " + registerDto.LastName;
         newAccount.PasswordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password);
+        newAccount.Status = AccountStatus.ACTIVE;
         newAccount.IsEmailVerified = false;
 
         // Tạo verification token
@@ -371,6 +372,37 @@ internal class AuthService : IAuthService
             audience: _jwtSettings.Audience,
             claims: claims,
             expires: DateTime.UtcNow.AddHours(24), // Verification token hết hạn sau 24 giờ
+            signingCredentials: credentials
+        );
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    /// <summary>
+    /// Generate service-to-service JWT token cho internal communication giữa microservices
+    /// Token này không liên kết với user cụ thể, dùng cho giao tiếp giữa các service
+    /// </summary>
+    public string GenerateServiceToken(string serviceId)
+    {
+        var securityKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(_jwtSettings.Key)
+        );
+        var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+        var claims = new[]
+        {
+            new Claim("ServiceID", serviceId),
+            new Claim("TokenType", "ServiceToken"),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+        };
+
+        // Service token hết hạn sau 1 giờ
+        var expirationTime = DateTime.UtcNow.AddHours(1);
+        var token = new JwtSecurityToken(
+            issuer: _jwtSettings.Issuer,
+            audience: _jwtSettings.Audience,
+            claims: claims,
+            expires: expirationTime,
             signingCredentials: credentials
         );
 

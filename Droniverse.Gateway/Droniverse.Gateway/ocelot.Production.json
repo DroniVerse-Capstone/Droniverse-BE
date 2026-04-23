@@ -1,6 +1,35 @@
 {
   "Routes": [
     {
+      "DownstreamPathTemplate": "/identity/auth/service-token",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "identity-microservice",
+          "Port": 8080
+        }
+      ],
+      "UpstreamPathTemplate": "/api/identity/auth/service-token",
+      "UpstreamHttpMethod": [ "POST" ],
+      "SwaggerKey": "identity"
+    },
+    {
+      "DownstreamPathTemplate": "/academy/codes/generate-assign",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "academy-microservice",
+          "Port": 8080
+        }
+      ],
+      "UpstreamPathTemplate": "/api/academy/codes/generate-assign",
+      "UpstreamHttpMethod": [ "POST" ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      },
+      "SwaggerKey": "academy"
+    },
+    {
       "DownstreamPathTemplate": "/academy/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
