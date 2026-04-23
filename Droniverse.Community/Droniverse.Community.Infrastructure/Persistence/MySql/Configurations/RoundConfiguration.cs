@@ -20,7 +20,7 @@ public class RoundConfiguration : IEntityTypeConfiguration<Round>
             .HasColumnType("char(36)")
             .IsRequired();
 
-        builder.Property(r => r.LabID)
+        builder.Property(r => r.VRSimilatorID)
             .HasColumnType("char(36)")
             .IsRequired();
 

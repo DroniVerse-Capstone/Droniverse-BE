@@ -492,8 +492,8 @@ namespace Droniverse.Community.Application.Services
                 throw new KeyNotFoundException("Cuộc thi hiện không có vòng thi đang diễn ra.");
             }
 
-            var labs = await _academyMicroserviceClient.GetLabsByIds([currentRound.LabID]);
-            var labById = labs.ToDictionary(x => x.LabID, x => x);
+            var vrSimulators = await _academyMicroserviceClient.GetVRSimulatorsByIds([currentRound.VRSimulatorID]);
+            var vrSimulatorById = vrSimulators.ToDictionary(x => x.VRSimulatorId, x => x);
 
             return new RoundResponseDto
             {
@@ -504,7 +504,7 @@ namespace Droniverse.Community.Application.Services
                     NameVN = currentRound.NameVN,
                     NameEN = currentRound.NameEN
                 },
-                Lab = BuildSimpleLabResponse(currentRound.LabID, labById),
+                VRSimulator = BuildSimpleVRSimulatorResponse(currentRound.VRSimulatorID, vrSimulatorById),
                 RoundNumber = currentRound.RoundNumber,
                 StartTime = currentRound.StartTime,
                 EndTime = currentRound.EndTime,
@@ -884,6 +884,19 @@ namespace Droniverse.Community.Application.Services
                 LabID = labId,
                 LabNameVN = "Unknown Lab",
                 LabNameEN = "Unknown Lab"
+            };
+        }
+
+        private static SimpleVRSimulatorResponse BuildSimpleVRSimulatorResponse(Guid vrSimulatorId, IReadOnlyDictionary<Guid, SimpleVRSimulatorResponse> vrSimulatorById)
+        {
+            if (vrSimulatorById.TryGetValue(vrSimulatorId, out var vrSimulator))
+                return vrSimulator;
+
+            return new SimpleVRSimulatorResponse
+            {
+                VRSimulatorId = vrSimulatorId,
+                TitleVN = "Unknown Simulation",
+                TitleEN = "Unknown Simulation"
             };
         }
 

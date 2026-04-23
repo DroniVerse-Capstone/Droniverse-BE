@@ -8,7 +8,7 @@ namespace Droniverse.Community.Infrastructure.QueryModels
         public Guid CompetitionID { get; set; }
         public string NameVN { get; set; } = null!;
         public string NameEN { get; set; } = null!;
-        public Guid LabID { get; set; }
+        public Guid VRSimulatorID { get; set; }
         public int RoundNumber { get; set; }
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }

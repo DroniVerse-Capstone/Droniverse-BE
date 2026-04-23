@@ -17,19 +17,6 @@ using System.Text.Json.Serialization;
 
 namespace Droniverse.Community.Application.HttpClients;
 
-public class CourseResponse
-{
-    public Guid CourseId { get; set; }
-    public string CourseName { get; set; } = string.Empty;
-    public string CourseDescription { get; set; } = string.Empty;
-    public string Instructor { get; set; } = string.Empty;
-    public int Duration { get; set; }
-    public string Level { get; set; } = string.Empty;
-    public DateTime CreatedDate { get; set; }
-    public DateTime? UpdatedDate { get; set; }
-    public bool IsActive { get; set; }
-}
-
 public class AcademyMicroserviceClient
 {
     private readonly HttpClient _httpClient;
@@ -164,7 +151,7 @@ public class AcademyMicroserviceClient
                 }
 
                 var dronesFromApi = await response.Content.ReadFromJsonAsync<IEnumerable<DroneResponseDto>>(_jsonOptions);
-                
+
                 if (dronesFromApi == null || !dronesFromApi.Any())
                 {
                     _logger.LogWarning("No drones returned from Academy API.");
@@ -265,7 +252,7 @@ public class AcademyMicroserviceClient
                     "application/json"
                 )
             };
-            
+
             // Add dynamic service token
             requestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", serviceToken);
 
@@ -817,6 +804,139 @@ public class AcademyMicroserviceClient
         {
             _logger.LogError(ex, "Lỗi khi gọi courses/by-ids/management");
             return CreatePagedCourseResponse([], 0);
+        }
+    }
+
+    public async Task<SimpleVRSimulatorResponse> GetSimpleVRSimulator(Guid vrSimulatorId)
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync(
+                BuildAcademyPath($"vr-simulators/{vrSimulatorId}/check"));
+
+            if (!response.IsSuccessStatusCode)
+            {
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    _logger.LogWarning("Không tìm thấy VR Simulator với ID {VrSimulatorId}", vrSimulatorId);
+
+                    throw new NotFoundException("Không tìm thấy VR Simulator");
+                }
+
+                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    throw new HttpRequestException(
+                        "Yêu cầu không hợp lệ khi gọi Academy service.",
+                        null,
+                        System.Net.HttpStatusCode.BadRequest);
+                }
+
+                if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                {
+                    _logger.LogError("Academy service không khả dụng.");
+                    throw new HttpRequestException(
+                        "Dịch vụ Academy tạm thời không khả dụng.",
+                        null,
+                        System.Net.HttpStatusCode.ServiceUnavailable);
+                }
+
+                throw new HttpRequestException(
+                    $"Lỗi Academy service: {response.StatusCode}",
+                    null,
+                    response.StatusCode);
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<SimpleVRSimulatorResponse>(_jsonOptions);
+
+            if (result == null)
+            {
+                throw new NotFoundException("Không tìm thấy dữ liệu VR Simulator hợp lệ");
+            }
+
+            return result;
+        }
+        catch (NotFoundException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi gọi API VR Simulator với ID {VrSimulatorId}", vrSimulatorId);
+            throw;
+        }
+    }
+
+    public async Task<IEnumerable<SimpleVRSimulatorResponse>> GetVRSimulatorsByIds(IEnumerable<Guid> vrSimulatorIds)
+    {
+        if (vrSimulatorIds == null || !vrSimulatorIds.Any())
+            return [];
+
+        var distinctIds = vrSimulatorIds
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        if (!distinctIds.Any())
+            return [];
+
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync(
+                BuildAcademyPath("vr-simulators/check"),
+                distinctIds
+            );
+
+            if (!response.IsSuccessStatusCode)
+            {
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    _logger.LogWarning("Không tìm thấy VR Simulator theo danh sách ID.");
+                    throw new NotFoundException("Không tìm thấy VR Simulator");
+                }
+
+                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    throw new HttpRequestException(
+                        "Yêu cầu không hợp lệ khi gọi Academy service.",
+                        null,
+                        System.Net.HttpStatusCode.BadRequest);
+                }
+
+                if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                {
+                    _logger.LogError("Academy service không khả dụng.");
+                    throw new HttpRequestException(
+                        "Dịch vụ Academy tạm thời không khả dụng.",
+                        null,
+                        System.Net.HttpStatusCode.ServiceUnavailable);
+                }
+
+                throw new HttpRequestException(
+                    $"Lỗi Academy service: {response.StatusCode}",
+                    null,
+                    response.StatusCode);
+            }
+
+            var result = await response.Content
+                .ReadFromJsonAsync<IEnumerable<SimpleVRSimulatorResponse>>(_jsonOptions);
+
+            if (result == null || !result.Any())
+            {
+                throw new NotFoundException("Không tìm thấy dữ liệu VR Simulator");
+            }
+
+            return result
+                .Where(x => x != null && x.VRSimulatorId != Guid.Empty)
+                .ToList();
+        }
+        catch (NotFoundException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi gọi API VR Simulator bulk");
+            throw;
         }
     }
 

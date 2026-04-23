@@ -1,6 +1,7 @@
 ﻿using Droniverse.Community.Domain.Enums;
 
 using Droniverse.Community.Domain.Enums;
+using Droniverse.Shared.DTOs;
 
 namespace Droniverse.Community.Application.DTO.Response
 {
@@ -8,7 +9,7 @@ namespace Droniverse.Community.Application.DTO.Response
     {
         public Guid RoundID { get; set; }
         public required SimpleCompetitionResponse Competition { get; set; }
-        public required SimpleLabResponse Lab { get; set; }
+        public required SimpleVRSimulatorResponse VRSimulator { get; set; }
         public int RoundNumber { get; set; }
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }

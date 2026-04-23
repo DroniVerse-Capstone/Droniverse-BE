@@ -50,11 +50,11 @@ namespace Droniverse.Community.Application.Services
             var existingRounds = await _unitOfWork.Rounds.GetManyByCondition(r => r.CompetitionID == request.CompetitionID);
             var nextRoundNumber = (existingRounds?.Select(r => r.RoundNumber).DefaultIfEmpty(0).Max() ?? 0) + 1;
 
-            await ValidateRoundData(request.CompetitionID, request.LabID, request.StartTime, request.EndTime, competition, null);
+            await ValidateRoundData(request.CompetitionID, request.VRSimilatorID, request.StartTime, request.EndTime, competition, null);
 
             var round = new Round(
                 request.CompetitionID,
-                request.LabID,
+                request.VRSimilatorID,
                 nextRoundNumber,
                 request.StartTime,
                 request.EndTime,
@@ -188,8 +188,8 @@ namespace Droniverse.Community.Application.Services
             if (rounds.Count == 0)
                 return [];
 
-            var labs = await _academyMicroserviceClient.GetLabsByIds(rounds.Select(x => x.LabID));
-            var labById = labs.ToDictionary(x => x.LabID, x => x);
+            var vrSimulators = await _academyMicroserviceClient.GetVRSimulatorsByIds(rounds.Select(x => x.VRSimulatorID));
+            var vrSimulatorById = vrSimulators.ToDictionary(x => x.VRSimulatorId, x => x);
             var competitionPhase = CommunityAppHelpers.GetCurrentCompetitionLifeCycle(competition, _clock.Now);
 
             return rounds.Select((r, index) =>
@@ -198,7 +198,7 @@ namespace Droniverse.Community.Application.Services
                 {
                     RoundID = r.RoundID,
                     Competition = BuildSimpleCompetitionResponse(competition),
-                    Lab = BuildSimpleLabResponse(r.LabID, labById),
+                    VRSimulator = BuildSimpleVRSimulatorResponse(r.VRSimulatorID, vrSimulatorById),
                     RoundNumber = index + 1,
                     StartTime = r.StartTime,
                     EndTime = r.EndTime,
@@ -646,7 +646,7 @@ namespace Droniverse.Community.Application.Services
 
         private async Task ValidateRoundData(
             Guid competitionId,
-            Guid labId,
+            Guid vrSimulatorId,
             DateTime startTime,
             DateTime endTime,
             Competition competition,
@@ -685,17 +685,14 @@ namespace Droniverse.Community.Application.Services
             }
 
             // Validate Lab không trùng với các round khác
-            var roundWithSameLab = existingRounds.FirstOrDefault(r => r.LabID == labId);
+            var roundWithSameLab = existingRounds.FirstOrDefault(r => r.VRSimilatorID == vrSimulatorId);
             if (roundWithSameLab != null)
                 throw new InvalidOperationException($"Lab này đã được chọn ở Round {roundWithSameLab.RoundNumber} rồi.");
 
             // Validate Lab tồn tại trong Academy Microservice (chỉ validate nếu là create hoặc LabID thay đổi)
-            if (!excludeRoundId.HasValue || (excludeRoundId.HasValue && existingRounds.All(r => r.LabID != labId)))
-            {
-                var labExists = await _academyMicroserviceClient.IsLabExist(labId);
-                if (!labExists)
-                    throw new KeyNotFoundException($"Không tìm thấy bài lab.");
-            }
+            if (!excludeRoundId.HasValue || (excludeRoundId.HasValue && existingRounds.All(r => r.VRSimilatorID != vrSimulatorId)))
+                await _academyMicroserviceClient.GetSimpleVRSimulator(vrSimulatorId);
+
         }
 
         private SimpleCompetitionResponse BuildSimpleCompetitionResponse(Competition competition)
@@ -722,8 +719,8 @@ namespace Droniverse.Community.Application.Services
 
         private async Task<RoundResponseDto> MapToRoundResponse(RoundQueryModel round, Competition? competition)
         {
-            var labs = await _academyMicroserviceClient.GetLabsByIds([round.LabID]);
-            var labById = labs.ToDictionary(x => x.LabID, x => x);
+            var vrSimulators = await _academyMicroserviceClient.GetVRSimulatorsByIds([round.VRSimulatorID]);
+            var simulatorById = vrSimulators.ToDictionary(x => x.VRSimulatorId, x => x);
 
             var competitionPhase = competition != null
                 ? CommunityAppHelpers.GetCurrentCompetitionLifeCycle(competition, _clock.Now)
@@ -738,7 +735,7 @@ namespace Droniverse.Community.Application.Services
                     NameVN = round.NameVN,
                     NameEN = round.NameEN
                 },
-                Lab = BuildSimpleLabResponse(round.LabID, labById),
+                VRSimulator = BuildSimpleVRSimulatorResponse(round.VRSimulatorID, simulatorById),
                 RoundNumber = round.RoundNumber,
                 StartTime = round.StartTime,
                 EndTime = round.EndTime,
@@ -821,16 +818,16 @@ namespace Droniverse.Community.Application.Services
             }
         }
 
-        private static SimpleLabResponse BuildSimpleLabResponse(Guid labId, IReadOnlyDictionary<Guid, SimpleLabResponse> labById)
+        private static SimpleVRSimulatorResponse BuildSimpleVRSimulatorResponse(Guid vrSimulatorId, IReadOnlyDictionary<Guid, SimpleVRSimulatorResponse> vrSimulatorById)
         {
-            if (labById.TryGetValue(labId, out var lab))
-                return lab;
+            if (vrSimulatorById.TryGetValue(vrSimulatorId, out var vrSimulator))
+                return vrSimulator;
 
-            return new SimpleLabResponse
+            return new SimpleVRSimulatorResponse
             {
-                LabID = labId,
-                LabNameVN = "Unknown Lab",
-                LabNameEN = "Unknown Lab"
+                VRSimulatorId = vrSimulatorId,
+                TitleVN = "Unknown Simulation",
+                TitleEN = "Unknown Simulation"
             };
         }
     }
