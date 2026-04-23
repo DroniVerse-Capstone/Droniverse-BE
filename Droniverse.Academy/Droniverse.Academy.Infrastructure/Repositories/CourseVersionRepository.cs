@@ -53,7 +53,7 @@ internal class CourseVersionRepository : MySqlRepository<CourseVersion>, ICourse
                     ? cv.Certificate.ImageUrl
                     : null,
                 IsUnlock = cv.Course.Codes
-                    .Any(c => c.UsedByUserID == userId && c.Status == CodeStatus.Used),
+                    .Any(c => c.UsedByUserID == userId && c.Status == CodeStatus.USED),
                 LastUpdatedById = cv.UpdateBy,
                 LastUpdatedAt = cv.UpdateAt
             })

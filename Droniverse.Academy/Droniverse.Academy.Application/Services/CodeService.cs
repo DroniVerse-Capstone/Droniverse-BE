@@ -272,7 +272,7 @@ public class CodeService : ICodeService
             if (code is null)
                 throw new ValidationException("Mã code của khóa học chưa đúng! Vui lòng nhập lại");
 
-            if (code.Status == CodeStatus.Used)
+            if (code.Status == CodeStatus.USED)
                 throw new ValidationException("Mã code đã được sử dụng");
 
             code.Redeem(_currentUserService.UserId, _clock.Now);
@@ -693,7 +693,7 @@ public class CodeService : ICodeService
             currentUserId,
             now);
 
-        code.Redeem(currentUserId, now);
+        //code.Redeem(currentUserId, now);
 
         await _unitOfWork.Codes.AddAsync(code);
         await _unitOfWork.SaveChangesAsync();

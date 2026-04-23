@@ -1,7 +1,8 @@
 ﻿namespace Droniverse.Academy.Domain.Enums;
-public enum CodeStatus
+
+public enum CodeStatus : byte
 {
-    Active = 0,   // code hợp lệ, chưa dùng
-    Used = 1,     // đã sử dụng thành công
-    Expired = 2,  // hết hạn
+    AVAILABLE = 0,
+    USED = 1,
+    EXPIRED = 2
 }

@@ -14,6 +14,7 @@ public class CodeConfiguration : IEntityTypeConfiguration<Code>
         builder.HasKey(c => c.CodeID);
         builder.Property(c => c.CodeID)
             .HasColumnType("varchar(50)")
+            .IsUnicode(false)
             .IsRequired();
 
         // Club
@@ -31,39 +32,41 @@ public class CodeConfiguration : IEntityTypeConfiguration<Code>
             .HasForeignKey(c => c.CourseID)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // Usage
         builder.Property(c => c.UsedByUserID)
             .HasColumnType("char(36)")
             .IsRequired(false);
 
         builder.Property(c => c.UsedDate)
-            .HasColumnType("datetime")
+            .HasColumnType("datetime(6)")
             .IsRequired(false);
 
         // Expire
         builder.Property(c => c.ExpireDate)
-            .HasColumnType("datetime")
+            .HasColumnType("datetime(6)")
             .IsRequired();
 
-        // Status
+        // Status (tinyint: 0,1,2)
         builder.Property(c => c.Status)
             .HasColumnType("tinyint")
-            .HasConversion<int>()
+            .HasConversion<byte>()
             .IsRequired();
 
         // Audit
         builder.Property(c => c.CreatedAt)
-            .HasColumnType("datetime")
+            .HasColumnType("datetime(6)")
             .IsRequired();
 
         builder.Property(c => c.CreatedBy)
             .HasColumnType("char(36)")
             .IsRequired();
 
+        // Check constraint đúng theo spec
         builder.ToTable(t =>
         {
             t.HasCheckConstraint(
                 "CK_Code_Status",
-                "Status IN (1,2,3,4)"
+                "`Status` IN (0,1,2)"
             );
         });
     }

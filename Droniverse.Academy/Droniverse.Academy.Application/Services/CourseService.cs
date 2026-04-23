@@ -515,7 +515,7 @@ public class CourseService : ICourseService
         var remainingCodeTask = _unitOfWork.Codes.GetAllAsync(
             filter: c =>
                 itemCourseIds.Contains(c.CourseID) &&
-                c.Status == CodeStatus.Active &&
+                c.Status == CodeStatus.AVAILABLE &&
                 c.ExpireDate >= _clock.Now &&
                 c.UsedByUserID == null,
             pageIndex: 1,
