@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Droniverse.Academy.API.Controllers
 {
-    [Route("academy/user/lessons/{lessonId:guid}/simulator")]
+    [Route("academy/user/enrollments/{enrollmentId:guid}/lessons/{lessonId:guid}/simulator")]
     [ApiController]
     [Authorize(Roles = Roles.AllRoles)]
     public class UserLearningSimulatorController : ControllerBase
@@ -30,7 +30,7 @@ namespace Droniverse.Academy.API.Controllers
         /// </summary>
         /// <param name="enrollmentId">Mã enrollment của người học.</param>
         /// <param name="lessonId">Mã lesson.</param>
-        [HttpGet("~/academy/user/enrollments/{enrollmentId:guid}/lessons/{lessonId:guid}/simulator")]
+        [HttpGet]
         public async Task<IActionResult> GetSimulatorLearningState(Guid enrollmentId, Guid lessonId)
         {
             try
@@ -46,11 +46,11 @@ namespace Droniverse.Academy.API.Controllers
         }
 
         [HttpPost("submit")]
-        public async Task<IActionResult> Submit(Guid lessonId, [FromBody] SubmitSimulatorRequestDto request)
+        public async Task<IActionResult> Submit(Guid enrollmentId, Guid lessonId, [FromBody] SubmitSimulatorRequestDto request)
         {
             try
             {
-                var result = await _service.SubmitSimulatorAsync(lessonId, request.FlightTime, request.Score);
+                var result = await _service.SubmitSimulatorAsync(enrollmentId, lessonId, request.FlightTime, request.Score);
                 return Ok(SuccessResponse<bool>.Create(result, result ? "Submit thành công" : "Submit thất bại"));
             }
             catch (Exception ex)
