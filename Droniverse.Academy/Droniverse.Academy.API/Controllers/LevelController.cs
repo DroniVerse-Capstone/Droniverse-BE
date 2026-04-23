@@ -38,6 +38,22 @@ namespace Droniverse.Academy.API.Controllers
         }
 
         /// <summary>
+        /// Lấy danh sách level đơn giản theo nhiều id.
+        /// </summary>
+        /// <param name="levelIds">Danh sách level id cần truy vấn.</param>
+        /// <param name="cancellationToken">Token hủy request.</param>
+        /// <returns>Danh sách level đơn giản.</returns>
+        // POST academy/levels/bulk
+        [HttpPost("/academy/levels/bulk")]
+        [Authorize(Roles = Roles.AllRoles)]
+        [ProducesResponseType(typeof(IEnumerable<SimpleLevelResponse>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetLevelsBulk([FromBody] IEnumerable<Guid>? levelIds, CancellationToken cancellationToken = default)
+        {
+            var levels = await _levelService.GetLevelsBulkAsync(levelIds, cancellationToken);
+            return Ok(levels);
+        }
+
+        /// <summary>
         /// Lấy level path của drone, gồm các level từ 1 đến 4 và danh sách course điều kiện của từng level.
         /// </summary>
         /// <param name="droneId">Mã drone cần truy vấn level path.</param>
@@ -72,5 +88,5 @@ namespace Droniverse.Academy.API.Controllers
             return Ok(SuccessResponse<object>.Create(new { created = updatedCount }, "Cập nhật level course thành công."));
         }
     }
-    
+
 }

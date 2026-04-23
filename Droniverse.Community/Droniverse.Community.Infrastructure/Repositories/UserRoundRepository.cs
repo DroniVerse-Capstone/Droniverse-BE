@@ -42,18 +42,12 @@ internal class UserRoundRepository : MySqlRepository<UserRound>, IUserRoundRepos
             {
                 UserRoundId = ur.UserRoundID,
                 Status = ur.Status,
-                Solution = ur.Solution,
                 Point = ur.Point,
                 ExecutionTime = ur.ExecutionTime,
-                NumberOfSteps = ur.NumberOfSteps,
-                PathLength = ur.PathLength,
                 StartedAt = ur.StartedAt,
                 SubmittedAt = ur.SubmittedAt,
                 IsPassed = ur.IsPassed,
                 Rank = ur.Rank,
-                Rating = ur.Rating,
-                FeedbackVN = ur.FeedbackVN,
-                FeedbackEN = ur.FeedbackEN,
                 RoundId = ur.RoundID,
                 RoundNumber = ur.Round.RoundNumber,
                 RoundStartTime = ur.Round.StartTime,
@@ -262,9 +256,6 @@ internal class UserRoundRepository : MySqlRepository<UserRound>, IUserRoundRepos
 
             (RoundResultAllSortBy.ExecutionTime, SortDirection.Asc) => query.OrderBy(ur => ur.ExecutionTime ?? TimeSpan.MaxValue).ThenByDescending(ur => ur.StartedAt),
             (RoundResultAllSortBy.ExecutionTime, _) => query.OrderByDescending(ur => ur.ExecutionTime ?? TimeSpan.Zero).ThenByDescending(ur => ur.StartedAt),
-
-            (RoundResultAllSortBy.NumberOfSteps, SortDirection.Asc) => query.OrderBy(ur => ur.NumberOfSteps ?? int.MaxValue).ThenByDescending(ur => ur.StartedAt),
-            (RoundResultAllSortBy.NumberOfSteps, _) => query.OrderByDescending(ur => ur.NumberOfSteps ?? 0).ThenByDescending(ur => ur.StartedAt),
 
             (RoundResultAllSortBy.StartedAt, SortDirection.Asc) => query.OrderBy(ur => ur.StartedAt),
             _ => query.OrderByDescending(ur => ur.StartedAt)

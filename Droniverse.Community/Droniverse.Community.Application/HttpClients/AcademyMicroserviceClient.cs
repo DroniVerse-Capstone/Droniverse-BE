@@ -566,6 +566,58 @@ public class AcademyMicroserviceClient
         }
     }
 
+    public async Task<IEnumerable<SimpleLevelResponse>> GetLevelsBulk(
+      IEnumerable<Guid> levelIds,
+      CancellationToken cancellationToken = default)
+    {
+        if (levelIds == null)
+            return [];
+
+        var distinctIds = levelIds
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        if (!distinctIds.Any())
+            return [];
+
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync(
+                BuildAcademyPath("levels/bulk"),
+                distinctIds,
+                cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError(
+                    "Academy levels bulk API failed. StatusCode: {StatusCode}, Count: {Count}",
+                    response.StatusCode,
+                    distinctIds.Count);
+
+                return [];
+            }
+
+            var levels = await response.Content.ReadFromJsonAsync<
+                IEnumerable<SimpleLevelResponse>>(cancellationToken);
+
+            return levels ?? [];
+        }
+        catch (TaskCanceledException)
+        {
+            _logger.LogError("Academy levels bulk API timeout. Count: {Count}", distinctIds.Count);
+            return [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Error calling Academy levels bulk API. Count: {Count}",
+                distinctIds.Count);
+
+            return [];
+        }
+    }
+
     public async Task<PagedCourseBulkResponse> GetCourseById(
         Guid clubId,
         CourseBulkSearchRequest searchRequest)

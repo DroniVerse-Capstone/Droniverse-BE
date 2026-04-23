@@ -11,6 +11,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Droniverse.Shared.Exceptions;
+using Droniverse.Shared.DTOs;
 
 namespace Droniverse.Academy.Application.Services
 {
@@ -34,6 +35,16 @@ namespace Droniverse.Academy.Application.Services
             pageIndex: 1,
             pageSize: int.MaxValue);
             return _mapper.Map<IEnumerable<LevelMiniResponse>>(levels.Data);
+        }
+
+        public async Task<IEnumerable<SimpleLevelResponse>> GetLevelsBulkAsync(
+            IEnumerable<Guid>? levelIds,
+            CancellationToken cancellationToken = default)
+        {
+            if (levelIds == null)
+                return [];
+
+            return await _unitOfWork.Levels.GetLevelsBulkAsync(levelIds, cancellationToken);
         }
 
         public async Task<IEnumerable<LevelPathResponseDTO>> GetLevelPathAsync(Guid droneId, CancellationToken cancellationToken = default)
