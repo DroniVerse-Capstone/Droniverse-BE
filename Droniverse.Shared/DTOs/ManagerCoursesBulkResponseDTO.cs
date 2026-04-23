@@ -12,14 +12,7 @@ namespace Droniverse.Shared.DTOs
         public required string ImageUrl { get; set; }
         public int? EstimatedDuration { get; set; }
         public int NumberOfParticipants { get; set; }
-        public ManagerClubCourseOwnedResponse? ClubCourseInfo { get; set; }
         public decimal? Price { get; set; }
     }
 
-    public record ManagerClubCourseOwnedResponse
-    {
-        public int TotalCode { get; set; }
-        public int RemainingCode { get; set; }
-        public ClubCourseProfit ProfitType { get; set; }
-    }
 }

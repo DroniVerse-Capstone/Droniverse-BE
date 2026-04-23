@@ -416,8 +416,6 @@ public class CourseService : ICourseService
 
                 EstimatedDuration = currentVersion.EstimatedDuration,
                 Price = productByCourseId.TryGetValue(c.CourseID, out var price) ? price : null,
-                ClubCourseOwned = new ClubCourseOwnedResponse(),
-
                 Rating = rating,
                 NumberOfParticipants = numberOfParticipants,
                 ImageUrl = currentVersion.ImageUrl
@@ -512,47 +510,21 @@ public class CourseService : ICourseService
         var productTask = _communityMicroserviceClient
             .GetProductsBulkByReferenceIdsAsync(itemCourseIds);
 
-        var remainingCodeTask = _unitOfWork.Codes.GetAllAsync(
-            filter: c =>
-                itemCourseIds.Contains(c.CourseID) &&
-                c.Status == CodeStatus.AVAILABLE &&
-                c.ExpireDate >= _clock.Now &&
-                c.UsedByUserID == null,
-            pageIndex: 1,
-            pageSize: int.MaxValue);
 
-        await Task.WhenAll(productTask, remainingCodeTask);
+
+        await Task.WhenAll(productTask);
 
         var productByCourseId = productTask.Result
             .Where(p => p.ReferenceId != Guid.Empty)
             .ToDictionary(p => p.ReferenceId, p => p.Price);
 
-        var remainingCodeByCourseId = remainingCodeTask.Result.Data
-            .GroupBy(c => c.CourseID)
-            .ToDictionary(g => g.Key, g => g.Count());
 
-        var ownedCourseIdSet = ids.ToHashSet();
 
         foreach (var item in items)
         {
             item.Price = productByCourseId.TryGetValue(item.CourseId, out var price)
                 ? price
                 : 0m;
-
-            if (ownedCourseIdSet.Contains(item.CourseId))
-            {
-                item.ClubCourseOwned = new ClubCourseOwnedResponse
-                {
-                    RemainingCode = remainingCodeByCourseId.TryGetValue(item.CourseId, out var remainingCode)
-                        ? remainingCode
-                        : 0,
-                    ProfitType = item.Price > 0 ? ClubCourseProfit.PROFIT : ClubCourseProfit.NONPROFIT
-                };
-            }
-            else
-            {
-                item.ClubCourseOwned = null;
-            }
         }
 
         return new PagedCourseBulkResponse
@@ -766,7 +738,6 @@ public class CourseService : ICourseService
                     TitleVN = currentVersion.TitleVN,
                     TitleEN = currentVersion.TitleEN,
                     ImageUrl = currentVersion.ImageUrl ?? string.Empty,
-                    ClubCourseInfo = null,
                     NumberOfParticipants = participants,
                     EstimatedDuration = currentVersion.EstimatedDuration,
                     Price = productByCourseId.TryGetValue(c.CourseID, out var price) ? price : null

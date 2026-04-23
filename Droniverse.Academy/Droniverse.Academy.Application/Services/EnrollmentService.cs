@@ -174,7 +174,13 @@ public class EnrollmentService : IEnrollmentService
             ImageUrl = x.ImageUrl,
             EstimatedDuration = x.EstimatedDuration,
             Progress = x.Progress,
-            EnrollStatus = x.EnrollStatus
+            EnrollStatus = x.EnrollStatus,
+            Level = new LevelMiniResponse
+            {
+                LevelID = x.LevelID,
+                LevelNumber = x.LevelNumber,
+                Name = x.Name
+            }
         }).ToList();
 
         return new PaginationResult<IEnumerable<CoursesEnrollmentResponse>>(

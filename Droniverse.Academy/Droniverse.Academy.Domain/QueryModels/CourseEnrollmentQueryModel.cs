@@ -19,5 +19,9 @@ namespace Droniverse.Academy.Domain.QueryModels
         public int? EstimatedDuration { get; set; }
         public float Progress { get; set; }
         public EnrollStatus EnrollStatus { get; set; }
+        public Guid LevelID { get; set; }
+        public int LevelNumber { get; set; }
+        public string Name { get; set; }
+
     }
 }

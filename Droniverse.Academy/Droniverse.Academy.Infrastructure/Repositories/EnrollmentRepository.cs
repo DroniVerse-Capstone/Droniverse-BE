@@ -83,7 +83,10 @@ internal class EnrollmentRepository : MySqlRepository<Enrollment>, IEnrollmentRe
                 ImageUrl = e.CourseVersion.ImageUrl,
                 EstimatedDuration = e.CourseVersion.EstimatedDuration,
                 Progress = e.Progress,
-                EnrollStatus = e.Status
+                EnrollStatus = e.Status,
+                LevelID = e.Course.Level.LevelID,
+                LevelNumber = e.Course.Level.LevelNumber,
+                Name = e.Course.Level.Name,
             })
             .Skip((normalizedPageIndex - 1) * normalizedPageSize)
             .Take(normalizedPageSize)
