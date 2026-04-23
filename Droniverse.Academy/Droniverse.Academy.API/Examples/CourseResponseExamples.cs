@@ -189,7 +189,6 @@ public class CoursesByIdsSuccessResponseExample : IExamplesProvider<SuccessRespo
                         },
                         EstimatedDuration = 120,
                         Price = 499000,
-                        ClubCourseOwned = new ClubCourseOwnedResponse(),
                         Rating = 4.8m,
                         NumberOfParticipants = 320,
                         ImageUrl = "https://cdn.example.com/course-1.jpg"
@@ -214,7 +213,6 @@ public class CoursesByIdsSuccessResponseExample : IExamplesProvider<SuccessRespo
                         },
                         EstimatedDuration = 180,
                         Price = 899000,
-                        ClubCourseOwned = new ClubCourseOwnedResponse(),
                         Rating = 4.6m,
                         NumberOfParticipants = 210,
                         ImageUrl = "https://cdn.example.com/course-2.jpg"

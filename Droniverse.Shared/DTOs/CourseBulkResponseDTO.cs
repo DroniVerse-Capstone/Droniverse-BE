@@ -21,7 +21,6 @@ namespace Droniverse.Shared.DTOs.Response
         public string? ImageUrl { get; set; }
         public int? EstimatedDuration { get; set; }
         public decimal? Price { get; set; }
-        public ClubCourseOwnedResponse? ClubCourseOwned { get; set; }
     }
 
     public record CourseLevelMiniResponseDTO
@@ -36,11 +35,5 @@ namespace Droniverse.Shared.DTOs.Response
         public Guid DroneID { get; set; }
         public string Name { get; set; } = string.Empty;
         public string ImgURL { get; set; } = string.Empty;
-    }
-
-    public record ClubCourseOwnedResponse
-    {
-        public int RemainingCode { get; set; }
-        public ClubCourseProfit ProfitType { get; set; }
     }
 }
