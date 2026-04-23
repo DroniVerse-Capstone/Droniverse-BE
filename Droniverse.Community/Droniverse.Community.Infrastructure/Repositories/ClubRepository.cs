@@ -149,5 +149,10 @@ internal class ClubRepository : MySqlRepository<Club>, IClubRepository
             })
             .FirstOrDefaultAsync();
     }
+
+    public async Task<bool> IsClubExist(Guid clubId)
+    {
+        return await _context.Clubs.AnyAsync(c => c.ClubID == clubId);
+    }
 }
 

@@ -2,6 +2,7 @@
 using Droniverse.Academy.Application.IService;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
+using Droniverse.Shared.DTOs.Request;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -55,5 +56,12 @@ public class UserLevelController : ControllerBase
             _logger.LogError(ex, "Lấy level cao nhất theo từng drone thất bại.");
             throw;
         }
+    }
+
+    [HttpGet("{userId:guid}/ids")]
+    public async Task<IEnumerable<Guid>> CheckLevelsByUserIds(Guid userId)
+    {
+        var result = await _service.GetUserLevelIdsAsync(userId);
+        return result;
     }
 }

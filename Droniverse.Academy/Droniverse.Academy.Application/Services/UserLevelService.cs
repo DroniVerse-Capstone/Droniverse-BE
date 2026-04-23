@@ -38,6 +38,11 @@ public class UserLevelService : IUserLevelService
         });
     }
 
+    public async Task<IEnumerable<Guid>> GetUserLevelIdsAsync(Guid userId)
+    {
+        return await _unitOfWork.UserLevels.GetUserLevelIdsAsync(userId);
+    }
+
     public async Task<IEnumerable<UserLevelResponse>> GetMaxUserLevelsAsync(Guid userId)
     {
         var levels = await _unitOfWork.Levels.GetAllAsync(

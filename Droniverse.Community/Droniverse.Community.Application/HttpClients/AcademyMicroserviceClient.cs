@@ -994,6 +994,44 @@ public class AcademyMicroserviceClient
         }
     }
 
+    public async Task<IEnumerable<Guid>> GetUserLevelIds(Guid userId)
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync(
+                BuildAcademyPath($"levels/{userId}/ids"));
+
+            if (!response.IsSuccessStatusCode)
+            {
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    _logger.LogWarning("Không tìm thấy level cho user {UserId}", userId);
+                    return Enumerable.Empty<Guid>();
+                }
+
+                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    throw new HttpRequestException(
+                        "Yêu cầu không hợp lệ khi gọi API user level ids",
+                        null,
+                        System.Net.HttpStatusCode.BadRequest);
+                }
+
+                _logger.LogError("Lỗi khi gọi API user level ids: {StatusCode}", response.StatusCode);
+                return Enumerable.Empty<Guid>();
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<IEnumerable<Guid>>(_jsonOptions);
+
+            return result ?? Enumerable.Empty<Guid>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching user level ids for user {UserId}", userId);
+            return Enumerable.Empty<Guid>();
+        }
+    }
+
     private static string BuildManagerCourseBulkSearchQuery(ManagerCourseBulkSearchRequest request)
     {
         var queryParts = new List<string>

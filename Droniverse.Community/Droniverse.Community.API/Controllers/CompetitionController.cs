@@ -303,20 +303,6 @@ namespace Droniverse.Community.API.Controllers
             );
         }
 
-        /// <summary>
-        /// Thêm certificate vào cuộc thi.
-        /// </summary>
-        /// <param name="competitionId">ID của cuộc thi</param>
-        /// <param name="request">Danh sách certificate IDs cần thêm (chỉ nhận đúng 1 ID)</param>
-        /// <remarks>
-        /// **Quy tắc:**
-        ///
-        /// 1. Chỉ cho phép thêm khi Competition ở trạng thái `DRAFT`
-        /// 2. Certificate không được trùng trong cùng một competition (trùng sẽ không được chấp nhận)
-        /// 3. Certificate phải hợp lệ/tồn tại theo dữ liệu tích hợp từ Academy system
-        /// 4. Có thể thêm nhiều certificate trong một request
-        /// </remarks>
-        /// <returns>200 OK - Thêm certificates thành công</returns>
         //[HttpPost("{competitionId}/certificates")]
         //[ProducesResponseType(typeof(SuccessResponse<CompetitionCertificateAdditionResponse>), StatusCodes.Status200OK)]
         //[ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -334,6 +320,13 @@ namespace Droniverse.Community.API.Controllers
         //    );
         //}
 
+
+        /// <summary>
+        /// Thêm/Cập nhật 1 hoặc nhiều level trong 1 competition
+        /// </summary>
+        /// <param name="competitionId">ID của compeititon</param>
+        /// <param name="request">Danh sách các level cần thiết</param>
+        /// <returns></returns>
         [HttpPost("{competitionId}/levels")]
         [ProducesResponseType(typeof(SuccessResponse<CompetitionLevelAdditionResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -350,6 +343,11 @@ namespace Droniverse.Community.API.Controllers
             );
         }
 
+        /// <summary>
+        /// Lấy ra các điều kiện levels cần phải có của competition
+        /// </summary>
+        /// <param name="competitionId">ID của cuộc thi</param>
+        /// <returns>200 - OK</returns>
         [HttpGet("{competitionId}/levels")]
         [ProducesResponseType(typeof(SuccessResponse<IEnumerable<SimpleLevelResponse>>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -362,6 +360,12 @@ namespace Droniverse.Community.API.Controllers
             );
         }
 
+        /// <summary>
+        /// Xóa 1 hoặc nhiều level của competition
+        /// </summary>
+        /// <param name="competitionId">ID của competition</param>
+        /// <param name="request">Danh sách levelID cần phải xóa</param>
+        /// <returns></returns>
         [HttpDelete("{competitionId}/levels")]
         [ProducesResponseType(typeof(SuccessResponse<CompetitionLevelDeletionResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
