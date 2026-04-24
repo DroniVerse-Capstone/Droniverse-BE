@@ -59,7 +59,8 @@ namespace Droniverse.Community.Application.Services
                 request.IsPassed,
                 request.IsSequentialCheckpoints,
                 round.TimeLimit,
-                now
+                now,
+                round.EndTime
             );
 
             await _unitOfWork.UserRounds.Update(userRound);
@@ -68,7 +69,7 @@ namespace Droniverse.Community.Application.Services
             return new SubmitSolutionResponse
             {
                 UserRoundId = userRound.UserRoundID,
-                SubmittedAt = userRound.SubmittedAt ?? userRound.GetEffectiveSubmittedAt(round.TimeLimit, now),
+                SubmittedAt = userRound.SubmittedAt ?? userRound.GetEffectiveSubmittedAt(round.TimeLimit, now, round.EndTime),
                 Status = userRound.Status
             };
         }
@@ -113,18 +114,12 @@ namespace Droniverse.Community.Application.Services
             {
                 UserRoundID = result.UserRoundId,
                 Status = result.Status,
-                Solution = result.Solution ?? string.Empty,
                 Point = result.Point ?? 0,
                 ExecutionTime = result.ExecutionTime ?? TimeSpan.Zero,
-                NumberOfSteps = result.NumberOfSteps ?? 0,
-                PathLength = result.PathLength ?? 0,
                 StartedAt = result.StartedAt,
                 SubmittedAt = result.SubmittedAt ?? result.StartedAt,
                 IsPassed = result.IsPassed ?? false,
                 Rank = result.Rank,
-                Rating = result.Rating,
-                FeedbackVN = result.FeedbackVN,
-                FeedbackEN = result.FeedbackEN,
                 Round = new SimpleRoundResponse
                 {
                     RoundId = result.RoundId,
@@ -205,18 +200,12 @@ namespace Droniverse.Community.Application.Services
             {
                 UserRoundID = ur.UserRoundID,
                 Status = ur.Status,
-                Solution = ur.Solution ?? string.Empty,
                 Point = ur.Point ?? 0,
                 ExecutionTime = ur.ExecutionTime ?? TimeSpan.Zero,
-                NumberOfSteps = ur.NumberOfSteps ?? 0,
-                PathLength = ur.PathLength ?? 0,
                 StartedAt = ur.StartedAt,
                 SubmittedAt = ur.SubmittedAt ?? ur.StartedAt,
                 IsPassed = ur.IsPassed ?? false,
                 Rank = ur.Rank,
-                Rating = ur.Rating,
-                FeedbackVN = ur.FeedbackVN,
-                FeedbackEN = ur.FeedbackEN,
                 Round = new SimpleRoundResponse
                 {
                     RoundId = round.RoundID,
@@ -328,18 +317,12 @@ namespace Droniverse.Community.Application.Services
             {
                 UserRoundID = userRound.UserRoundID,
                 Status = userRound.Status,
-                Solution = userRound.Solution ?? string.Empty,
                 Point = userRound.Point ?? 0,
                 ExecutionTime = userRound.ExecutionTime ?? TimeSpan.Zero,
-                NumberOfSteps = userRound.NumberOfSteps ?? 0,
-                PathLength = userRound.PathLength ?? 0,
                 StartedAt = userRound.StartedAt,
                 SubmittedAt = userRound.SubmittedAt ?? userRound.StartedAt,
                 IsPassed = userRound.IsPassed ?? false,
                 Rank = userRound.Rank,
-                Rating = userRound.Rating,
-                FeedbackVN = userRound.FeedbackVN,
-                FeedbackEN = userRound.FeedbackEN,
                 Round = new SimpleRoundResponse
                 {
                     RoundId = round.RoundID,

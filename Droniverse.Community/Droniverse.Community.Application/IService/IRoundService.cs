@@ -1,6 +1,7 @@
 ﻿using Droniverse.Community.Application.DTO.Extensions;
 using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
+using Droniverse.Community.Domain.Enums;
 
 namespace Droniverse.Community.Application.IService
 {
@@ -9,7 +10,7 @@ namespace Droniverse.Community.Application.IService
         Task<RoundResponseDto> CreateRound(RoundCreateDto request);
         Task<RoundResponseDto> UpdateRound(Guid id, RoundUpdateDto request);
         Task<RoundResponseDto> GetRoundById(Guid id);
-        Task<IEnumerable<RoundResponseDto>> GetRoundsByCompetition(Guid competitionId);
+        Task<IEnumerable<RoundResponseDto>> GetRoundsByCompetition(Guid competitionId, RoundStatus? roundStatus = null);
         Task<RoundResponseDto> StartRound(Guid id);
         Task<RoundResponseDto> FinishRound(Guid id);
         Task<RoundJoinResponse> JoinRound(Guid id);

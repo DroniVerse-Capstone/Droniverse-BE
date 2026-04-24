@@ -41,7 +41,7 @@ internal class RoundRepository : MySqlRepository<Round>, IRoundRepository
                 CompetitionID = r.CompetitionID,
                 NameVN = r.Competition.NameVN,
                 NameEN = r.Competition.NameEN,
-                LabID = r.LabID,
+                VRSimulatorID = r.VRSimilatorID,
                 RoundNumber = r.RoundNumber,
                 StartTime = r.StartTime,
                 EndTime = r.EndTime,
@@ -52,19 +52,28 @@ internal class RoundRepository : MySqlRepository<Round>, IRoundRepository
             .FirstOrDefaultAsync();
     }
 
-    public async Task<IEnumerable<RoundQueryModel>> GetRoundsByCompetitionID(Guid competitionID)
+    public async Task<IEnumerable<RoundQueryModel>> GetRoundsByCompetitionID(
+      Guid competitionID,
+      RoundStatus? roundStatus = null)
     {
-        return await _context.Rounds
+        var query = _context.Rounds
             .AsNoTracking()
-            .Where(r => r.CompetitionID == competitionID && r.Status == RoundStatus.Valid)
+            .Where(r => r.CompetitionID == competitionID);
+
+        if (roundStatus.HasValue)
+            query = query.Where(r => r.Status == roundStatus.Value);
+        else
+            query = query.Where(r => r.Status != RoundStatus.Cancelled);
+
+        return await query
             .OrderBy(r => r.RoundNumber)
-            .Select((r) => new RoundQueryModel
+            .Select(r => new RoundQueryModel
             {
                 RoundID = r.RoundID,
                 CompetitionID = r.CompetitionID,
                 NameVN = r.Competition.NameVN,
                 NameEN = r.Competition.NameEN,
-                LabID = r.LabID,
+                VRSimulatorID = r.VRSimilatorID,
                 RoundNumber = r.RoundNumber,
                 StartTime = r.StartTime,
                 EndTime = r.EndTime,
@@ -74,7 +83,6 @@ internal class RoundRepository : MySqlRepository<Round>, IRoundRepository
             })
             .ToListAsync();
     }
-
     public async Task<RoundQueryModel?> GetCurrentRoundByCompetitionID(Guid competitionID)
     {
         var now = DateTime.UtcNow;
@@ -92,7 +100,7 @@ internal class RoundRepository : MySqlRepository<Round>, IRoundRepository
                 CompetitionID = r.CompetitionID,
                 NameVN = r.Competition.NameVN,
                 NameEN = r.Competition.NameEN,
-                LabID = r.LabID,
+                VRSimulatorID = r.VRSimilatorID,
                 RoundNumber = r.RoundNumber,
                 StartTime = r.StartTime,
                 EndTime = r.EndTime,

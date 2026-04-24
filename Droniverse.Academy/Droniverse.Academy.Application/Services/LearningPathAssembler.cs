@@ -182,9 +182,21 @@ public sealed class LearningPathAssembler
             .Select(x => x.ReferenceID)
             .ToHashSet();
 
+        var webSimulatorIds = lessons
+            .Where(x => x.Type == LessonType.PHYSIC || x.Type == LessonType.LAB_PHYSIC)
+            .Select(x => x.ReferenceID)
+            .ToHashSet();
+
+        var vrSimulatorIds = lessons
+            .Where(x => x.Type == LessonType.VR)
+            .Select(x => x.ReferenceID)
+            .ToHashSet();
+
         var theoryLookup = await GetTheoryMetadataLookupAsync(theoryIds);
         var quizLookup = await GetQuizMetadataLookupAsync(quizIds);
         var labLookup = await GetLabMetadataLookupAsync(labIds);
+        var webSimulatorLookup = await GetWebSimulatorMetadataLookupAsync(webSimulatorIds);
+        var vrSimulatorLookup = await GetVRSimulatorMetadataLookupAsync(vrSimulatorIds);
 
         var result = new Dictionary<Guid, LessonMetadata>();
         foreach (var lesson in lessons)
@@ -194,6 +206,9 @@ public sealed class LearningPathAssembler
                 LessonType.THEORY => theoryLookup.GetValueOrDefault(lesson.ReferenceID),
                 LessonType.QUIZ => quizLookup.GetValueOrDefault(lesson.ReferenceID),
                 LessonType.LAB => labLookup.GetValueOrDefault(lesson.ReferenceID),
+                LessonType.PHYSIC => webSimulatorLookup.GetValueOrDefault(lesson.ReferenceID),
+                LessonType.LAB_PHYSIC => webSimulatorLookup.GetValueOrDefault(lesson.ReferenceID),
+                LessonType.VR => vrSimulatorLookup.GetValueOrDefault(lesson.ReferenceID),
                 _ => null
             };
 
@@ -247,6 +262,36 @@ public sealed class LearningPathAssembler
         return labs.Data.ToDictionary(
             x => x.LabID,
             x => new LessonMetadata(x.NameVN, x.NameEN, x.EstimatedTime));
+    }
+
+    private async Task<Dictionary<Guid, LessonMetadata>> GetWebSimulatorMetadataLookupAsync(IReadOnlySet<Guid> webSimulatorIds)
+    {
+        if (webSimulatorIds.Count == 0)
+            return [];
+
+        var webSimulators = await _unitOfWork.WebSimulators.GetAllAsync(
+            filter: x => webSimulatorIds.Contains(x.WebSimulatorID),
+            pageIndex: 1,
+            pageSize: 10000);
+
+        return webSimulators.Data.ToDictionary(
+            x => x.WebSimulatorID,
+            x => new LessonMetadata(x.TitleVN, x.TitleEN, x.EstimatedTime));
+    }
+
+    private async Task<Dictionary<Guid, LessonMetadata>> GetVRSimulatorMetadataLookupAsync(IReadOnlySet<Guid> vrSimulatorIds)
+    {
+        if (vrSimulatorIds.Count == 0)
+            return [];
+
+        var vrSimulators = await _unitOfWork.VRSimulators.GetAllAsync(
+            filter: x => vrSimulatorIds.Contains(x.VRSimulatorID),
+            pageIndex: 1,
+            pageSize: 10000);
+
+        return vrSimulators.Data.ToDictionary(
+            x => x.VRSimulatorID,
+            x => new LessonMetadata(x.TitleVN, x.TitleEN, x.EstimatedTime));
     }
 
     private static bool IsCompletedUserLesson(UserLesson? userLesson)

@@ -17,19 +17,6 @@ using System.Text.Json.Serialization;
 
 namespace Droniverse.Community.Application.HttpClients;
 
-public class CourseResponse
-{
-    public Guid CourseId { get; set; }
-    public string CourseName { get; set; } = string.Empty;
-    public string CourseDescription { get; set; } = string.Empty;
-    public string Instructor { get; set; } = string.Empty;
-    public int Duration { get; set; }
-    public string Level { get; set; } = string.Empty;
-    public DateTime CreatedDate { get; set; }
-    public DateTime? UpdatedDate { get; set; }
-    public bool IsActive { get; set; }
-}
-
 public class AcademyMicroserviceClient
 {
     private readonly HttpClient _httpClient;
@@ -653,6 +640,58 @@ public class AcademyMicroserviceClient
         }
     }
 
+    public async Task<IEnumerable<SimpleLevelResponse>> GetLevelsBulk(
+      IEnumerable<Guid> levelIds,
+      CancellationToken cancellationToken = default)
+    {
+        if (levelIds == null)
+            return [];
+
+        var distinctIds = levelIds
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        if (!distinctIds.Any())
+            return [];
+
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync(
+                BuildAcademyPath("levels/bulk"),
+                distinctIds,
+                cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError(
+                    "Academy levels bulk API failed. StatusCode: {StatusCode}, Count: {Count}",
+                    response.StatusCode,
+                    distinctIds.Count);
+
+                return [];
+            }
+
+            var levels = await response.Content.ReadFromJsonAsync<
+                IEnumerable<SimpleLevelResponse>>(cancellationToken);
+
+            return levels ?? [];
+        }
+        catch (TaskCanceledException)
+        {
+            _logger.LogError("Academy levels bulk API timeout. Count: {Count}", distinctIds.Count);
+            return [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Error calling Academy levels bulk API. Count: {Count}",
+                distinctIds.Count);
+
+            return [];
+        }
+    }
+
     public async Task<PagedCourseBulkResponse> GetCourseById(
         Guid clubId,
         CourseBulkSearchRequest searchRequest)
@@ -893,6 +932,177 @@ public class AcademyMicroserviceClient
         {
             _logger.LogError(ex, "Lỗi khi gọi courses/by-ids/management");
             return CreatePagedCourseResponse([], 0);
+        }
+    }
+
+    public async Task<SimpleVRSimulatorResponse> GetSimpleVRSimulator(Guid vrSimulatorId)
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync(
+                BuildAcademyPath($"vr-simulators/{vrSimulatorId}/check"));
+
+            if (!response.IsSuccessStatusCode)
+            {
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    _logger.LogWarning("Không tìm thấy VR Simulator với ID {VrSimulatorId}", vrSimulatorId);
+
+                    throw new NotFoundException("Không tìm thấy VR Simulator");
+                }
+
+                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    throw new HttpRequestException(
+                        "Yêu cầu không hợp lệ khi gọi Academy service.",
+                        null,
+                        System.Net.HttpStatusCode.BadRequest);
+                }
+
+                if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                {
+                    _logger.LogError("Academy service không khả dụng.");
+                    throw new HttpRequestException(
+                        "Dịch vụ Academy tạm thời không khả dụng.",
+                        null,
+                        System.Net.HttpStatusCode.ServiceUnavailable);
+                }
+
+                throw new HttpRequestException(
+                    $"Lỗi Academy service: {response.StatusCode}",
+                    null,
+                    response.StatusCode);
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<SimpleVRSimulatorResponse>(_jsonOptions);
+
+            if (result == null)
+            {
+                throw new NotFoundException("Không tìm thấy dữ liệu VR Simulator hợp lệ");
+            }
+
+            return result;
+        }
+        catch (NotFoundException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi gọi API VR Simulator với ID {VrSimulatorId}", vrSimulatorId);
+            throw;
+        }
+    }
+
+    public async Task<IEnumerable<SimpleVRSimulatorResponse>> GetVRSimulatorsByIds(IEnumerable<Guid> vrSimulatorIds)
+    {
+        if (vrSimulatorIds == null || !vrSimulatorIds.Any())
+            return [];
+
+        var distinctIds = vrSimulatorIds
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        if (!distinctIds.Any())
+            return [];
+
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync(
+                BuildAcademyPath("vr-simulators/check"),
+                distinctIds
+            );
+
+            if (!response.IsSuccessStatusCode)
+            {
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    _logger.LogWarning("Không tìm thấy VR Simulator theo danh sách ID.");
+                    throw new NotFoundException("Không tìm thấy VR Simulator");
+                }
+
+                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    throw new HttpRequestException(
+                        "Yêu cầu không hợp lệ khi gọi Academy service.",
+                        null,
+                        System.Net.HttpStatusCode.BadRequest);
+                }
+
+                if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                {
+                    _logger.LogError("Academy service không khả dụng.");
+                    throw new HttpRequestException(
+                        "Dịch vụ Academy tạm thời không khả dụng.",
+                        null,
+                        System.Net.HttpStatusCode.ServiceUnavailable);
+                }
+
+                throw new HttpRequestException(
+                    $"Lỗi Academy service: {response.StatusCode}",
+                    null,
+                    response.StatusCode);
+            }
+
+            var result = await response.Content
+                .ReadFromJsonAsync<IEnumerable<SimpleVRSimulatorResponse>>(_jsonOptions);
+
+            if (result == null || !result.Any())
+            {
+                throw new NotFoundException("Không tìm thấy dữ liệu VR Simulator");
+            }
+
+            return result
+                .Where(x => x != null && x.VRSimulatorId != Guid.Empty)
+                .ToList();
+        }
+        catch (NotFoundException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi gọi API VR Simulator bulk");
+            throw;
+        }
+    }
+
+    public async Task<IEnumerable<Guid>> GetUserLevelIds(Guid userId)
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync(
+                BuildAcademyPath($"levels/{userId}/ids"));
+
+            if (!response.IsSuccessStatusCode)
+            {
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    _logger.LogWarning("Không tìm thấy level cho user {UserId}", userId);
+                    return Enumerable.Empty<Guid>();
+                }
+
+                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    throw new HttpRequestException(
+                        "Yêu cầu không hợp lệ khi gọi API user level ids",
+                        null,
+                        System.Net.HttpStatusCode.BadRequest);
+                }
+
+                _logger.LogError("Lỗi khi gọi API user level ids: {StatusCode}", response.StatusCode);
+                return Enumerable.Empty<Guid>();
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<IEnumerable<Guid>>(_jsonOptions);
+
+            return result ?? Enumerable.Empty<Guid>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching user level ids for user {UserId}", userId);
+            return Enumerable.Empty<Guid>();
         }
     }
 

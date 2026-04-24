@@ -21,6 +21,7 @@ namespace Droniverse.Academy.Domain.IRepository
         IQuizQuestionRepository QuizQuestions { get; }
         IReportRepository Reports { get; }
         IWebSimulatorRepository WebSimulators { get; }
+        IUserSimulatorRepository UserSimulators { get; }
         ITheoryRepository Theories { get; }
         IUserCertificateRepository UserCertificates { get; }
         IUserLabRepository UserLabs { get; }

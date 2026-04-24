@@ -9,7 +9,7 @@ public class Round
     public Guid RoundID { get; private set; }
     public Guid CompetitionID { get; private set; }
     public Competition Competition { get; private set; }
-    public Guid LabID { get; private set; }
+    public Guid VRSimilatorID { get; private set; }
     public int RoundNumber { get; private set; }
     public DateTime StartTime { get; private set; }
     public DateTime EndTime { get; private set; }
@@ -29,7 +29,7 @@ public class Round
     private Round() { }
     public Round(
         Guid competitionId,
-        Guid labId,
+        Guid vrSimulatorId,
         int roundNumber,
         DateTime startTime,
         DateTime endTime,
@@ -42,7 +42,7 @@ public class Round
 
         RoundID = Guid.NewGuid();
         CompetitionID = competitionId;
-        LabID = labId;
+        VRSimilatorID = vrSimulatorId;
         RoundNumber = roundNumber;
         TimeLimit = timeLimit;
         StartTime = startTime;
@@ -60,7 +60,7 @@ public class Round
 
         RoundID = Guid.NewGuid();
         CompetitionID = competitionId;
-        LabID = labId;
+        VRSimilatorID = labId;
         RoundNumber = roundNumber;
         TimeLimit = timeLimit;
         StartTime = startTime;
@@ -147,14 +147,14 @@ public class Round
         if (startTime >= endTime)
             throw new ArgumentException("Thời gian bắt đầu phải trước thời gian kết thúc.");
 
-        LabID = labId;
+        VRSimilatorID = labId;
         StartTime = startTime;
         EndTime = endTime;
         Status = RoundStatus.Valid;
         IsSummarized = false;
     }
 
-    public void UpdateInfo(Guid labId, DateTime startTime, DateTime endTime, DateTime now, Guid? updatedBy)
+    public void UpdateInfo(Guid labId, DateTime startTime, DateTime endTime, TimeSpan timeLimmit, DateTime now, Guid? updatedBy)
     {
         if (Status == RoundStatus.Cancelled)
             throw new InvalidOperationException("Không thể cập nhật round đã bị hủy.");
@@ -162,9 +162,10 @@ public class Round
         if (startTime >= endTime)
             throw new ArgumentException("Thời gian bắt đầu phải trước thời gian kết thúc.");
 
-        LabID = labId;
+        VRSimilatorID = labId;
         StartTime = startTime;
         EndTime = endTime;
+        TimeLimit = timeLimmit;
         Status = RoundStatus.Valid;
         IsSummarized = false;
         SetUpdated(now, updatedBy);

@@ -25,6 +25,7 @@ internal class UnitOfWork : IUnitOfWork
     private IQuizQuestionRepository _quizQuestion;
     private IReportRepository _report;
     private IWebSimulatorRepository _webSimulator;
+    private IUserSimulatorRepository _userSimulator;
     private ITheoryRepository _theory;
     private IUserCertificateRepository _userCertificate;
     private IUserLabRepository _userLab;
@@ -75,6 +76,8 @@ internal class UnitOfWork : IUnitOfWork
     public IReportRepository Reports => _report ??= new ReportRepository(_mySqlContext);
 
     public IWebSimulatorRepository WebSimulators => _webSimulator ??= new WebSimulatorRepository(_mySqlContext);
+
+    public IUserSimulatorRepository UserSimulators => _userSimulator ??= new UserSimulatorRepository(_mySqlContext);
 
     public ITheoryRepository Theories => _theory ??= new TheoryRepository(_mySqlContext);
 

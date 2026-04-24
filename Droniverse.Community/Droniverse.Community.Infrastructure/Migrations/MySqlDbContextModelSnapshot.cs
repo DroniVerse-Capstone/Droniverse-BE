@@ -363,6 +363,21 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     b.ToTable("CompetitionCertificate", (string)null);
                 });
 
+            modelBuilder.Entity("Droniverse.Community.Domain.Entities.CompetitionLevel", b =>
+                {
+                    b.Property<Guid>("CompetitionID")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("LevelID")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("CompetitionID", "LevelID");
+
+                    b.HasIndex("LevelID");
+
+                    b.ToTable("CompetitionLevel", (string)null);
+                });
+
             modelBuilder.Entity("Droniverse.Community.Domain.Entities.Media", b =>
                 {
                     b.Property<Guid>("MediaID")
@@ -593,9 +608,6 @@ namespace Droniverse.Community.Infrastructure.Migrations
                         .HasColumnType("tinyint(1)")
                         .HasDefaultValue(false);
 
-                    b.Property<Guid>("LabID")
-                        .HasColumnType("char(36)");
-
                     b.Property<int>("RoundNumber")
                         .HasColumnType("int");
 
@@ -612,6 +624,9 @@ namespace Droniverse.Community.Infrastructure.Migrations
                         .HasColumnType("datetime");
 
                     b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("VRSimilatorID")
                         .HasColumnType("char(36)");
 
                     b.HasKey("RoundID");
@@ -892,23 +907,8 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     b.Property<TimeSpan?>("ExecutionTime")
                         .HasColumnType("time");
 
-                    b.Property<string>("FeedbackEN")
-                        .HasColumnType("text");
-
-                    b.Property<string>("FeedbackVN")
-                        .HasColumnType("text");
-
                     b.Property<bool?>("IsPassed")
                         .HasColumnType("tinyint(1)");
-
-                    b.Property<bool?>("IsSequentialCheckpoints")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<int?>("NumberOfSteps")
-                        .HasColumnType("int");
-
-                    b.Property<float?>("PathLength")
-                        .HasColumnType("float");
 
                     b.Property<decimal?>("Point")
                         .HasColumnType("decimal(18,2)");
@@ -916,14 +916,8 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     b.Property<int?>("Rank")
                         .HasColumnType("int");
 
-                    b.Property<int?>("Rating")
-                        .HasColumnType("int");
-
                     b.Property<Guid>("RoundID")
                         .HasColumnType("char(36)");
-
-                    b.Property<string>("Solution")
-                        .HasColumnType("text");
 
                     b.Property<DateTime>("StartedAt")
                         .HasColumnType("datetime");
@@ -1008,6 +1002,17 @@ namespace Droniverse.Community.Infrastructure.Migrations
                         .WithMany("CompetitionCertificates")
                         .HasForeignKey("CompetitionID")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Competition");
+                });
+
+            modelBuilder.Entity("Droniverse.Community.Domain.Entities.CompetitionLevel", b =>
+                {
+                    b.HasOne("Droniverse.Community.Domain.Entities.Competition", "Competition")
+                        .WithMany("CompetitionLevels")
+                        .HasForeignKey("CompetitionID")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Competition");
@@ -1147,6 +1152,8 @@ namespace Droniverse.Community.Infrastructure.Migrations
             modelBuilder.Entity("Droniverse.Community.Domain.Entities.Competition", b =>
                 {
                     b.Navigation("CompetitionCertificates");
+
+                    b.Navigation("CompetitionLevels");
 
                     b.Navigation("CompetitionPrizes");
 

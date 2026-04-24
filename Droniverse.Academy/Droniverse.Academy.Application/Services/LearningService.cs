@@ -71,6 +71,7 @@ public class LearningService : ILearningService
     {
         var userLessonsResult = await _unitOfWork.UserLessons.GetAllAsync(
             filter: x => x.UserID == _currentUser.UserId
+                         && x.Status == UserLessonStatus.COMPLETED 
                          && x.Status == UserLessonStatus.INCOMPLETED
                          && x.Lesson.Type == LessonType.VR,
             orderBy: q => q.OrderByDescending(x => x.LastAccessDate),
@@ -103,7 +104,10 @@ public class LearningService : ILearningService
         {
             var lesson = userLesson.Lesson;
             vrLookup.TryGetValue(lesson.ReferenceID, out var vrSimulator);
-
+            var enrollmentId = _unitOfWork.Enrollments.GetByConditionAsync(
+                x => x.UserID == _currentUser.UserId
+                     && x.CourseVersionID == lesson.Module.CourseVersionID && x.Status == EnrollStatus.ACTIVE)
+                .GetAwaiter().GetResult()?.EnrollmentID ?? Guid.Empty;
             return new IncompleteVRLessonResponseDTO
             {
                 UserLessonID = userLesson.UserLessonID,
@@ -117,7 +121,8 @@ public class LearningService : ILearningService
                 EstimatedTime = vrSimulator?.EstimatedTime,
                 Status = userLesson.Status,
                 Progress = userLesson.Progress,
-                LastAccessDate = userLesson.LastAccessDate
+                LastAccessDate = userLesson.LastAccessDate,
+                EnrollmentID = enrollmentId
             };
         });
     }
@@ -220,6 +225,11 @@ public class LearningService : ILearningService
         return await CompleteLessonInternalAsync(enrollmentId, lessonId, CompletionMode.Direct);
     }
 
+    public async Task<CompleteLessonResultDTO> CompleteLessonBySimulatorSubmitAsync(Guid enrollmentId, Guid lessonId)
+    {
+        return await CompleteLessonInternalAsync(enrollmentId, lessonId, CompletionMode.SimulatorSubmit);
+    }
+
     public async Task<CompleteLessonResultDTO> CompleteLessonByAssessmentAsync(Guid enrollmentId, Guid lessonId)
     {
         return await CompleteLessonInternalAsync(enrollmentId, lessonId, CompletionMode.Assessment);
@@ -274,8 +284,11 @@ public class LearningService : ILearningService
 
     private static void EnsureLessonCanBeCompletedInMode(Lesson lesson, CompletionMode mode)
     {
-        if (mode == CompletionMode.Direct && lesson.Type is not (LessonType.THEORY or LessonType.PHYSIC or LessonType.LAB_PHYSIC or LessonType.VR))
-            throw new ForbiddenException("Chỉ lesson theory, physic, lab_physic hoặc VR mới có thể hoàn thành trực tiếp.");
+        if (mode == CompletionMode.Direct && lesson.Type is not (LessonType.PHYSIC or LessonType.THEORY))
+            throw new ForbiddenException("Chỉ lesson theory, physic mới có thể hoàn thành trực tiếp.");
+
+        if (mode == CompletionMode.SimulatorSubmit && lesson.Type is not (LessonType.LAB_PHYSIC or LessonType.VR))
+            throw new ForbiddenException("Chỉ lesson simulator (lab_physic hoặc VR) mới có thể hoàn thành qua nộp simulator.");
 
         if (mode == CompletionMode.Assessment && lesson.Type is not (LessonType.QUIZ or LessonType.LAB ))
             throw new ForbiddenException("Chỉ lesson quiz hoặc lab mới có thể hoàn thành qua nộp bài.");
@@ -395,6 +408,7 @@ public class LearningService : ILearningService
     private enum CompletionMode
     {
         Direct,
+        SimulatorSubmit,
         Assessment
     }
 }

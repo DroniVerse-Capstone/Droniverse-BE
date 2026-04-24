@@ -50,11 +50,11 @@ namespace Droniverse.Community.Application.Services
             var existingRounds = await _unitOfWork.Rounds.GetManyByCondition(r => r.CompetitionID == request.CompetitionID);
             var nextRoundNumber = (existingRounds?.Select(r => r.RoundNumber).DefaultIfEmpty(0).Max() ?? 0) + 1;
 
-            await ValidateRoundData(request.CompetitionID, request.LabID, request.StartTime, request.EndTime, competition, null);
+            await ValidateRoundData(request.CompetitionID, request.VRSimilatorID, request.StartTime, request.EndTime, request.LimitTime, competition, null);
 
             var round = new Round(
                 request.CompetitionID,
-                request.LabID,
+                request.VRSimilatorID,
                 nextRoundNumber,
                 request.StartTime,
                 request.EndTime,
@@ -110,7 +110,7 @@ namespace Droniverse.Community.Application.Services
             await _unitOfWork.UserRounds.Add(userRound);
             await _unitOfWork.SaveChangeAsync();
 
-            var deadlineAt = userRound.GetDeadline(round.TimeLimit);
+            var deadlineAt = userRound.GetDeadline(round.TimeLimit, round.EndTime);
 
             return new RoundJoinResponse
             {
@@ -120,7 +120,7 @@ namespace Droniverse.Community.Application.Services
                 DeadlineAt = deadlineAt,
                 ServerTime = now,
                 Status = userRound.Status,
-                RemainingSeconds = userRound.GetRemainingSeconds(round.TimeLimit, now)
+                RemainingSeconds = userRound.GetRemainingSeconds(round.TimeLimit, now, round.EndTime)
             };
         }
 
@@ -139,9 +139,10 @@ namespace Droniverse.Community.Application.Services
 
             await ValidateRoundData(
                 round.CompetitionID,
-                request.LabID,
+                request.VRSimulatorID,
                 request.StartTime,
                 request.EndTime,
+                request.TimeLimit,
                 competition,
                 id
             );
@@ -149,9 +150,10 @@ namespace Droniverse.Community.Application.Services
             var wasInvalid = round.Status == RoundStatus.ScheduleInvalid;
 
             round.UpdateInfo(
-                request.LabID,
+                request.VRSimulatorID,
                 request.StartTime,
                 request.EndTime,
+                request.TimeLimit,
                 now,
                 currentUserId
             );
@@ -178,18 +180,18 @@ namespace Droniverse.Community.Application.Services
             return await MapToRoundResponse(round, competition);
         }
 
-        public async Task<IEnumerable<RoundResponseDto>> GetRoundsByCompetition(Guid competitionId)
+        public async Task<IEnumerable<RoundResponseDto>> GetRoundsByCompetition(Guid competitionId, RoundStatus? roundStatus = null)
         {
             var competition = await _unitOfWork.Competitions.GetByCondition(c => c.CompetitionID == competitionId);
             if (competition == null)
                 throw new KeyNotFoundException($"Không tìm thấy cuộc thi với ID [{competitionId}].");
 
-            var rounds = (await _unitOfWork.Rounds.GetRoundsByCompetitionID(competitionId)).ToList();
-            if (rounds.Count == 0)
+            var rounds = await _unitOfWork.Rounds.GetRoundsByCompetitionID(competitionId, roundStatus);
+            if (rounds.Count() == 0)
                 return [];
 
-            var labs = await _academyMicroserviceClient.GetLabsByIds(rounds.Select(x => x.LabID));
-            var labById = labs.ToDictionary(x => x.LabID, x => x);
+            var vrSimulators = await _academyMicroserviceClient.GetVRSimulatorsByIds(rounds.Select(x => x.VRSimulatorID));
+            var vrSimulatorById = vrSimulators.ToDictionary(x => x.VRSimulatorId, x => x);
             var competitionPhase = CommunityAppHelpers.GetCurrentCompetitionLifeCycle(competition, _clock.Now);
 
             return rounds.Select((r, index) =>
@@ -198,7 +200,7 @@ namespace Droniverse.Community.Application.Services
                 {
                     RoundID = r.RoundID,
                     Competition = BuildSimpleCompetitionResponse(competition),
-                    Lab = BuildSimpleLabResponse(r.LabID, labById),
+                    VRSimulator = BuildSimpleVRSimulatorResponse(r.VRSimulatorID, vrSimulatorById),
                     RoundNumber = index + 1,
                     StartTime = r.StartTime,
                     EndTime = r.EndTime,
@@ -443,8 +445,6 @@ namespace Droniverse.Community.Application.Services
                             User = MapParticipantUser(x.UserRound.UserID, user),
                             Point = x.UserRound.Point ?? 0,
                             ExecutionTime = x.UserRound.ExecutionTime ?? TimeSpan.Zero,
-                            NumberOfSteps = x.UserRound.NumberOfSteps ?? 0,
-                            PathLength = x.UserRound.PathLength ?? 0,
                             IsPassed = x.UserRound.IsPassed ?? false,
                             Status = x.UserRound.Status,
                             SubmittedAt = x.UserRound.SubmittedAt,
@@ -508,8 +508,6 @@ namespace Droniverse.Community.Application.Services
                         },
                         Point = x.UserRound.Point ?? 0,
                         ExecutionTime = x.UserRound.ExecutionTime ?? TimeSpan.Zero,
-                        NumberOfSteps = x.UserRound.NumberOfSteps ?? 0,
-                        PathLength = x.UserRound.PathLength ?? 0,
                         IsPassed = x.UserRound.IsPassed ?? false,
                         Status = x.UserRound.Status,
                         SubmittedAt = x.UserRound.SubmittedAt,
@@ -610,8 +608,6 @@ namespace Droniverse.Community.Application.Services
                         },
                         Point = x.UserRound.Point ?? 0,
                         ExecutionTime = x.UserRound.ExecutionTime ?? TimeSpan.Zero,
-                        NumberOfSteps = x.UserRound.NumberOfSteps ?? 0,
-                        PathLength = x.UserRound.PathLength ?? 0,
                         IsPassed = x.UserRound.IsPassed ?? false,
                         Status = x.UserRound.Status,
                         SubmittedAt = x.UserRound.SubmittedAt,
@@ -646,15 +642,25 @@ namespace Droniverse.Community.Application.Services
 
         private async Task ValidateRoundData(
             Guid competitionId,
-            Guid labId,
+            Guid vrSimulatorId,
             DateTime startTime,
             DateTime endTime,
+            TimeSpan timeLimit,
             Competition competition,
             Guid? excludeRoundId = null)
         {
             // Validate StartTime < EndTime
             if (startTime >= endTime)
                 throw new InvalidOperationException("Thời gian bắt đầu của vòng thi phải trước thời gian kết thúc.");
+
+            // Validate TimeLimit > 0
+            if (timeLimit <= TimeSpan.Zero)
+                throw new InvalidOperationException("Thời gian làm bài (TimeLimit) phải lớn hơn 0.");
+
+            // Validate TimeLimit không vượt quá duration round
+            var duration = endTime - startTime;
+            if (timeLimit > duration)
+                throw new InvalidOperationException("Thời gian làm bài không được vượt quá thời gian của vòng thi.");
 
             // Validate thời gian Round nằm trong thời gian Competition
             if (startTime < competition.StartDate || startTime > competition.EndDate)
@@ -665,7 +671,7 @@ namespace Droniverse.Community.Application.Services
 
             // Lấy danh sách rounds của competition (exclude round hiện tại nếu đang update)
             var existingRounds = await _unitOfWork.Rounds.GetManyByCondition(
-                r => r.CompetitionID == competitionId && (!excludeRoundId.HasValue || r.RoundID != excludeRoundId.Value)
+                r => r.CompetitionID == competitionId && ((!excludeRoundId.HasValue || r.RoundID != excludeRoundId.Value) && r.Status != RoundStatus.Cancelled)
             );
 
             // Validate RoundNumber không trùng
@@ -681,26 +687,23 @@ namespace Droniverse.Community.Application.Services
                                    (startTime <= existingRnd.StartTime && endTime >= existingRnd.EndTime);
 
                 if (timeOverlap)
-                    throw new InvalidOperationException($"Thời gian vòng thi bị trùng với vòng [{existingRnd.RoundNumber}] ({existingRnd.StartTime:yyyy-MM-dd HH:mm} - {existingRnd.EndTime:yyyy-MM-dd HH:mm}).");
+                    throw new InvalidOperationException($"Thời gian vòng thi bị trùng với vòng thi khác ({existingRnd.StartTime:yyyy-MM-dd HH:mm} - {existingRnd.EndTime:yyyy-MM-dd HH:mm}).");
             }
 
-            // Validate Lab không trùng với các round khác
-            var roundWithSameLab = existingRounds.FirstOrDefault(r => r.LabID == labId);
-            if (roundWithSameLab != null)
-                throw new InvalidOperationException($"Lab này đã được chọn ở Round {roundWithSameLab.RoundNumber} rồi.");
+            // Validate VRSimulator không trùng với các round khác
+            var roundWithSameSimulator = existingRounds.FirstOrDefault(r => r.VRSimilatorID == vrSimulatorId);
+            if (roundWithSameSimulator != null)
+                throw new InvalidOperationException($"Bài VR mô phỏng này đã được chọn rồi.");
 
-            // Validate Lab tồn tại trong Academy Microservice (chỉ validate nếu là create hoặc LabID thay đổi)
-            if (!excludeRoundId.HasValue || (excludeRoundId.HasValue && existingRounds.All(r => r.LabID != labId)))
-            {
-                var labExists = await _academyMicroserviceClient.IsLabExist(labId);
-                if (!labExists)
-                    throw new KeyNotFoundException($"Không tìm thấy bài lab.");
-            }
+            // Validate VRSimulator tồn tại trong Academy Microservice (chỉ validate nếu là create hoặc VRSimulatorID thay đổi)
+            if (!excludeRoundId.HasValue || (excludeRoundId.HasValue && existingRounds.All(r => r.VRSimilatorID != vrSimulatorId)))
+                await _academyMicroserviceClient.GetSimpleVRSimulator(vrSimulatorId);
+
         }
 
         private SimpleCompetitionResponse BuildSimpleCompetitionResponse(Competition competition)
         {
-            if (competition == null) throw new ArgumentNullException("Không tìm thấy dữ liệu cuộc thi về bài lab này!");
+            if (competition == null) throw new ArgumentNullException("Không tìm thấy dữ liệu cuộc thi về bài VR mô phỏng này!");
 
             return new SimpleCompetitionResponse
             {
@@ -722,8 +725,8 @@ namespace Droniverse.Community.Application.Services
 
         private async Task<RoundResponseDto> MapToRoundResponse(RoundQueryModel round, Competition? competition)
         {
-            var labs = await _academyMicroserviceClient.GetLabsByIds([round.LabID]);
-            var labById = labs.ToDictionary(x => x.LabID, x => x);
+            var vrSimulators = await _academyMicroserviceClient.GetVRSimulatorsByIds([round.VRSimulatorID]);
+            var simulatorById = vrSimulators.ToDictionary(x => x.VRSimulatorId, x => x);
 
             var competitionPhase = competition != null
                 ? CommunityAppHelpers.GetCurrentCompetitionLifeCycle(competition, _clock.Now)
@@ -738,7 +741,7 @@ namespace Droniverse.Community.Application.Services
                     NameVN = round.NameVN,
                     NameEN = round.NameEN
                 },
-                Lab = BuildSimpleLabResponse(round.LabID, labById),
+                VRSimulator = BuildSimpleVRSimulatorResponse(round.VRSimulatorID, simulatorById),
                 RoundNumber = round.RoundNumber,
                 StartTime = round.StartTime,
                 EndTime = round.EndTime,
@@ -821,16 +824,16 @@ namespace Droniverse.Community.Application.Services
             }
         }
 
-        private static SimpleLabResponse BuildSimpleLabResponse(Guid labId, IReadOnlyDictionary<Guid, SimpleLabResponse> labById)
+        private static SimpleVRSimulatorResponse BuildSimpleVRSimulatorResponse(Guid vrSimulatorId, IReadOnlyDictionary<Guid, SimpleVRSimulatorResponse> vrSimulatorById)
         {
-            if (labById.TryGetValue(labId, out var lab))
-                return lab;
+            if (vrSimulatorById.TryGetValue(vrSimulatorId, out var vrSimulator))
+                return vrSimulator;
 
-            return new SimpleLabResponse
+            return new SimpleVRSimulatorResponse
             {
-                LabID = labId,
-                LabNameVN = "Unknown Lab",
-                LabNameEN = "Unknown Lab"
+                VRSimulatorId = vrSimulatorId,
+                TitleVN = "Unknown Simulation",
+                TitleEN = "Unknown Simulation"
             };
         }
     }

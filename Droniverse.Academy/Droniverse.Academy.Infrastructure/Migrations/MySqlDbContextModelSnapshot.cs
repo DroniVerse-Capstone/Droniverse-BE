@@ -993,6 +993,36 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Droniverse.Academy.Domain.Entities.UserSimulator", b =>
+                {
+                    b.Property<Guid>("UserSimulatorID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("FlightTime")
+                        .HasColumnType("int");
+
+                    b.Property<ulong>("IsSuccess")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("LessonID")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int?>("Score")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("UserID")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("UserSimulatorID");
+
+                    b.HasIndex("LessonID");
+
+                    b.HasIndex("UserID", "LessonID");
+
+                    b.ToTable("UserSimulator", (string)null);
+                });
+
             modelBuilder.Entity("Droniverse.Academy.Domain.Entities.VRSimulator", b =>
                 {
                     b.Property<Guid>("VRSimulatorID")
@@ -1393,6 +1423,17 @@ namespace Droniverse.Academy.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Module");
+                });
+
+            modelBuilder.Entity("Droniverse.Academy.Domain.Entities.UserSimulator", b =>
+                {
+                    b.HasOne("Droniverse.Academy.Domain.Entities.Lesson", "Lesson")
+                        .WithMany()
+                        .HasForeignKey("LessonID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Lesson");
                 });
 
             modelBuilder.Entity("Droniverse.Academy.Domain.Entities.WebSimulator", b =>

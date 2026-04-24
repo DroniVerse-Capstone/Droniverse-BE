@@ -96,6 +96,8 @@ namespace Droniverse.Community.Application.Services
             };
         }
 
+
+
         public async Task<SimpleCertificateResponse> AddSingleCertificateToCompetition(
             Guid competitionId,
             CompetitionCertificateAddDto request)
@@ -158,6 +160,8 @@ namespace Droniverse.Community.Application.Services
                 .Select(id => certificateDict[id])
                 .ToList();
         }
+
+ 
 
         public async Task<CompetitionCertificateDeletionResponse> RemoveCertificatesFromCompetition(Guid competitionId, CompetitionCertificateRemoveDto request)
         {
@@ -229,5 +233,7 @@ namespace Droniverse.Community.Application.Services
                 RemainingCertificates = remainingCertificates
             };
         }
+
+        
     }
 }

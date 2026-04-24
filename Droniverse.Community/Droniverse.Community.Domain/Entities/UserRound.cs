@@ -6,27 +6,26 @@ public class UserRound
     public Guid UserID { get; private set; }
     public Guid RoundID { get; private set; }
     public Round Round { get; private set; }
-    public string? Solution { get; private set; }
 
     // DB: time → nullable
     public TimeSpan? ExecutionTime { get; private set; }
-    public int? NumberOfSteps { get; private set; }
-    public double? PathLength { get; private set; }
-    public string? FeedbackVN { get; private set; }
-    public string? FeedbackEN { get; private set; }
-    public int? Rating { get; private set; }
     public decimal? Point { get; private set; }
     public bool? IsPassed { get; private set; }
-    public bool? IsSequentialCheckpoints { get; private set; }
     public UserRoundStatus Status { get; private set; }
     public DateTime? SubmittedAt { get; private set; }
     public DateTime StartedAt { get; private set; }
     public int? Rank { get; private set; }
     private UserRound() { }
-    public DateTime GetDeadline(TimeSpan duration) => StartedAt + duration;
-    public int GetRemainingSeconds(TimeSpan t, DateTime now)
+    public DateTime GetDeadline(TimeSpan duration, DateTime roundEndTime)
     {
-        var remaining = (GetDeadline(t) - now).TotalSeconds;
+        var deadline = StartedAt + duration;
+
+        return deadline > roundEndTime ? roundEndTime : deadline;
+    }
+
+    public int GetRemainingSeconds(TimeSpan t, DateTime now, DateTime roundEndTime)
+    {
+        var remaining = (GetDeadline(t,roundEndTime) - now).TotalSeconds;
         return remaining > 0 ? (int)remaining : 0;
     }
     /// <summary>
@@ -46,13 +45,12 @@ public class UserRound
     public void SubmitSolution(string solution, DateTime now)
     {
         ValidateSubmit();
-        Solution = solution;
         SubmittedAt = now;
     }
 
-    public DateTime GetEffectiveSubmittedAt(TimeSpan t, DateTime now)
+    public DateTime GetEffectiveSubmittedAt(TimeSpan t, DateTime now, DateTime roundEndTime)
     {
-        var deadline = GetDeadline(t);
+        var deadline = GetDeadline(t, roundEndTime);
         return now > deadline ? deadline : now;
     }
 
@@ -65,20 +63,16 @@ public class UserRound
         bool isSequentialCheckpoints,
         TimeSpan t,
         DateTime now,
+        DateTime roundEndTime,
         string? feedbackVN = null,
         string? feedbackEN = null)
     {
         ValidateComplete();
-        Solution = solution;
         ExecutionTime = executionTime;
-        NumberOfSteps = steps;
         Point = point;
         IsPassed = isPassed;
-        IsSequentialCheckpoints = isSequentialCheckpoints;
-        FeedbackVN = feedbackVN;
-        FeedbackEN = feedbackEN;
         Status = UserRoundStatus.Completed;
-        SubmittedAt = GetEffectiveSubmittedAt(t, now);
+        SubmittedAt = GetEffectiveSubmittedAt(t, now, roundEndTime);
     }
 
     public void Complete(
@@ -87,18 +81,16 @@ public class UserRound
         double pathLength,
         decimal point,
         DateTime now,
+        TimeSpan t,
+        DateTime roundEndTime,
         string? feedbackVN = null,
         string? feedbackEN = null)
     {
         ValidateComplete();
         ExecutionTime = executionTime;
-        NumberOfSteps = steps;
-        PathLength = pathLength;
         Point = point;
-        FeedbackVN = feedbackVN;
-        FeedbackEN = feedbackEN;
         Status = UserRoundStatus.Completed;
-        SubmittedAt = SubmittedAt ?? now;
+        SubmittedAt = GetEffectiveSubmittedAt(t, now, roundEndTime);
     }
 
     public void Disqualify(DateTime now)
