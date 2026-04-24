@@ -22,7 +22,7 @@ public class UserLearningLessonController : ControllerBase
     }
 
     /// <summary>
-    /// Lấy danh sách lesson VR đang học dở (INCOMPLETED) của người dùng hiện tại.
+    /// Lấy danh sách lesson VR của người dùng hiện tại.
     /// </summary>
     /// <example>/academy/user/lessons/vrs/incompleted</example>
     [HttpGet("~/academy/user/lessons/vrs/incompleted")]

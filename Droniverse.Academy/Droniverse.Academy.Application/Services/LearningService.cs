@@ -104,7 +104,10 @@ public class LearningService : ILearningService
         {
             var lesson = userLesson.Lesson;
             vrLookup.TryGetValue(lesson.ReferenceID, out var vrSimulator);
-
+            var enrollmentId = _unitOfWork.Enrollments.GetByConditionAsync(
+                x => x.UserID == _currentUser.UserId
+                     && x.CourseVersionID == lesson.Module.CourseVersionID && x.Status == EnrollStatus.ACTIVE)
+                .GetAwaiter().GetResult()?.EnrollmentID ?? Guid.Empty;
             return new IncompleteVRLessonResponseDTO
             {
                 UserLessonID = userLesson.UserLessonID,
@@ -118,7 +121,8 @@ public class LearningService : ILearningService
                 EstimatedTime = vrSimulator?.EstimatedTime,
                 Status = userLesson.Status,
                 Progress = userLesson.Progress,
-                LastAccessDate = userLesson.LastAccessDate
+                LastAccessDate = userLesson.LastAccessDate,
+                EnrollmentID = enrollmentId
             };
         });
     }
@@ -280,11 +284,11 @@ public class LearningService : ILearningService
 
     private static void EnsureLessonCanBeCompletedInMode(Lesson lesson, CompletionMode mode)
     {
-        if (mode == CompletionMode.Direct && lesson.Type is not LessonType.THEORY)
-            throw new ForbiddenException("Chỉ lesson theory mới có thể hoàn thành trực tiếp.");
+        if (mode == CompletionMode.Direct && lesson.Type is not (LessonType.PHYSIC or LessonType.THEORY))
+            throw new ForbiddenException("Chỉ lesson theory, physic mới có thể hoàn thành trực tiếp.");
 
-        if (mode == CompletionMode.SimulatorSubmit && lesson.Type is not (LessonType.PHYSIC or LessonType.LAB_PHYSIC or LessonType.VR))
-            throw new ForbiddenException("Chỉ lesson simulator (physic, lab_physic hoặc VR) mới có thể hoàn thành qua nộp simulator.");
+        if (mode == CompletionMode.SimulatorSubmit && lesson.Type is not (LessonType.LAB_PHYSIC or LessonType.VR))
+            throw new ForbiddenException("Chỉ lesson simulator (lab_physic hoặc VR) mới có thể hoàn thành qua nộp simulator.");
 
         if (mode == CompletionMode.Assessment && lesson.Type is not (LessonType.QUIZ or LessonType.LAB ))
             throw new ForbiddenException("Chỉ lesson quiz hoặc lab mới có thể hoàn thành qua nộp bài.");
