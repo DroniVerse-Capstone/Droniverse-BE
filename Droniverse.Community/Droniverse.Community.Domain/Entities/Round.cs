@@ -29,7 +29,7 @@ public class Round
     private Round() { }
     public Round(
         Guid competitionId,
-        Guid labId,
+        Guid vrSimulatorId,
         int roundNumber,
         DateTime startTime,
         DateTime endTime,
@@ -42,7 +42,7 @@ public class Round
 
         RoundID = Guid.NewGuid();
         CompetitionID = competitionId;
-        VRSimilatorID = labId;
+        VRSimilatorID = vrSimulatorId;
         RoundNumber = roundNumber;
         TimeLimit = timeLimit;
         StartTime = startTime;

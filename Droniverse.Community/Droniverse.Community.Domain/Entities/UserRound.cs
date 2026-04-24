@@ -16,10 +16,16 @@ public class UserRound
     public DateTime StartedAt { get; private set; }
     public int? Rank { get; private set; }
     private UserRound() { }
-    public DateTime GetDeadline(TimeSpan duration) => StartedAt + duration;
-    public int GetRemainingSeconds(TimeSpan t, DateTime now)
+    public DateTime GetDeadline(TimeSpan duration, DateTime roundEndTime)
     {
-        var remaining = (GetDeadline(t) - now).TotalSeconds;
+        var deadline = StartedAt + duration;
+
+        return deadline > roundEndTime ? roundEndTime : deadline;
+    }
+
+    public int GetRemainingSeconds(TimeSpan t, DateTime now, DateTime roundEndTime)
+    {
+        var remaining = (GetDeadline(t,roundEndTime) - now).TotalSeconds;
         return remaining > 0 ? (int)remaining : 0;
     }
     /// <summary>
@@ -42,9 +48,9 @@ public class UserRound
         SubmittedAt = now;
     }
 
-    public DateTime GetEffectiveSubmittedAt(TimeSpan t, DateTime now)
+    public DateTime GetEffectiveSubmittedAt(TimeSpan t, DateTime now, DateTime roundEndTime)
     {
-        var deadline = GetDeadline(t);
+        var deadline = GetDeadline(t, roundEndTime);
         return now > deadline ? deadline : now;
     }
 
@@ -57,6 +63,7 @@ public class UserRound
         bool isSequentialCheckpoints,
         TimeSpan t,
         DateTime now,
+        DateTime roundEndTime,
         string? feedbackVN = null,
         string? feedbackEN = null)
     {
@@ -65,7 +72,7 @@ public class UserRound
         Point = point;
         IsPassed = isPassed;
         Status = UserRoundStatus.Completed;
-        SubmittedAt = GetEffectiveSubmittedAt(t, now);
+        SubmittedAt = GetEffectiveSubmittedAt(t, now, roundEndTime);
     }
 
     public void Complete(
@@ -74,6 +81,8 @@ public class UserRound
         double pathLength,
         decimal point,
         DateTime now,
+        TimeSpan t,
+        DateTime roundEndTime,
         string? feedbackVN = null,
         string? feedbackEN = null)
     {
@@ -81,7 +90,7 @@ public class UserRound
         ExecutionTime = executionTime;
         Point = point;
         Status = UserRoundStatus.Completed;
-        SubmittedAt = SubmittedAt ?? now;
+        SubmittedAt = GetEffectiveSubmittedAt(t, now, roundEndTime);
     }
 
     public void Disqualify(DateTime now)

@@ -1,4 +1,5 @@
 ﻿using Droniverse.Community.Domain.Entities;
+using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Infrastructure.QueryModels;
 
 namespace Droniverse.Community.Domain.IRepository;
@@ -8,7 +9,7 @@ public interface IRoundRepository : IRepository<Round>
 
     Task<RoundQueryModel?> GetRoundByRoundID(Guid roundID);
 
-    Task<IEnumerable<RoundQueryModel>> GetRoundsByCompetitionID(Guid competitionID);
+    Task<IEnumerable<RoundQueryModel>> GetRoundsByCompetitionID(Guid competitionID, RoundStatus? roundStatus);
 
     Task<RoundQueryModel?> GetCurrentRoundByCompetitionID(Guid competitionID);
 

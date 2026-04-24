@@ -110,7 +110,7 @@ namespace Droniverse.Community.Application.Services
             await _unitOfWork.UserRounds.Add(userRound);
             await _unitOfWork.SaveChangeAsync();
 
-            var deadlineAt = userRound.GetDeadline(round.TimeLimit);
+            var deadlineAt = userRound.GetDeadline(round.TimeLimit, round.EndTime);
 
             return new RoundJoinResponse
             {
@@ -120,7 +120,7 @@ namespace Droniverse.Community.Application.Services
                 DeadlineAt = deadlineAt,
                 ServerTime = now,
                 Status = userRound.Status,
-                RemainingSeconds = userRound.GetRemainingSeconds(round.TimeLimit, now)
+                RemainingSeconds = userRound.GetRemainingSeconds(round.TimeLimit, now, round.EndTime)
             };
         }
 
@@ -186,12 +186,8 @@ namespace Droniverse.Community.Application.Services
             if (competition == null)
                 throw new KeyNotFoundException($"Không tìm thấy cuộc thi với ID [{competitionId}].");
 
-            var rounds = (await _unitOfWork.Rounds.GetRoundsByCompetitionID(competitionId))
-                          .Where(r => roundStatus.HasValue
-                              ? r.Status == roundStatus.Value
-                              : r.Status != RoundStatus.Cancelled)
-                          .ToList();
-            if (rounds.Count == 0)
+            var rounds = await _unitOfWork.Rounds.GetRoundsByCompetitionID(competitionId, roundStatus);
+            if (rounds.Count() == 0)
                 return [];
 
             var vrSimulators = await _academyMicroserviceClient.GetVRSimulatorsByIds(rounds.Select(x => x.VRSimulatorID));
@@ -691,13 +687,13 @@ namespace Droniverse.Community.Application.Services
                                    (startTime <= existingRnd.StartTime && endTime >= existingRnd.EndTime);
 
                 if (timeOverlap)
-                    throw new InvalidOperationException($"Thời gian vòng thi bị trùng với vòng [{existingRnd.RoundNumber}] ({existingRnd.StartTime:yyyy-MM-dd HH:mm} - {existingRnd.EndTime:yyyy-MM-dd HH:mm}).");
+                    throw new InvalidOperationException($"Thời gian vòng thi bị trùng với vòng thi khác ({existingRnd.StartTime:yyyy-MM-dd HH:mm} - {existingRnd.EndTime:yyyy-MM-dd HH:mm}).");
             }
 
             // Validate VRSimulator không trùng với các round khác
             var roundWithSameSimulator = existingRounds.FirstOrDefault(r => r.VRSimilatorID == vrSimulatorId);
             if (roundWithSameSimulator != null)
-                throw new InvalidOperationException($"Bài VR mô phỏng này đã được chọn ở Round {roundWithSameSimulator.RoundNumber} rồi.");
+                throw new InvalidOperationException($"Bài VR mô phỏng này đã được chọn rồi.");
 
             // Validate VRSimulator tồn tại trong Academy Microservice (chỉ validate nếu là create hoặc VRSimulatorID thay đổi)
             if (!excludeRoundId.HasValue || (excludeRoundId.HasValue && existingRounds.All(r => r.VRSimilatorID != vrSimulatorId)))
