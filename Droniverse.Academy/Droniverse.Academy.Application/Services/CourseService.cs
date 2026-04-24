@@ -137,7 +137,8 @@ public class CourseService : ICourseService
         var result = await _unitOfWork.Courses
             .GetAllWithCurrentVersionAsync(
                 filter,
-                query => query.OrderByDescending(c => c.CreateAt),
+                query => query.OrderBy(c => c.Level!.LevelNumber)
+                              .ThenByDescending(c => c.CreateAt),
                 pageIndex,
                 pageSize);
 
