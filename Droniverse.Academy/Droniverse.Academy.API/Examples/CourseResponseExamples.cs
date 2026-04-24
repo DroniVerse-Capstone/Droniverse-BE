@@ -113,6 +113,7 @@ public class CourseOverviewSuccessResponseExample : IExamplesProvider<SuccessRes
                 TotalLab = 4,
                 CertificateImageUrl = "https://cdn.example.com/certificate.jpg",
                 IsUnlock = true,
+                IsEligibleByLevel = true,
                 MiniProduct = new ProductMiniResponseDTO
                 {
                     ProductId = Guid.Parse("5f534d31-88ee-4d86-9d79-bad8f402378e"),

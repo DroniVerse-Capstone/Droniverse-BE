@@ -13,6 +13,7 @@ public class UserSimulatorMappingProfile : Profile
             .ForMember(dest => dest.UserSimulatorID, opt => opt.Ignore())
             .ForMember(dest => dest.UserID, opt => opt.Ignore())
             .ForMember(dest => dest.LessonID, opt => opt.Ignore())
+            .ForMember(dest => dest.SubmitAt, opt => opt.Ignore())
             .ForMember(dest => dest.Lesson, opt => opt.Ignore())
             .ForMember(dest => dest.IsSuccess, opt => opt.Ignore());
 

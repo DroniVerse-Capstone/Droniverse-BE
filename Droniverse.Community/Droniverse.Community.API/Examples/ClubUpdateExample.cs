@@ -20,11 +20,7 @@ public class ClubUpdateExample : IExamplesProvider<ClubUpdateDto>
                           + "hackathons, and knowledge-sharing sessions focused on real-world AI applications.",
 
             LimitParticipation = 280,
-            LimitClubManagers = 1,
-            CategoryIDs = new List<Guid>
-            {
-                Guid.Parse("b4b420c9-d5d2-434f-a428-7edd3267dfaf"),
-            }
+            LimitClubManagers = 1
         };
     }
 }

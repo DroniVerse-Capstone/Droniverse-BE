@@ -9,33 +9,32 @@ using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Enums;
+using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Helpers;
 using Droniverse.Shared.Messages.User;
 using Droniverse.Shared.Services;
 using Droniverse.Shared.Services.IServices;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 
 namespace Droniverse.Identity.Application.Services;
+
 internal class UserService : IUserService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly IUserPublisher _publisher;
     private readonly ICloudinaryService _cloudinaryService;
-    private readonly ICacheService _cacheService;
     private readonly AcademyMicroserviceClient _academyMicroserviceClient;
     private readonly ILogger<UserService> _logger;
-
-    private static string GetUserCacheKey(Guid userId) => $"identity:user:{userId}";
 
     public UserService(
         IUnitOfWork unitOfWork,
         IMapper mapper,
         IUserPublisher publisher,
         ICloudinaryService cloudinaryService,
-        ICacheService cacheService,
         AcademyMicroserviceClient academyMicroserviceClient,
         ILogger<UserService> logger)
     {
@@ -44,7 +43,6 @@ internal class UserService : IUserService
         _publisher = publisher;
         _cloudinaryService = cloudinaryService;
         _academyMicroserviceClient = academyMicroserviceClient;
-        _cacheService = cacheService;
         _logger = logger;
     }
 
@@ -94,7 +92,7 @@ internal class UserService : IUserService
 
         UserResponse userResponse = _mapper.Map<UserResponse>(createdAccount);
         return userResponse;
-    } 
+    }
 
     public async Task<UserResponse> GetUserById(Guid id)
     {
@@ -110,10 +108,12 @@ internal class UserService : IUserService
         }
 
         // Try to get user level from Academy service, but don't fail if unavailable
-        LevelMiniResponseDto? level = null;
+        IEnumerable<UserLevelResponseDto>? userLevel = null;
+        IEnumerable<UserLevelResponseDto>? userLevelMax = null;
         try
         {
-            level = await _academyMicroserviceClient.GetUserLevelMaxAsync(id);
+            userLevel = await _academyMicroserviceClient.GetUserLevelsAsync(id);
+            userLevelMax = await _academyMicroserviceClient.GetUserLevelMaxAsync(id);
         }
         catch (Exception ex)
         {
@@ -122,7 +122,7 @@ internal class UserService : IUserService
         }
 
         UserResponse userResponse = _mapper.Map<UserResponse>(account);
-        return userResponse with { Level = level };
+        return userResponse with { UserLevel = userLevel, UserLevelMax = userLevelMax };
     }
 
     public async Task<UserResponse> UpdateUser(Guid userId, UserUpdateDto userUpdateDto)
@@ -143,17 +143,12 @@ internal class UserService : IUserService
         userInfo.FirstName = userUpdateDto.FirstName;
         userInfo.LastName = userUpdateDto.LastName;
         userInfo.DateOfBirth = userUpdateDto.DateOfBirth;
+        userInfo.Gender = userUpdateDto.Gender;
+        userInfo.Phone = userUpdateDto.Phone;
 
         Account? updatedAcc = await _unitOfWork.Accounts.Update(account);
         UserInfo? updatedUserInfo = await _unitOfWork.UserInfos.Update(userInfo);
         await _unitOfWork.SaveChangeAsync();
-
-        var cacheKey = GetUserCacheKey(userId);
-        var cachedUser = await _cacheService.GetAsync<object>(cacheKey);
-        if (cachedUser is not null)
-        {
-            await _cacheService.RemoveAsync(cacheKey);
-        }
 
         //mapper
         UserResponse userResponse = _mapper.Map<UserResponse>(updatedAcc);
@@ -191,9 +186,29 @@ internal class UserService : IUserService
         }
     }
 
-    public Task<string> UploadUserAvatar(Guid userId, IFormFile imageFile)
+    public async Task<UserResponse> UploadUserAvatar(Guid userId, IFormFile imageFile)
     {
-        throw new NotImplementedException();
+        
+        Account? account = await _unitOfWork.Accounts.GetByCondition(a => a.UserID == userId);
+        if (account == null)
+        {
+            throw new NotFoundException($"User id not found #{userId}");
+        }
+
+        UserInfo? userInfo = await _unitOfWork.UserInfos.GetByCondition(a => a.UserID == userId);
+        if(userInfo == null) {
+            throw new NotFoundException($"User info id not found #{userId}");
+        }
+        string imageUrl = await _cloudinaryService.UploadImageAsync(imageFile, $"droniverse/users/avatars/{userId}");
+        userInfo.ImageUrl = imageUrl;
+
+        UserInfo? updatedUserInfo = await _unitOfWork.UserInfos.Update(userInfo);
+        Account? updatedAccount = await _unitOfWork.Accounts.Update(account);
+        await _unitOfWork.SaveChangeAsync();
+
+        UserResponse userResponse = _mapper.Map<UserResponse>(updatedAccount);
+
+        return userResponse;
     }
 
     public async Task<IEnumerable<UserResponse>> GetUsersByIds(IEnumerable<Guid> userIds)
@@ -201,7 +216,32 @@ internal class UserService : IUserService
         if (userIds == null || !userIds.Any())
             return [];
 
-        return await _unitOfWork.Accounts.GetUsersByIdsAsync(userIds);
+        IEnumerable<UserResponse> userResponses = await _unitOfWork.Accounts.GetUsersByIdsAsync(userIds);
+
+        // 1. Tạo ra một tập hợp các Tasks (IEnumerable<Task<UserResponse>>)
+        var userTasks = userResponses.Select(async userResponse =>
+        {
+            IEnumerable<UserLevelResponseDto>? userLevel = null;
+            IEnumerable<UserLevelResponseDto>? userLevelMax = null;
+            try
+            {
+                userLevel = await _academyMicroserviceClient.GetUserLevelsAsync(userResponse.UserId);
+                userLevelMax = await _academyMicroserviceClient.GetUserLevelMaxAsync(userResponse.UserId);
+            }
+            catch (Exception ex)
+            {
+                // Sửa lại thành Structured Logging thay vì string interpolation ($"")
+                _logger.LogWarning(ex, "Failed to get user level from Academy service for user {UserId}", userResponse.UserId);
+            }
+
+            return userResponse with { UserLevel = userLevel, UserLevelMax = userLevelMax };
+        });
+
+        // 2. Await tất cả các task cùng chạy song song và lấy kết quả trả về
+        UserResponse[] updatedUserResponses = await Task.WhenAll(userTasks);
+
+        // 3. Return danh sách đã được cập nhật
+        return updatedUserResponses;
     }
 
     public async Task<IEnumerable<Guid>> GetUsersByUserInfo(UserInfoSearchRequest request)

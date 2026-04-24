@@ -17,7 +17,7 @@ public class UploadController : ControllerBase
     }
 
     [HttpPost("temp")]
-    public async Task<IActionResult> UploadAvatar([FromForm] FileUploadDto file)
+    public async Task<string> UploadAvatar([FromForm] FileUploadDto file)
     {
         return await this.UploadImageAsync(_cloudinaryService, file, "droniverse/temp");
     }

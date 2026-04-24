@@ -7,6 +7,7 @@ using Droniverse.Academy.Domain.Enums;
 using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Services.IServices;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Droniverse.Academy.Application.Services
@@ -17,13 +18,15 @@ namespace Droniverse.Academy.Application.Services
         private readonly ICurrentUserService _currentUser;
         private readonly IMapper _mapper;
         private readonly ILearningService _learningService;
+        private readonly IClock _clock;
 
-        public UserSimulatorService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper, ILearningService learningService)
+        public UserSimulatorService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper, ILearningService learningService, IClock clock)
         {
             _unitOfWork = unitOfWork;
             _currentUser = currentUser;
             _mapper = mapper;
             _learningService = learningService;
+            _clock = clock;
         }
 
         public async Task<SimulatorLearningStateDTO> GetSimulatorLearningStateAsync(Guid enrollmentId, Guid lessonId)
@@ -51,8 +54,13 @@ namespace Droniverse.Academy.Application.Services
                     throw new ValidationException("Lesson không phải simulator.");
             }
 
-            var userSimulator = await _unitOfWork.UserSimulators.GetByConditionAsync(
-                x => x.UserID == _currentUser.UserId && x.LessonID == lessonId);
+            var userSimulatorResult = await _unitOfWork.UserSimulators.GetAllAsync(
+                filter: x => x.UserID == _currentUser.UserId && x.LessonID == lessonId,
+                orderBy: q => q.OrderByDescending(x => x.SubmitAt),
+                pageIndex: 1,
+                pageSize: 1);
+
+            var userSimulator = userSimulatorResult.Data.FirstOrDefault();
 
             state.UserSimulator = userSimulator == null ? null : _mapper.Map<UserSimulatorResponseDTO>(userSimulator);
             return state;
@@ -69,6 +77,7 @@ namespace Droniverse.Academy.Application.Services
                 UserSimulatorID = Guid.NewGuid(),
                 UserID = _currentUser.UserId,
                 LessonID = lessonId,
+                SubmitAt = _clock.Now,
                 FlightTime = flightTime,
                 Score = score,
                 IsSuccess = score.HasValue && score.Value > 0

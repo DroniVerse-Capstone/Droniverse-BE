@@ -10,7 +10,7 @@ public interface IAuthService
     Task<AuthResponse> AuthenticatedUser(LoginEmailDto loginEmailDto);
     Task<AuthResponse> RegisterUser(RegisterDto registerDto);
     Task<UserResponse?> GetCurrentUserInfo();
-    Task<UserResponse?> UpdateProfileAsync(ProfileUpdateDto userUpdateDto);
+    Task<bool> UpdateProfileAsync(ProfileUpdateDto userUpdateDto);
     Task<UserResponse?> VerifyEmailAsync(string token);
     
     /// <summary>

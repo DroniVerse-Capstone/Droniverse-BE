@@ -22,6 +22,11 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
             .HasColumnType("varchar(20)")
             .HasConversion<string>()
             .IsRequired();
+        builder.Property(t => t.ClubID).HasColumnType("char(36)");
+        builder.HasOne(t => t.Club)
+            .WithMany(c => c.Transactions)
+            .HasForeignKey(t => t.ClubID)
+            .OnDelete(DeleteBehavior.Cascade);
         builder.Property(t => t.ReferenceID).HasColumnType("char(36)");
         builder.Property(t => t.CreatedAt).HasColumnType("datetime").ValueGeneratedOnAdd();
         builder.ToTable(t =>

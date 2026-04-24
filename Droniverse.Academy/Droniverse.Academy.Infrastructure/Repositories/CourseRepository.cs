@@ -153,16 +153,19 @@ internal class CourseRepository : MySqlRepository<Course>, ICourseRepository
         var normalizedPageIndex = pageIndex < 1 ? 1 : pageIndex;
         var normalizedPageSize = pageSize < 1 ? 5 : pageSize;
 
-        var statsQuery = _context.Set<CourseStatsView>()
+        var courseQuery = _dbSet
             .AsNoTracking()
-            .Where(x => ids.Contains(x.CourseID));
+            .Where(c =>
+                ids.Contains(c.CourseID) &&
+                c.CurrentVersion != null &&
+                c.Status == CourseStatus.PUBLISH);
 
 
         if (!string.IsNullOrWhiteSpace(keyword))
         {
-            statsQuery = statsQuery.Where(x =>
-                x.TitleEN.Contains(keyword) ||
-                x.TitleVN.Contains(keyword));
+            courseQuery = courseQuery.Where(c =>
+                c.CurrentVersion!.TitleEN.Contains(keyword) ||
+                c.CurrentVersion.TitleVN.Contains(keyword));
         }
 
         //if (ownedOnly)
@@ -174,37 +177,56 @@ internal class CourseRepository : MySqlRepository<Course>, ICourseRepository
         //        select stats;
         //}
 
-        var rankedQuery = statsQuery.Select(x => new
+        var rankedQuery = courseQuery.Select(c => new
         {
-            Course = x,
+            Course = new CourseBulkResponseDTO
+            {
+                CourseId = c.CourseID,
+                CourseVersionId = c.CurrentVersionID ?? Guid.Empty,
+                TitleVN = c.CurrentVersion!.TitleVN,
+                TitleEN = c.CurrentVersion.TitleEN,
+                Level = c.Level == null ? null : new CourseLevelMiniResponseDTO
+                {
+                    LevelID = c.Level.LevelID,
+                    LevelNumber = c.Level.LevelNumber,
+                    Name = c.Level.Name
+                },
+                Drone = c.Drone == null ? null : new CourseDroneMiniResponseDTO
+                {
+                    DroneID = c.Drone.DroneID,
+                    Name = c.Drone.DroneNameEN,
+                    ImgURL = c.Drone.ImgURL
+                },
+                EstimatedDuration = c.CurrentVersion.EstimatedDuration,
+                Price = null,
+                Rating = c.CurrentVersion.Feedbacks
+                    .Select(f => (decimal?)f.Rating)
+                    .Average() ?? 0m,
+                NumberOfParticipants = c.CurrentVersion.Enrollments.Count(e => e.Status == EnrollStatus.ACTIVE || e.Status == EnrollStatus.COMPLETED),
+                ImageUrl = c.CurrentVersion.ImageUrl
+            },
+            ParticipantCount = c.CurrentVersion!.Enrollments.Count(e => e.Status == EnrollStatus.ACTIVE || e.Status == EnrollStatus.COMPLETED),
+            AverageRating = c.CurrentVersion.Feedbacks
+                .Select(f => (decimal?)f.Rating)
+                .Average(),
+            UpdateAt = c.CurrentVersion.UpdateAt,
             HotScore =
-                (x.ParticipantCount * 0.6m) +
-                ((x.AverageRating ?? 0m) * 10m * 0.35m) +
-                (x.UpdateAt.HasValue ? 1.5m : 0m)
+                (c.CurrentVersion.Enrollments.Count(e => e.Status == EnrollStatus.ACTIVE || e.Status == EnrollStatus.COMPLETED) * 0.6m) +
+                (((c.CurrentVersion.Feedbacks.Select(f => (decimal?)f.Rating).Average()) ?? 0m) * 10m * 0.35m) +
+                (c.CurrentVersion.UpdateAt.HasValue ? 1.5m : 0m)
         });
 
         var totalCount = await rankedQuery.CountAsync(cancellationToken);
 
         var items = await rankedQuery
             .OrderByDescending(x => x.HotScore)
-            .ThenByDescending(x => x.Course.ParticipantCount)
-            .ThenByDescending(x => x.Course.AverageRating)
-            .ThenByDescending(x => x.Course.UpdateAt)
-            .ThenBy(x => x.Course.CourseID)
+            .ThenByDescending(x => x.ParticipantCount)
+            .ThenByDescending(x => x.AverageRating)
+            .ThenByDescending(x => x.UpdateAt)
+            .ThenBy(x => x.Course.CourseId)
             .Skip((normalizedPageIndex - 1) * normalizedPageSize)
             .Take(normalizedPageSize)
-            .Select(x => new CourseBulkResponseDTO
-            {
-                CourseId = x.Course.CourseID,
-                CourseVersionId = x.Course.CourseVersionID,
-                TitleVN = x.Course.TitleVN,
-                TitleEN = x.Course.TitleEN,
-                EstimatedDuration = x.Course.EstimatedDuration,
-                Price = null,
-                Rating = x.Course.AverageRating ?? 0m,
-                NumberOfParticipants = x.Course.ParticipantCount,
-                ImageUrl = x.Course.ImageUrl
-            })
+            .Select(x => x.Course)
             .ToListAsync(cancellationToken);
 
         return new PaginationResult<IEnumerable<CourseBulkResponseDTO>>(items, totalCount, normalizedPageIndex, normalizedPageSize);
