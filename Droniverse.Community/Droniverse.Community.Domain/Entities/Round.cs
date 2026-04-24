@@ -154,7 +154,7 @@ public class Round
         IsSummarized = false;
     }
 
-    public void UpdateInfo(Guid labId, DateTime startTime, DateTime endTime, DateTime now, Guid? updatedBy)
+    public void UpdateInfo(Guid labId, DateTime startTime, DateTime endTime, TimeSpan timeLimmit, DateTime now, Guid? updatedBy)
     {
         if (Status == RoundStatus.Cancelled)
             throw new InvalidOperationException("Không thể cập nhật round đã bị hủy.");
@@ -165,6 +165,7 @@ public class Round
         VRSimilatorID = labId;
         StartTime = startTime;
         EndTime = endTime;
+        TimeLimit = timeLimmit;
         Status = RoundStatus.Valid;
         IsSummarized = false;
         SetUpdated(now, updatedBy);
