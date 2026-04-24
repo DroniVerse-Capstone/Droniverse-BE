@@ -58,7 +58,7 @@ namespace Droniverse.Academy.Application.Services
             return state;
         }
 
-        public async Task<bool> SubmitSimulatorAsync(Guid lessonId, int flightTime, int? score)
+        public async Task<bool> SubmitSimulatorAsync(Guid enrollmentId, Guid lessonId, int flightTime, int? score)
         {
             var lesson = await _unitOfWork.Lessons.GetByConditionAsync(
                 x => x.LessonID == lessonId);
@@ -76,6 +76,8 @@ namespace Droniverse.Academy.Application.Services
 
             await _unitOfWork.UserSimulators.AddAsync(entity);
             await _unitOfWork.SaveChangesAsync();
+
+            await _learningService.CompleteLessonBySimulatorSubmitAsync(enrollmentId, lessonId);
             return true;
         }
 

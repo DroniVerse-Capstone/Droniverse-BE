@@ -1,4 +1,4 @@
-using Droniverse.Academy.Domain.Enums;
+﻿using Droniverse.Academy.Domain.Enums;
 
 namespace Droniverse.Academy.Application.DTO.Response;
 
@@ -7,6 +7,7 @@ public class IncompleteVRLessonResponseDTO
     public Guid UserLessonID { get; set; }
     public Guid LessonID { get; set; }
     public Guid ModuleID { get; set; }
+    public Guid EnrollmentID { get; set; }
     public int OrderIndex { get; set; }
     public Guid ReferenceID { get; set; }
     public LessonType Type { get; set; }
