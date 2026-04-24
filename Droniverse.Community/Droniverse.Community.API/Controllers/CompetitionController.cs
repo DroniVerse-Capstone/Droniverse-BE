@@ -290,13 +290,14 @@ namespace Droniverse.Community.API.Controllers
         /// Lấy danh sách vòng thi của cuộc thi
         /// </summary>
         /// <param name="competitionId">ID của cuộc thi</param>
+        /// <param name="roundStatus">Status của round đó</param>
         /// <returns>200 OK - Trả về danh sách vòng thi</returns>
         [HttpGet("{competitionId}/rounds")]
         [ProducesResponseType(typeof(SuccessResponse<IEnumerable<RoundResponseDto>>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ApiResponse> GetRoundsByCompetition(Guid competitionId)
+        public async Task<ApiResponse> GetRoundsByCompetition(Guid competitionId, [FromQuery] RoundStatus? roundStatus)
         {
-            var rounds = await _roundService.GetRoundsByCompetition(competitionId);
+            var rounds = await _roundService.GetRoundsByCompetition(competitionId, roundStatus);
             return SuccessResponse<IEnumerable<RoundResponseDto>>.Create(
                 rounds,
                 "Lấy danh sách vòng thi thành công!"

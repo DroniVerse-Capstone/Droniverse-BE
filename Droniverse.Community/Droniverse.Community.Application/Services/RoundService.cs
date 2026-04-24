@@ -178,13 +178,15 @@ namespace Droniverse.Community.Application.Services
             return await MapToRoundResponse(round, competition);
         }
 
-        public async Task<IEnumerable<RoundResponseDto>> GetRoundsByCompetition(Guid competitionId)
+        public async Task<IEnumerable<RoundResponseDto>> GetRoundsByCompetition(Guid competitionId, RoundStatus? roundStatus = null)
         {
             var competition = await _unitOfWork.Competitions.GetByCondition(c => c.CompetitionID == competitionId);
             if (competition == null)
                 throw new KeyNotFoundException($"Không tìm thấy cuộc thi với ID [{competitionId}].");
 
-            var rounds = (await _unitOfWork.Rounds.GetRoundsByCompetitionID(competitionId)).ToList();
+            var rounds = (await _unitOfWork.Rounds.GetRoundsByCompetitionID(competitionId))
+                .Where(r => !roundStatus.HasValue || r.Status == roundStatus.Value)
+                .ToList();
             if (rounds.Count == 0)
                 return [];
 
