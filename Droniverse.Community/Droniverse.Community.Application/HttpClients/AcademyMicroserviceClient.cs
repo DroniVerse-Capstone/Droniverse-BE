@@ -62,6 +62,8 @@ public class AcademyMicroserviceClient
         PropertyNameCaseInsensitive = true,
         Converters = { new JsonStringEnumConverter() }
     };
+    private static string GetUserLevelCacheKey(Guid userId) => $"userLevel:{userId}";
+    private static string GetUserLevelMaxCacheKey(Guid userId) => $"userLevelMax:{userId}";
     public AcademyMicroserviceClient(
         HttpClient httpClient,
         ILogger<AcademyMicroserviceClient> logger,
@@ -79,6 +81,77 @@ public class AcademyMicroserviceClient
         _currentUserService = currentUserService;
         _identityMicroserviceClient = identityMicroserviceClient;
         _configuration = configuration;
+    }
+
+    public async Task<UserLevelResponseDto?> GetUserLevelsAsync(Guid userId)
+    {
+        string userLevelCacheKey = GetUserLevelCacheKey(userId);
+        string? cachedUserLevel = await _distributedCache.GetStringAsync(userLevelCacheKey);
+        if (!string.IsNullOrEmpty(cachedUserLevel))
+        {
+            return JsonSerializer.Deserialize<UserLevelResponseDto>(cachedUserLevel, _jsonOptions);
+        }
+
+        var url = BuildAcademyPath($"/user/levels?userId={userId}");
+        HttpResponseMessage response = await _httpClient.GetAsync(url);
+        response.EnsureSuccessStatusCode();
+        var successResponse = await response.Content
+            .ReadFromJsonAsync<SuccessResponse<IEnumerable<UserLevelResponseDto>>>(_jsonOptions);
+
+        try
+        {
+            await _distributedCache.SetStringAsync(
+            userLevelCacheKey,
+            JsonSerializer.Serialize(successResponse?.Data?.FirstOrDefault(), _jsonOptions),
+            new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10),
+                SlidingExpiration = TimeSpan.FromMinutes(5)
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, $"Set cache cho userLevel thất bại với userId: {userId}");
+        }
+
+
+        return successResponse?.Data?.FirstOrDefault();
+    }
+
+    public async Task<UserLevelResponseDto?> GetUserLevelMaxAsync(Guid userId)  
+    {
+        string userLevelMaxCacheKey = GetUserLevelMaxCacheKey(userId);
+        string? cachedUserLevelMax = await _distributedCache.GetStringAsync(userLevelMaxCacheKey);
+        if (!string.IsNullOrEmpty(cachedUserLevelMax))
+        {
+            return JsonSerializer.Deserialize<UserLevelResponseDto>(cachedUserLevelMax, _jsonOptions);
+        }
+
+        var url = BuildAcademyPath($"/user/levels/max?userId={userId}");
+        HttpResponseMessage response = await _httpClient.GetAsync(url);
+
+        response.EnsureSuccessStatusCode();
+
+        var successResponse = await response.Content
+            .ReadFromJsonAsync<SuccessResponse<IEnumerable<UserLevelResponseDto>>>(_jsonOptions);
+
+        try
+        {
+            await _distributedCache.SetStringAsync(
+            userLevelMaxCacheKey,
+            JsonSerializer.Serialize(successResponse?.Data?.FirstOrDefault(), _jsonOptions),
+            new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10),
+                SlidingExpiration = TimeSpan.FromMinutes(5)
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, $"Set cache cho userLevelMax thất bại với userId: {userId}");
+        }
+
+        return successResponse?.Data?.FirstOrDefault();
     }
 
     public async Task<IEnumerable<DroneResponseDto>> GetDronesBulk(IEnumerable<Guid> droneIds)
@@ -164,7 +237,7 @@ public class AcademyMicroserviceClient
                 }
 
                 var dronesFromApi = await response.Content.ReadFromJsonAsync<IEnumerable<DroneResponseDto>>(_jsonOptions);
-                
+
                 if (dronesFromApi == null || !dronesFromApi.Any())
                 {
                     _logger.LogWarning("No drones returned from Academy API.");
@@ -255,6 +328,7 @@ public class AcademyMicroserviceClient
 
             // Get dynamic service token
             //var serviceToken = await GetValidServiceTokenAsync();
+            //_logger.LogInformation("serviceToken: {serviceToken}", serviceToken);
 
             //// Service-to-service call with dynamic token
             var requestMessage = new HttpRequestMessage(HttpMethod.Post, BuildAcademyPath("codes/generate-assign"))
@@ -935,43 +1009,6 @@ public class AcademyMicroserviceClient
         };
     }
 
-    public async Task<LevelMiniResponseDto?> GetUserLevelMaxAsync(Guid userId)
-    {
-        try
-        {
-            var url = BuildAcademyPath($"/user/levels/max?userId={userId}");
-            var response = await _httpClient.GetAsync(url);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogWarning("Failed to get user level max for user {UserId}: {StatusCode}", userId, response.StatusCode);
-                return null;
-            }
-
-            var successResponse = await response.Content
-                .ReadFromJsonAsync<SuccessResponse<IEnumerable<LevelMiniResponseDto>>>(_jsonOptions);
-
-            if (successResponse?.Data == null)
-            {
-                _logger.LogWarning("User level max response data is null for user {UserId}", userId);
-                return null;
-            }
-
-            var result = successResponse.Data.FirstOrDefault();
-            if (result == null)
-            {
-                _logger.LogWarning("No level found in response for user {UserId}", userId);
-            }
-
-            return result;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error fetching user level max for user {UserId} from Academy service.", userId);
-            return null;
-        }
-    }
-
     private string BuildAcademyPath(string relativePath)
     {
         return $"{GetEndpoint().TrimEnd('/')}/{relativePath.TrimStart('/')}";
@@ -1068,6 +1105,8 @@ public class AcademyMicroserviceClient
         }
     }
 }
+
+
 
 internal class AcademyLabDetailDto
 {

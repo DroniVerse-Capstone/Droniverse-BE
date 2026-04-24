@@ -26,7 +26,7 @@ namespace Droniverse.Community.Application.DTO.Response
     DateTime createAt,
     DateTime? processedAt,
     MediaResponseDto? Media,
-    DroneMiniResponseDto Drone,
-    LevelMiniResponseDto Level
+    IEnumerable<UserLevelResponseDto>? UserLevel,
+    IEnumerable<UserLevelResponseDto>? UserLevelMax
     );
 }

@@ -11,10 +11,12 @@ public record UserResponse(
     string RoleName,
     string? ImageUrl,
     GenderOptions Gender,
-    LevelMiniResponseDto? Level
+    string? Phone,
+    IEnumerable<UserLevelResponseDto>? UserLevelMax,
+    IEnumerable<UserLevelResponseDto>? UserLevel
     )
 {
-    public UserResponse() : this(Guid.Empty, string.Empty, string.Empty, string.Empty, string.Empty, null, string.Empty, string.Empty, default, default)
+    public UserResponse() : this(Guid.Empty, string.Empty, string.Empty, string.Empty, string.Empty, null, string.Empty, string.Empty, default, default, default, default)
     {
     }
 }

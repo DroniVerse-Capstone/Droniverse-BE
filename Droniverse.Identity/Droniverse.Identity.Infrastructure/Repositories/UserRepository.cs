@@ -135,6 +135,7 @@ public class UserRepository : Repository<Account>, IUserRepository
                 DateOfBirth = a.UserInfo.DateOfBirth,
                 ImageUrl = a.UserInfo.ImageUrl,
                 Gender = a.UserInfo.Gender,
+                Phone = a.UserInfo.Phone,
             })
             .ToListAsync();
     }

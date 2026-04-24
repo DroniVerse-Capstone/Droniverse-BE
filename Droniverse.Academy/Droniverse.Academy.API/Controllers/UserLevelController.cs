@@ -24,7 +24,7 @@ public class UserLevelController : ControllerBase
     /// <summary>
     /// Lấy tất cả level đã đạt được của người dùng.
     /// </summary>
-    [HttpGet]
+    [HttpGet] 
     public async Task<IActionResult> GetUserLevels([FromQuery] Guid userId)
     {
         try

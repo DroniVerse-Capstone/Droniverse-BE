@@ -33,6 +33,7 @@ public class UserLevelService : IUserLevelService
 
         return levels.Data.Select(level => new UserLevelResponse
         {
+            UserID = userId,
             Level = _mapper.Map<LevelMiniResponse>(level),
             Drone = _mapper.Map<DroneMiniResponse>(level.Drone)
         });
@@ -55,6 +56,7 @@ public class UserLevelService : IUserLevelService
 
         return maxLevels.Select(level => new UserLevelResponse
         {
+            UserID = userId,
             Level = _mapper.Map<LevelMiniResponse>(level),
             Drone = _mapper.Map<DroneMiniResponse>(level.Drone)
         });

@@ -104,9 +104,9 @@ namespace Droniverse.Identity.API.Controllers
         [ProducesResponseType(typeof(SuccessResponse<UserResponse>), StatusCodes.Status200OK)]
         public async Task<IActionResult> UpdateCurrentUser([FromBody] ProfileUpdateDto request)
         {
-            UserResponse? response = await _authService.UpdateProfileAsync(request);
+            bool response = await _authService.UpdateProfileAsync(request);
             _logger.LogInformation($"Cập nhật thông tin người dùng thành công.");
-            return Ok(SuccessResponse<UserResponse>.Create(response, "Cập nhật thông tin người dùng thành công."));
+            return Ok(SuccessResponse<bool>.Create(response, "Cập nhật thông tin người dùng thành công."));
         }
 
         /// <summary>

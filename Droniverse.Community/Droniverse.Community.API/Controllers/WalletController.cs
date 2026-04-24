@@ -61,7 +61,7 @@ namespace Droniverse.Community.API.Controllers
         /// <param name="id"></param>
         /// <returns></returns>
         [HttpGet("{id}")]
-        [Authorize(Roles = Roles.SystemRoles)]
+        [Authorize(Roles = Roles.AdminOrSystemManager)]
         public async Task<ApiResponse> GetById(Guid id)
         {
             WalletResponseDto result = await _walletService.GetWalletById(id);

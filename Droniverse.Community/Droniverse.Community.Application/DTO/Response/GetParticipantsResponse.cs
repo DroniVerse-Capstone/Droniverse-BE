@@ -20,7 +20,7 @@ namespace Droniverse.Community.Application.DTO.Response
         public string? ImageUrl { get; init; }
         public GenderOptions Gender { get; init; }
         public DateTime JoinDate { get; init; }
-        public LevelMiniResponseDto? Level { get; init; }
-        public DroneMiniResponseDto? Drone { get; init; }
+        public IEnumerable<UserLevelResponseDto>? UserLevel { get; init; }
+        public IEnumerable<UserLevelResponseDto>? UserLevelMax { get; init; }
     }
 }
