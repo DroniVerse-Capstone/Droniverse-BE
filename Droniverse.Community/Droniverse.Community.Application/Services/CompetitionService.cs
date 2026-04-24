@@ -349,7 +349,7 @@ namespace Droniverse.Community.Application.Services
                 return new CompetitionParticipantsResponse
                 {
                     Competition = ToSimpleCompetitionResponse(competition),
-                    CompetitionStatus = request.Status,
+                    ParticipantStatus = request.Status,
                     participations = new PaginationResult<IEnumerable<CompetitionParticipantEntry>>([], 0, currentPage, pageSize)
                 };
             }
@@ -385,7 +385,7 @@ namespace Droniverse.Community.Application.Services
             return new CompetitionParticipantsResponse
             {
                 Competition = ToSimpleCompetitionResponse(competition),
-                CompetitionStatus = request.Status,
+                ParticipantStatus = request.Status,
                 participations = new PaginationResult<IEnumerable<CompetitionParticipantEntry>>(
                     entries,
                     totalRecords,
