@@ -169,6 +169,28 @@ namespace Droniverse.Community.Application.Services
             return await GetRoundResponseByRoundId(round.RoundID);
         }
 
+        public async Task<RoundResponseDto> UpdateRoundNoLogic(Guid roundId, UpdateRoundNoLogicRequest request)
+        {
+            if (request == null)
+                throw new ArgumentNullException(nameof(request));
+
+            var round = await _unitOfWork.Rounds.GetByCondition(r => r.RoundID == roundId);
+            if (round == null)
+                throw new KeyNotFoundException($"Không tìm thấy vòng thi với ID [{roundId}].");
+
+            round.UpdateTimeFieldsNoLogic(
+                request.StartTime,
+                request.EndTime,
+                request.TimeLimit,
+                _clock.Now,
+                _currentUserService.UserId);
+
+            await _unitOfWork.Rounds.Update(round);
+            await _unitOfWork.SaveChangeAsync();
+
+            return await GetRoundResponseByRoundId(round.RoundID);
+        }
+
         public async Task<RoundResponseDto> GetRoundById(Guid id)
         {
             var round = await _unitOfWork.Rounds.GetRoundByRoundID(id);

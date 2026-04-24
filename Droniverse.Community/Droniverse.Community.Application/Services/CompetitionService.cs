@@ -498,6 +498,30 @@ namespace Droniverse.Community.Application.Services
             }
         }
 
+        public async Task<CompetitionResponse> UpdateCompetitionNoLogic(Guid competitionId, UpdateCompetitionNoLogicRequest request)
+        {
+            if (request == null)
+                throw new ArgumentNullException(nameof(request));
+
+            var competition = await _unitOfWork.Competitions.GetByCondition(c => c.CompetitionID == competitionId);
+
+            if (competition is null)
+                throw new KeyNotFoundException("Không tìm thấy");
+
+            competition.UpdateTimeFieldsNoLogic(
+                request.VisibleAt,
+                request.RegistrationStartDate,
+                request.RegistrationEndDate,
+                request.StartDate,
+                request.EndDate,
+                _clock.Now);
+
+            await _unitOfWork.SaveChangeAsync();
+            await InvalidateHotCompetitionsCache(competition.ClubID);
+
+            return await MapToCompetitionResponse(competition);
+        }
+
         public async Task<RoundResponseDto> GetCurrentRoundByCompetitionID(Guid competitionID)
         {
             var currentRound = await _unitOfWork.Rounds.GetCurrentRoundByCompetitionID(competitionID);

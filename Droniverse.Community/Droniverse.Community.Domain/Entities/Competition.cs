@@ -356,6 +356,22 @@ public class Competition
         SetUpdated(updatedBy, now);
     }
 
+    public void UpdateTimeFieldsNoLogic(
+        DateTime visibleAt,
+        DateTime registrationStartDate,
+        DateTime registrationEndDate,
+        DateTime startDate,
+        DateTime endDate,
+        DateTime updatedAt)
+    {
+        VisibleAt = visibleAt;
+        RegistrationStartDate = registrationStartDate;
+        RegistrationEndDate = registrationEndDate;
+        StartDate = startDate;
+        EndDate = endDate;
+        UpdatedAt = updatedAt;
+    }
+
     public UserCompetition RegisterParticipant(Guid userId, DateTime now)
     {
         if (Status != CompetitionStatus.PUBLISHED)

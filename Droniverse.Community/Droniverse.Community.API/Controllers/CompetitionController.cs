@@ -9,6 +9,7 @@ using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Filters;
+using System.Runtime.InteropServices;
 
 namespace Droniverse.Community.API.Controllers
 {
@@ -61,6 +62,18 @@ namespace Droniverse.Community.API.Controllers
             return SuccessResponse<CompetitionResponse>.Create(
                 competition,
                 "Tạo cuộc thi thành công!"
+            );
+        }
+
+        [HttpPut("{competitionId:guid}/non-logic")]
+        [SwaggerRequestExample(typeof(UpdateCompetitionNoLogicRequest), typeof(CompetitionUpdateNoLogicExample))]
+        public async Task<ApiResponse> UpdateCompetitionNoLogic(Guid competitionId, [FromBody] UpdateCompetitionNoLogicRequest request)
+        {
+            var result = await _competitionService.UpdateCompetitionNoLogic(competitionId, request);
+
+            return SuccessResponse<CompetitionResponse>.Create(
+                result,
+                "Cập nhật thời gian cuộc thi (không kiểm tra logic) thành công!"
             );
         }
 

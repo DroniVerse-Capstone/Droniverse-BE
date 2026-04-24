@@ -1,6 +1,7 @@
 ﻿using Droniverse.Community.Application.DTO.Extensions;
 using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
+using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.Enums;
 using Droniverse.Shared.DTOs.Response;
 
@@ -21,6 +22,7 @@ namespace Droniverse.Community.Application.IService
         Task<PaginationResult<IEnumerable<LeaderboardEntryDto>>> GetCompetitionLeaderboard(CompetitionLeaderboardSearchRequest request, Guid competitionId);
         Task<CompetitionResponse> UpdateCompetitionStatus(Guid competitionId, CompetitionUpdateStatusDto request);
         Task<RoundResponseDto> GetCurrentRoundByCompetitionID(Guid competitionID);
+        Task<CompetitionResponse> UpdateCompetitionNoLogic(Guid competitionId, UpdateCompetitionNoLogicRequest request);
         Task RefreshHotCompetitionsCacheAsync();
 
         //Task UpdateCompetitionStatusesAsync();

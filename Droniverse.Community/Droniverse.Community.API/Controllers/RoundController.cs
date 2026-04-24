@@ -105,6 +105,21 @@ namespace Droniverse.Community.API.Controllers
             );
         }
 
+        [HttpPut("{roundId:guid}/non-logic")]
+        [ProducesResponseType(typeof(SuccessResponse<RoundResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [SwaggerRequestExample(typeof(UpdateRoundNoLogicRequest), typeof(RoundUpdateNoLogicExample))]
+        [Authorize(Roles = Roles.AdminOrManagerRoles)]
+        public async Task<ApiResponse> UpdateRoundNoLogic(Guid roundId, [FromBody] UpdateRoundNoLogicRequest request)
+        {
+            var round = await _roundService.UpdateRoundNoLogic(roundId, request);
+            return SuccessResponse<RoundResponseDto>.Create(
+                round,
+                "Cập nhật thời gian vòng thi (không kiểm tra logic) thành công!"
+            );
+        }
+
         /// <summary>
         /// Lấy thông tin vòng thi theo ID
         /// </summary>

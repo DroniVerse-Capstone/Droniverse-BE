@@ -9,6 +9,7 @@ namespace Droniverse.Community.Application.IService
     {
         Task<RoundResponseDto> CreateRound(RoundCreateDto request);
         Task<RoundResponseDto> UpdateRound(Guid id, RoundUpdateDto request);
+        Task<RoundResponseDto> UpdateRoundNoLogic(Guid roundId, UpdateRoundNoLogicRequest request);
         Task<RoundResponseDto> GetRoundById(Guid id);
         Task<IEnumerable<RoundResponseDto>> GetRoundsByCompetition(Guid competitionId, RoundStatus? roundStatus = null);
         Task<RoundResponseDto> StartRound(Guid id);
