@@ -18,13 +18,15 @@ namespace Droniverse.Academy.Application.Services
         private readonly ICurrentUserService _currentUser;
         private readonly IMapper _mapper;
         private readonly ILearningService _learningService;
+        private readonly IClock _clock;
 
-        public UserSimulatorService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper, ILearningService learningService)
+        public UserSimulatorService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper, ILearningService learningService, IClock clock)
         {
             _unitOfWork = unitOfWork;
             _currentUser = currentUser;
             _mapper = mapper;
             _learningService = learningService;
+            _clock = clock;
         }
 
         public async Task<SimulatorLearningStateDTO> GetSimulatorLearningStateAsync(Guid enrollmentId, Guid lessonId)
@@ -54,7 +56,7 @@ namespace Droniverse.Academy.Application.Services
 
             var userSimulatorResult = await _unitOfWork.UserSimulators.GetAllAsync(
                 filter: x => x.UserID == _currentUser.UserId && x.LessonID == lessonId,
-                orderBy: q => q.OrderByDescending(x => x.SubmitAt).ThenByDescending(x => x.UserSimulatorID),
+                orderBy: q => q.OrderByDescending(x => x.SubmitAt),
                 pageIndex: 1,
                 pageSize: 1);
 
@@ -75,7 +77,7 @@ namespace Droniverse.Academy.Application.Services
                 UserSimulatorID = Guid.NewGuid(),
                 UserID = _currentUser.UserId,
                 LessonID = lessonId,
-                SubmitAt = DateTime.UtcNow,
+                SubmitAt = _clock.Now,
                 FlightTime = flightTime,
                 Score = score,
                 IsSuccess = score.HasValue && score.Value > 0
