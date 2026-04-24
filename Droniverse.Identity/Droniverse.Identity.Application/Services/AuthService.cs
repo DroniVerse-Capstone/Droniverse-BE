@@ -271,10 +271,12 @@ internal class AuthService : IAuthService
             throw new UnauthorizedAccessException("Chưa xác thực. Lấy thông tin người dùng thất bại.");
         }
 
-        LevelMiniResponseDto? level = null;
+        IEnumerable<UserLevelResponseDto>? userLevelMax = null;
+        IEnumerable<UserLevelResponseDto>? userLevel = null;
         try
         {
-            level = await _academyMicroserviceClient.GetUserLevelMaxAsync(account.UserID);
+            userLevel = await _academyMicroserviceClient.GetUserLevelsAsync(account.UserID);
+            userLevelMax = await _academyMicroserviceClient.GetUserLevelMaxAsync(account.UserID);
         }
         catch (Exception ex)
         {
@@ -283,25 +285,39 @@ internal class AuthService : IAuthService
         }
 
         UserResponse userResponse = _mapper.Map<UserResponse>(account);
-        return userResponse with { Level = level };
+        return userResponse with
+        {
+            UserLevel = userLevel,
+            UserLevelMax = userLevelMax
+        };
     }
 
-    public async Task<UserResponse?> UpdateProfileAsync(ProfileUpdateDto userUpdateDto)
+    public async Task<bool> UpdateProfileAsync(ProfileUpdateDto userUpdateDto)
     {
-        Account? account = await _unitOfWork.Accounts.GetByCondition(a => a.UserID == _currentUserService.UserId);
-        if (account is null)
+        try
         {
-            throw new UnauthorizedAccessException("Chưa xác thực. Cập nhật thông tin người dùng thất bại.");
+            Account? account = await _unitOfWork.Accounts.GetByCondition(a => a.UserID == _currentUserService.UserId);
+            if (account is null)
+            {
+                throw new UnauthorizedAccessException("Chưa xác thực. Cập nhật thông tin người dùng thất bại.");
+            }
+            account.Username = userUpdateDto.Username;
+            account.UserInfo.FirstName = userUpdateDto.FirstName;
+            account.UserInfo.LastName = userUpdateDto.LastName;
+            account.UserInfo.DateOfBirth = userUpdateDto.DateOfBirth;
+            account.UserInfo.Gender = userUpdateDto.Gender;
+            account.UserInfo.Phone = userUpdateDto.Phone;
+            Account? updatedAccount = await _unitOfWork.Accounts.Update(account);
+            UserInfo? updatedUserInfo = await _unitOfWork.UserInfos.Update(account.UserInfo);
+            await _unitOfWork.SaveChangeAsync();
         }
-        account.Username = userUpdateDto.Username;
-        account.UserInfo.FirstName = userUpdateDto.FirstName;
-        account.UserInfo.LastName = userUpdateDto.LastName;
-        account.UserInfo.DateOfBirth = userUpdateDto.DateOfBirth;
-        Account? updatedAccount = await _unitOfWork.Accounts.Update(account);
-        UserInfo? updatedUserInfo = await _unitOfWork.UserInfos.Update(account.UserInfo);
-        await _unitOfWork.SaveChangeAsync();
-        UserResponse userResponse = _mapper.Map<UserResponse>(updatedAccount);
-        return userResponse;
+        catch (Exception)
+        {
+            throw new Exception("Cập nhật thông tin người dùng thất bại.");
+        }
+
+
+        return true;
     }
 
     public async Task<UserResponse?> VerifyEmailAsync(string token)

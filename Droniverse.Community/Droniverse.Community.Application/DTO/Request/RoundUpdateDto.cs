@@ -5,7 +5,7 @@ namespace Droniverse.Community.Application.DTO.Request
     public class RoundUpdateDto
     {
         [Required]
-        public Guid LabID { get; set; }
+        public Guid VRSimulatorID { get; set; }
 
         [Required]
         public DateTime StartTime { get; set; }

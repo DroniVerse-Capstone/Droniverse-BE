@@ -290,7 +290,7 @@ internal class ClubService : IClubService
         if (totalRecords == 0)
             return new PaginationResult<IEnumerable<GetParticipantsResponse>>([], 0, currentPage, pageSize);
 
-        var participationList = participations.ToList();
+        List<Participation> participationList = participations.ToList();
         var pageUserIds = participationList
             .Select(p => p.UserID)
             .Where(x => x != Guid.Empty)
@@ -304,50 +304,8 @@ internal class ClubService : IClubService
         }
         else
         {
-            var pageUsers = await GetUsersByIds(pageUserIds);
+            IEnumerable<UserResponse> pageUsers = await GetUsersByIds(pageUserIds);
             userMap = pageUsers.ToDictionary(x => x.UserId, x => x);
-        }
-
-        // Fetch level info for all users in this page
-        var levelDict = new Dictionary<Guid, LevelMiniResponseDto>();
-        foreach (var userId in pageUserIds)
-        {
-            try
-            {
-                var level = await _academyMicroserviceClient.GetUserLevelMaxAsync(userId);
-                if (level != null)
-                {
-                    levelDict[userId] = level;
-                }
-            }
-            catch
-            {
-                // Silently ignore level fetch errors
-            }
-        }
-
-        // Fetch drone info for the club
-        DroneMiniResponseDto? clubDrone = null;
-        if (club.DroneID != Guid.Empty)
-        {
-            try
-            {
-                var drones = await _academyMicroserviceClient.GetDronesBulk(new[] { club.DroneID });
-                var drone = drones.FirstOrDefault();
-                if (drone != null)
-                {
-                    clubDrone = new DroneMiniResponseDto
-                    {
-                        DroneID = drone.DroneID,
-                        DroneNameVN = drone.DroneNameVN,
-                        DroneNameEN = drone.DroneNameEN
-                    };
-                }
-            }
-            catch
-            {
-                // Silently ignore drone fetch errors
-            }
         }
 
         var data = participationList
@@ -366,8 +324,6 @@ internal class ClubService : IClubService
                     ImageUrl = string.Empty
                 };
 
-                levelDict.TryGetValue(user.UserId, out var level);
-
                 return new GetParticipantsResponse
                 {
                     UserId = user.UserId,
@@ -379,8 +335,8 @@ internal class ClubService : IClubService
                     ImageUrl = user.ImageUrl,
                     Gender = user.Gender,
                     JoinDate = p.JoinDate,
-                    Level = level,
-                    Drone = clubDrone
+                    UserLevel = user.UserLevel,
+                    UserLevelMax = user.UserLevelMax
                 };
             })
             .OrderByDescending(u => u.JoinDate)

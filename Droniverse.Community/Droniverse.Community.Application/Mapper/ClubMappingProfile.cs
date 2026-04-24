@@ -10,7 +10,8 @@ public class ClubMappingProfile : Profile
     public ClubMappingProfile()
     {
         //  Club
-        CreateMap<Club, ClubResponseDto>();
+        CreateMap<Club, ClubResponseDto>()
+            .ForMember(dest => dest.DescriptionVN, opt => opt.MapFrom(src => src.Description));
 
         CreateMap<ClubCreateDto, Club>()
             .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.DescriptionVN));

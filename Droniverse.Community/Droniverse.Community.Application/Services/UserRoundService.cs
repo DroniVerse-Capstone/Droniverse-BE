@@ -59,7 +59,8 @@ namespace Droniverse.Community.Application.Services
                 request.IsPassed,
                 request.IsSequentialCheckpoints,
                 round.TimeLimit,
-                now
+                now,
+                round.EndTime
             );
 
             await _unitOfWork.UserRounds.Update(userRound);
@@ -68,7 +69,7 @@ namespace Droniverse.Community.Application.Services
             return new SubmitSolutionResponse
             {
                 UserRoundId = userRound.UserRoundID,
-                SubmittedAt = userRound.SubmittedAt ?? userRound.GetEffectiveSubmittedAt(round.TimeLimit, now),
+                SubmittedAt = userRound.SubmittedAt ?? userRound.GetEffectiveSubmittedAt(round.TimeLimit, now, round.EndTime),
                 Status = userRound.Status
             };
         }

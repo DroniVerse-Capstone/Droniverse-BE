@@ -15,7 +15,7 @@ public interface IUserService
         int pageSize);
 
     Task<UserResponse> AddUser(UserCreateDto userCreateDto);
-    Task<string> UploadUserAvatar(Guid userId, IFormFile imageFile);
+    Task<UserResponse> UploadUserAvatar(Guid userId, IFormFile imageFile);
     Task<UserResponse> UpdateUser(Guid userId, UserUpdateDto userUpdateDto);
     Task<UserResponse> GetUserById(Guid id);
     Task<bool> DeleteUser(Guid id);

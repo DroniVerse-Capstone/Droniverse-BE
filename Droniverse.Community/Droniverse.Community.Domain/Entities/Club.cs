@@ -11,6 +11,7 @@ public class Club
     public Guid DroneID { get; set; }
     public string ClubPolicyVN { get; set; }
     public string ClubPolicyEN { get; set; }
+    public ICollection<Transaction> Transactions { get; set; }
     public ICollection<Participation> Participations { get; set; }
     public ICollection<Competition> Competitions { get; set; }
     public ICollection<ClubAttemptRequest> ClubRequests { get; set; }
