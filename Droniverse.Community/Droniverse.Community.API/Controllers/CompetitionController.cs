@@ -30,16 +30,19 @@ namespace Droniverse.Community.API.Controllers
         private readonly ICompetitionCertificateService _competitionCertificateService;
         private readonly IRoundService _roundService;
         private readonly ICompetitionPrizeService _competitionPrizeService;
+        private readonly ICompetitionLevelService _competitionLevelService;
         public CompetitionController(
             ICompetitionService competitionService,
             ICompetitionCertificateService competitionCertificateService,
             IRoundService roundService,
-            ICompetitionPrizeService competitionPrizeService)
+            ICompetitionPrizeService competitionPrizeService,
+            ICompetitionLevelService competitionLevelService)
         {
             _competitionService = competitionService;
             _competitionCertificateService = competitionCertificateService;
             _roundService = roundService;
             _competitionPrizeService = competitionPrizeService;
+            _competitionLevelService = competitionLevelService;
         }
 
         /// <summary>
@@ -300,36 +303,86 @@ namespace Droniverse.Community.API.Controllers
             );
         }
 
+        //[HttpPost("{competitionId}/certificates")]
+        //[ProducesResponseType(typeof(SuccessResponse<CompetitionCertificateAdditionResponse>), StatusCodes.Status200OK)]
+        //[ProducesResponseType(StatusCodes.Status400BadRequest)]
+        //[ProducesResponseType(StatusCodes.Status404NotFound)]
+        //[SwaggerRequestExample(typeof(CompetitionCertificateAddDto), typeof(CompetitionCertificateAddExample))]
+        //[Authorize(Roles = Roles.AdminOrManagerRoles)]
+        //public async Task<ApiResponse> AddCertificatesToCompetition(
+        //    Guid competitionId,
+        //    [FromBody] CompetitionCertificateAddDto request)
+        //{
+        //    var result = await _competitionCertificateService.AddCertificateToCompetition(competitionId, request);
+        //    return SuccessResponse<CompetitionCertificateAdditionResponse>.Create(
+        //        result,
+        //        $"Thêm {result.AddedTotal} chứng chỉ vào cuộc thi thành công!"
+        //    );
+        //}
+
+
         /// <summary>
-        /// Thêm certificate vào cuộc thi.
+        /// Thêm/Cập nhật 1 hoặc nhiều level trong 1 competition
         /// </summary>
-        /// <param name="competitionId">ID của cuộc thi</param>
-        /// <param name="request">Danh sách certificate IDs cần thêm (chỉ nhận đúng 1 ID)</param>
-        /// <remarks>
-        /// **Quy tắc:**
-        ///
-        /// 1. Chỉ cho phép thêm khi Competition ở trạng thái `DRAFT`
-        /// 2. Certificate không được trùng trong cùng một competition (trùng sẽ không được chấp nhận)
-        /// 3. Certificate phải hợp lệ/tồn tại theo dữ liệu tích hợp từ Academy system
-        /// 4. Có thể thêm nhiều certificate trong một request
-        /// </remarks>
-        /// <returns>200 OK - Thêm certificates thành công</returns>
-        [HttpPost("{competitionId}/certificates")]
-        [ProducesResponseType(typeof(SuccessResponse<CompetitionCertificateAdditionResponse>), StatusCodes.Status200OK)]
+        /// <param name="competitionId">ID của compeititon</param>
+        /// <param name="request">Danh sách các level cần thiết</param>
+        /// <returns></returns>
+        [HttpPost("{competitionId}/levels")]
+        [ProducesResponseType(typeof(SuccessResponse<CompetitionLevelAdditionResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [SwaggerRequestExample(typeof(CompetitionCertificateAddDto), typeof(CompetitionCertificateAddExample))]
         [Authorize(Roles = Roles.AdminOrManagerRoles)]
-        public async Task<ApiResponse> AddCertificatesToCompetition(
-            Guid competitionId,
-            [FromBody] CompetitionCertificateAddDto request)
+        public async Task<ApiResponse> AddLevelsToCompetition(
+           Guid competitionId,
+           [FromBody] CompetitionLevelAddDto request)
         {
-            var result = await _competitionCertificateService.AddCertificateToCompetition(competitionId, request);
-            return SuccessResponse<CompetitionCertificateAdditionResponse>.Create(
+            var result = await _competitionLevelService.AddLevelToCompetition(competitionId, request);
+            return SuccessResponse<CompetitionLevelAdditionResponse>.Create(
                 result,
-                $"Thêm {result.AddedTotal} chứng chỉ vào cuộc thi thành công!"
+                $"Thêm {result.AddedTotal} cấp độ vào cuộc thi thành công!"
             );
         }
+
+        /// <summary>
+        /// Lấy ra các điều kiện levels cần phải có của competition
+        /// </summary>
+        /// <param name="competitionId">ID của cuộc thi</param>
+        /// <returns>200 - OK</returns>
+        [HttpGet("{competitionId}/levels")]
+        [ProducesResponseType(typeof(SuccessResponse<IEnumerable<SimpleLevelResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ApiResponse> GetLevelsByCompetition(Guid competitionId)
+        {
+            var levels = await _competitionLevelService.GetLevelsByCompetition(competitionId);
+            return SuccessResponse<IEnumerable<SimpleLevelResponse>>.Create(
+                levels,
+                "Lấy danh sách cấp độ thành công!"
+            );
+        }
+
+        /// <summary>
+        /// Xóa 1 hoặc nhiều level của competition
+        /// </summary>
+        /// <param name="competitionId">ID của competition</param>
+        /// <param name="request">Danh sách levelID cần phải xóa</param>
+        /// <returns></returns>
+        [HttpDelete("{competitionId}/levels")]
+        [ProducesResponseType(typeof(SuccessResponse<CompetitionLevelDeletionResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Authorize(Roles = Roles.AdminOrManagerRoles)]
+        public async Task<ApiResponse> RemoveLevelsFromCompetition(
+      Guid competitionId,
+      [FromBody] CompetitionLevelRemoveDto request)
+        {
+            var result = await _competitionLevelService.RemoveLevelsFromCompetition(competitionId, request);
+
+            return SuccessResponse<CompetitionLevelDeletionResponse>.Create(
+                result,
+                $"Xóa {result.DeletedTotal} cấp độ khỏi cuộc thi thành công!"
+            );
+        }
+
 
         /// <summary>
         /// Thêm certificate vào cuộc thi.
@@ -345,22 +398,22 @@ namespace Droniverse.Community.API.Controllers
         /// 4. API này chỉ hỗ trợ thêm đúng 1 certificate trong mỗi request
         /// </remarks>
         /// <returns>200 OK - Thêm certificate thành công</returns>
-        [HttpPost("{competitionId}/certificates/single")]
-        [ProducesResponseType(typeof(SuccessResponse<SimpleCertificateResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [SwaggerRequestExample(typeof(CompetitionCertificateAddDto), typeof(CompetitionCertificateAddExample))]
-        [Authorize(Roles = Roles.AdminOrManagerRoles)]
-        public async Task<ApiResponse> AddSingleCertificateToCompetition(
-            Guid competitionId,
-            [FromBody] CompetitionCertificateAddDto request)
-        {
-            var result = await _competitionCertificateService.AddSingleCertificateToCompetition(competitionId, request);
-            return SuccessResponse<SimpleCertificateResponse>.Create(
-                result,
-                "Thêm chứng chỉ vào cuộc thi thành công!"
-            );
-        }
+        //[HttpPost("{competitionId}/certificates/single")]
+        //[ProducesResponseType(typeof(SuccessResponse<SimpleCertificateResponse>), StatusCodes.Status200OK)]
+        //[ProducesResponseType(StatusCodes.Status400BadRequest)]
+        //[ProducesResponseType(StatusCodes.Status404NotFound)]
+        //[SwaggerRequestExample(typeof(CompetitionCertificateAddDto), typeof(CompetitionCertificateAddExample))]
+        //[Authorize(Roles = Roles.AdminOrManagerRoles)]
+        //public async Task<ApiResponse> AddSingleCertificateToCompetition(
+        //    Guid competitionId,
+        //    [FromBody] CompetitionCertificateAddDto request)
+        //{
+        //    var result = await _competitionCertificateService.AddSingleCertificateToCompetition(competitionId, request);
+        //    return SuccessResponse<SimpleCertificateResponse>.Create(
+        //        result,
+        //        "Thêm chứng chỉ vào cuộc thi thành công!"
+        //    );
+        //}
 
         /// <summary>
         /// Lấy danh sách certificates của cuộc thi.

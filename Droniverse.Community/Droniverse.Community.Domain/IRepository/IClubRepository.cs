@@ -12,6 +12,8 @@ public interface IClubRepository : IRepository<Club>
         int currentPage = 1,
         int pageSize = 5);
 
+    Task<bool> IsClubExist(Guid clubId);
+
     Task<Club?> GetByIdWithCategories(Guid clubId);
     Task<Club?> GetByClubCodeWithCategories(string clubCode);
     Task<IEnumerable<Club>> GetClubsByClubManagerID(Guid clubManagerID, ClubStatus? status = null);
