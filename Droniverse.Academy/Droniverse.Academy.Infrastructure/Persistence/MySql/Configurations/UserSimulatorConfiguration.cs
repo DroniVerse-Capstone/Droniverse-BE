@@ -14,6 +14,7 @@ namespace Droniverse.Academy.Infrastructure.Persistence.MySql.Configurations
             builder.Property(e => e.UserSimulatorID).HasColumnType("char(36)");
             builder.Property(e => e.UserID).HasColumnType("char(36)");
             builder.Property(e => e.LessonID).HasColumnType("char(36)");
+            builder.Property(e => e.SubmitAt).HasColumnType("datetime");
             builder.Property(e => e.FlightTime).HasColumnType("int");
             builder.Property(e => e.Score).HasColumnType("int");
             builder.Property(e => e.IsSuccess).HasColumnType("bit");

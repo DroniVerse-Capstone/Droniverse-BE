@@ -71,13 +71,13 @@ public class LearningService : ILearningService
     {
         var userLessonsResult = await _unitOfWork.UserLessons.GetAllAsync(
             filter: x => x.UserID == _currentUser.UserId
-                         && x.Status == UserLessonStatus.COMPLETED 
-                         && x.Status == UserLessonStatus.INCOMPLETED
+                         && (x.Status == UserLessonStatus.COMPLETED
+                             || x.Status == UserLessonStatus.INCOMPLETED)
                          && x.Lesson.Type == LessonType.VR,
             orderBy: q => q.OrderByDescending(x => x.LastAccessDate),
             pageIndex: 1,
             pageSize: int.MaxValue,
-            includeProperties: "Lesson");
+            includeProperties: "Lesson.Module");
 
         var userLessons = userLessonsResult.Data.ToList();
         if (userLessons.Count == 0)
@@ -99,15 +99,45 @@ public class LearningService : ILearningService
 
             vrLookup = vrResult.Data.ToDictionary(x => x.VRSimulatorID);
         }
+        var courseVersionIds = userLessons
+            .Where(x => x.Lesson?.Module != null)
+            .Select(x => x.Lesson.Module.CourseVersionID)
+            .Distinct()
+            .ToList();
 
+        var enrollmentsResult = await _unitOfWork.Enrollments.GetAllAsync(
+            filter: x =>
+                x.UserID == _currentUser.UserId &&
+                courseVersionIds.Contains(x.CourseVersionID) &&
+                x.Status == EnrollStatus.ACTIVE,
+            pageIndex: 1,
+            pageSize: int.MaxValue);
+
+        var enrollmentLookup = enrollmentsResult.Data.ToDictionary(x => x.CourseVersionID);
         return userLessons.Select(userLesson =>
         {
             var lesson = userLesson.Lesson;
+            var module = lesson?.Module;
             vrLookup.TryGetValue(lesson.ReferenceID, out var vrSimulator);
-            var enrollmentId = _unitOfWork.Enrollments.GetByConditionAsync(
-                x => x.UserID == _currentUser.UserId
-                     && x.CourseVersionID == lesson.Module.CourseVersionID && x.Status == EnrollStatus.ACTIVE)
-                .GetAwaiter().GetResult()?.EnrollmentID ?? Guid.Empty;
+
+            if (module == null)
+                return new IncompleteVRLessonResponseDTO
+                {
+                    UserLessonID = userLesson.UserLessonID,
+                    LessonID = lesson?.LessonID ?? Guid.Empty,
+                    ModuleID = lesson?.ModuleID ?? Guid.Empty,
+                    OrderIndex = lesson?.OrderIndex ?? 0,
+                    ReferenceID = lesson?.ReferenceID ?? Guid.Empty,
+                    Type = lesson.Type,
+                    Status = userLesson.Status,
+                    Progress = userLesson.Progress,
+                    LastAccessDate = userLesson.LastAccessDate,
+                    EnrollmentID = Guid.Empty
+                };
+
+            enrollmentLookup.TryGetValue(module.CourseVersionID, out var enrollment);
+            var enrollmentId = enrollment?.EnrollmentID ?? Guid.Empty;
+
             return new IncompleteVRLessonResponseDTO
             {
                 UserLessonID = userLesson.UserLessonID,

@@ -42,7 +42,11 @@ public class EnrollmentService : IEnrollmentService
         if (courseVersion == null)
             throw new BaseException("Không tìm thấy phiên bản khóa học.", "NOT_FOUND");
 
+        var course = await _unitOfWork.Courses.GetByIdWithCurrentVersionAsync(courseVersion.CourseID)
+            ?? throw new BaseException("Không tìm thấy khóa học.", "NOT_FOUND");
+
         var userId = _currentUser.UserId;
+        await ValidateUserCanEnrollCourseByLevelAsync(userId, course);
 
         var enrollment = _mapper.Map<Enrollment>(request);
         enrollment.EnrollmentID = Guid.NewGuid();
@@ -228,6 +232,30 @@ public class EnrollmentService : IEnrollmentService
             return;
 
         await _unitOfWork.UserModules.AddRangeAsync(userModules);
+    }
+
+    private async Task ValidateUserCanEnrollCourseByLevelAsync(Guid userId, Course course)
+    {
+        if (course.Level == null)
+            throw new BaseException("Khóa học chưa được gán level.", "INVALID_STATE");
+
+        var userLevelsResult = await _unitOfWork.UserLevels.GetAllAsync(
+            filter: x => x.UserID == userId && x.Level.DroneID == course.Level.DroneID,
+            pageIndex: 1,
+            pageSize: int.MaxValue,
+            includeProperties: "Level");
+
+        var maxLevelNumber = userLevelsResult.Data
+            .Select(x => x.Level.LevelNumber)
+            .DefaultIfEmpty(0)
+            .Max();
+
+        var courseLevelNumber = course.Level.LevelNumber;
+        var canEnroll = (maxLevelNumber == 0 && courseLevelNumber == 1)
+            || maxLevelNumber >= courseLevelNumber;
+
+        if (!canEnroll)
+            throw new ForbiddenException("Bạn chưa đủ level để học khóa này theo drone tương ứng.");
     }
 
 }

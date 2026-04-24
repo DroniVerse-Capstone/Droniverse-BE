@@ -32,6 +32,7 @@ public class CourseOverviewResponseDTO
 
     public string? CertificateImageUrl { get; set; }
     public bool IsUnlock { get; set; }
+    public bool IsEligibleByLevel { get; set; }
     public SimpleUserReponse? LastUpdatedBy { get; set; }
     public DateTime? LastUpdatedAt { get; set; }
     public List<PrerequisiteCourseMiniReponse> PrerequisiteCourses { get; set; } = [];

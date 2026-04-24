@@ -1,7 +1,5 @@
 ﻿using Droniverse.Academy.Domain.Enums;
 
-using Droniverse.Academy.Domain.Enums;
-
 namespace Droniverse.Academy.Infrastructure.Persistence.MySql.ReadModels;
 
 public class CourseStatsView

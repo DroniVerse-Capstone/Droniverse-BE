@@ -228,6 +228,7 @@ public class CourseService : ICourseService
             : [];
         response.Level = _mapper.Map<LevelMiniResponse?>(course.Level);
         response.Drone = _mapper.Map<DroneMiniResponse?>(course.Drone);
+        response.IsEligibleByLevel = await CanCurrentUserLearnCourseByLevelAsync(course, currentUserId);
 
         var enrollment = await _unitOfWork.Enrollments.GetByConditionAsync(
             x => x.UserID == currentUserId
@@ -451,7 +452,7 @@ public class CourseService : ICourseService
         var droneId = await _communityMicroserviceClient.GetDroneFromClubAsync(clubId);
 
         var pageIndex = searchRequest.CurrentPage < 1 ? 1 : searchRequest.CurrentPage;
-        var pageSize = searchRequest.PageSize < 1 ? 5 : searchRequest.PageSize;
+        const int pageSize = 4;
 
         if (droneId == Guid.Empty)
         {
@@ -664,6 +665,28 @@ public class CourseService : ICourseService
         }
 
         return dtos;
+    }
+
+    private async Task<bool> CanCurrentUserLearnCourseByLevelAsync(Course course, Guid userId)
+    {
+        if (course.Level == null)
+            return false;
+
+        var userLevelsResult = await _unitOfWork.UserLevels.GetAllAsync(
+            filter: x => x.UserID == userId && x.Level.DroneID == course.Level.DroneID,
+            pageIndex: 1,
+            pageSize: int.MaxValue,
+            includeProperties: "Level");
+
+        var maxLevelNumber = userLevelsResult.Data
+            .Select(x => x.Level.LevelNumber)
+            .DefaultIfEmpty(0)
+            .Max();
+
+        if (maxLevelNumber == 0 && course.Level.LevelNumber == 1)
+            return true;
+
+        return maxLevelNumber >= course.Level.LevelNumber;
     }
 
     public async Task<PagedManagerCoursesBulkResponse> GetCoursesByIdsManagementAsync(

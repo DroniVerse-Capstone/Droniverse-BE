@@ -168,12 +168,13 @@ namespace Droniverse.Academy.API.Controllers
         {
             try
             {
+                const int hotCoursesPageSize = 4;
                 var result = await _courseService.GetHotCoursesByIdsAsync(clubId, searchRequest);
                 var paginationResult = new PaginationResult<IEnumerable<CourseBulkResponseDTO>>(
                     result.Items,
                     result.TotalItems,
                     searchRequest.CurrentPage,
-                    searchRequest.PageSize);
+                    hotCoursesPageSize);
                 return Ok(SuccessResponse<PaginationResult<IEnumerable<CourseBulkResponseDTO>>>.Create(paginationResult, "Lấy danh sách khóa học hot thành công."));
             }
             catch (Exception ex)
