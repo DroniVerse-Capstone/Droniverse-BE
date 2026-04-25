@@ -225,7 +225,7 @@ namespace Droniverse.Community.API.Controllers
         [HttpPost("{competitionId:guid}/participants/{userId:guid}/disqualified")]
         [ProducesResponseType(typeof(SuccessResponse<UserCompetitionResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [Authorize(Roles = Roles.ClubMember)]
+        [Authorize(Roles = Roles.SystemRoles)]
         public async Task<ApiResponse> DisqualifiedFromCompetition(Guid competitionId, Guid userId)
         {
             var result = await _competitionService.DisqualifiedFromCompetition(competitionId, userId);

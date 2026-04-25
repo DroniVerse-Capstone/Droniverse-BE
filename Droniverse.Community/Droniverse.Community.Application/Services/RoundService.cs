@@ -76,10 +76,13 @@ namespace Droniverse.Community.Application.Services
 
             var round = await _unitOfWork.Rounds.GetRoundForJoinById(id);
             if (round == null)
-                throw new KeyNotFoundException($"Không tìm thấy vòng thi với ID [{id}].");
+                throw new KeyNotFoundException($"Không tìm thấy vòng thi.");
 
-            var isUserInCompetition = await _unitOfWork.UserCompetitions
-      .IsUserInCompetitionAsync(round.CompetitionID, currentUserId);
+            var userCompetition = await _unitOfWork.UserCompetitions
+                 .GetByCondition(x => x.CompetitionID == round.CompetitionID && x.UserID == currentUserId);
+
+            if (userCompetition == null)
+                throw new InvalidOperationException("Người dùng chưa tham gia cuộc thi.");
 
             var isJoined = await _unitOfWork.UserRounds
                 .IsUserJoinedRound(currentUserId, id);
@@ -101,7 +104,7 @@ namespace Droniverse.Community.Application.Services
             // validate trước khi được tham gia
             round.ValidateUserCanJoin(
                 now,
-                isUserInCompetition,
+                userCompetition.Status,
                 isJoined,
                 isUserPassedPreviousRound
             );
