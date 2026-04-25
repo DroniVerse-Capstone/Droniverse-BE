@@ -12,6 +12,7 @@ using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Services;
 using Droniverse.Shared.Services.IServices;
 using Droniverse.Shared.Settings;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -102,6 +103,11 @@ internal class AuthService : IAuthService
             throw new NotFoundException("Role not found.");
         newAccount.RoleID = r.RoleID;
         newAccount.Username = registerDto.FirstName + " " + registerDto.LastName;
+
+        var existingUsername = await _unitOfWork.Accounts.GetByCondition(a => a.Username == newAccount.Username);
+        if (existingUsername is not null)
+            throw new DuplicateUsernameException(newAccount.Username);
+
         newAccount.PasswordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password);
         newAccount.Status = AccountStatus.ACTIVE;
         newAccount.IsEmailVerified = false;
@@ -112,7 +118,14 @@ internal class AuthService : IAuthService
         newAccount.VerificationTokenExpiryTime = DateTime.UtcNow.AddHours(24); // Token hết hạn sau 24 giờ
 
         await _unitOfWork.Accounts.Add(newAccount);
-        await _unitOfWork.SaveChangeAsync();
+        try
+        {
+            await _unitOfWork.SaveChangeAsync();
+        }
+        catch (DbUpdateException ex) when (IsDuplicateUsernameException(ex))
+        {
+            throw new DuplicateUsernameException(newAccount.Username);
+        }
 
         try
         {
@@ -392,6 +405,14 @@ internal class AuthService : IAuthService
         );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    private static bool IsDuplicateUsernameException(DbUpdateException ex)
+    {
+        var innerMessage = ex.InnerException?.Message ?? string.Empty;
+        return innerMessage.Contains("IX_Account_Username", StringComparison.OrdinalIgnoreCase)
+            || (innerMessage.Contains("Duplicate entry", StringComparison.OrdinalIgnoreCase)
+                && innerMessage.Contains("Username", StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>

@@ -80,6 +80,7 @@ namespace Droniverse.Community.API.Controllers
         /// <param name="orderId"></param>
         /// <returns></returns>
         [HttpGet("{orderId:guid}")]
+        [ProducesResponseType(typeof(SuccessResponse<OrderResponseDto?>), StatusCodes.Status200OK)]
         public async Task<ApiResponse> GetOrderByOrderId(Guid orderId)
         {
             try
@@ -107,6 +108,7 @@ namespace Droniverse.Community.API.Controllers
         /// <returns></returns>
         [HttpGet("clubs/{clubId:guid}")]
         [Authorize(Roles = Roles.AdminOrManagerRoles)]
+        [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<OrderResponseDto?>>>), StatusCodes.Status200OK)]
         public async Task<ApiResponse> GetOrdersByClubId(Guid clubId, [FromQuery] int currentPage = 1, [FromQuery] int pageSize = 10)
         {
             try
@@ -133,6 +135,7 @@ namespace Droniverse.Community.API.Controllers
         /// <returns></returns>
         [HttpGet("my-club")]
         [Authorize(Roles = Roles.ClubManager)]
+        [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<OrderResponseDto?>>>), StatusCodes.Status200OK)]
         public async Task<ApiResponse> GetOrdersByCurrentClub([FromQuery] int currentPage = 1, [FromQuery] int pageSize = 10)
         {
             try
@@ -159,6 +162,7 @@ namespace Droniverse.Community.API.Controllers
         /// <returns></returns>
         [HttpGet("me")]
         [Authorize(Roles = Roles.ClubRoles)]
+        [ProducesResponseType(typeof(SuccessResponse<OrderResponseDto?>), StatusCodes.Status200OK)]
         public async Task<ApiResponse> GetOrdersByCurrentUser([FromQuery] int currentPage = 1, [FromQuery] int pageSize = 10)
         {
             try

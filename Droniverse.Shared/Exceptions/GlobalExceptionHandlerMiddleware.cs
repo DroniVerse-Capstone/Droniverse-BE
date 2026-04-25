@@ -57,6 +57,10 @@ public class GlobalExceptionHandlerMiddleware
                 StatusCodes.Status409Conflict,
                 ErrorResponse.Create(ex.Message, ex.ErrorCode)
             ),
+            DuplicateUsernameException ex => (
+                StatusCodes.Status409Conflict,
+                ErrorResponse.Create(ex.Message, ex.ErrorCode)
+            ),
             DbUpdateException ex => HandleDbUpdateException(ex),
             UnauthorizedAccessException ex => (
                 StatusCodes.Status401Unauthorized,

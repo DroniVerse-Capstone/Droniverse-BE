@@ -60,7 +60,8 @@ public class Club
         Guid managerID,
         Guid droneID,
         string clubPolicyVN,
-        string clubPolicyEN)    
+        string clubPolicyEN,
+        string? clubRequirement = null)
     {
         ClubID = Guid.NewGuid();
         NameVN = nameVN;
@@ -83,6 +84,7 @@ public class Club
         DroneID = droneID;
         ClubPolicyVN = clubPolicyVN;
         ClubPolicyEN = clubPolicyEN;
+        ClubRequirement = clubRequirement;
     }
 
     // ===== Domain Methods =====

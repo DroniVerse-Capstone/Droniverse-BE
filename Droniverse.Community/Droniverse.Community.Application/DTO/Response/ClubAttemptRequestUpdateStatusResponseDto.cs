@@ -7,6 +7,7 @@ namespace Droniverse.Community.Application.DTO.Response
         public Guid ClubRequestID { get; set; }
         public Guid RequesterID { get; set; }
         public Guid ClubID { get; set; }
+        public string? ClubRequirement { get; set; }
         public string ClubNameVN { get; set; }
         public string ClubNameEN { get; set; }
         public ClubAttemptRequestStatus Status { get; set; }
