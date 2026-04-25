@@ -181,7 +181,7 @@ namespace Droniverse.Community.Application.Services
         {
             var competition = await _unitOfWork.Competitions.GetByCondition(
                 c => c.CompetitionID == id,
-                q => q.AsNoTracking()
+                q => q.AsNoTracking().Include(c => c.UserCompetitions)
             );
 
             if (competition == null)
@@ -809,6 +809,11 @@ namespace Droniverse.Community.Application.Services
             if (competition.UpdatedBy.HasValue)
                 updatedByUser = await GetUserSafe(competition.UpdatedBy.Value);
 
+            var currentUserId = _currentUserService.UserId;
+
+            bool isRegistered = competition.UserCompetitions
+               .Any(u => u.UserID == currentUserId);
+
             return new CompetitionResponse
             {
                 CompetitionID = competition.CompetitionID,
@@ -825,6 +830,7 @@ namespace Droniverse.Community.Application.Services
                 StartDate = competition.StartDate,
                 EndDate = competition.EndDate,
                 CompetitionStatus = competition.Status,
+                IsRegistered = isRegistered,
                 CompetitionPhase = CommunityAppHelpers.GetCurrentCompetitionLifeCycle(competition, _clock.Now),
                 ResultPublishedAt = competition.ResultPublishedAt,
                 CreatedBy = ToSimpleUserResponse(competition.CreatedBy, createdByUser),
@@ -845,6 +851,8 @@ namespace Droniverse.Community.Application.Services
             if (competitionList.Count == 0)
                 return [];
 
+            var currentUserId = _currentUserService.UserId;
+
             var now = _clock.Now;
 
             var competitionIds = competitionList.Select(c => c.CompetitionID).ToList();
@@ -860,6 +868,7 @@ namespace Droniverse.Community.Application.Services
 
             var userDict = users.ToDictionary(u => u.UserId, u => u);
 
+
             return competitionList.Select(competition =>
             {
                 userDict.TryGetValue(competition.CreatedBy, out var createdByUser);
@@ -871,6 +880,9 @@ namespace Droniverse.Community.Application.Services
                 var counts = aggregateCounts.GetValueOrDefault(
                     competition.CompetitionID,
                     (RoundCount: 0, CompetitorCount: 0, PrizeCount: 0));
+
+                bool isRegistered = competition.UserCompetitions
+                   .Any(u => u.UserID == currentUserId);
 
                 return new CompetitionResponse
                 {
@@ -894,6 +906,7 @@ namespace Droniverse.Community.Application.Services
                     UpdatedBy = competition.UpdatedBy.HasValue
                         ? ToSimpleUserResponse(competition.UpdatedBy.Value, updatedByUser)
                         : null,
+                    IsRegistered = isRegistered,
                     CreatedAt = competition.CreatedAt,
                     UpdatedAt = competition.UpdatedAt,
                     InvalidAt = competition.InvalidAt,
