@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Policy;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -22,6 +23,7 @@ namespace Droniverse.Community.Domain.Entities
         public Media? Media { get; set; }
         public string? ClubPolicyVN { get; set; }
         public string? ClubPolicyEN { get; set; }
+        public string? ClubRequirement { get; set; }
 
         // ===== System Fields =====
         public Guid DroneID { get; set; }

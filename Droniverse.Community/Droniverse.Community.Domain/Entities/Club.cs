@@ -26,6 +26,7 @@ public class Club
     [Required]
     public ClubStatus Status { get; set; }
     public string? ImageUrl { get; set; }
+    public string? ClubRequirement { get; set; }
 
     [Required]
     [Range(1, int.MaxValue, ErrorMessage = "Club must have at least 1 member !")]

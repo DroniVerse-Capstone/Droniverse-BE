@@ -12,7 +12,7 @@ public class Transaction
     public TransactionType Type { get; set; }
     public Guid ReferenceID { get; set; }
     public DateTime CreatedAt { get; set; }
-    public Guid ClubID { get; set; }
+    public Guid? ClubID { get; set; }
     public Club Club { get; set; }
 
     private Transaction() { }

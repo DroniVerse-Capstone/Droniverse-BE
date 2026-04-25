@@ -10,6 +10,7 @@ public class ClubAttemptRequest
     public Guid? MediaID { get; private set; }
     public Guid ClubID { get; private set; }
     public Club Club { get; private set; }
+    public string? ClubRequirement { get; private set; }
     public ClubAttemptRequestStatus Status { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime? ProcessedAt { get; private set; }
