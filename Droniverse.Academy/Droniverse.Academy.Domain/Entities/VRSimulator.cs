@@ -1,11 +1,11 @@
-﻿using Droniverse.Academy.Domain.Enums;
+﻿using Droniverse.Shared.Enums;
 
 namespace Droniverse.Academy.Domain.Entities;
 
 public class VRSimulator
 {
     public Guid VRSimulatorID { get; set; }
-    public VRSimulatorType Type { get; set; }
+    public VRSimulatorType Type { get; set; }   
     public string TitleEN { get; set; } = string.Empty;
     public string TitleVN { get; set; } = string.Empty;
     public Guid CreateBy { get; private set; }

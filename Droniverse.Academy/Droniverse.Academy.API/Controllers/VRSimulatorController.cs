@@ -1,8 +1,8 @@
 ﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
-using Droniverse.Academy.Domain.Enums;
 using Droniverse.Shared.DTOs;
+using Droniverse.Shared.Enums;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Droniverse.Academy.API.Controllers;
