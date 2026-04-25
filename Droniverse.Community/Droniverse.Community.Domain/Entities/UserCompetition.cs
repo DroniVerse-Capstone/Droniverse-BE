@@ -16,7 +16,7 @@ public class UserCompetition
     public DateTime? UpdatedAt { get; private set; }
     private UserCompetition() { }
 
-    public UserCompetition(Guid userID, Guid competitionID)
+    public UserCompetition(Guid userID, Guid competitionID, DateTime now)
     {
         UserCompetitionID = Guid.NewGuid();
         UserID = userID;
@@ -24,42 +24,57 @@ public class UserCompetition
 
         Status = UserCompetitionStatus.ACTIVE;
 
-        CreatedAt = DateTime.UtcNow;
+        CreatedAt = now;
     }
 
-    public void UpdateScore(decimal score)
+    public void UpdateScore(decimal score, DateTime now)
     {
         Score = score;
-        UpdatedAt = DateTime.UtcNow;
+        UpdatedAt = now;
     }
 
-    public void UpdateRank(int rank)
+    public void UpdateRank(int rank, DateTime now)
     {
         Rank = rank;
-        UpdatedAt = DateTime.UtcNow;
+        UpdatedAt = now;
     }
 
-    public void AssignPrize(Guid prizeID)
+    public void AssignPrize(Guid prizeID, DateTime now)
     {
         PrizeID = prizeID;
-        UpdatedAt = DateTime.UtcNow;
+        UpdatedAt = now;
     }
 
-    public void Disqualify()
+    public void Rejoin(DateTime now)
+    {
+        if (Status != UserCompetitionStatus.WITHDRAWN)
+            throw new InvalidOperationException("Chỉ có thể tham gia lại khi đã rút lui.");
+
+        Status = UserCompetitionStatus.ACTIVE;
+
+        // reset dữ liệu (tuỳ business)
+        Score = null;
+        Rank = null;
+        PrizeID = null;
+
+        UpdatedAt = now;
+    }
+
+    public void Disqualify(DateTime now)
     {
         if (Status == UserCompetitionStatus.DISQUALIFIED)
             throw new InvalidOperationException("Người dùng đã bị loại khỏi cuộc thi.");
 
         Status = UserCompetitionStatus.DISQUALIFIED;
-        UpdatedAt = DateTime.UtcNow;
+        UpdatedAt = now;
     }
 
-    public void Withdraw()
+    public void Withdraw(DateTime now)
     {
         if (Status == UserCompetitionStatus.WITHDRAWN)
             throw new InvalidOperationException("Người dùng đã rút khỏi cuộc thi.");
 
         Status = UserCompetitionStatus.WITHDRAWN;
-        UpdatedAt = DateTime.UtcNow;
+        UpdatedAt = now;
     }
 }
