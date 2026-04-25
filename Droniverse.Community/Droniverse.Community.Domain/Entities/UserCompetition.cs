@@ -56,7 +56,7 @@ public class UserCompetition
         Score = null;
         Rank = null;
         PrizeID = null;
-
+        CreatedAt = now;
         UpdatedAt = now;
     }
 
