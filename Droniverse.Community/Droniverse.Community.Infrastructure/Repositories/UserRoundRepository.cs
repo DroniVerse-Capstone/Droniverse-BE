@@ -140,6 +140,7 @@ internal class UserRoundRepository : MySqlRepository<UserRound>, IUserRoundRepos
             .Select(ur => new MyRoundQueryModel
             {
                 RoundId = ur.RoundID,
+                VRSimulatorId = ur.Round.VRSimilatorID,
                 RoundNumber = ur.Round.RoundNumber,
                 StartTime = ur.Round.StartTime,
                 EndTime = ur.Round.EndTime,
