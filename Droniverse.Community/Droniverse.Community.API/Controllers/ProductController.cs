@@ -21,7 +21,12 @@ namespace Droniverse.Community.API.Controllers
             _productService = productService;
         }
 
+        /// <summary>
+        /// Lấy ra danh sách các sản phẩm
+        /// </summary>
+        /// <returns></returns>
         [HttpGet]
+        [ProducesResponseType(typeof(IEnumerable<ProductResponseDto>), StatusCodes.Status200OK)]
 
         public async Task<IActionResult> GetProducts()
         {
@@ -30,7 +35,14 @@ namespace Droniverse.Community.API.Controllers
 
         }
 
+        /// <summary>
+        /// Lấy ra tt chi tiết của sản phẩm theo id
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpGet("{id}")]
+        [ProducesResponseType(typeof(ProductResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetProductById(Guid id)
         {
             var product = await _productService.GetProductById(id);
@@ -41,7 +53,14 @@ namespace Droniverse.Community.API.Controllers
             return Ok(product);
         }
 
+        /// <summary>
+        /// Lấy thông tin của sản phẩm theo referenceId(courseId, droneId,...)
+        /// </summary>
+        /// <param name="referenceId"></param>
+        /// <returns></returns>
         [HttpGet("reference/{referenceId}")]
+        [ProducesResponseType(typeof(ProductMiniResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<ProductMiniResponseDto>> GetProductByReferenceId(Guid referenceId)
         {
             var product = await _productService.GetProductByReferenceId(referenceId);
@@ -60,14 +79,29 @@ namespace Droniverse.Community.API.Controllers
             return Ok(products);
         }
 
+        /// <summary>
+        /// Tạo sản phẩm
+        /// </summary>
+        /// <param name="productRequest"></param>
+        /// <returns></returns>
         [HttpPost]
+        [ProducesResponseType(typeof(ProductResponseDto), StatusCodes.Status201Created)]
         public async Task<IActionResult> CreateProduct([FromBody] ProductRequestDto productRequest)
         {
             var createdProduct = await _productService.CreateProduct(productRequest);
             return CreatedAtAction(nameof(GetProductById), new { id = createdProduct.ProductId }, createdProduct);
         }
 
+        /// <summary>
+        /// Cập nhật sản phẩm
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="productRequest"></param>
+        /// <returns></returns>
+
         [HttpPut("{id}")]
+        [ProducesResponseType(typeof(ProductResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> UpdateProduct(Guid id, [FromBody] ProductRequestDto productRequest)
         {
             var updatedProduct = await _productService.UpdateProduct(id, productRequest);

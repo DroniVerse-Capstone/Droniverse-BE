@@ -25,6 +25,7 @@ public class ClubCreationRequestResponseDto
     public string? RequesterEmail { get; set; }
     public string? ClubPolicyVN { get; set; }
     public string? ClubPolicyEN { get; set; }
+    public string? ClubRequirement { get; set; }
     public ClubCreationRequestStatus Status { get; set; }
     public MediaResponseDto Media { get; set; }
     public DroneResponseDto Drone { get; set; }

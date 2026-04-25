@@ -15,6 +15,7 @@ namespace Droniverse.Community.Application.DTO.Response
     Guid RequesterID,
     Guid? ApproverID,
     Guid ClubID,
+        string? ClubRequirement,
     string ClubNameVN,
     string ClubNameEN,
     string? ClubImageUrl,

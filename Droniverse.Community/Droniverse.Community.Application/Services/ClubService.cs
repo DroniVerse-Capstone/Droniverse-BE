@@ -183,9 +183,15 @@ internal class ClubService : IClubService
         if (isUserExisted)
             throw new InvalidOperationException($"Thành viên này đã là thuộc câu lạc bộ [{club.NameVN}]");
 
-        Media? media = await _unitOfWork.Medias.GetByCondition(m => m.MediaID == request.mediaID);
-        if (media == null)
-            throw new KeyNotFoundException($"Không tìm thấy media với ID {request.mediaID}.");
+        Guid? mediaId = null;
+        if (request.mediaID.HasValue)
+        {
+            Media? media = await _unitOfWork.Medias.GetByCondition(m => m.MediaID == request.mediaID.Value);
+            if (media == null)
+                throw new KeyNotFoundException($"Không tìm thấy media với ID {request.mediaID}.");
+
+            mediaId = media.MediaID;
+        }
 
         JoinClubResponse response = new()
         {
@@ -201,7 +207,8 @@ internal class ClubService : IClubService
         var clubAttemptRequest = new ClubAttemptRequest(
             currentUserId,
             club.ClubID,
-            media.MediaID
+            mediaId,
+            request.clubRequirement
         );
 
         await _unitOfWork.ClubAttemptRequests.Add(clubAttemptRequest);

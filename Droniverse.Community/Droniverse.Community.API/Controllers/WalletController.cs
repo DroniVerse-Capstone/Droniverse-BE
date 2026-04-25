@@ -2,8 +2,10 @@
 using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.IService;
+using Droniverse.Community.Domain.Enums;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
+using Droniverse.Shared.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Filters;
@@ -20,12 +22,45 @@ namespace Droniverse.Community.API.Controllers
         {
             _walletService = walletService;
         }
-
+        
+        /// <summary>
+        /// Lấy ra danh sách các request gửi yêu cầu rút tiền của tôi (Club manager)
+        /// </summary>
+        /// <returns></returns>
         [HttpGet("withdraw-request/me")]
+        [ProducesResponseType(typeof(SuccessResponse<IEnumerable<WithdrawResponseDto>>), StatusCodes.Status200OK)]
         public async Task<ApiResponse> GetMyWithdrawRequest()
         {
             IEnumerable<WithdrawResponseDto> response = await _walletService.GetMyWithdrawRequestAsync();
             return SuccessResponse<IEnumerable<WithdrawResponseDto>>.Create(response, "Lấy danh sách gửi yêu cầu rút tiền của club manager hiện tại thành công.");
+        }
+
+        /// <summary>
+        /// Lấy tất cả yêu cầu rút tiền (Admin/System Manager), có filter theo status và thời gian tạo
+        /// </summary>
+        [HttpGet("withdraw-request")]
+        [Authorize(Roles = Roles.AdminOrSystemManager)]
+        [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<WithdrawResponseDto>>>), StatusCodes.Status200OK)]
+        public async Task<ApiResponse> GetAllWithdrawRequests(
+            [FromQuery] int currentPage = 1,
+            [FromQuery] int pageSize = 5,
+            [FromQuery] WithdrawStatus? status = null,
+            [FromQuery] DateTime? createdFrom = null,
+            [FromQuery] DateTime? createdTo = null,
+            [FromQuery] SortDirection sortDirection = SortDirection.Desc)
+        {
+            var request = new WithdrawSearchRequest
+            {
+                CurrentPage = currentPage,
+                PageSize = pageSize,
+                Status = status,
+                CreatedFrom = createdFrom,
+                CreatedTo = createdTo,
+                SortDirection = sortDirection
+            };
+
+            var result = await _walletService.GetAllWithdrawRequestsAsync(request);
+            return SuccessResponse<PaginationResult<IEnumerable<WithdrawResponseDto>>>.Create(result, "Lấy danh sách yêu cầu rút tiền thành công.");
         }
 
 
@@ -35,6 +70,7 @@ namespace Droniverse.Community.API.Controllers
         /// <param name="request"></param>
         /// <returns></returns>
         [HttpPost("withdraw-request")]
+        [ProducesResponseType(typeof(SuccessResponse<WithdrawResponseDto>), StatusCodes.Status200OK)]
         public async Task<ApiResponse> CreateWithdrawRequest([FromBody] WithdrawRequestDto request)
         {
             WithdrawResponseDto response =  await _walletService.CreateWithdrawRequest(request);
@@ -48,6 +84,7 @@ namespace Droniverse.Community.API.Controllers
         /// <returns></returns>
         [HttpGet("me")]
         [Authorize(Roles = Roles.ClubManager)]
+        [ProducesResponseType(typeof(SuccessResponse<WalletResponseDto>), StatusCodes.Status200OK)]
         public async Task<ApiResponse> GetMyWallet()
         {
             WalletResponseDto result = await _walletService.GetMyWallet();
@@ -62,6 +99,7 @@ namespace Droniverse.Community.API.Controllers
         /// <returns></returns>
         [HttpGet("{id}")]
         [Authorize(Roles = Roles.AdminOrSystemManager)]
+        [ProducesResponseType(typeof(SuccessResponse<WalletResponseDto>), StatusCodes.Status200OK)]
         public async Task<ApiResponse> GetById(Guid id)
         {
             WalletResponseDto result = await _walletService.GetWalletById(id);
@@ -81,6 +119,7 @@ namespace Droniverse.Community.API.Controllers
         [HttpPost]
         [Authorize(Roles = Roles.ClubManager)]
         [SwaggerRequestExample(typeof(WalletRequestDto), typeof(WalletRequestExample))]
+        [ProducesResponseType(typeof(SuccessResponse<WalletResponseDto>), StatusCodes.Status200OK)]
         public async Task<ApiResponse> Create([FromBody] WalletRequestDto request)
         {
             WalletResponseDto result = await _walletService.CreateWallet(request);
@@ -96,6 +135,7 @@ namespace Droniverse.Community.API.Controllers
         [HttpPut("{id}")]
         [Authorize(Roles = Roles.ClubManager)]
         [SwaggerRequestExample(typeof(WalletRequestDto), typeof(WalletRequestExample))]
+        [ProducesResponseType(typeof(SuccessResponse<WalletResponseDto>), StatusCodes.Status200OK)]
         public async Task<ApiResponse> UpdateWalletInfo(Guid id, [FromBody] WalletRequestDto request)
         {
             WalletResponseDto result = await _walletService.UpdateWallet(request);
@@ -106,6 +146,7 @@ namespace Droniverse.Community.API.Controllers
         [HttpPut("withdraw-request/{id}/status")]
         [Authorize(Roles = Roles.AdminOrSystemManager)]
         [SwaggerRequestExample(typeof(WithdrawApproveRequestDto), typeof(WithdrawApproveRequestExample))]
+        [ProducesResponseType(typeof(SuccessResponse<WithdrawResponseDto>), StatusCodes.Status200OK)]
         public async Task<ApiResponse> UpdateWithdrawRequestStatus(Guid id, [FromBody] WithdrawApproveRequestDto request)
         {
             WithdrawResponseDto result = await _walletService.UpdateWithdrawRequestStatus(id, request);

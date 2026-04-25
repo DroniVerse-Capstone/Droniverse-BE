@@ -181,7 +181,7 @@ namespace Droniverse.Community.Application.Services
         {
             var competition = await _unitOfWork.Competitions.GetByCondition(
                 c => c.CompetitionID == id,
-                q => q.AsNoTracking()
+                q => q.AsNoTracking().Include(c => c.UserCompetitions)
             );
 
             if (competition == null)
@@ -271,21 +271,34 @@ namespace Droniverse.Community.Application.Services
             if (competition == null)
                 throw new KeyNotFoundException($"Không tìm thấy cuộc thi với ID [{competitionId}].");
 
+            if (_clock.Now < competition.RegistrationStartDate || _clock.Now > competition.RegistrationEndDate)
+                throw new InvalidOperationException("Cuộc thi hiện không trong thời gian đăng ký.");
+
+            var alreadyJoined = competition.UserCompetitions
+            .Any(x => x.UserID == currentUserId);
+
+            if (alreadyJoined)
+            {
+                throw new InvalidOperationException("Người dùng đã đăng ký cuộc thi này rồi.");
+            }
+
             var requiredLevels = competition.CompetitionLevels
                 .Select(x => x.LevelID)
                 .ToHashSet();
 
-            var userLevels = await _academyMicroserviceClient.GetUserLevelIds(currentUserId);
-            var userLevelsSet = userLevels.ToHashSet();
-
-            var missingLevels = requiredLevels
-                .Where(levelId => !userLevelsSet.Contains(levelId))
-                .ToList();
-
-            if (missingLevels.Any())
+            if (requiredLevels.Any())
             {
-                throw new InvalidOperationException(
-                    $"Người dùng chưa đủ điều kiện tham gia. Thiếu cấp độ {missingLevels.Count} .");
+                var userLevels = await _academyMicroserviceClient.GetUserLevelIds(currentUserId);
+                var userLevelsSet = userLevels.ToHashSet();
+
+                var hasAtLeastOneRequiredLevel = requiredLevels
+                    .Any(levelId => userLevelsSet.Contains(levelId));
+
+                if (!hasAtLeastOneRequiredLevel)
+                {
+                    throw new InvalidOperationException(
+                        "Người dùng chưa đủ điều kiện tham gia. Cần ít nhất 1 cấp độ phù hợp.");
+                }
             }
 
             var userCompetition = competition.RegisterParticipant(currentUserId, _clock.Now);
@@ -296,6 +309,7 @@ namespace Droniverse.Community.Application.Services
 
             return await MapToUserCompetitionResponse(userCompetition, competition);
         }
+
         public async Task<UserCompetitionResponseDto> WithdrawFromCompetition(Guid competitionId)
         {
             var currentUserId = Guid.Parse(_currentUserService.UserID
@@ -795,6 +809,11 @@ namespace Droniverse.Community.Application.Services
             if (competition.UpdatedBy.HasValue)
                 updatedByUser = await GetUserSafe(competition.UpdatedBy.Value);
 
+            var currentUserId = _currentUserService.UserId;
+
+            bool isRegistered = competition.UserCompetitions
+               .Any(u => u.UserID == currentUserId);
+
             return new CompetitionResponse
             {
                 CompetitionID = competition.CompetitionID,
@@ -811,6 +830,7 @@ namespace Droniverse.Community.Application.Services
                 StartDate = competition.StartDate,
                 EndDate = competition.EndDate,
                 CompetitionStatus = competition.Status,
+                IsRegistered = isRegistered,
                 CompetitionPhase = CommunityAppHelpers.GetCurrentCompetitionLifeCycle(competition, _clock.Now),
                 ResultPublishedAt = competition.ResultPublishedAt,
                 CreatedBy = ToSimpleUserResponse(competition.CreatedBy, createdByUser),
@@ -831,6 +851,8 @@ namespace Droniverse.Community.Application.Services
             if (competitionList.Count == 0)
                 return [];
 
+            var currentUserId = _currentUserService.UserId;
+
             var now = _clock.Now;
 
             var competitionIds = competitionList.Select(c => c.CompetitionID).ToList();
@@ -846,6 +868,7 @@ namespace Droniverse.Community.Application.Services
 
             var userDict = users.ToDictionary(u => u.UserId, u => u);
 
+
             return competitionList.Select(competition =>
             {
                 userDict.TryGetValue(competition.CreatedBy, out var createdByUser);
@@ -857,6 +880,9 @@ namespace Droniverse.Community.Application.Services
                 var counts = aggregateCounts.GetValueOrDefault(
                     competition.CompetitionID,
                     (RoundCount: 0, CompetitorCount: 0, PrizeCount: 0));
+
+                bool isRegistered = competition.UserCompetitions
+                   .Any(u => u.UserID == currentUserId);
 
                 return new CompetitionResponse
                 {
@@ -880,6 +906,7 @@ namespace Droniverse.Community.Application.Services
                     UpdatedBy = competition.UpdatedBy.HasValue
                         ? ToSimpleUserResponse(competition.UpdatedBy.Value, updatedByUser)
                         : null,
+                    IsRegistered = isRegistered,
                     CreatedAt = competition.CreatedAt,
                     UpdatedAt = competition.UpdatedAt,
                     InvalidAt = competition.InvalidAt,

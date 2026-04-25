@@ -201,8 +201,14 @@ namespace Droniverse.Community.Application.Services
             {
                 throw new BadRequestException("Transaction amount must be greater than 0");
             }
+            
+            Club? club = await _unitOfWork.Clubs.GetByCondition(c => c.ManagerID == wallet.OwnerID);
+            if (club == null)
+            {
+                throw new NotFoundException($"Club not found for wallet owner {wallet.OwnerID}");
+            }
 
-            Transaction transaction = new Transaction(walletId, amount, type, referenceId);
+            Transaction transaction = new Transaction(walletId, amount, type, referenceId, club.ClubID);
             Transaction createdTransaction = await _unitOfWork.Transactions.Add(transaction);
             await _unitOfWork.SaveChangeAsync();
 

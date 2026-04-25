@@ -28,4 +28,7 @@ public record ClubUpdateDto
 
     [Range(1, 100, ErrorMessage = "Số lượng quản lý phải từ 1 đến 100")]
     public int LimitClubManagers { get; init; }
+
+    [StringLength(2000, ErrorMessage = "Yêu cầu tham gia tối đa 2000 ký tự")]
+    public string? ClubRequirement { get; init; }
 }

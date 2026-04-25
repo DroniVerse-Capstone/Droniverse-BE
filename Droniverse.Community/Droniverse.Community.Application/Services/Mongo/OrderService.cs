@@ -199,60 +199,164 @@ internal class OrderService : IOrderService
     {
         FilterDefinition<Order>? filter = Builders<Order>.Filter.Eq(o => o.ClubID, clubId);
         IEnumerable<Order?> orders = await _orderRepository.GetOrdersByCondition(filter);
-        var orderDtos = _mapper.Map<IEnumerable<Order>, IEnumerable<OrderResponseDto?>>(orders);
-        return orderDtos;
+        return await BuildOrderResponseDtosWithUsersAsync(orders);
     }
 
     public async Task<PaginationResult<IEnumerable<OrderResponseDto?>>> GetOrdersByClubIdWithPagination(Guid clubId, int currentPage, int pageSize)
     {
         FilterDefinition<Order>? filter = Builders<Order>.Filter.Eq(o => o.ClubID, clubId);
         PaginationResult<IEnumerable<Order>> orders = await _orderRepository.GetOrdersByConditionWithPagination(filter, currentPage, pageSize);
-        var orderDtos = _mapper.Map<PaginationResult<IEnumerable<Order>>, PaginationResult<IEnumerable<OrderResponseDto?>>>(orders);
-        return orderDtos;
+        return await BuildOrderResponsePaginationWithUsersAsync(orders);
     }
 
     public async Task<OrderResponseDto?> GetOrderByCondition(FilterDefinition<Order> filter)
     {
         var order = await _orderRepository.GetOrderByCondition(filter);
-        var orderDto = _mapper.Map<Order, OrderResponseDto?>(order);
-        return orderDto;
+        if (order == null)
+            return null;
+
+        return await BuildOrderResponseDtoWithUserAsync(order);
     }
 
     public async Task<OrderResponseDto?> GetOrderByOrderId(Guid orderID)
     {
         FilterDefinition<Order>? filter = Builders<Order>.Filter.Eq(o => o._id, orderID);
         Order order = await _orderRepository.GetOrderByCondition(filter) ?? throw new NotFoundException($"Không tìm thấy đơn hàng với mã đơn hàng #{orderID}");
-        OrderResponseDto? orderDto = _mapper.Map<OrderResponseDto?>(order);
-
-        UserResponse? user = await _identityMicroserviceClient.GetUserByUserID(order.UserID);
-        orderDto = orderDto with { User = user };
-        return orderDto;
+        return await BuildOrderResponseDtoWithUserAsync(order);
     }
 
     public async Task<PaginationResult<IEnumerable<OrderResponseDto?>>> GetAllOrders(OrderSearchRequest searchRequest)
     {
         PaginationResult<IEnumerable<Order>> orders = await _orderRepository.GetOrders(searchRequest);
-        PaginationResult<IEnumerable<OrderResponseDto?>> orderDtos = _mapper.Map<PaginationResult<IEnumerable<Order>>, PaginationResult<IEnumerable<OrderResponseDto?>>>(orders);
-        return orderDtos;
+        return await BuildOrderResponsePaginationWithUsersAsync(orders);
     }
 
     public async Task<List<OrderResponseDto?>> GetOrdersByCondition(FilterDefinition<Order> filter)
     {
         IEnumerable<Order?> orders = await _orderRepository.GetOrdersByCondition(filter);
-        var orderDtos = _mapper.Map<IEnumerable<Order?>, IEnumerable<OrderResponseDto?>>(orders);
-        return orderDtos.ToList();
+        return (await BuildOrderResponseDtosWithUsersAsync(orders)).ToList();
     }
 
     public async Task<PaginationResult<IEnumerable<OrderResponseDto?>>> GetOrdersByConditionWithPagination(FilterDefinition<Order> filter, int currentPage, int pageSize)
     {
         PaginationResult<IEnumerable<Order>> orders = await _orderRepository.GetOrdersByConditionWithPagination(filter, currentPage, pageSize);
-        var orderDtos = _mapper.Map<PaginationResult<IEnumerable<Order>>, PaginationResult<IEnumerable<OrderResponseDto?>>>(orders);
-        return orderDtos;
+        return await BuildOrderResponsePaginationWithUsersAsync(orders);
     }
 
     public Task<OrderResponseDto?> UpdateOrder(OrderUpdateDto orderUpdateRequest)
     {
         throw new NotImplementedException();
+    }
+
+    private async Task<IEnumerable<OrderResponseDto?>> BuildOrderResponseDtosWithUsersAsync(IEnumerable<Order?> orders)
+    {
+        var orderList = orders.Where(order => order != null).Cast<Order>().ToList();
+        if (orderList.Count == 0)
+            return [];
+
+        var userMap = await GetUsersByIdsMapAsync(orderList.Select(order => order.UserID));
+
+        return orderList.Select(order =>
+        {
+            var orderDto = _mapper.Map<OrderResponseDto?>(order);
+            if (orderDto == null)
+                return null;
+
+            return orderDto with { User = GetUserForOrder(order, userMap) };
+        });
+    }
+
+    private async Task<OrderResponseDto?> BuildOrderResponseDtoWithUserAsync(Order order)
+    {
+        var orderDto = _mapper.Map<OrderResponseDto?>(order);
+        if (orderDto == null)
+            return null;
+
+        var user = await GetUserByIdOrFallbackAsync(order);
+        return orderDto with { User = user };
+    }
+
+    private async Task<PaginationResult<IEnumerable<OrderResponseDto?>>> BuildOrderResponsePaginationWithUsersAsync(PaginationResult<IEnumerable<Order>> orders)
+    {
+        var orderList = orders.Data?.Where(order => order != null).Cast<Order>().ToList() ?? [];
+        if (orderList.Count == 0)
+            return new PaginationResult<IEnumerable<OrderResponseDto?>>(Enumerable.Empty<OrderResponseDto?>(), orders.TotalRecords, orders.PageIndex, orders.PageSize);
+
+        var userMap = await GetUsersByIdsMapAsync(orderList.Select(order => order.UserID));
+
+        var responseOrders = orderList.Select(order =>
+        {
+            var orderDto = _mapper.Map<OrderResponseDto?>(order);
+            if (orderDto == null)
+                return null;
+
+            return orderDto with { User = GetUserForOrder(order, userMap) };
+        }).ToList();
+
+        return new PaginationResult<IEnumerable<OrderResponseDto?>>(responseOrders, orders.TotalRecords, orders.PageIndex, orders.PageSize);
+    }
+
+    private async Task<Dictionary<Guid, UserResponse>> GetUsersByIdsMapAsync(IEnumerable<Guid> userIds)
+    {
+        var ids = userIds
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        if (ids.Count == 0)
+            return [];
+
+        try
+        {
+            var users = await _identityMicroserviceClient.GetUsersBulk(ids);
+            return users.ToDictionary(user => user.UserId, user => user);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to load users for order response enrichment.");
+            return [];
+        }
+    }
+
+    private async Task<UserResponse> GetUserByIdOrFallbackAsync(Order order)
+    {
+        var user = await _identityMicroserviceClient.GetUserByUserID(order.UserID);
+        if (user != null)
+            return user;
+
+        return new UserResponse(
+            order.UserID,
+            order.UserName,
+            string.Empty,
+            string.Empty,
+            order.UserEmail,
+            null,
+            string.Empty,
+            null,
+            default,
+            null,
+            [],
+            []);
+    }
+
+    private UserResponse GetUserForOrder(Order order, IReadOnlyDictionary<Guid, UserResponse> userMap)
+    {
+        if (userMap.TryGetValue(order.UserID, out var user))
+            return user;
+
+        return new UserResponse(
+            order.UserID,
+            order.UserName,
+            string.Empty,
+            string.Empty,
+            order.UserEmail,
+            null,
+            string.Empty,
+            null,
+            default,
+            null,
+            [],
+            []);
     }
 
     private decimal CalculateTotal(decimal price, int quantity)

@@ -1,4 +1,4 @@
-﻿using Droniverse.Academy.Domain.Enums;
+﻿using Droniverse.Shared.Enums;
 
 namespace Droniverse.Academy.Application.DTO.Request;
 

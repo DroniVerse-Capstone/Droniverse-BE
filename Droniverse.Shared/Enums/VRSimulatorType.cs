@@ -1,4 +1,4 @@
-namespace Droniverse.Shared.Enums;
+﻿namespace Droniverse.Shared.Enums;
 
 public enum VRSimulatorType
 {

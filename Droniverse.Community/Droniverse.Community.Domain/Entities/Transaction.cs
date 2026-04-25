@@ -12,7 +12,7 @@ public class Transaction
     public TransactionType Type { get; set; }
     public Guid ReferenceID { get; set; }
     public DateTime CreatedAt { get; set; }
-    public Guid ClubID { get; set; }
+    public Guid? ClubID { get; set; }
     public Club Club { get; set; }
 
     private Transaction() { }
@@ -21,13 +21,15 @@ public class Transaction
         Guid walletId,
         int amount,
         TransactionType type,
-        Guid referenceID
+        Guid referenceID,
+        Guid clubID
       )
     {
         WalletID = walletId;
         Amount = amount;
         Type = type;
         ReferenceID = referenceID;
+        ClubID = clubID;
     }
 
 }

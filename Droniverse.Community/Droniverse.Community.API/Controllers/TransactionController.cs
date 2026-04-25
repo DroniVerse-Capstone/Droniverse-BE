@@ -34,6 +34,7 @@ namespace Droniverse.Community.API.Controllers
         /// Lấy chi tiết giao dịch theo transaction ID
         /// </summary>
         [HttpGet("{transactionId}")]
+        [ProducesResponseType(typeof(SuccessResponse<TransactionResponseDto>), StatusCodes.Status200OK)]
         public async Task<ApiResponse> GetTransactionById(Guid transactionId)
         {
             TransactionResponseDto result = await _transactionService.GetTransactionByIdAsync(transactionId);
@@ -75,6 +76,7 @@ namespace Droniverse.Community.API.Controllers
         /// <param name="sortDirection">Hướng sắp xếp (Asc/Desc, mặc định: Desc)</param>
         [HttpGet]
         [Authorize(Roles = Roles.AdminOrSystemManager)]
+        [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<TransactionResponseDto>>>), StatusCodes.Status200OK)]
         public async Task<ApiResponse> GetAllTransactions(
             [FromQuery] int currentPage = 1,
             [FromQuery] int pageSize = 5,
