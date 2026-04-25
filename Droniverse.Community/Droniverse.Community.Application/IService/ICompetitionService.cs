@@ -23,6 +23,7 @@ namespace Droniverse.Community.Application.IService
         Task<CompetitionResponse> UpdateCompetitionStatus(Guid competitionId, CompetitionUpdateStatusDto request);
         Task<RoundResponseDto> GetCurrentRoundByCompetitionID(Guid competitionID);
         Task<CompetitionResponse> UpdateCompetitionNoLogic(Guid competitionId, UpdateCompetitionNoLogicRequest request);
+        Task<UserCompetitionResponseDto> DisqualifiedFromCompetition(Guid competitionId, Guid userId);
         Task RefreshHotCompetitionsCacheAsync();
 
         //Task UpdateCompetitionStatusesAsync();

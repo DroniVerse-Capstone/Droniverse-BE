@@ -536,6 +536,33 @@ namespace Droniverse.Community.Application.Services
             }
         }
 
+
+
+        public async Task<UserCompetitionResponseDto> DisqualifiedFromCompetition(Guid competitionId, Guid userId)
+        {
+            var now = _clock.Now;
+
+            // 1. Lấy UserCompetition
+            var userCompetition = await _unitOfWork.UserCompetitions
+                .GetByCondition(x => x.CompetitionID == competitionId && x.UserID == userId);
+
+            if (userCompetition == null)
+                throw new KeyNotFoundException("Người dùng chưa tham gia cuộc thi.");
+
+            if (userCompetition.Status == UserCompetitionStatus.DISQUALIFIED)
+                throw new InvalidOperationException("Người dùng đã bị loại trước đó.");
+
+            // 2. Update trạng thái UserCompetition
+            userCompetition.Disqualify(now);
+
+            // Gọi repostiory để thực hiện update lại các bài làm 
+            await _unitOfWork.UserRounds.DisqualifyByCompetitionAsync(competitionId, userId, now);
+
+            await _unitOfWork.SaveChangeAsync();
+
+            return await MapToUserCompetitionResponse(userCompetition, userCompetition.Competition);
+        }
+
         public async Task<CompetitionResponse> UpdateCompetitionNoLogic(Guid competitionId, UpdateCompetitionNoLogicRequest request)
         {
             if (request == null)

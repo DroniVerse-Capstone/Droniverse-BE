@@ -33,6 +33,29 @@ internal class UserRoundRepository : MySqlRepository<UserRound>, IUserRoundRepos
                             && ur.Status == UserRoundStatus.Completed);
     }
 
+    public async Task DisqualifyByCompetitionAsync(Guid competitionId, Guid userId, DateTime now)
+    {
+        // 1. Lấy danh sách RoundID thuộc competition
+        var roundIds = await _context.Rounds
+            .Where(r => r.CompetitionID == competitionId)
+            .Select(r => r.RoundID)
+            .ToListAsync();
+
+        if (roundIds.Count == 0)
+            return;
+
+        // 2. Bulk update UserRound (KHÔNG load về memory)
+        await _context.UserRounds
+            .Where(ur => ur.UserID == userId
+                      && roundIds.Contains(ur.RoundID)
+                      && ur.Status != UserRoundStatus.Disqualified)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(x => x.Status, UserRoundStatus.Disqualified)
+                .SetProperty(x => x.UpdatedAt, now)
+                .SetProperty(x => x.SubmittedAt, now)
+            );
+    }
+
     public async Task<UserRoundDetailQueryModel?> GetRoundResultByUser(Guid userId, Guid roundId)
     {
         return await _context.UserRounds

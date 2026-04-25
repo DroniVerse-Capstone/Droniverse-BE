@@ -16,6 +16,8 @@ public interface IUserRoundRepository : IRepository<UserRound>
 
     Task<int> CountRoundResults(Guid roundId, UserRoundStatus? status);
 
+    Task DisqualifyByCompetitionAsync(Guid competitionId, Guid userId, DateTime now);
+
     Task<IEnumerable<RoundResultParticipantQueryModel>> GetRoundResults(
         Guid roundId,
         UserRoundStatus? status,

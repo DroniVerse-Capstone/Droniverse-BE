@@ -216,6 +216,27 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
+        /// Loại người dùng khỏi cuộc thi.
+        /// Khi bị loại, toàn bộ bài thi (UserRound) sẽ chuyển sang trạng thái Disqualified.
+        /// </summary>
+        /// <param name="competitionId">ID cuộc thi</param>
+        /// <param name="userId">ID người dùng</param>
+        /// <returns>200 OK - Loại khỏi cuộc thi thành công</returns>
+        [HttpPost("{competitionId:guid}/participants/{userId:guid}/disqualified")]
+        [ProducesResponseType(typeof(SuccessResponse<UserCompetitionResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize(Roles = Roles.ClubMember)]
+        public async Task<ApiResponse> DisqualifiedFromCompetition(Guid competitionId, Guid userId)
+        {
+            var result = await _competitionService.DisqualifiedFromCompetition(competitionId, userId);
+
+            return SuccessResponse<UserCompetitionResponseDto>.Create(
+                result,
+                "Người dùng đã bị loại khỏi cuộc thi. Tất cả bài thi đã bị vô hiệu hóa."
+            );
+        }
+
+        /// <summary>
         /// Lấy danh sách thí sinh tham gia cuộc thi theo điều kiện lọc và phân trang.
         /// </summary>
         /// <param name="competitionId">ID của cuộc thi</param>

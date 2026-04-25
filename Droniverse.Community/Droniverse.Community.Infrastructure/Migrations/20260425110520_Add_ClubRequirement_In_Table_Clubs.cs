@@ -11,11 +11,24 @@ namespace Droniverse.Community.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<Guid>(
-                name: "ClubID",
-                table: "Transaction",
-                type: "char(36)",
-                nullable: true);
+            // 1. Transaction.ClubID (có check tồn tại)
+            migrationBuilder.Sql(@"
+        SET @exist := (
+            SELECT COUNT(*) 
+            FROM INFORMATION_SCHEMA.COLUMNS 
+            WHERE TABLE_NAME = 'Transaction' 
+            AND COLUMN_NAME = 'ClubID'
+        );
+
+        SET @sql := IF(@exist = 0, 
+            'ALTER TABLE `Transaction` ADD COLUMN `ClubID` char(36) NULL;', 
+            'SELECT 1;'
+        );
+
+        PREPARE stmt FROM @sql;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+    ");
 
             migrationBuilder.AddColumn<string>(
                 name: "ClubRequirement",

@@ -580,7 +580,7 @@ namespace Droniverse.Community.Application.Services
 
             foreach (var item in rankedUserRounds)
             {
-                item.UserRound.SetRank(item.Rank);
+                item.UserRound.SetRank(item.Rank, _clock.Now);
                 await _unitOfWork.UserRounds.Update(item.UserRound);
             }
 
