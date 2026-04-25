@@ -11,6 +11,7 @@ using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Helpers;
 using Droniverse.Shared.Services;
+using System.ComponentModel.DataAnnotations;
 
 namespace Droniverse.Community.Application.Services
 {
@@ -51,13 +52,13 @@ namespace Droniverse.Community.Application.Services
             if (userRound == null)
                 throw new KeyNotFoundException("Bạn chưa tham gia vòng thi này.");
 
+            if (userRound.Status == UserRoundStatus.Disqualified)
+                throw new ValidationException("Người dùng đã bị cấm thi đấu.");
+
             userRound.Complete(
-                request.Solution,
                 request.ExecutionTime,
-                request.NumberOfSteps,
                 request.Point,
                 request.IsPassed,
-                request.IsSequentialCheckpoints,
                 round.TimeLimit,
                 now,
                 round.EndTime

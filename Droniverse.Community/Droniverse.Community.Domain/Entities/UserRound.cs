@@ -61,12 +61,9 @@ public class UserRound
     }
 
     public void Complete(
-        string solution,
         TimeSpan executionTime,
-        int steps,
         decimal point,
         bool isPassed,
-        bool isSequentialCheckpoints,
         TimeSpan t,
         DateTime now,
         DateTime roundEndTime)
