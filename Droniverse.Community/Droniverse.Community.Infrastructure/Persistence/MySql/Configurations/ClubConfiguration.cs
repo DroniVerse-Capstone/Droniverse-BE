@@ -33,6 +33,7 @@ public class ClubConfiguration : IEntityTypeConfiguration<Club>
         builder.Property(c => c.LimitClubManagers).HasColumnType("int");
         builder.Property(c => c.CreatedAt).HasColumnType("datetime").IsRequired();
         builder.Property(c => c.UpdatedAt).HasColumnType("datetime");
+        builder.Property(c => c.ClubRequirement).HasColumnType("text").IsRequired(false);
     }
 }
 

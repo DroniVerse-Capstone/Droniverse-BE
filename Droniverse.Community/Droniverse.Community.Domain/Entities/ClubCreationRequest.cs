@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Policy;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -22,6 +23,7 @@ namespace Droniverse.Community.Domain.Entities
         public Media? Media { get; set; }
         public string? ClubPolicyVN { get; set; }
         public string? ClubPolicyEN { get; set; }
+        public string? ClubRequirement { get; set; }
 
         // ===== System Fields =====
         public Guid DroneID { get; set; }
@@ -52,7 +54,8 @@ namespace Droniverse.Community.Domain.Entities
             Guid droneID,
             Guid mediaID,
             string clubPolicyVN,
-            string? clubPolicyEN)
+            string? clubPolicyEN,
+            string? clubRequirement)
         {
             ClubCreationRequestID = Guid.NewGuid();
             NameVN = nameVN;
@@ -69,6 +72,7 @@ namespace Droniverse.Community.Domain.Entities
             ClubPolicyVN = clubPolicyVN;
             MediaID = mediaID;
             ClubPolicyEN = clubPolicyEN;
+            ClubRequirement = clubRequirement;
         }
 
         // ===== Domain Methods =====
@@ -125,7 +129,8 @@ namespace Droniverse.Community.Domain.Entities
             Guid droneID,
             string clubPolicyVN,
             string clubPolicyEN,
-            Guid mediaID)
+            Guid mediaID,
+            string? clubRequirement)
         {
             if (Status != ClubCreationRequestStatus.PENDING)
                 throw new InvalidOperationException("Chỉ yêu cầu ở trạng thái PENDING mới có thể được cập nhật.");
@@ -141,10 +146,11 @@ namespace Droniverse.Community.Domain.Entities
             ImageUrl = imageUrl;
             UpdatedAt = DateTime.UtcNow;
 
-            DroneID = DroneID;
+            DroneID = droneID;
             ClubPolicyVN = clubPolicyVN;
             ClubPolicyEN = clubPolicyEN;
             MediaID = mediaID;
+            ClubRequirement = clubRequirement;
         }
     }
 }

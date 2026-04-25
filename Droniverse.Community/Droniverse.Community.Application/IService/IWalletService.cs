@@ -1,4 +1,6 @@
-﻿using Droniverse.Community.Application.DTO.Response;
+﻿using Droniverse.Community.Application.DTO.Request;
+using Droniverse.Community.Application.DTO.Response;
+using Droniverse.Shared.DTOs;
 namespace Droniverse.Community.Application.IService;
 
 public interface IWalletService
@@ -10,5 +12,6 @@ public interface IWalletService
     Task<WalletResponseDto> GetMyWallet();
     Task<WithdrawResponseDto> UpdateWithdrawRequestStatus(Guid withdrawRequestId, WithdrawApproveRequestDto request);
     Task<IEnumerable<WithdrawResponseDto>> GetMyWithdrawRequestAsync();
+    Task<PaginationResult<IEnumerable<WithdrawResponseDto>>> GetAllWithdrawRequestsAsync(WithdrawSearchRequest request);
 }
 

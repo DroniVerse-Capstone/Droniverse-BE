@@ -62,6 +62,10 @@ namespace Droniverse.Community.Infrastructure.Persistence.MySql.Configurations
                 .HasConversion<byte>()
                 .IsRequired();
 
+            builder.Property(x => x.ClubRequirement).
+                HasColumnType("text")
+                .IsRequired(false);
+
             builder.HasOne(x => x.Club)
                 .WithMany()
                 .HasForeignKey(x => x.ClubID)

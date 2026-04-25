@@ -43,8 +43,8 @@ namespace Droniverse.Community.Application.Services
                 throw new KeyNotFoundException($"Không tìm thấy club với ID {clubID}");
             }
 
-            Guid mediaID = Guid.Empty;
-            ClubAttemptRequest clubRequest = new(clubID, requesterID, mediaID);
+            Guid? mediaID = null;
+            ClubAttemptRequest clubRequest = new(requesterID, clubID, mediaID, null);
             await _unitOfWork.ClubAttemptRequests.Add(clubRequest);
             await _unitOfWork.SaveChangeAsync();
         }
@@ -87,6 +87,7 @@ namespace Droniverse.Community.Application.Services
                     clubRequest.RequesterID,
                     clubRequest.ApproverID,
                     clubRequest.ClubID,
+                    clubRequest.ClubRequirement,
                     clubRequest.Club.NameVN,
                     clubRequest.Club.NameEN,
                     clubRequest.Club.ImageUrl,
@@ -167,6 +168,7 @@ namespace Droniverse.Community.Application.Services
                     ClubRequestID = request.ClubRequestID,
                     RequesterID = request.RequesterID,
                     ClubID = request.ClubID,
+                    ClubRequirement = request.ClubRequirement,
                     ClubNameVN = request.Club.NameVN,
                     ClubNameEN = request.Club.NameEN,
                     Status = request.Status,
@@ -242,6 +244,7 @@ namespace Droniverse.Community.Application.Services
                         clubRequest.RequesterID,
                         clubRequest.ApproverID,
                         clubRequest.ClubID,
+                        clubRequest.ClubRequirement,
                         clubRequest.Club.NameVN,
                         clubRequest.Club.NameEN,
                         clubRequest.Club.ImageUrl,
@@ -322,6 +325,7 @@ namespace Droniverse.Community.Application.Services
                     request.RequesterID,
                     request.ApproverID,
                     request.ClubID,
+                    request.ClubRequirement,
                     request.Club.NameVN,
                     request.Club.NameEN,
                     request.Club.ImageUrl,

@@ -22,7 +22,7 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
             .HasColumnType("varchar(20)")
             .HasConversion<string>()
             .IsRequired();
-        builder.Property(t => t.ClubID).HasColumnType("char(36)");
+        builder.Property(t => t.ClubID).HasColumnType("char(36)").IsRequired(false);
         builder.HasOne(t => t.Club)
             .WithMany(c => c.Transactions)
             .HasForeignKey(t => t.ClubID)

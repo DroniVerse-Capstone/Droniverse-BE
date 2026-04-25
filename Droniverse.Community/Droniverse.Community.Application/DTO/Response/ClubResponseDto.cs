@@ -21,6 +21,7 @@ public record ClubResponseDto
     public string? SuspendedReason { get; set; }
     public string ClubPolicyVN { get; set; }
     public string ClubPolicyEN { get; set; }
+    public string? ClubRequirement { get; set; }
     public DroneResponseDto Drone { get; set; }
     public UserResponse? Creator { get; set; }
 }

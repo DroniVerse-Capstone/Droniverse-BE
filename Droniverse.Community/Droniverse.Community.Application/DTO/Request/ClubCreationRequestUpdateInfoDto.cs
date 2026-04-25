@@ -16,6 +16,9 @@ namespace Droniverse.Community.Application.DTO.Request
         [AllowHtml]
         public string ClubPolicyEN { get; set; }
 
+        [AllowHtml]
+        public string? ClubRequirement { get; set; }
+
         [Required]
         public Guid Media { get; set; }
 

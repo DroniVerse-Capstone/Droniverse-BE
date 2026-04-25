@@ -7,7 +7,9 @@ namespace Droniverse.Community.Application.DTO.Request
         [Length(6, 6, ErrorMessage = "Club code must be 6 characters !")]
         string clubCode,
 
-        Guid mediaID
+        Guid? mediaID,
+
+        string? clubRequirement
         )
     { }
 }
