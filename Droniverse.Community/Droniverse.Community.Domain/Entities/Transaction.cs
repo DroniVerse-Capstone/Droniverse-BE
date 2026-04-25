@@ -21,13 +21,15 @@ public class Transaction
         Guid walletId,
         int amount,
         TransactionType type,
-        Guid referenceID
+        Guid referenceID,
+        Guid clubID
       )
     {
         WalletID = walletId;
         Amount = amount;
         Type = type;
         ReferenceID = referenceID;
+        ClubID = clubID;
     }
 
 }

@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
@@ -6,8 +7,11 @@ using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Community.Domain.IRepository.Mongo;
+using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Response;
+using Droniverse.Shared.Enums;
 using Droniverse.Shared.Exceptions;
+using Microsoft.EntityFrameworkCore;
 
 namespace Droniverse.Community.Application.Services
 {
@@ -109,12 +113,19 @@ namespace Droniverse.Community.Application.Services
             wallet.UpdateBalance(-request.Amount);
             await _unitOfWork.Wallets.Update(wallet);
 
+            Club? club = await _unitOfWork.Clubs.GetByCondition(c => c.ManagerID == wallet.OwnerID);
+            if (club == null)
+            {
+                throw new NotFoundException($"Club not found for wallet owner {wallet.OwnerID}");
+            }
+
             Transaction transaction = new Transaction
             (
                 walletId: wallet.WalletID,
                 amount: (int)request.Amount,
                 type: TransactionType.WITHDRAWAL,
-                referenceID: createdWithdrawRequest.WithdrawRequestID // referenceID có thể là withdrawID
+                referenceID: createdWithdrawRequest.WithdrawRequestID, // referenceID có thể là withdrawID
+                clubID: club.ClubID
             );
             await _unitOfWork.Transactions.Add(transaction);
 
@@ -175,8 +186,10 @@ namespace Droniverse.Community.Application.Services
             Wallet? wallet = await _unitOfWork.Wallets.GetByCondition(w => w.OwnerID == user.UserId);
             if (wallet == null)
                 throw new NotFoundException("Không tìm thấy Ví của Người dùng với ID: " + user.UserId);
-            
-            if(withdrawRequest.Status != WithdrawStatus.PENDING)
+            Club? club = await _unitOfWork.Clubs.GetByCondition(c => c.ManagerID == wallet.OwnerID);
+            if (club == null)
+                throw new NotFoundException($"Không tìm thấy Club cho chủ sở hữu ví {wallet.OwnerID}");
+            if (withdrawRequest.Status != WithdrawStatus.PENDING)
             {
                 throw new InvalidOperationException("Chỉ có thể cập nhật trạng thái cho các yêu cầu đang ở trạng thái PENDING.");
             }
@@ -200,8 +213,10 @@ namespace Droniverse.Community.Application.Services
                     walletId: wallet.WalletID,
                     amount: (int)withdrawRequest.Amount,
                     type: TransactionType.REFUND,
-                    referenceID: withdrawRequest.WithdrawRequestID // referenceID có thể là withdrawID
+                    referenceID: withdrawRequest.WithdrawRequestID, // referenceID có thể là withdrawID
+                    clubID: club.ClubID
                 );
+                await _unitOfWork.Transactions.Add(transaction);
             }
             else if(request.Status == WithdrawStatus.CANCELED) //
             {
@@ -215,8 +230,10 @@ namespace Droniverse.Community.Application.Services
                     walletId: wallet.WalletID,
                     amount: (int)withdrawRequest.Amount,
                     type: TransactionType.REFUND,
-                    referenceID: withdrawRequest.WithdrawRequestID // referenceID có thể là withdrawID
+                    referenceID: withdrawRequest.WithdrawRequestID, // referenceID có thể là withdrawID
+                    clubID: club.ClubID
                 );
+                await _unitOfWork.Transactions.Add(transaction);
             }
             else
             {
@@ -385,6 +402,105 @@ namespace Droniverse.Community.Application.Services
             }).ToList();
 
             return responses;
+        }
+
+        public async Task<PaginationResult<IEnumerable<WithdrawResponseDto>>> GetAllWithdrawRequestsAsync(WithdrawSearchRequest request)
+        {
+            int currentPage = request.CurrentPage < 1 ? 1 : request.CurrentPage;
+            int pageSize = request.PageSize < 5 ? 5 : (request.PageSize > 20 ? 20 : request.PageSize);
+
+            IQueryable<WithdrawRequest> query = _unitOfWork.WithdrawRequests.GetManyByConditionAsQueryable(
+                x => true,
+                include: q => q.Include(x => x.Wallet));
+
+            if (request.Status.HasValue)
+            {
+                query = query.Where(x => x.Status == request.Status.Value);
+            }
+
+            if (request.CreatedFrom.HasValue)
+            {
+                query = query.Where(x => x.CreatedAt >= request.CreatedFrom.Value);
+            }
+
+            if (request.CreatedTo.HasValue)
+            {
+                query = query.Where(x => x.CreatedAt <= request.CreatedTo.Value);
+            }
+
+            query = request.SortDirection == SortDirection.Asc
+                ? query.OrderBy(x => x.CreatedAt)
+                : query.OrderByDescending(x => x.CreatedAt);
+
+            int totalRecords = await query.CountAsync();
+
+            List<WithdrawRequest> withdrawRequests = await query
+                .Skip((currentPage - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            if (withdrawRequests.Count == 0)
+            {
+                return new PaginationResult<IEnumerable<WithdrawResponseDto>>([], totalRecords, currentPage, pageSize);
+            }
+
+            var ownerIds = withdrawRequests
+                .Where(x => x.Wallet != null)
+                .Select(x => x.Wallet.OwnerID)
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            Dictionary<Guid, string> ownerNameMap = [];
+            if (ownerIds.Count > 0)
+            {
+                try
+                {
+                    var users = await _identityMicroserviceClient.GetUsersBulk(ownerIds);
+                    ownerNameMap = users.ToDictionary(x => x.UserId, x => x.Username);
+                }
+                catch
+                {
+                    ownerNameMap = [];
+                }
+            }
+
+            var responses = withdrawRequests.Select(withdrawRequest =>
+            {
+                Wallet? wallet = withdrawRequest.Wallet;
+                string ownerName = wallet != null && ownerNameMap.TryGetValue(wallet.OwnerID, out string? username)
+                    ? username
+                    : string.Empty;
+
+                return new WithdrawResponseDto
+                {
+                    WithdrawID = withdrawRequest.WithdrawRequestID,
+                    Amount = withdrawRequest.Amount,
+                    Status = withdrawRequest.Status,
+                    CreatedAt = withdrawRequest.CreatedAt,
+                    UpdatedAt = withdrawRequest.UpdatedAt,
+                    ApprovedAt = withdrawRequest.ApprovedAt,
+                    RequesterID = withdrawRequest.RequesterID,
+                    ApproverID = withdrawRequest.ApproverID,
+                    Note = withdrawRequest.Note,
+                    RejectReason = withdrawRequest.RejectReason,
+                    Wallet = wallet == null
+                        ? null
+                        : new WalletResponseDto
+                        {
+                            WalletID = wallet.WalletID,
+                            Bank = wallet.Bank,
+                            BankNumber = wallet.BankNumber,
+                            Balance = wallet.Balance,
+                            OwnerID = wallet.OwnerID,
+                            OwnerName = ownerName,
+                            CreatedAt = wallet.CreatedAt,
+                            UpdatedAt = wallet.UpdatedAt
+                        }
+                };
+            }).ToList();
+
+            return new PaginationResult<IEnumerable<WithdrawResponseDto>>(responses, totalRecords, currentPage, pageSize);
         }
     }
 }

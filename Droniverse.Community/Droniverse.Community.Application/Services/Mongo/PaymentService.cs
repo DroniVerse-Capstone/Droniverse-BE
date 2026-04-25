@@ -520,7 +520,8 @@ internal class PaymentService : IPaymentService
                             walletId: wallet.WalletID,
                             amount: (int)commissionAmount,
                             type: TransactionType.COMMISSION,
-                            referenceID: order._id);
+                            referenceID: order._id,
+                            clubID: order.ClubID);
 
                         await _unitOfWork.Transactions.Add(transaction);
 
