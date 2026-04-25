@@ -116,6 +116,15 @@ public class Round
         SetUpdated(now, updatedBy);
     }
 
+    public void UpdateTimeFieldsNoLogic(DateTime startTime, DateTime endTime, TimeSpan timeLimit, DateTime updatedAt, Guid? updatedBy = null)
+    {
+        StartTime = startTime;
+        EndTime = endTime;
+        TimeLimit = timeLimit;
+        UpdatedAt = updatedAt;
+        UpdatedBy = updatedBy;
+    }
+
     public void MarkAsScheduleInvalid()
     {
         if (Status == RoundStatus.Cancelled)

@@ -11,7 +11,7 @@ namespace Droniverse.Community.Application.DTO.Response
     public record CompetitionParticipantsResponse
     {
         public required SimpleCompetitionResponse Competition { get; set; }
-        public UserCompetitionStatus CompetitionStatus { get; set; }
+        public UserCompetitionStatus ParticipantStatus { get; set; }
         public required PaginationResult<IEnumerable<CompetitionParticipantEntry>> participations { get; set; }
     }
 

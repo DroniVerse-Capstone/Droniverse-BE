@@ -10,7 +10,7 @@ namespace Droniverse.Community.Application.DTO.Request
     public class CompetitionCreationRequest
     {
         [Required]
-        [Length(1,255, ErrorMessage = "Tên tiếng Việt của cuộc thi phải từ 1 đến 255 kí tự !")]
+        [Length(1, 255, ErrorMessage = "Tên tiếng Việt của cuộc thi phải từ 1 đến 255 kí tự !")]
         public required string NameVN { get; set; }
         [Required]
         [Length(1, 255, ErrorMessage = "Tên tiếng Anh của cuộc thi phải từ 1 đến 255 kí tự !")]
@@ -34,7 +34,6 @@ namespace Droniverse.Community.Application.DTO.Request
         public DateTime StartDate { get; set; }
         [Required]
         public DateTime EndDate { get; set; }
-        [Required]
         public DateTime? ResultPublishedAt { get; set; }
         [Required]
         public Guid ClubID { get; set; }

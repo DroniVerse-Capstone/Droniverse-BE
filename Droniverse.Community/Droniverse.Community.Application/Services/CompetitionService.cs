@@ -349,7 +349,7 @@ namespace Droniverse.Community.Application.Services
                 return new CompetitionParticipantsResponse
                 {
                     Competition = ToSimpleCompetitionResponse(competition),
-                    CompetitionStatus = request.Status,
+                    ParticipantStatus = request.Status,
                     participations = new PaginationResult<IEnumerable<CompetitionParticipantEntry>>([], 0, currentPage, pageSize)
                 };
             }
@@ -385,7 +385,7 @@ namespace Droniverse.Community.Application.Services
             return new CompetitionParticipantsResponse
             {
                 Competition = ToSimpleCompetitionResponse(competition),
-                CompetitionStatus = request.Status,
+                ParticipantStatus = request.Status,
                 participations = new PaginationResult<IEnumerable<CompetitionParticipantEntry>>(
                     entries,
                     totalRecords,
@@ -496,6 +496,30 @@ namespace Droniverse.Community.Application.Services
             {
                 await BuildAndSetHotCompetitionCache(clubId);
             }
+        }
+
+        public async Task<CompetitionResponse> UpdateCompetitionNoLogic(Guid competitionId, UpdateCompetitionNoLogicRequest request)
+        {
+            if (request == null)
+                throw new ArgumentNullException(nameof(request));
+
+            var competition = await _unitOfWork.Competitions.GetByCondition(c => c.CompetitionID == competitionId);
+
+            if (competition is null)
+                throw new KeyNotFoundException("Không tìm thấy");
+
+            competition.UpdateTimeFieldsNoLogic(
+                request.VisibleAt,
+                request.RegistrationStartDate,
+                request.RegistrationEndDate,
+                request.StartDate,
+                request.EndDate,
+                _clock.Now);
+
+            await _unitOfWork.SaveChangeAsync();
+            await InvalidateHotCompetitionsCache(competition.ClubID);
+
+            return await MapToCompetitionResponse(competition);
         }
 
         public async Task<RoundResponseDto> GetCurrentRoundByCompetitionID(Guid competitionID)
