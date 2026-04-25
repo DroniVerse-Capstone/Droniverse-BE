@@ -1,4 +1,4 @@
-using Droniverse.Community.Application.DTO.Request;
+﻿using Droniverse.Community.Application.DTO.Request;
 using Swashbuckle.AspNetCore.Filters;
 
 namespace Droniverse.Community.API.Examples
@@ -9,7 +9,6 @@ namespace Droniverse.Community.API.Examples
         {
             return new UserRoundSubmitDto
             {
-                Solution = "{\"commands\": [\"FORWARD\", \"TURN_LEFT\", \"FORWARD\", \"LAND\"]}"
             };
         }
     }
