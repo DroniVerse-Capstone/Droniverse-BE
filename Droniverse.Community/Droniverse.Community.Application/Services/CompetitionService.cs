@@ -337,8 +337,7 @@ namespace Droniverse.Community.Application.Services
 
         public async Task<UserCompetitionResponseDto> WithdrawFromCompetition(Guid competitionId)
         {
-            var currentUserId = Guid.Parse(_currentUserService.UserID
-                ?? throw new UnauthorizedAccessException("User is not authenticated."));
+            var currentUserId = _currentUserService.UserId;
 
             var userCompetition = await _unitOfWork.UserCompetitions.GetByCondition(
                 uc => uc.UserID == currentUserId && uc.CompetitionID == competitionId
@@ -349,7 +348,7 @@ namespace Droniverse.Community.Application.Services
 
             var competition = await _unitOfWork.Competitions.GetByCondition(c => c.CompetitionID == competitionId);
             if (competition == null)
-                throw new KeyNotFoundException($"Competition with ID {competitionId} not found.");
+                throw new KeyNotFoundException($"Không tìm thấy cuộc thi.");
 
             if (competition.Status != CompetitionStatus.PUBLISHED || _clock.Now >= competition.StartDate)
                 throw new InvalidOperationException("Không thể rút khỏi cuộc thi đã bắt đầu hoặc kết thúc.");
@@ -837,7 +836,7 @@ namespace Droniverse.Community.Application.Services
             var currentUserId = _currentUserService.UserId;
 
             bool isRegistered = competition.UserCompetitions
-               .Any(u => u.UserID == currentUserId);
+               .Any(u => u.UserID == currentUserId && u.Status != UserCompetitionStatus.WITHDRAWN);
 
             return new CompetitionResponse
             {
@@ -907,7 +906,7 @@ namespace Droniverse.Community.Application.Services
                     (RoundCount: 0, CompetitorCount: 0, PrizeCount: 0));
 
                 bool isRegistered = competition.UserCompetitions
-                   .Any(u => u.UserID == currentUserId);
+                   .Any(u => u.UserID == currentUserId && u.Status != UserCompetitionStatus.WITHDRAWN);
 
                 return new CompetitionResponse
                 {
