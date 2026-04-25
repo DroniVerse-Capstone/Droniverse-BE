@@ -7,6 +7,7 @@ namespace Droniverse.Academy.Infrastructure.Repositories;
 internal class UnitOfWork : IUnitOfWork
 {
     private readonly MySqlDbContext _mySqlContext;
+    private IAssignmentRepository _assignment;
     private ICertificateRepository _certificate;
     private ICodeRepository _code;
     private ICourseRepository _course;
@@ -32,6 +33,7 @@ internal class UnitOfWork : IUnitOfWork
     private IUserLessonRepository _userLesson;
     private IUserLevelRepository _userLevel;
     private IUserModuleRepository _userModule;
+    private IUserAssignmentRepository _userAssignment;
     private ILevelRepository _level;
     private ILevelCourseRequirementRepository _levelCourseRequirement;
     private IPrerequisiteCourseRepository _prerequisiteCourse;
@@ -40,6 +42,8 @@ internal class UnitOfWork : IUnitOfWork
     {
         _mySqlContext = mySqlContext;
     }
+
+    public IAssignmentRepository Assignments => _assignment ??= new AssignmentRepository(_mySqlContext);
 
     public ICertificateRepository Certificates => _certificate ??= new CertificateRepository(_mySqlContext);
 
@@ -90,6 +94,8 @@ internal class UnitOfWork : IUnitOfWork
     public IUserLevelRepository UserLevels => _userLevel ??= new UserLevelRepository(_mySqlContext);
 
     public IUserModuleRepository UserModules => _userModule ??= new UserModuleRepository(_mySqlContext);
+
+    public IUserAssignmentRepository UserAssignments => _userAssignment ??= new UserAssignmentRepository(_mySqlContext);
 
     public ILevelRepository Levels => _level ??= new LevelRepository(_mySqlContext);
 

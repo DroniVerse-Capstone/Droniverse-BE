@@ -192,11 +192,17 @@ public sealed class LearningPathAssembler
             .Select(x => x.ReferenceID)
             .ToHashSet();
 
+        var assignmentIds = lessons
+            .Where(x => x.Type == LessonType.ASSIGNMENT)
+            .Select(x => x.ReferenceID)
+            .ToHashSet();
+
         var theoryLookup = await GetTheoryMetadataLookupAsync(theoryIds);
         var quizLookup = await GetQuizMetadataLookupAsync(quizIds);
         var labLookup = await GetLabMetadataLookupAsync(labIds);
         var webSimulatorLookup = await GetWebSimulatorMetadataLookupAsync(webSimulatorIds);
         var vrSimulatorLookup = await GetVRSimulatorMetadataLookupAsync(vrSimulatorIds);
+        var assignmentLookup = await GetAssignmentMetadataLookupAsync(assignmentIds);
 
         var result = new Dictionary<Guid, LessonMetadata>();
         foreach (var lesson in lessons)
@@ -209,6 +215,7 @@ public sealed class LearningPathAssembler
                 LessonType.PHYSIC => webSimulatorLookup.GetValueOrDefault(lesson.ReferenceID),
                 LessonType.LAB_PHYSIC => webSimulatorLookup.GetValueOrDefault(lesson.ReferenceID),
                 LessonType.VR => vrSimulatorLookup.GetValueOrDefault(lesson.ReferenceID),
+                LessonType.ASSIGNMENT => assignmentLookup.GetValueOrDefault(lesson.ReferenceID),
                 _ => null
             };
 
@@ -291,6 +298,21 @@ public sealed class LearningPathAssembler
 
         return vrSimulators.Data.ToDictionary(
             x => x.VRSimulatorID,
+            x => new LessonMetadata(x.TitleVN, x.TitleEN, x.EstimatedTime));
+    }
+
+    private async Task<Dictionary<Guid, LessonMetadata>> GetAssignmentMetadataLookupAsync(IReadOnlySet<Guid> assignmentIds)
+    {
+        if (assignmentIds.Count == 0)
+            return [];
+
+        var assignments = await _unitOfWork.Assignments.GetAllAsync(
+            filter: x => assignmentIds.Contains(x.AssignmentID),
+            pageIndex: 1,
+            pageSize: 10000);
+
+        return assignments.Data.ToDictionary(
+            x => x.AssignmentID,
             x => new LessonMetadata(x.TitleVN, x.TitleEN, x.EstimatedTime));
     }
 

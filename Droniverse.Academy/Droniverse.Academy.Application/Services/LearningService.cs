@@ -118,9 +118,13 @@ public class LearningService : ILearningService
         {
             var lesson = userLesson.Lesson;
             var module = lesson?.Module;
-            vrLookup.TryGetValue(lesson.ReferenceID, out var vrSimulator);
+            VRSimulator? vrSimulator = null;
+            if (lesson != null)
+            {
+                vrLookup.TryGetValue(lesson.ReferenceID, out vrSimulator);
+            }
 
-            if (module == null)
+            if (lesson == null || module == null)
                 return new IncompleteVRLessonResponseDTO
                 {
                     UserLessonID = userLesson.UserLessonID,
@@ -128,7 +132,7 @@ public class LearningService : ILearningService
                     ModuleID = lesson?.ModuleID ?? Guid.Empty,
                     OrderIndex = lesson?.OrderIndex ?? 0,
                     ReferenceID = lesson?.ReferenceID ?? Guid.Empty,
-                    Type = lesson.Type,
+                    Type = lesson?.Type ?? LessonType.VR,
                     Status = userLesson.Status,
                     Progress = userLesson.Progress,
                     LastAccessDate = userLesson.LastAccessDate,
@@ -320,8 +324,8 @@ public class LearningService : ILearningService
         if (mode == CompletionMode.SimulatorSubmit && lesson.Type is not (LessonType.LAB_PHYSIC or LessonType.VR))
             throw new ForbiddenException("Chỉ lesson simulator (lab_physic hoặc VR) mới có thể hoàn thành qua nộp simulator.");
 
-        if (mode == CompletionMode.Assessment && lesson.Type is not (LessonType.QUIZ or LessonType.LAB ))
-            throw new ForbiddenException("Chỉ lesson quiz hoặc lab mới có thể hoàn thành qua nộp bài.");
+        if (mode == CompletionMode.Assessment && lesson.Type is not (LessonType.QUIZ or LessonType.LAB or LessonType.ASSIGNMENT))
+            throw new ForbiddenException("Chỉ lesson quiz, lab hoặc assignment mới có thể hoàn thành qua nộp bài.");
     }
 
     private async Task<CompletionContext> BuildCompletionContextAsync(Guid enrollmentId, Guid lessonId)

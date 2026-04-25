@@ -16,14 +16,16 @@ public class AdminEnrollmentService : IAdminEnrollmentService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
+    private readonly IUserLookupService _userLookupService;
 
-    public AdminEnrollmentService(IUnitOfWork unitOfWork, IMapper mapper)
+    public AdminEnrollmentService(IUnitOfWork unitOfWork, IMapper mapper, IUserLookupService userLookupService)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
+        _userLookupService = userLookupService;
     }
 
-    public async Task<PaginationResult<IEnumerable<EnrollmentResponseDTO>>> GetEnrollmentsAsync(int pageIndex = 1, int pageSize = 10, Guid? userId = null, Guid? courseVersionId = null, Guid? droneId = null, Guid? levelId = null, Guid? clubId = null, EnrollStatus? status = null)
+    public async Task<PaginationResult<IEnumerable<CoursesEnrollmentResponse>>> GetEnrollmentsAsync(int pageIndex = 1, int pageSize = 10, Guid? userId = null, Guid? courseVersionId = null, Guid? droneId = null, Guid? levelId = null, Guid? clubId = null, EnrollStatus? status = null)
     {
         Expression<Func<Enrollment, bool>> filter = x => true;
 
@@ -67,10 +69,39 @@ public class AdminEnrollmentService : IAdminEnrollmentService
             filter: filter,
             pageIndex: pageIndex,
             pageSize: pageSize,
+            includeProperties: "Course.Level,CourseVersion",
             orderBy: q => q.OrderByDescending(x => x.EnrollDate));
 
-        var mapped = _mapper.Map<IEnumerable<EnrollmentResponseDTO>>(result.Data);
-        return new PaginationResult<IEnumerable<EnrollmentResponseDTO>>(mapped, result.TotalRecords, result.PageIndex, result.PageSize);
+        var userLookup = await _userLookupService.BuildUserLookupAsync(result.Data.Select(x => x.UserID));
+
+        var mapped = result.Data.Select(enrollment =>
+        {
+            userLookup.TryGetValue(enrollment.UserID, out var user);
+
+            return new CoursesEnrollmentResponse
+            {
+                EnrollmentId = enrollment.EnrollmentID,
+                CourseId = enrollment.CourseID,
+                CourseVersionId = enrollment.CourseVersionID,
+                CourseNameVN = enrollment.CourseVersion.TitleVN,
+                CourseNameEN = enrollment.CourseVersion.TitleEN,
+                ImageUrl = enrollment.CourseVersion.ImageUrl,
+                EstimatedDuration = enrollment.CourseVersion.EstimatedDuration,
+                Progress = enrollment.Progress,
+                EnrollStatus = enrollment.Status,
+                Level = enrollment.Course.Level == null
+                    ? null
+                    : new LevelMiniResponse
+                    {
+                        LevelID = enrollment.Course.Level.LevelID,
+                        LevelNumber = enrollment.Course.Level.LevelNumber,
+                        Name = enrollment.Course.Level.Name
+                    },
+                User = user
+            };
+        }).ToList();
+
+        return new PaginationResult<IEnumerable<CoursesEnrollmentResponse>>(mapped, result.TotalRecords, result.PageIndex, result.PageSize);
     }
 
     public async Task<EnrollmentResponseDTO> GetEnrollmentByIdAsync(Guid enrollmentId)
