@@ -3,7 +3,6 @@ using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
 using Droniverse.Academy.Domain.QueryModels;
 using Droniverse.Academy.Infrastructure.Persistence.MySql;
-using Droniverse.Academy.Infrastructure.Persistence.MySql.ReadModels;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Response;
 using Microsoft.EntityFrameworkCore;

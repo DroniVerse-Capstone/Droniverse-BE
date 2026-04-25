@@ -1,5 +1,4 @@
 ﻿using Droniverse.Academy.Domain.Entities;
-using Droniverse.Academy.Infrastructure.Persistence.MySql.ReadModels;
 using Microsoft.EntityFrameworkCore;
 
 namespace Droniverse.Academy.Infrastructure.Persistence.MySql;
@@ -38,10 +37,6 @@ public class MySqlDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-
-        modelBuilder.Entity<CourseStatsView>()
-            .HasNoKey()
-            .ToView("vwCourseStats");
 
 
         // Apply all configurations from the current assembly

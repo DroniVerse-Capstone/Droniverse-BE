@@ -36,12 +36,13 @@ public class VRSimulatorService : IVRSimulatorService
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
-        ValidateData(request.TitleVN, request.TitleEN, request.EstimatedTime);
+        ValidateData(request.Type, request.TitleVN, request.TitleEN, request.EstimatedTime);
         await EnsureTitlesUniqueAsync(request.TitleVN, request.TitleEN);
 
         var vrSimulator = new VRSimulator
         {
             VRSimulatorID = Guid.NewGuid(),
+            Type = request.Type,
             TitleVN = request.TitleVN,
             TitleEN = request.TitleEN,
             EstimatedTime = request.EstimatedTime
@@ -99,12 +100,22 @@ public class VRSimulatorService : IVRSimulatorService
         };
     }
 
-    public async Task<IEnumerable<VRSimulatorClientViewDTO>> GetVRSimulatorsAsync()
+    public async Task<PaginationResult<IEnumerable<VRSimulatorClientViewDTO>>> GetVRSimulatorsAsync(int pageIndex = 1, int pageSize = 10, string? search = null, VRSimulatorType? type = null)
     {
+        if (pageIndex < 1)
+            pageIndex = 1;
+
+        if (pageSize < 1)
+            pageSize = 10;
+
+        var normalizedSearch = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
+
         var vrSimulators = await _unitOfWork.VRSimulators.GetAllAsync(
+            filter: x => (!type.HasValue || x.Type == type.Value)
+                && (normalizedSearch == null || x.TitleVN.Contains(normalizedSearch) || x.TitleEN.Contains(normalizedSearch)),
             orderBy: q => q.OrderByDescending(x => x.CreateAt),
-            pageIndex: 1,
-            pageSize: int.MaxValue);
+            pageIndex: pageIndex,
+            pageSize: pageSize);
 
         var entities = vrSimulators.Data.ToList();
         var mapped = entities.Select(MapToResponse).ToList();
@@ -118,7 +129,11 @@ public class VRSimulatorService : IVRSimulatorService
             dto.Updater = updater;
         }
 
-        return mapped;
+        return new PaginationResult<IEnumerable<VRSimulatorClientViewDTO>>(
+            mapped,
+            vrSimulators.TotalRecords,
+            vrSimulators.PageIndex,
+            vrSimulators.PageSize);
     }
 
     public async Task<VRSimulatorClientViewDTO> GetVRSimulatorByIdAsync(Guid vrSimulatorId)
@@ -138,7 +153,7 @@ public class VRSimulatorService : IVRSimulatorService
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
-        ValidateData(request.TitleVN, request.TitleEN, request.EstimatedTime);
+        ValidateData(request.Type, request.TitleVN, request.TitleEN, request.EstimatedTime);
         await EnsureTitlesUniqueAsync(request.TitleVN, request.TitleEN, vrSimulatorId);
 
         var vrSimulator = await _unitOfWork.VRSimulators.GetByIdAsync(vrSimulatorId);
@@ -156,6 +171,7 @@ public class VRSimulatorService : IVRSimulatorService
 
         vrSimulator.TitleVN = request.TitleVN;
         vrSimulator.TitleEN = request.TitleEN;
+        vrSimulator.Type = request.Type;
         vrSimulator.EstimatedTime = request.EstimatedTime;
         vrSimulator.SetAuditOnUpdate(_currentUser.UserId, _clock.Now);
 
@@ -205,8 +221,11 @@ public class VRSimulatorService : IVRSimulatorService
         return await _unitOfWork.VRSimulators.GetSimpleVRResponsesByIdsAsync(vrSimulatorIds);
     }
 
-    private static void ValidateData(string titleVN, string titleEN, int estimatedTime)
+    private static void ValidateData(VRSimulatorType type, string titleVN, string titleEN, int estimatedTime)
     {
+        if (!Enum.IsDefined(typeof(VRSimulatorType), type))
+            throw new ValidationException("Loại vr simulator không hợp lệ.");
+
         if (string.IsNullOrWhiteSpace(titleVN))
             throw new ValidationException("Tiêu đề tiếng Việt là bắt buộc.");
 
@@ -272,6 +291,7 @@ public class VRSimulatorService : IVRSimulatorService
         return new VRSimulatorClientViewDTO
         {
             VRSimulatorID = vrSimulator.VRSimulatorID,
+            Type = vrSimulator.Type,
             TitleVN = vrSimulator.TitleVN,
             TitleEN = vrSimulator.TitleEN,
             EstimatedTime = vrSimulator.EstimatedTime,

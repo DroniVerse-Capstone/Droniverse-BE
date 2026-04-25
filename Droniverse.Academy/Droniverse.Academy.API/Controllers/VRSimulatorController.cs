@@ -1,9 +1,8 @@
 ﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
-using Droniverse.Shared.Constants;
+using Droniverse.Academy.Domain.Enums;
 using Droniverse.Shared.DTOs;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Droniverse.Academy.API.Controllers;
@@ -62,12 +61,16 @@ public class VRSimulatorController : ControllerBase
     /// Lấy danh sách vr simulator.
     /// </summary>
     [HttpGet]
-    public async Task<IActionResult> GetVRSimulators()
+    public async Task<IActionResult> GetVRSimulators(
+        [FromQuery] int pageIndex = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? search = null,
+        [FromQuery] VRSimulatorType? type = null)
     {
         try
         {
-            var vrSimulators = await _vrSimulatorService.GetVRSimulatorsAsync();
-            return Ok(SuccessResponse<IEnumerable<VRSimulatorClientViewDTO>>.Create(vrSimulators, "Lấy danh sách vr simulator thành công."));
+            var vrSimulators = await _vrSimulatorService.GetVRSimulatorsAsync(pageIndex, pageSize, search, type);
+            return Ok(SuccessResponse<PaginationResult<IEnumerable<VRSimulatorClientViewDTO>>>.Create(vrSimulators, "Lấy danh sách vr simulator thành công."));
         }
         catch (Exception ex)
         {

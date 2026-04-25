@@ -20,6 +20,7 @@ internal class VRSimulatorRepository : MySqlRepository<VRSimulator>, IVRSimulato
                 VRSimulatorId = x.VRSimulatorID,
                 TitleVN = x.TitleVN,
                 TitleEN = x.TitleEN,
+                Type = (Droniverse.Shared.Enums.VRSimulatorType)x.Type,
             }).FirstOrDefaultAsync();
     }
 
@@ -41,6 +42,7 @@ internal class VRSimulatorRepository : MySqlRepository<VRSimulator>, IVRSimulato
                 VRSimulatorId = x.VRSimulatorID,
                 TitleVN = x.TitleVN,
                 TitleEN = x.TitleEN,
+                Type = (Droniverse.Shared.Enums.VRSimulatorType)x.Type,
             })
             .ToListAsync();
     }

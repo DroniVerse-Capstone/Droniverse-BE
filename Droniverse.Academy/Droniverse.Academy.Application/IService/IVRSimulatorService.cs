@@ -1,5 +1,6 @@
 ﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
+using Droniverse.Academy.Domain.Enums;
 using Droniverse.Shared.DTOs;
 
 namespace Droniverse.Academy.Application.IService;
@@ -8,7 +9,7 @@ public interface IVRSimulatorService
 {
     Task<VRSimulatorClientViewDTO> CreateVRSimulatorAsync(CreateVRSimulatorRequestDTO request);
     Task<LessonClientViewDTO> CreateLessonFromVRSimulatorAsync(Guid vrSimulatorId, CreateVRSimulatorLessonRequestDTO request);
-    Task<IEnumerable<VRSimulatorClientViewDTO>> GetVRSimulatorsAsync();
+    Task<PaginationResult<IEnumerable<VRSimulatorClientViewDTO>>> GetVRSimulatorsAsync(int pageIndex = 1, int pageSize = 10, string? search = null, VRSimulatorType? type = null);
     Task<VRSimulatorClientViewDTO> GetVRSimulatorByIdAsync(Guid vrSimulatorId);
     Task<VRSimulatorClientViewDTO> UpdateVRSimulatorAsync(Guid vrSimulatorId, UpdateVRSimulatorRequestDTO request);
     Task<SimpleVRSimulatorResponse> GetSimpleVRSimulator(Guid vrSimulatorId);

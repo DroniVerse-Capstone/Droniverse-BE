@@ -15,6 +15,12 @@ public class VRSimulatorConfiguration : IEntityTypeConfiguration<VRSimulator>
         builder.Property(x => x.VRSimulatorID)
             .HasColumnType("char(36)");
 
+        builder.Property(x => x.Type)
+            .HasColumnType("varchar(20)")
+            .HasMaxLength(20)
+            .HasConversion<string>()
+            .IsRequired();
+
         builder.Property(x => x.TitleEN)
             .HasColumnType("text")
             .IsRequired();
@@ -47,6 +53,12 @@ public class VRSimulatorConfiguration : IEntityTypeConfiguration<VRSimulator>
             t.HasCheckConstraint(
                 "CK_VRSimulator_EstimatedTime",
                 "`EstimatedTime` > 0"
+            ));
+
+        builder.ToTable(t =>
+            t.HasCheckConstraint(
+                "CK_VRSimulator_Type",
+                "`Type` IN ('LEARNING', 'COMPETITION')"
             ));
     }
 }
