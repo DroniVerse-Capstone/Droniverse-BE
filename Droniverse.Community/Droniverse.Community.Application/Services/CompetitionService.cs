@@ -271,21 +271,34 @@ namespace Droniverse.Community.Application.Services
             if (competition == null)
                 throw new KeyNotFoundException($"Không tìm thấy cuộc thi với ID [{competitionId}].");
 
+            if (_clock.Now < competition.RegistrationStartDate || _clock.Now > competition.RegistrationEndDate)
+                throw new InvalidOperationException("Cuộc thi hiện không trong thời gian đăng ký.");
+
+            var alreadyJoined = competition.UserCompetitions
+            .Any(x => x.UserID == currentUserId);
+
+            if (alreadyJoined)
+            {
+                throw new InvalidOperationException("Người dùng đã đăng ký cuộc thi này rồi.");
+            }
+
             var requiredLevels = competition.CompetitionLevels
                 .Select(x => x.LevelID)
                 .ToHashSet();
 
-            var userLevels = await _academyMicroserviceClient.GetUserLevelIds(currentUserId);
-            var userLevelsSet = userLevels.ToHashSet();
-
-            var missingLevels = requiredLevels
-                .Where(levelId => !userLevelsSet.Contains(levelId))
-                .ToList();
-
-            if (missingLevels.Any())
+            if (requiredLevels.Any())
             {
-                throw new InvalidOperationException(
-                    $"Người dùng chưa đủ điều kiện tham gia. Thiếu cấp độ {missingLevels.Count} .");
+                var userLevels = await _academyMicroserviceClient.GetUserLevelIds(currentUserId);
+                var userLevelsSet = userLevels.ToHashSet();
+
+                var hasAtLeastOneRequiredLevel = requiredLevels
+                    .Any(levelId => userLevelsSet.Contains(levelId));
+
+                if (!hasAtLeastOneRequiredLevel)
+                {
+                    throw new InvalidOperationException(
+                        "Người dùng chưa đủ điều kiện tham gia. Cần ít nhất 1 cấp độ phù hợp.");
+                }
             }
 
             var userCompetition = competition.RegisterParticipant(currentUserId, _clock.Now);
@@ -296,6 +309,7 @@ namespace Droniverse.Community.Application.Services
 
             return await MapToUserCompetitionResponse(userCompetition, competition);
         }
+
         public async Task<UserCompetitionResponseDto> WithdrawFromCompetition(Guid competitionId)
         {
             var currentUserId = Guid.Parse(_currentUserService.UserID
