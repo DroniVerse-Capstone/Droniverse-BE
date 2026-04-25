@@ -45,6 +45,8 @@ public static class DependencyInjection
         services.AddScoped<ILearningService, LearningService>();
         services.AddScoped<IQuizLearningService, QuizLearningService>();
         services.AddScoped<ILabLearningService, LabLearningService>();
+        services.AddScoped<IAssignmentService, AssignmentService>();
+        services.AddScoped<IUserAssignmentService, UserAssignmentService>();
         services.AddScoped<IUserModuleService, UserModuleService>();
         services.AddScoped<IUserLessonService, UserLessonService>();
         services.AddScoped<IUserLabService, UserLabService>();

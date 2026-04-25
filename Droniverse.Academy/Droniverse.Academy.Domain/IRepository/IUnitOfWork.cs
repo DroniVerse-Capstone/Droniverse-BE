@@ -3,6 +3,7 @@ namespace Droniverse.Academy.Domain.IRepository
 {
     public interface IUnitOfWork : IDisposable
     {
+        IAssignmentRepository Assignments { get; }
         ICertificateRepository Certificates { get; }
         ICodeRepository Codes { get; }
         ICourseRepository Courses { get; }
@@ -28,6 +29,7 @@ namespace Droniverse.Academy.Domain.IRepository
         IUserLessonRepository UserLessons { get; }
         IUserLevelRepository UserLevels { get; }
         IUserModuleRepository UserModules { get; }
+        IUserAssignmentRepository UserAssignments { get; }
         ILevelRepository Levels { get; }
         ILevelCourseRequirementRepository LevelCourseRequirements { get; }
         IPrerequisiteCourseRepository PrerequisiteCourses { get; }

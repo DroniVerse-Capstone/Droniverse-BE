@@ -61,5 +61,11 @@ public class LessonMappingProfile : Profile
             .ForMember(dest => dest.TitleEN, opt => opt.MapFrom(src => src.TitleEN))
             .ForMember(dest => dest.EstimatedTime, opt => opt.MapFrom(src => src.EstimatedTime))
             .ForMember(dest => dest.Type, opt => opt.Ignore());
+
+        CreateMap<Assignment, LessonClientViewDTO>()
+            .ForMember(dest => dest.TitleVN, opt => opt.MapFrom(src => src.TitleVN))
+            .ForMember(dest => dest.TitleEN, opt => opt.MapFrom(src => src.TitleEN))
+            .ForMember(dest => dest.EstimatedTime, opt => opt.MapFrom(src => src.EstimatedTime))
+            .ForMember(dest => dest.Type, opt => opt.Ignore());
     }
 }

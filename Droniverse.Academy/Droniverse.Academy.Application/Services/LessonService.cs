@@ -208,6 +208,13 @@ public class LessonService : ILessonService
                     MapVRSimulatorToDto(vrSimulator, dto);
                 }
                 break;
+            case LessonType.ASSIGNMENT:
+                var assignment = await _unitOfWork.Assignments.GetByIdAsync(lesson.ReferenceID);
+                if (assignment != null)
+                {
+                    MapAssignmentToDto(assignment, dto);
+                }
+                break;
         }
     }
 
@@ -218,14 +225,16 @@ public class LessonService : ILessonService
         var labIds = GetReferenceIdsByType(lessons, LessonType.LAB);
         var webSimulatorIds = GetReferenceIdsByTypes(lessons, LessonType.PHYSIC, LessonType.LAB_PHYSIC);
         var vrSimulatorIds = GetReferenceIdsByType(lessons, LessonType.VR);
+        var assignmentIds = GetReferenceIdsByType(lessons, LessonType.ASSIGNMENT);
 
         var theoryLookup = await GetTheoryLookupAsync(theoryIds);
         var quizLookup = await GetQuizLookupAsync(quizIds);
         var labLookup = await GetLabLookupAsync(labIds);
         var webSimulatorLookup = await GetWebSimulatorLookupAsync(webSimulatorIds);
         var vrSimulatorLookup = await GetVRSimulatorLookupAsync(vrSimulatorIds);
+        var assignmentLookup = await GetAssignmentLookupAsync(assignmentIds);
 
-        return new ReferenceLookups(theoryLookup, quizLookup, labLookup, webSimulatorLookup, vrSimulatorLookup);
+        return new ReferenceLookups(theoryLookup, quizLookup, labLookup, webSimulatorLookup, vrSimulatorLookup, assignmentLookup);
     }
 
     private static HashSet<Guid> GetReferenceIdsByType(IEnumerable<Lesson> lessons, LessonType type)
@@ -322,6 +331,12 @@ public class LessonService : ILessonService
                     MapVRSimulatorToDto(vrSimulator, dto);
                 }
                 break;
+            case LessonType.ASSIGNMENT:
+                if (lookups.Assignments.TryGetValue(lesson.ReferenceID, out var assignment))
+                {
+                    MapAssignmentToDto(assignment, dto);
+                }
+                break;
         }
     }
 
@@ -350,12 +365,18 @@ public class LessonService : ILessonService
         _mapper.Map(vrSimulator, dto);
     }
 
+    private void MapAssignmentToDto(Assignment assignment, LessonClientViewDTO dto)
+    {
+        _mapper.Map(assignment, dto);
+    }
+
     private sealed record ReferenceLookups(
         IReadOnlyDictionary<Guid, Theory> Theories,
         IReadOnlyDictionary<Guid, Quiz> Quizs,
         IReadOnlyDictionary<Guid, Lab> Labs,
         IReadOnlyDictionary<Guid, WebSimulator> WebSimulators,
-        IReadOnlyDictionary<Guid, VRSimulator> VRSimulators);
+        IReadOnlyDictionary<Guid, VRSimulator> VRSimulators,
+        IReadOnlyDictionary<Guid, Assignment> Assignments);
 
     private async Task<Dictionary<Guid, WebSimulator>> GetWebSimulatorLookupAsync(IReadOnlySet<Guid> webSimulatorIds)
     {
@@ -381,6 +402,19 @@ public class LessonService : ILessonService
             pageSize: int.MaxValue);
 
         return result.Data.ToDictionary(x => x.VRSimulatorID);
+    }
+
+    private async Task<Dictionary<Guid, Assignment>> GetAssignmentLookupAsync(IReadOnlySet<Guid> assignmentIds)
+    {
+        if (assignmentIds.Count == 0)
+            return [];
+
+        var result = await _unitOfWork.Assignments.GetAllAsync(
+            filter: x => assignmentIds.Contains(x.AssignmentID),
+            pageIndex: 1,
+            pageSize: int.MaxValue);
+
+        return result.Data.ToDictionary(x => x.AssignmentID);
     }
 
     public async Task DeleteLessonAsync(Guid moduleId, Guid lessonId)
@@ -419,6 +453,13 @@ public class LessonService : ILessonService
                         }
 
                         await _unitOfWork.Quizs.DeleteAsync(quiz);
+                    }
+                    break;
+                case LessonType.ASSIGNMENT:
+                    var assignment = await _unitOfWork.Assignments.GetByIdAsync(lesson.ReferenceID);
+                    if (assignment != null)
+                    {
+                        await _unitOfWork.Assignments.DeleteAsync(assignment);
                     }
                     break;
             }
@@ -492,6 +533,10 @@ public class LessonService : ILessonService
             case LessonType.VR:
                 if (await _unitOfWork.VRSimulators.GetByIdAsync(referenceId) == null)
                     throw new ValidationException("Không tìm thấy tham chiếu vr simulator.");
+                break;
+            case LessonType.ASSIGNMENT:
+                if (await _unitOfWork.Assignments.GetByIdAsync(referenceId) == null)
+                    throw new ValidationException("Không tìm thấy tham chiếu assignment.");
                 break;
             default:
                 throw new ValidationException("Loại bài học không hợp lệ.");

@@ -6,5 +6,6 @@ public enum LessonType
     LAB,
     PHYSIC,
     LAB_PHYSIC,
-    VR
+    VR,
+    ASSIGNMENT
 }
