@@ -1,11 +1,13 @@
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.API.Examples;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Filters;
 
 namespace Droniverse.Academy.API.Controllers;
 
@@ -24,6 +26,7 @@ public class UserLearningAssignmentController : ControllerBase
     }
 
     [HttpGet("{assignmentId:guid}/attempts")]
+    [SwaggerResponseExample(StatusCodes.Status200OK, typeof(UserAssignmentAttemptsSuccessResponseExample))]
     public async Task<IActionResult> GetMyAssignmentAttempts(
         Guid enrollmentId,
         Guid assignmentId,
@@ -45,6 +48,8 @@ public class UserLearningAssignmentController : ControllerBase
     }
 
     [HttpPost("{assignmentId:guid}/submit")]
+    [SwaggerRequestExample(typeof(SubmitUserAssignmentRequestDTO), typeof(SubmitUserAssignmentRequestExample))]
+    [SwaggerResponseExample(StatusCodes.Status200OK, typeof(UserAssignmentSubmitSuccessResponseExample))]
     public async Task<IActionResult> SubmitAssignment(
         Guid enrollmentId,
         Guid assignmentId,

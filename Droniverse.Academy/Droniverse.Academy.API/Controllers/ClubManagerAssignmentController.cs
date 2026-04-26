@@ -1,12 +1,14 @@
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.API.Examples;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Filters;
 
 namespace Droniverse.Academy.API.Controllers;
 
@@ -25,6 +27,7 @@ public class ClubManagerAssignmentController : ControllerBase
     }
 
     [HttpGet]
+    [SwaggerResponseExample(StatusCodes.Status200OK, typeof(UserAssignmentAttemptsSuccessResponseExample))]
     public async Task<IActionResult> GetSubmissions(
         [FromQuery] Guid? assignmentId = null,
         [FromQuery] Guid? enrollmentId = null,
@@ -53,6 +56,8 @@ public class ClubManagerAssignmentController : ControllerBase
     }
 
     [HttpPost("{userAssignmentId:guid}/review")]
+    [SwaggerRequestExample(typeof(ReviewUserAssignmentRequestDTO), typeof(ReviewUserAssignmentRequestExample))]
+    [SwaggerResponseExample(StatusCodes.Status200OK, typeof(UserAssignmentReviewSuccessResponseExample))]
     public async Task<IActionResult> ReviewAssignment(Guid userAssignmentId, [FromBody] ReviewUserAssignmentRequestDTO request)
     {
         try

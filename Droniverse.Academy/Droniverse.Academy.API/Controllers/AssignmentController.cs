@@ -1,11 +1,13 @@
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.API.Examples;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Filters;
 
 namespace Droniverse.Academy.API.Controllers;
 
@@ -23,7 +25,15 @@ public class AssignmentController : ControllerBase
         _service = service;
     }
 
+    /// <summary>
+    /// Tạo mới một assignment cho lesson kiểu assignment.
+    /// </summary>
+    /// <param name="request">Thông tin assignment cần tạo.</param>
+    /// <returns>Assignment vừa được tạo.</returns>
     [HttpPost]
+    [SwaggerRequestExample(typeof(CreateAssignmentRequestDTO), typeof(CreateAssignmentRequestExample))]
+    [SwaggerResponseExample(StatusCodes.Status201Created, typeof(AssignmentSuccessResponseExample))]
+    [ProducesResponseType(typeof(SuccessResponse<AssignmentClientViewDTO>), StatusCodes.Status201Created)]
     public async Task<IActionResult> CreateAssignment([FromBody] CreateAssignmentRequestDTO request)
     {
         try
@@ -38,7 +48,15 @@ public class AssignmentController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy danh sách assignment có phân trang.
+    /// </summary>
+    /// <param name="pageIndex">Trang hiện tại.</param>
+    /// <param name="pageSize">Số lượng phần tử trên một trang.</param>
+    /// <returns>Danh sách assignment theo trang.</returns>
     [HttpGet]
+    [SwaggerResponseExample(StatusCodes.Status200OK, typeof(AssignmentListSuccessResponseExample))]
+    [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<AssignmentClientViewDTO>>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAssignments([FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 10)
     {
         try
@@ -53,7 +71,14 @@ public class AssignmentController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Lấy chi tiết một assignment theo ID.
+    /// </summary>
+    /// <param name="assignmentId">ID của assignment.</param>
+    /// <returns>Thông tin assignment.</returns>
     [HttpGet("{assignmentId:guid}")]
+    [SwaggerResponseExample(StatusCodes.Status200OK, typeof(AssignmentSuccessResponseExample))]
+    [ProducesResponseType(typeof(SuccessResponse<AssignmentClientViewDTO>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAssignmentById(Guid assignmentId)
     {
         try
@@ -68,7 +93,16 @@ public class AssignmentController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Cập nhật thông tin assignment.
+    /// </summary>
+    /// <param name="assignmentId">ID của assignment cần cập nhật.</param>
+    /// <param name="request">Thông tin cập nhật.</param>
+    /// <returns>Assignment sau khi cập nhật.</returns>
     [HttpPut("{assignmentId:guid}")]
+    [SwaggerRequestExample(typeof(UpdateAssignmentRequestDTO), typeof(UpdateAssignmentRequestExample))]
+    [SwaggerResponseExample(StatusCodes.Status200OK, typeof(AssignmentSuccessResponseExample))]
+    [ProducesResponseType(typeof(SuccessResponse<AssignmentClientViewDTO>), StatusCodes.Status200OK)]
     public async Task<IActionResult> UpdateAssignment(Guid assignmentId, [FromBody] UpdateAssignmentRequestDTO request)
     {
         try
@@ -83,7 +117,13 @@ public class AssignmentController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Xóa một assignment.
+    /// </summary>
+    /// <param name="assignmentId">ID của assignment cần xóa.</param>
+    /// <returns>Không có nội dung nếu xóa thành công.</returns>
     [HttpDelete("{assignmentId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> DeleteAssignment(Guid assignmentId)
     {
         try
