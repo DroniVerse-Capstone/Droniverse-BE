@@ -1,5 +1,5 @@
-﻿using Droniverse.Community.Domain.Enums;
-using System.Transactions;
+﻿using Droniverse.Community.Domain.Entities.Mongo;
+using Droniverse.Community.Domain.Enums;
 
 namespace Droniverse.Community.Domain.Entities;
 
@@ -13,7 +13,10 @@ public class Transaction
     public Guid ReferenceID { get; set; }
     public DateTime CreatedAt { get; set; }
     public Guid? ClubID { get; set; }
-    public Club Club { get; set; }
+    public Club? Club { get; set; }
+    public Guid? OrderID { get; set; }
+    public WithdrawRequest? WithdrawRequest { get; set; }
+    public Guid? WithdrawRequestID { get; set; }
 
     private Transaction() { }
 
@@ -22,7 +25,9 @@ public class Transaction
         int amount,
         TransactionType type,
         Guid referenceID,
-        Guid clubID
+                Guid? clubID,
+        Guid? orderID,
+        Guid? withdrawRequestID
       )
     {
         WalletID = walletId;
@@ -30,6 +35,8 @@ public class Transaction
         Type = type;
         ReferenceID = referenceID;
         ClubID = clubID;
+        OrderID = orderID;
+        WithdrawRequestID = withdrawRequestID;
     }
 
 }

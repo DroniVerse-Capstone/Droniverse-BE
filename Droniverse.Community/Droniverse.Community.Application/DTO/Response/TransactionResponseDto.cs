@@ -1,4 +1,5 @@
-﻿using Droniverse.Community.Domain.Entities;
+﻿using Droniverse.Community.Application.DTO.Response.Mongo;
+using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.Enums;
 
 namespace Droniverse.Community.Application.DTO.Response;
@@ -11,5 +12,7 @@ public record TransactionResponseDto
     public TransactionType Type { get; set; }
     public Guid ReferenceID { get; set; }
     public DateTime CreatedAt { get; set; }
+    public OrderResponseDto Order { get; set; }
+    public WithdrawResponseDto WithdrawRequest { get; set; }
 
 }

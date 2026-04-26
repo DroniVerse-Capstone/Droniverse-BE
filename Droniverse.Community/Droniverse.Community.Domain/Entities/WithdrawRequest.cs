@@ -16,6 +16,7 @@ public class WithdrawRequest
     public string? RejectReason { get; set; }
     public Guid WalletID { get; set; }
     public virtual Wallet Wallet { get; set; }
+    public virtual Transaction Transaction { get; set; }
 
     private WithdrawRequest() { }
 

@@ -11,6 +11,5 @@ public interface ITransactionService
     Task<IEnumerable<TransactionResponseDto>> GetTransactionsByWalletIdAsync(Guid walletId);
     Task<PaginationResult<IEnumerable<TransactionResponseDto>>> GetMyTransactionsAsync(TransactionSearchRequest request);
     Task<PaginationResult<IEnumerable<TransactionResponseDto>>> GetAllTransactionsAsync(TransactionSearchRequest request);
-    Task<TransactionResponseDto> CreateTransactionAsync(Guid walletId, int amount, TransactionType type, Guid referenceId);
 }
 

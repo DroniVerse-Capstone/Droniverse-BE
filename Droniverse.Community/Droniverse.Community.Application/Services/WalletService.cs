@@ -125,7 +125,9 @@ namespace Droniverse.Community.Application.Services
                 amount: (int)request.Amount,
                 type: TransactionType.WITHDRAWAL,
                 referenceID: createdWithdrawRequest.WithdrawRequestID, // referenceID có thể là withdrawID
-                clubID: club.ClubID
+                clubID: club.ClubID,
+                orderID: null,
+                withdrawRequestID: createdWithdrawRequest.WithdrawRequestID
             );
             await _unitOfWork.Transactions.Add(transaction);
 
@@ -214,7 +216,9 @@ namespace Droniverse.Community.Application.Services
                     amount: (int)withdrawRequest.Amount,
                     type: TransactionType.REFUND,
                     referenceID: withdrawRequest.WithdrawRequestID, // referenceID có thể là withdrawID
-                    clubID: club.ClubID
+                    clubID: club.ClubID,
+                    orderID: null,
+                    withdrawRequestID: withdrawRequest.WithdrawRequestID
                 );
                 await _unitOfWork.Transactions.Add(transaction);
             }
@@ -231,7 +235,9 @@ namespace Droniverse.Community.Application.Services
                     amount: (int)withdrawRequest.Amount,
                     type: TransactionType.REFUND,
                     referenceID: withdrawRequest.WithdrawRequestID, // referenceID có thể là withdrawID
-                    clubID: club.ClubID
+                    clubID: club.ClubID,
+                    orderID: null,
+                    withdrawRequestID: withdrawRequest.WithdrawRequestID
                 );
                 await _unitOfWork.Transactions.Add(transaction);
             }
