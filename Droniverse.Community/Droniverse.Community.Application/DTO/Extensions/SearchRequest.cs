@@ -78,6 +78,11 @@ namespace Droniverse.Community.Application.DTO.Extensions
 
     }
 
+    public class GetUserPrizeCurrentUserSearchRequest : SearchRequest
+    {
+        public string? CompetitionName { get; set; }
+    }
+
     public class GetAllClubsSearchRequest : SearchRequest
     {
         public string? ClubName { get; set; }

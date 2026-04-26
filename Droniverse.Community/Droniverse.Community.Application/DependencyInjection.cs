@@ -35,6 +35,7 @@ public static class DependencyInjection
         services.AddScoped<IPaymentService, PaymentService>();
         services.AddScoped<IProductCategoryService, ProductCategoryService>();
         services.AddScoped<ICompetitionLevelService, CompetitionLevelService>();
+        services.AddScoped<IUserPrizeService, UserPrizeService>();
         services.AddScoped<ICompetitionState, DraftState>();
 
         // Đăng ký RabbitMQ Publisher cho notification

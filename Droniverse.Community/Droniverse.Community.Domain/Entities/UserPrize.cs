@@ -23,11 +23,8 @@ namespace Droniverse.Community.Domain.Entities
 
         public string? RewardValueGiftVN { get; private set; }
         public string? RewardValueGiftEN { get; private set; }
-
         public bool IsAwarded { get; private set; }
-
         public DateTime? AwardedAt { get; private set; }
-
         public DateTime CreatedAt { get; private set; }
         public Guid CreatedBy { get; private set; }
 
