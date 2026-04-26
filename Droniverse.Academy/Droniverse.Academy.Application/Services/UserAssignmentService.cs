@@ -6,6 +6,7 @@ using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
 using Droniverse.Shared.Enums;
+using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Services.IServices;
 
@@ -43,6 +44,14 @@ public class UserAssignmentService : IUserAssignmentService
             throw new ValidationException("MediaID là bắt buộc.");
 
         await _assessmentAccessService.GetAccessibleAssignmentAsync(enrollmentId, assignmentId);
+
+        var passedAttempt = await _unitOfWork.UserAssignments.GetByConditionAsync(
+            x => x.AssignmentID == assignmentId
+                 && x.EnrollmentID == enrollmentId
+                 && x.Status == UserAssignmentStatus.PASSED);
+
+        if (passedAttempt != null)
+            throw new ValidationException("Assignment đã đạt, không thể nộp thêm.");
 
         var latestAttemptResult = await _unitOfWork.UserAssignments.GetAllAsync(
             filter: x => x.AssignmentID == assignmentId && x.EnrollmentID == enrollmentId,
@@ -126,6 +135,107 @@ public class UserAssignmentService : IUserAssignmentService
             ReviewComment = userAssignment.ReviewComment,
             ReviewedBy = userAssignment.ReviewedBy ?? Guid.Empty,
             ReviewedAt = reviewedAt
+        };
+    }
+
+    public async Task<PaginationResult<IEnumerable<UserAssignmentAttemptResponseDTO>>> GetSubmissionsForReviewAsync(
+        Guid? assignmentId,
+        Guid? enrollmentId,
+        UserAssignmentStatus? status,
+        int pageIndex = 1,
+        int pageSize = 10)
+    {
+        var queryResult = await _unitOfWork.UserAssignments.GetAllAsync(
+            filter: x =>
+                (!assignmentId.HasValue || x.AssignmentID == assignmentId.Value) &&
+                (!enrollmentId.HasValue || x.EnrollmentID == enrollmentId.Value) &&
+                (!status.HasValue || x.Status == status.Value),
+            orderBy: q => q.OrderByDescending(x => x.SubmittedAt).ThenByDescending(x => x.AttemptNumber),
+            pageIndex: 1,
+            pageSize: int.MaxValue,
+            includeProperties: "Enrollment,Assignment");
+
+        var allItems = queryResult.Data.ToList();
+        var accessByClub = new Dictionary<Guid, bool>();
+        var accessibleItems = new List<UserAssignment>(allItems.Count);
+
+        foreach (var item in allItems)
+        {
+            var enrollment = item.Enrollment;
+            if (enrollment == null)
+                continue;
+
+            if (!accessByClub.TryGetValue(enrollment.ClubID, out var canAccess))
+            {
+                canAccess = await _communityClient.CheckParticipantByClubAsync(
+                    enrollment.ClubID,
+                    _currentUser.UserId,
+                    ParticipationStatus.ACTIVE);
+
+                accessByClub[enrollment.ClubID] = canAccess;
+            }
+
+            if (canAccess)
+                accessibleItems.Add(item);
+        }
+
+        var normalizedPageIndex = pageIndex < 1 ? 1 : pageIndex;
+        var normalizedPageSize = pageSize < 1 ? 10 : pageSize;
+
+        var paged = accessibleItems
+            .Skip((normalizedPageIndex - 1) * normalizedPageSize)
+            .Take(normalizedPageSize)
+            .Select(MapToAttemptResponse)
+            .ToList();
+
+        return new PaginationResult<IEnumerable<UserAssignmentAttemptResponseDTO>>(
+            paged,
+            accessibleItems.Count,
+            normalizedPageIndex,
+            normalizedPageSize);
+    }
+
+    public async Task<PaginationResult<IEnumerable<UserAssignmentAttemptResponseDTO>>> GetMyAssignmentAttemptsAsync(
+        Guid enrollmentId,
+        Guid assignmentId,
+        int pageIndex = 1,
+        int pageSize = 10)
+    {
+        await _assessmentAccessService.GetAccessibleAssignmentAsync(enrollmentId, assignmentId);
+
+        var result = await _unitOfWork.UserAssignments.GetAllAsync(
+            filter: x => x.EnrollmentID == enrollmentId && x.AssignmentID == assignmentId,
+            orderBy: q => q.OrderByDescending(x => x.AttemptNumber),
+            pageIndex: pageIndex,
+            pageSize: pageSize);
+
+        var mapped = result.Data
+            .Select(MapToAttemptResponse)
+            .ToList();
+
+        return new PaginationResult<IEnumerable<UserAssignmentAttemptResponseDTO>>(
+            mapped,
+            result.TotalRecords,
+            result.PageIndex,
+            result.PageSize);
+    }
+
+    private static UserAssignmentAttemptResponseDTO MapToAttemptResponse(UserAssignment entity)
+    {
+        return new UserAssignmentAttemptResponseDTO
+        {
+            UserAssignmentID = entity.UserAssignmentID,
+            AssignmentID = entity.AssignmentID,
+            EnrollmentID = entity.EnrollmentID,
+            AttemptNumber = entity.AttemptNumber,
+            MediaID = entity.MediaID,
+            Description = entity.Description,
+            Status = entity.Status,
+            Score = entity.Score,
+            ReviewComment = entity.ReviewComment,
+            ReviewedBy = entity.ReviewedBy,
+            ReviewedAt = entity.ReviewedAt,
+            SubmittedAt = entity.SubmittedAt
         };
     }
 }

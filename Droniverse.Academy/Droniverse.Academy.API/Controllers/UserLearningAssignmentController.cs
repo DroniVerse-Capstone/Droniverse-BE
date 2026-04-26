@@ -3,6 +3,7 @@ using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
+using Droniverse.Shared.DTOs.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,6 +21,27 @@ public class UserLearningAssignmentController : ControllerBase
     {
         _logger = logger;
         _service = service;
+    }
+
+    [HttpGet("{assignmentId:guid}/attempts")]
+    public async Task<IActionResult> GetMyAssignmentAttempts(
+        Guid enrollmentId,
+        Guid assignmentId,
+        [FromQuery] int pageIndex = 1,
+        [FromQuery] int pageSize = 10)
+    {
+        try
+        {
+            var result = await _service.GetMyAssignmentAttemptsAsync(enrollmentId, assignmentId, pageIndex, pageSize);
+            return Ok(SuccessResponse<PaginationResult<IEnumerable<UserAssignmentAttemptResponseDTO>>>.Create(
+                result,
+                "Lấy lịch sử nộp assignment thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lấy lịch sử nộp assignment thất bại.");
+            throw;
+        }
     }
 
     [HttpPost("{assignmentId:guid}/submit")]
