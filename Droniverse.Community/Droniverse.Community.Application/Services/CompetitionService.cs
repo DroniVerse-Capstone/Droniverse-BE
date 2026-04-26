@@ -15,6 +15,7 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Text.Json;
+using System.ComponentModel.DataAnnotations;
 
 namespace Droniverse.Community.Application.Services
 {
@@ -262,6 +263,8 @@ namespace Droniverse.Community.Application.Services
             var currentUserId = Guid.Parse(_currentUserService.UserID
                 ?? throw new UnauthorizedAccessException("Người dùng chưa được xác thực."));
 
+            var now = _clock.Now;
+
             var competition = await _unitOfWork.Competitions.GetByCondition(
                 c => c.CompetitionID == competitionId,
                 q => q.Include(c => c.UserCompetitions)
@@ -271,39 +274,61 @@ namespace Droniverse.Community.Application.Services
             if (competition == null)
                 throw new KeyNotFoundException($"Không tìm thấy cuộc thi với ID [{competitionId}].");
 
-            if (_clock.Now < competition.RegistrationStartDate || _clock.Now > competition.RegistrationEndDate)
+            // ❗ check user có thuộc club không (logic của bạn đang bị ngược)
+            var isClubMember = await _unitOfWork.Participations
+                .IsUserInClub(competition.ClubID, currentUserId);
+
+            if (!isClubMember)
+                throw new ValidationException("Người dùng không thuộc câu lạc bộ của cuộc thi này.");
+
+            // ❗ check thời gian đăng ký
+            if (now < competition.RegistrationStartDate || now > competition.RegistrationEndDate)
                 throw new InvalidOperationException("Cuộc thi hiện không trong thời gian đăng ký.");
 
-            var alreadyJoined = competition.UserCompetitions
-            .Any(x => x.UserID == currentUserId);
+            // ❗ check existing
+            var existingUserCompetition = competition.UserCompetitions
+                .FirstOrDefault(x => x.UserID == currentUserId);
 
-            if (alreadyJoined)
+            UserCompetition userCompetition;
+
+            if (existingUserCompetition != null)
             {
-                throw new InvalidOperationException("Người dùng đã đăng ký cuộc thi này rồi.");
-            }
-
-            var requiredLevels = competition.CompetitionLevels
-                .Select(x => x.LevelID)
-                .ToHashSet();
-
-            if (requiredLevels.Any())
-            {
-                var userLevels = await _academyMicroserviceClient.GetUserLevelIds(currentUserId);
-                var userLevelsSet = userLevels.ToHashSet();
-
-                var hasAtLeastOneRequiredLevel = requiredLevels
-                    .Any(levelId => userLevelsSet.Contains(levelId));
-
-                if (!hasAtLeastOneRequiredLevel)
+                if (existingUserCompetition.Status == UserCompetitionStatus.WITHDRAWN)
                 {
-                    throw new InvalidOperationException(
-                        "Người dùng chưa đủ điều kiện tham gia. Cần ít nhất 1 cấp độ phù hợp.");
+                    // ✅ rejoin
+                    existingUserCompetition.Rejoin(now);
+                    userCompetition = existingUserCompetition;
+                }
+                else
+                {
+                    throw new InvalidOperationException("Người dùng đã đăng ký cuộc thi này rồi.");
                 }
             }
+            else
+            {
+                // ❗ check level nếu có yêu cầu
+                var requiredLevels = competition.CompetitionLevels
+                    .Select(x => x.LevelID)
+                    .ToHashSet();
 
-            var userCompetition = competition.RegisterParticipant(currentUserId, _clock.Now);
+                if (requiredLevels.Any())
+                {
+                    var userLevels = await _academyMicroserviceClient.GetUserLevelIds(currentUserId);
+                    var userLevelsSet = (userLevels ?? Enumerable.Empty<Guid>()).ToHashSet();
 
-            await _unitOfWork.UserCompetitions.Add(userCompetition);
+                    var hasAtLeastOneRequiredLevel = requiredLevels
+                        .Any(levelId => userLevelsSet.Contains(levelId));
+
+                    if (!hasAtLeastOneRequiredLevel)
+                        throw new InvalidOperationException(
+                            "Người dùng chưa đủ điều kiện tham gia. Cần ít nhất 1 cấp độ phù hợp.");
+                }
+
+                // ✅ tạo mới
+                userCompetition = competition.RegisterParticipant(currentUserId, now);
+                await _unitOfWork.UserCompetitions.Add(userCompetition);
+            }
+
             await _unitOfWork.SaveChangeAsync();
             await InvalidateHotCompetitionsCache(competition.ClubID);
 
@@ -312,8 +337,7 @@ namespace Droniverse.Community.Application.Services
 
         public async Task<UserCompetitionResponseDto> WithdrawFromCompetition(Guid competitionId)
         {
-            var currentUserId = Guid.Parse(_currentUserService.UserID
-                ?? throw new UnauthorizedAccessException("User is not authenticated."));
+            var currentUserId = _currentUserService.UserId;
 
             var userCompetition = await _unitOfWork.UserCompetitions.GetByCondition(
                 uc => uc.UserID == currentUserId && uc.CompetitionID == competitionId
@@ -324,12 +348,12 @@ namespace Droniverse.Community.Application.Services
 
             var competition = await _unitOfWork.Competitions.GetByCondition(c => c.CompetitionID == competitionId);
             if (competition == null)
-                throw new KeyNotFoundException($"Competition with ID {competitionId} not found.");
+                throw new KeyNotFoundException($"Không tìm thấy cuộc thi.");
 
             if (competition.Status != CompetitionStatus.PUBLISHED || _clock.Now >= competition.StartDate)
                 throw new InvalidOperationException("Không thể rút khỏi cuộc thi đã bắt đầu hoặc kết thúc.");
 
-            userCompetition.Withdraw();
+            userCompetition.Withdraw(_clock.Now);
 
             await _unitOfWork.UserCompetitions.Update(userCompetition);
             await _unitOfWork.SaveChangeAsync();
@@ -510,6 +534,33 @@ namespace Droniverse.Community.Application.Services
             {
                 await BuildAndSetHotCompetitionCache(clubId);
             }
+        }
+
+
+
+        public async Task<UserCompetitionResponseDto> DisqualifiedFromCompetition(Guid competitionId, Guid userId)
+        {
+            var now = _clock.Now;
+
+            // 1. Lấy UserCompetition
+            var userCompetition = await _unitOfWork.UserCompetitions
+                .GetByCondition(x => x.CompetitionID == competitionId && x.UserID == userId);
+
+            if (userCompetition == null)
+                throw new KeyNotFoundException("Người dùng chưa tham gia cuộc thi.");
+
+            if (userCompetition.Status == UserCompetitionStatus.DISQUALIFIED)
+                throw new InvalidOperationException("Người dùng đã bị loại trước đó.");
+
+            // 2. Update trạng thái UserCompetition
+            userCompetition.Disqualify(now);
+
+            // Gọi repostiory để thực hiện update lại các bài làm 
+            await _unitOfWork.UserRounds.DisqualifyByCompetitionAsync(competitionId, userId, now);
+
+            await _unitOfWork.SaveChangeAsync();
+
+            return await MapToUserCompetitionResponse(userCompetition, userCompetition.Competition);
         }
 
         public async Task<CompetitionResponse> UpdateCompetitionNoLogic(Guid competitionId, UpdateCompetitionNoLogicRequest request)
@@ -812,7 +863,7 @@ namespace Droniverse.Community.Application.Services
             var currentUserId = _currentUserService.UserId;
 
             bool isRegistered = competition.UserCompetitions
-               .Any(u => u.UserID == currentUserId);
+               .Any(u => u.UserID == currentUserId && u.Status != UserCompetitionStatus.WITHDRAWN);
 
             return new CompetitionResponse
             {
@@ -882,7 +933,7 @@ namespace Droniverse.Community.Application.Services
                     (RoundCount: 0, CompetitorCount: 0, PrizeCount: 0));
 
                 bool isRegistered = competition.UserCompetitions
-                   .Any(u => u.UserID == currentUserId);
+                   .Any(u => u.UserID == currentUserId && u.Status != UserCompetitionStatus.WITHDRAWN);
 
                 return new CompetitionResponse
                 {

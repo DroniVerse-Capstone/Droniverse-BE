@@ -219,15 +219,15 @@ public class Round
 
     public void ValidateUserCanJoin(
         DateTime now,
-        bool isUserInCompetition,
+        UserCompetitionStatus userCompetitionStatus,
         bool isUserJoinedRound,
         bool isUserPassedPreviousRound)
     {
         if (Status != RoundStatus.Valid)
             throw new InvalidOperationException("Vòng thi không hợp lệ để tham gia.");
 
-        if (!isUserInCompetition)
-            throw new InvalidOperationException("Người dùng chưa tham gia cuộc thi.");
+        if (userCompetitionStatus == UserCompetitionStatus.DISQUALIFIED)
+            throw new InvalidOperationException("Người này đang bị cấm, không thể tham gia vòng thi");
 
         if (Competition == null || Competition.Status != CompetitionStatus.PUBLISHED)
             throw new InvalidOperationException("Cuộc thi chưa diễn ra hoặc đã kết thúc.");

@@ -110,7 +110,6 @@ namespace Droniverse.Community.API.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [SwaggerRequestExample(typeof(UpdateRoundNoLogicRequest), typeof(RoundUpdateNoLogicExample))]
-        [Authorize(Roles = Roles.AdminOrManagerRoles)]
         public async Task<ApiResponse> UpdateRoundNoLogic(Guid roundId, [FromBody] UpdateRoundNoLogicRequest request)
         {
             var round = await _roundService.UpdateRoundNoLogic(roundId, request);

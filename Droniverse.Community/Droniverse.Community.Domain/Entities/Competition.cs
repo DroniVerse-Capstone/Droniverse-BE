@@ -387,7 +387,7 @@ public class Competition
         if (alreadyJoined)
             throw new InvalidOperationException("Người dùng đã đăng ký.");
 
-        var userCompetition = new UserCompetition(userId, CompetitionID);
+        var userCompetition = new UserCompetition(userId, CompetitionID, now);
 
         UserCompetitions.Add(userCompetition);
 
