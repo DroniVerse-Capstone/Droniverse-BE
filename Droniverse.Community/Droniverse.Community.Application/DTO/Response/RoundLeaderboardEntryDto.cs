@@ -10,9 +10,6 @@ namespace Droniverse.Community.Application.DTO.Response
         // Ranking metrics
         public decimal Point { get; set; }
         public TimeSpan ExecutionTime { get; set; }
-        public int NumberOfSteps { get; set; }
-        public double PathLength { get; set; }
-        public bool IsSequentialCheckpoints { get; private set; }
 
         public bool IsPassed { get; set; }
         public UserRoundStatus Status { get; set; }

@@ -432,7 +432,9 @@ namespace Droniverse.Community.Application.Services
             };
         }
 
-        public async Task<PaginationResult<IEnumerable<LeaderboardEntryDto>>> GetCompetitionLeaderboard(CompetitionLeaderboardSearchRequest request, Guid competitionId)
+        public async Task<PaginationResult<IEnumerable<LeaderboardEntryDto>>> GetCompetitionLeaderboard(
+         CompetitionLeaderboardSearchRequest request,
+         Guid competitionId)
         {
             var currentUserId = _currentUserService.UserId;
 
@@ -453,7 +455,7 @@ namespace Droniverse.Community.Application.Services
             int pageSize = Math.Max(1, request.PageSize);
             int skip = (currentPage - 1) * pageSize;
 
-            var (totalRecords, pageEntries) = await _unitOfWork.UserCompetitions.GetCompetitionLeaderboard(
+            var (totalRecords, pageEntries) = await _unitOfWork.UserRounds.GetCompetitionLeaderboard(
                 competitionId,
                 skip,
                 pageSize);
@@ -463,19 +465,20 @@ namespace Droniverse.Community.Application.Services
 
             var entries = pageEntries.ToList();
 
-            var userIds = entries.Select(uc => uc.UserId).Distinct().ToList();
+            var userIds = entries.Select(x => x.UserId).Distinct().ToList();
             var users = await GetUsersBulkSafe(userIds);
             var userDict = users.ToDictionary(u => u.UserId, u => u);
 
-            var leaderboard = entries.Select((uc, index) =>
+            var leaderboard = entries.Select(uc =>
             {
                 userDict.TryGetValue(uc.UserId, out var user);
 
                 return new LeaderboardEntryDto
                 {
                     User = ToSimpleUserResponse(uc.UserId, user),
-                    Score = uc.Score,
-                    Rank = uc.Rank ?? (skip + index + 1),
+                    TotalScore = uc.Score,
+                    TotalTime = uc.TotalTime,
+                    Rank = uc.Rank,
                     Status = uc.Status,
                     IsCurrentUser = uc.UserId == currentUserId
                 };

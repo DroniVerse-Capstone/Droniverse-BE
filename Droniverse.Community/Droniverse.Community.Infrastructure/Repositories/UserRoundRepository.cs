@@ -215,6 +215,71 @@ internal class UserRoundRepository : MySqlRepository<UserRound>, IUserRoundRepos
             .ToListAsync();
     }
 
+    public async Task<(int TotalRecords, IEnumerable<CompetitionLeaderboardQueryModel> Entries)> GetCompetitionLeaderboard(
+        Guid competitionId,
+        int skip,
+        int take)
+    {
+        // 🔥 Step 1: Lấy data thô từ DB (KHÔNG group, KHÔNG sum)
+        var raw = await _context.UserRounds
+            .AsNoTracking()
+            .Where(ur =>
+                ur.Round.CompetitionID == competitionId &&
+                ur.Status == UserRoundStatus.Completed)
+            .Select(ur => new
+            {
+                ur.UserID,
+                Score = (ur.Point ?? 0) * ur.Round.Weight,
+                ExecutionTime = ur.ExecutionTime,
+                LastSubmit = ur.SubmittedAt ?? ur.UpdatedAt
+            })
+            .ToListAsync(); // 🔥 cực kỳ quan trọng
+
+        if (raw.Count == 0)
+            return (0, []);
+
+        // 🔥 Step 2: Group + tính toán ở memory
+        var grouped = raw
+            .GroupBy(x => x.UserID)
+            .Select(g => new
+            {
+                UserId = g.Key,
+
+                Score = g.Sum(x => x.Score),
+
+                TotalTime = TimeSpan.FromMilliseconds(
+                    g.Sum(x => (x.ExecutionTime ?? TimeSpan.Zero).TotalMilliseconds)
+                ),
+
+                LastSubmit = g.Max(x => x.LastSubmit)
+            })
+            .OrderByDescending(x => x.Score)
+            .ThenBy(x => x.TotalTime)
+            .ThenBy(x => x.LastSubmit)
+            .ToList();
+
+        // 🔥 Step 3: Pagination + Rank
+        var totalRecords = grouped.Count;
+
+        var entries = grouped
+            .Skip(skip)
+            .Take(take)
+            .Select((x, index) => new CompetitionLeaderboardQueryModel
+            {
+                UserId = x.UserId,
+                Score = x.Score,
+                TotalTime = x.TotalTime,
+                LastSubmit = x.LastSubmit,
+                Status = UserCompetitionStatus.ACTIVE,
+
+                // Rank theo toàn cục (có pagination)
+                Rank = skip + index + 1
+            })
+            .ToList();
+
+        return (totalRecords, entries);
+    }
+
     private IQueryable<UserRound> ApplyParticipantFilters(
         Guid roundId,
         DateTime? participantStartedFrom,

@@ -52,7 +52,7 @@ namespace Droniverse.Community.Infrastructure.Repositories
                 .Select(uc => new CompetitionLeaderboardQueryModel
                 {
                     UserId = uc.UserID,
-                    Score = uc.Score,
+                    Score = uc.Score ?? 0,
                     Rank = uc.Rank,
                     Status = uc.Status
                 })

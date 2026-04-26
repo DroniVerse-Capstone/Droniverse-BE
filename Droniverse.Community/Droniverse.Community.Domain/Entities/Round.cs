@@ -15,6 +15,7 @@ public class Round
     public DateTime EndTime { get; private set; }
     public TimeSpan TimeLimit { get; private set; }
     public RoundStatus Status { get; private set; }
+    public int Weight { get; private set; }
 
     // Flag kiểm tra round đã được tổng hợp leaderboard chưa
     public bool IsSummarized { get; private set; }
@@ -34,11 +35,14 @@ public class Round
         DateTime startTime,
         DateTime endTime,
         TimeSpan timeLimit,
+        int weight,
         DateTime createdAt,
         Guid createdBy)
     {
         if (startTime >= endTime)
             throw new ArgumentException("Thời gian bắt đầu phải trước thời gian kết thúc.");
+
+        ValidateWeight(weight);
 
         RoundID = Guid.NewGuid();
         CompetitionID = competitionId;
@@ -47,16 +51,19 @@ public class Round
         TimeLimit = timeLimit;
         StartTime = startTime;
         EndTime = endTime;
+        Weight = weight;
         Status = RoundStatus.Valid;
         IsSummarized = false;
         CreatedAt = createdAt;
         CreatedBy = createdBy;
     }
 
-    public Round(Guid competitionId, Guid labId, int roundNumber, DateTime startTime, DateTime endTime, TimeSpan timeLimit)
+    public Round(Guid competitionId, Guid labId, int roundNumber, DateTime startTime, DateTime endTime, int weight, TimeSpan timeLimit)
     {
         if (startTime >= endTime)
             throw new ArgumentException("Thời gian bắt đầu phải trước thời gian kết thúc.");
+
+        ValidateWeight(weight);
 
         RoundID = Guid.NewGuid();
         CompetitionID = competitionId;
@@ -65,10 +72,17 @@ public class Round
         TimeLimit = timeLimit;
         StartTime = startTime;
         EndTime = endTime;
+        Weight = weight;
         Status = RoundStatus.Valid;
         IsSummarized = false;
         CreatedAt = default;
         CreatedBy = Guid.Empty;
+    }
+
+    public void ValidateWeight(int weight)
+    {
+        if (weight <= 0)
+            throw new ArgumentException("Weight phải lớn hơn 0.");
     }
 
     private void SetUpdated(DateTime now, Guid? updatedBy)
@@ -163,7 +177,7 @@ public class Round
         IsSummarized = false;
     }
 
-    public void UpdateInfo(Guid labId, DateTime startTime, DateTime endTime, TimeSpan timeLimmit, DateTime now, Guid? updatedBy)
+    public void UpdateInfo(Guid labId, DateTime startTime, DateTime endTime, TimeSpan timeLimmit, int weight, DateTime now, Guid? updatedBy)
     {
         if (Status == RoundStatus.Cancelled)
             throw new InvalidOperationException("Không thể cập nhật round đã bị hủy.");
@@ -171,10 +185,13 @@ public class Round
         if (startTime >= endTime)
             throw new ArgumentException("Thời gian bắt đầu phải trước thời gian kết thúc.");
 
+        ValidateWeight(weight);
+
         VRSimilatorID = labId;
         StartTime = startTime;
         EndTime = endTime;
         TimeLimit = timeLimmit;
+        Weight = weight;
         Status = RoundStatus.Valid;
         IsSummarized = false;
         SetUpdated(now, updatedBy);
