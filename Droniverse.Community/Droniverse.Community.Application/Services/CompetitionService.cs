@@ -910,8 +910,16 @@ namespace Droniverse.Community.Application.Services
         {
             return targetStatus switch
             {
-                CompetitionStatus.PUBLISHED => q => q.Include(c => c.Rounds).Include(c => c.CompetitionPrizes),
-                CompetitionStatus.RESULT_PUBLISHED => q => q.Include(c => c.UserPrizes),
+                CompetitionStatus.PUBLISHED => q => q
+                    .Include(c => c.Rounds)
+                    .Include(c => c.CompetitionPrizes)
+                    .Include(c => c.UserCompetitions),
+
+                CompetitionStatus.RESULT_PUBLISHED => q => q
+                    .Include(c => c.Rounds)
+                    .Include(c => c.UserPrizes)
+                    .Include(c => c.UserCompetitions),
+
                 _ => null
             };
         }

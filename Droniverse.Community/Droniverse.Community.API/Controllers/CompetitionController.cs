@@ -32,6 +32,7 @@ namespace Droniverse.Community.API.Controllers
         private readonly IRoundService _roundService;
         private readonly ICompetitionPrizeService _competitionPrizeService;
         private readonly ICompetitionLevelService _competitionLevelService;
+        //private readonly 
         public CompetitionController(
             ICompetitionService competitionService,
             ICompetitionCertificateService competitionCertificateService,
@@ -331,7 +332,11 @@ namespace Droniverse.Community.API.Controllers
             );
         }
 
-
+        //[HttpGet("my-prizes")]
+        //public async Task<ApiResponse> GetUserPrizesByCurrentUser()
+        //{
+        //    var result = await _
+        //}
 
         /// <summary>
         /// Lấy danh sách vòng thi của cuộc thi
