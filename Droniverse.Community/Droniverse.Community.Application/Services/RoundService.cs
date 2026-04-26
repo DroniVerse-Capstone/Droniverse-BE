@@ -232,6 +232,7 @@ namespace Droniverse.Community.Application.Services
                     StartTime = r.StartTime,
                     EndTime = r.EndTime,
                     TimeLimit = r.TimeLimit,
+                    Weight = r.Weight,
                     RoundStatus = r.Status,
                     RoundPhase = CommunityAppHelpers.GetCurrentRoundLifeCycle(r.Status, r.StartTime, r.EndTime, _clock.Now),
                     TotalParticipants = r.TotalParticipants
@@ -773,6 +774,7 @@ namespace Droniverse.Community.Application.Services
                 StartTime = round.StartTime,
                 EndTime = round.EndTime,
                 TimeLimit = round.TimeLimit,
+                Weight = round.Weight,
                 RoundStatus = round.Status,
                 RoundPhase = CommunityAppHelpers.GetCurrentRoundLifeCycle(round.Status, round.StartTime, round.EndTime, _clock.Now),
                 TotalParticipants = round.TotalParticipants

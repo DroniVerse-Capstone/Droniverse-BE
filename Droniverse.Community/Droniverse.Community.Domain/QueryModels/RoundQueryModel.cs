@@ -13,6 +13,7 @@ namespace Droniverse.Community.Infrastructure.QueryModels
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
         public TimeSpan TimeLimit { get; set; }
+        public int Weight { get; set; }
         public RoundStatus Status { get; set; }
         public int TotalParticipants { get; set; }
     }

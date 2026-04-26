@@ -121,6 +121,7 @@ public class UserRoundService : IUserRoundService
                 RoundNumber = result.RoundNumber,
                 StartTime = result.RoundStartTime,
                 EndTime = result.RoundEndTime,
+                RoundWeight = result.RoundWeight,
                 TimeLimit = result.RoundTimeLimit,
                 RoundStatus = result.RoundStatus
             }
@@ -160,10 +161,11 @@ public class UserRoundService : IUserRoundService
             RoundInfo = new SimpleRoundResponse
             {
                 RoundId = x.RoundId,
-                VRSimulator = vrDict.GetValueOrDefault(x.VRSimulatorId),
+                VRSimulator = vrDict.GetValueOrDefault(x.VRSimulatorId)!,
                 RoundNumber = x.RoundNumber,
                 StartTime = x.StartTime,
                 EndTime = x.EndTime,
+                RoundWeight = x.Weight,
                 TimeLimit = x.TimeLimit,
                 RoundStatus = x.RoundStatus
             },
@@ -227,13 +229,16 @@ public class UserRoundService : IUserRoundService
                 {
                     UserId = x.UserId,
                     FullName = AppHelper.GetFullName(user) ?? user?.Username,
-                    Email = user?.Email ?? ""
+                    Email = user?.Email ?? "",
+                    AvatarUrl = user.ImageUrl,
                 },
                 ParticipantResult = new SimpleUserRoundResponse
                 {
                     Status = x.Status,
                     StartedAt = x.StartedAt,
                     SubmittedAt = x.SubmittedAt,
+                    ExecutionTime = x.ExecutionTime,
+                    Point = x.Point,
                     IsPassed = x.IsPassed,
                     Rank = x.Rank
                 }
@@ -273,6 +278,7 @@ public class UserRoundService : IUserRoundService
                 RoundNumber = round.RoundNumber,
                 StartTime = round.StartTime,
                 EndTime = round.EndTime,
+                RoundWeight = round.Weight,
                 TimeLimit = round.TimeLimit,
                 RoundStatus = round.Status
             }
@@ -288,6 +294,7 @@ public class UserRoundService : IUserRoundService
             RoundNumber = round.RoundNumber,
             StartTime = round.StartTime,
             EndTime = round.EndTime,
+            RoundWeight = round.Weight,
             TimeLimit = round.TimeLimit,
             RoundStatus = round.Status
         };

@@ -1,6 +1,4 @@
-﻿using Droniverse.Community.Domain.Entities;
-using Droniverse.Community.Domain.Entities;
-using Droniverse.Community.Domain.Enums;
+﻿using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.Enums.SeachRequest;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Community.Infrastructure.Persistence.MySql;
@@ -75,6 +73,7 @@ internal class UserRoundRepository : MySqlRepository<UserRound>, IUserRoundRepos
                 RoundNumber = ur.Round.RoundNumber,
                 RoundStartTime = ur.Round.StartTime,
                 RoundEndTime = ur.Round.EndTime,
+                RoundWeight = ur.Round.Weight,
                 RoundTimeLimit = ur.Round.TimeLimit,
                 RoundStatus = ur.Round.Status
             })
@@ -107,6 +106,8 @@ internal class UserRoundRepository : MySqlRepository<UserRound>, IUserRoundRepos
                 Status = ur.Status,
                 StartedAt = ur.StartedAt,
                 SubmittedAt = ur.SubmittedAt,
+                ExecutionTime = ur.ExecutionTime,
+                Point = ur.Point,
                 IsPassed = ur.IsPassed,
                 Rank = ur.Rank
             })
@@ -145,6 +146,7 @@ internal class UserRoundRepository : MySqlRepository<UserRound>, IUserRoundRepos
                 StartTime = ur.Round.StartTime,
                 EndTime = ur.Round.EndTime,
                 TimeLimit = ur.Round.TimeLimit,
+                Weight = ur.Round.Weight,
                 RoundStatus = ur.Round.Status,
                 Status = ur.Status,
                 StartedAt = ur.StartedAt,
