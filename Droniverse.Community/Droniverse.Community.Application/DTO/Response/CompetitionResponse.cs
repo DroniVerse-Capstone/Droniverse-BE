@@ -18,6 +18,7 @@ namespace Droniverse.Community.Application.DTO.Response
         public DateTime RegistrationEndDate { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
+        public bool IsRegistered { get; set; }
         public CompetitionStatus CompetitionStatus { get; set; }
         public CompetitionLifeCycleStatus? CompetitionPhase { get; set; }
         public DateTime? ResultPublishedAt { get; set; }

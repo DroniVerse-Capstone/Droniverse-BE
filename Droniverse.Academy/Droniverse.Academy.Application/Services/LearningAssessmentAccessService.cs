@@ -40,4 +40,17 @@ public sealed class LearningAssessmentAccessService
         await _learningService.ValidateLessonAccessAsync(enrollmentId, lesson.LessonID);
         return (lab, lesson);
     }
+
+    public async Task<(Assignment Assignment, Lesson Lesson)> GetAccessibleAssignmentAsync(Guid enrollmentId, Guid assignmentId)
+    {
+        var assignment = await _unitOfWork.Assignments.GetByIdAsync(assignmentId)
+            ?? throw new NotFoundException("Không tìm thấy assignment.");
+
+        var lesson = await _unitOfWork.Lessons.GetByConditionAsync(
+                         x => x.Type == LessonType.ASSIGNMENT && x.ReferenceID == assignmentId)
+                     ?? throw new NotFoundException("Không tìm thấy lesson của assignment.");
+
+        await _learningService.ValidateLessonAccessAsync(enrollmentId, lesson.LessonID);
+        return (assignment, lesson);
+    }
 }

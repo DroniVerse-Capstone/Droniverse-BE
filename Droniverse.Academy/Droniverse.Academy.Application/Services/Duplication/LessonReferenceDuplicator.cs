@@ -41,6 +41,7 @@ public class LessonReferenceDuplicator : ILessonReferenceDuplicator
             LessonType.PHYSIC => await _webSimulatorDuplicator.DuplicateAsync(sourceLesson.ReferenceID, context),
             LessonType.LAB_PHYSIC => await _webSimulatorDuplicator.DuplicateAsync(sourceLesson.ReferenceID, context),
             LessonType.VR => await _vrSimulatorDuplicator.DuplicateAsync(sourceLesson.ReferenceID, context),
+            LessonType.ASSIGNMENT => sourceLesson.ReferenceID,
             _ => sourceLesson.ReferenceID
         };
     }

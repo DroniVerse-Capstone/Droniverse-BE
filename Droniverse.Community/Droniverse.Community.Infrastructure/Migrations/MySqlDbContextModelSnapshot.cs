@@ -951,6 +951,9 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     b.Property<DateTime?>("SubmittedAt")
                         .HasColumnType("datetime");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime");
+
                     b.Property<Guid>("UserID")
                         .HasColumnType("char(36)");
 

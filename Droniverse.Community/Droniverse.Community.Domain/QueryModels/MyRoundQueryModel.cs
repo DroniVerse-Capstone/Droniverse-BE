@@ -5,6 +5,7 @@ namespace Droniverse.Community.Infrastructure.QueryModels
     public class MyRoundQueryModel
     {
         public Guid RoundId { get; set; }
+        public Guid VRSimulatorId { get; set; }
         public int RoundNumber { get; set; }
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }

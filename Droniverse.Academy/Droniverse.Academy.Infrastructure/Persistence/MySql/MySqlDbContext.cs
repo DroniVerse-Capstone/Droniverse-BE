@@ -8,6 +8,7 @@ public class MySqlDbContext : DbContext
     public MySqlDbContext(DbContextOptions<MySqlDbContext> options) : base(options)
     {
     }
+    public DbSet<Assignment> Assignments { get; set; }
     public DbSet<Code> Codes { get; set; }
     public DbSet<Course> Courses { get; set; }
     public DbSet<CourseVersion> CourseVersions { get; set; }
@@ -33,6 +34,7 @@ public class MySqlDbContext : DbContext
     public DbSet<UserLevel> UserLevels { get; set; }
     public DbSet<UserLesson> UserLessons { get; set; }
     public DbSet<UserModule> UserModules { get; set; }
+    public DbSet<UserAssignment> UserAssignments { get; set; }
     public DbSet<UserSimulator> UserSimulators { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

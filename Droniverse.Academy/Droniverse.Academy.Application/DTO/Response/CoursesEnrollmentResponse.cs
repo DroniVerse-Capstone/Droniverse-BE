@@ -1,4 +1,5 @@
 ﻿using Droniverse.Academy.Domain.Enums;
+using Droniverse.Shared.DTOs;
 
 namespace Droniverse.Academy.Application.DTO.Response
 {
@@ -13,6 +14,7 @@ namespace Droniverse.Academy.Application.DTO.Response
         public int? EstimatedDuration { get; set; }
         public float Progress { get; set; }
         public EnrollStatus EnrollStatus { get; set; } = EnrollStatus.ACTIVE;
-        public LevelMiniResponse Level { get; set; }
+        public LevelMiniResponse? Level { get; set; }
+        public SimpleUserReponse? User { get; set; }
     }
 }

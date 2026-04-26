@@ -45,6 +45,11 @@ public class UserRoundConfiguration : IEntityTypeConfiguration<UserRound>
         builder.Property(ur => ur.IsPassed)
             .HasColumnType("tinyint(1)").IsRequired(false);
 
+        builder.Property(ur => ur.UpdatedAt)
+            .HasColumnType("datetime")
+            .IsRequired(false);
+
+
     }
 }
 

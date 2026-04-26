@@ -1073,7 +1073,7 @@ public class AcademyMicroserviceClient
         try
         {
             var response = await _httpClient.GetAsync(
-                BuildAcademyPath($"levels/{userId}/ids"));
+                BuildAcademyPath($"user/levels/{userId}/ids"));
 
             if (!response.IsSuccessStatusCode)
             {

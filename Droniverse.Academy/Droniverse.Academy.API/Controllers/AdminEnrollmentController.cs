@@ -55,7 +55,7 @@ public class AdminEnrollmentController : ControllerBase
         try
         {
             var result = await _service.GetEnrollmentsAsync(pageIndex, pageSize, userId, courseVersionId, droneId, levelId, clubId, MapEnrollmentStatus(status));
-            return Ok(SuccessResponse<PaginationResult<IEnumerable<EnrollmentResponseDTO>>>.Create(result, "Lấy danh sách enrollment thành công."));
+            return Ok(SuccessResponse<PaginationResult<IEnumerable<CoursesEnrollmentResponse>>>.Create(result, "Lấy danh sách enrollment thành công."));
         }
         catch (Exception ex)
         {
