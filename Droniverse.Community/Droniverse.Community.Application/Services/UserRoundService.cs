@@ -39,7 +39,7 @@ public class UserRoundService : IUserRoundService
 
         var round = await _unitOfWork.Rounds.GetByCondition(r => r.RoundID == roundId);
         if (round == null)
-            throw new KeyNotFoundException($"Không tìm thấy vòng thi với ID [{roundId}].");
+            throw new KeyNotFoundException($"Không tìm thấy vòng thi với {roundId}.");
 
         round.ValidateUserCanSubmit(now);
 
@@ -199,8 +199,8 @@ public class UserRoundService : IUserRoundService
         var round = await _unitOfWork.Rounds.GetByCondition(r => r.RoundID == roundId)
             ?? throw new KeyNotFoundException("Không tìm thấy round.");
 
-        if (_clock.Now < round.EndTime)
-            throw new InvalidOperationException("Chưa kết thúc round.");
+        if (_clock.Now < round.StartTime)
+            throw new InvalidOperationException("Vòng thi chưa bắt đầu.");
 
         var vr = await _academyMicroserviceClient.GetSimpleVRSimulator(round.VRSimilatorID);
 
