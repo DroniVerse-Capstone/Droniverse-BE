@@ -14,5 +14,10 @@ namespace Droniverse.Community.Infrastructure.Repositories
         public UserPrizeRepository(MySqlDbContext context) : base(context)
         {
         }
+
+        public async Task AddRange(IEnumerable<UserPrize> entities)
+        {
+            await _dbSet.AddRangeAsync(entities);
+        }
     }
 }

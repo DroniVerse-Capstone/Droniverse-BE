@@ -90,4 +90,31 @@ namespace Droniverse.Community.Domain.Entities
             UpdatedBy = updatedBy;
         }
     }
+
+    public static class UserPrizeFactory
+    {
+        public static UserPrize Create(
+            Guid userId,
+            Guid competitionId,
+            Guid prizeId,
+            int rank,
+            RewardType rewardType,
+            decimal? rewardValueMoney,
+            string? rewardValueGiftVN,
+            string? rewardValueGiftEN,
+            Guid createdBy)
+        {
+            return new UserPrize(
+                userId,
+                competitionId,
+                prizeId,
+                rank,
+                rewardType,
+                rewardValueMoney,
+                rewardValueGiftVN,
+                rewardValueGiftEN,
+                createdBy
+            );
+        }
+    }
 }

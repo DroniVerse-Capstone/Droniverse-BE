@@ -66,4 +66,7 @@ public interface IUserRoundRepository : IRepository<UserRound>
       Guid competitionId,
       int skip,
       int take);
+
+    Task<List<CompetitionLeaderboardQueryModel>> GetCompetitionLeaderboardAll(
+       Guid competitionId);
 }

@@ -282,6 +282,51 @@ internal class UserRoundRepository : MySqlRepository<UserRound>, IUserRoundRepos
         return (totalRecords, entries);
     }
 
+    public async Task<List<CompetitionLeaderboardQueryModel>> GetCompetitionLeaderboardAll(Guid competitionId)
+    {
+        var raw = await _context.UserRounds
+            .AsNoTracking()
+            .Where(ur =>
+                ur.Round.CompetitionID == competitionId &&
+                ur.Status == UserRoundStatus.Completed)
+            .Select(ur => new
+            {
+                ur.UserID,
+                Score = (ur.Point ?? 0) * ur.Round.Weight,
+                ExecutionTime = ur.ExecutionTime,
+                LastSubmit = ur.SubmittedAt ?? ur.UpdatedAt
+            })
+            .ToListAsync();
+
+        if (!raw.Any())
+            return new List<CompetitionLeaderboardQueryModel>();
+
+        var grouped = raw
+            .GroupBy(x => x.UserID)
+            .Select(g => new CompetitionLeaderboardQueryModel
+            {
+                UserId = g.Key,
+                Score = g.Sum(x => x.Score),
+                TotalTime = TimeSpan.FromMilliseconds(
+                    g.Sum(x => (x.ExecutionTime ?? TimeSpan.Zero).TotalMilliseconds)
+                ),
+                LastSubmit = g.Max(x => x.LastSubmit)
+            })
+            .OrderByDescending(x => x.Score)
+            .ThenBy(x => x.TotalTime)
+            .ThenBy(x => x.LastSubmit)
+            .ThenBy(x => x.UserId)
+            .ToList();
+
+        // assign rank FULL
+        for (int i = 0; i < grouped.Count; i++)
+        {
+            grouped[i].Rank = i + 1;
+        }
+
+        return grouped;
+    }
+
     private IQueryable<UserRound> ApplyParticipantFilters(
         Guid roundId,
         DateTime? participantStartedFrom,

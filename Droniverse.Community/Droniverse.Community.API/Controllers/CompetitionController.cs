@@ -273,6 +273,19 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
+        /// Api tính điểm xếp hạng và trao giải thưởng cho người chơi
+        /// </summary>
+        /// <param name="competitionId">ID của cuộc thi</param>
+        /// <returns></returns>
+        [HttpPost("{competitionId:guid}/aggregate")]
+        public async Task<ApiResponse> AggregateLeaderBoard(Guid competitionId)
+        {
+            var result = await _competitionService.AggregateLeaderBoardAsync(competitionId);
+            return SuccessResponse<bool>.Create(result, "Tính điểm xếp hạng và trao giải thành công");
+        }
+
+
+        /// <summary>
         /// Cập nhật trạng thái cuộc thi.
         /// </summary>
         /// <param name="competitionId">ID của cuộc thi</param>

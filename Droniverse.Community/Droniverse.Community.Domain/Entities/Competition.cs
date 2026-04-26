@@ -266,6 +266,11 @@ public class Competition
         }
     }
 
+    public void SetIsSumarize(bool isSummarized)
+    {
+        IsSummarized = isSummarized;
+    }
+
     public void PublishResult(Guid updatedBy, DateTime now)
     {
         EnsureStatus(CompetitionStatus.PUBLISHED);
@@ -273,11 +278,11 @@ public class Competition
         if (now < EndDate)
             throw new InvalidOperationException("Cuộc thi phải kết thúc trước khi công bố kết quả.");
 
-        if (!UserPrizes.Any())
-            throw new InvalidOperationException("Chưa có dữ liệu trao thưởng.");
-
+        //if (!UserPrizes.Any())
+        //    throw new InvalidOperationException("Chưa có dữ liệu trao thưởng.");
+            
         ResultPublishedAt = now;
-
+        IsSummarized = true;
         Status = CompetitionStatus.RESULT_PUBLISHED;
         SetUpdated(updatedBy, now);
     }

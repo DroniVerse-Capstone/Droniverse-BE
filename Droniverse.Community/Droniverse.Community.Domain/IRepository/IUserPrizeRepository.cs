@@ -9,5 +9,7 @@ namespace Droniverse.Community.Domain.IRepository
 {
     public interface IUserPrizeRepository : IRepository<UserPrize>
     {
+        Task AddRange(IEnumerable<UserPrize> entities);
+
     }
 }
