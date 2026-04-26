@@ -521,7 +521,9 @@ internal class PaymentService : IPaymentService
                             amount: (int)commissionAmount,
                             type: TransactionType.COMMISSION,
                             referenceID: order._id,
-                            clubID: order.ClubID);
+                            clubID: order.ClubID,
+                            orderID: order._id,
+                            withdrawRequestID: null);
 
                         await _unitOfWork.Transactions.Add(transaction);
 

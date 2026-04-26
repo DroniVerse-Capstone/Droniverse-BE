@@ -4,11 +4,7 @@ using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Entities;
-using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository;
-using Droniverse.Community.Domain.IRepository.Mongo;
-using Droniverse.Shared.DTOs;
-using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Enums;
 using Droniverse.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
@@ -45,7 +41,8 @@ namespace Droniverse.Community.Application.Services
         {
             Transaction? transaction = await _unitOfWork.Transactions.GetByCondition(
                 t => t.TransactionID == transactionId,
-                include: q => q.Include(t => t.Wallet));
+                include: q => q.Include(t => t.Wallet)
+                              .Include(t => t.WithdrawRequest));
             if (transaction == null)
             {
                 throw new NotFoundException($"Transaction with ID {transactionId} not found");
@@ -186,40 +183,6 @@ namespace Droniverse.Community.Application.Services
                 request.CurrentPage,
                 request.PageSize
             );
-        }
-
-        public async Task<TransactionResponseDto> CreateTransactionAsync(Guid walletId, int amount, TransactionType type, Guid referenceId)
-        {
-            // Verify wallet exists
-            Wallet? wallet = await _unitOfWork.Wallets.GetByCondition(w => w.WalletID == walletId);
-            if (wallet == null)
-            {
-                throw new NotFoundException($"Wallet with ID {walletId} not found");
-            }
-
-            if (amount <= 0)
-            {
-                throw new BadRequestException("Transaction amount must be greater than 0");
-            }
-            
-            Club? club = await _unitOfWork.Clubs.GetByCondition(c => c.ManagerID == wallet.OwnerID);
-            if (club == null)
-            {
-                throw new NotFoundException($"Club not found for wallet owner {wallet.OwnerID}");
-            }
-
-            Transaction transaction = new Transaction(walletId, amount, type, referenceId, club.ClubID);
-            Transaction createdTransaction = await _unitOfWork.Transactions.Add(transaction);
-            await _unitOfWork.SaveChangeAsync();
-
-            _logger.LogInformation($"Transaction created successfully. Transaction ID: {createdTransaction.TransactionID}, Wallet ID: {walletId}, Amount: {amount}");
-
-            // Manually set wallet to avoid extra query
-            createdTransaction.Wallet = wallet;
-            
-            TransactionResponseDto response = _mapper.Map<TransactionResponseDto>(createdTransaction);
-            await PopulateOwnerNameAsync(response);
-            return response;
         }
 
         private async Task PopulateOwnerNameAsync(TransactionResponseDto response)

@@ -22,6 +22,14 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
             .HasColumnType("varchar(20)")
             .HasConversion<string>()
             .IsRequired();
+        builder.Property(t => t.OrderID).HasColumnType("char(36)").IsRequired(false);
+        builder.Property(t => t.WithdrawRequestID).HasColumnType("char(36)").IsRequired(false);
+
+        builder.HasOne(t => t.WithdrawRequest)
+            .WithOne(wr => wr.Transaction)
+            .HasForeignKey<Transaction>(t => t.WithdrawRequestID)
+            .OnDelete(DeleteBehavior.Cascade);
+
         builder.Property(t => t.ClubID).HasColumnType("char(36)").IsRequired(false);
         builder.HasOne(t => t.Club)
             .WithMany(c => c.Transactions)
@@ -32,7 +40,9 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
         builder.ToTable(t =>
         t.HasCheckConstraint("CK_Transaction_Type", "Type IN ('COMMISSION', 'WITHDRAWAL', 'REFUND')"));
         builder.ToTable(t =>
-        t.HasCheckConstraint("CK_Transaction_Status", "Status IN (0, 1, 2)"));
+        t.HasCheckConstraint(
+            "CK_Transaction_Type_Club_WithdrawRequest",
+            "((Type = 'COMMISSION' AND ClubID IS NOT NULL AND WithdrawRequestID IS NULL) OR (Type IN ('WITHDRAWAL', 'REFUND') AND WithdrawRequestID IS NOT NULL AND ClubID IS NULL))"));
 
     }
 }
