@@ -16,6 +16,7 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Text.Json;
 using System.ComponentModel.DataAnnotations;
+using Droniverse.Shared.Constants;
 
 namespace Droniverse.Community.Application.Services
 {
@@ -437,6 +438,9 @@ namespace Droniverse.Community.Application.Services
          Guid competitionId)
         {
             var currentUserId = _currentUserService.UserId;
+            var currentUserRoles = _currentUserService.Roles;
+
+            var isManager = currentUserRoles.Contains(Roles.ClubManager);
 
             var competition = await _unitOfWork.Competitions.GetByCondition(
                 c => c.CompetitionID == competitionId,
@@ -445,8 +449,11 @@ namespace Droniverse.Community.Application.Services
             if (competition == null)
                 throw new KeyNotFoundException($"Không tìm thấy cuộc thi với ID [{competitionId}].");
 
-            if (competition.Status != CompetitionStatus.PUBLISHED || competition.Status != CompetitionStatus.RESULT_PUBLISHED)
-                throw new InvalidOperationException("Cuộc thi chưa được công bố.");
+            if (competition.Status != CompetitionStatus.PUBLISHED && competition.Status != CompetitionStatus.RESULT_PUBLISHED)
+                throw new InvalidOperationException("Kết quả cuộc thi chưa được công bố.");
+
+            if (!isManager && competition.Status == CompetitionStatus.PUBLISHED)
+                throw new InvalidOperationException("Chưa thể xem kết quả");
 
             if (_clock.Now < competition.EndDate)
                 throw new InvalidOperationException("Bảng xếp hạng chỉ khả dụng sau khi cuộc thi kết thúc.");
