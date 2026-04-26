@@ -59,6 +59,7 @@ namespace Droniverse.Community.Application.Services
                 request.StartTime,
                 request.EndTime,
                 request.LimitTime,
+                request.Weight,
                 now,
                 currentUserId
             );
@@ -157,6 +158,7 @@ namespace Droniverse.Community.Application.Services
                 request.StartTime,
                 request.EndTime,
                 request.TimeLimit,
+                request.Weight,
                 now,
                 currentUserId
             );

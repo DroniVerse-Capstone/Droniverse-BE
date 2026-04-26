@@ -1,4 +1,4 @@
-﻿    using Droniverse.Community.Application.DTO.Extensions;
+﻿using Droniverse.Community.Application.DTO.Extensions;
 using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Response;
@@ -232,7 +232,7 @@ public class IdentityMicroserviceClient
         }
 
         var query =
-            $"users/search-ids?SearchName={Uri.EscapeDataString(normalizedSearch)}" +
+            $"users/search?SearchName={Uri.EscapeDataString(normalizedSearch)}" +
             $"&SortDirection={sortDirection}";
 
         HttpResponseMessage response = await _httpClient.GetAsync(BuildIdentityPath(query));

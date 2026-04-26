@@ -6,7 +6,8 @@ namespace Droniverse.Community.Application.DTO.Response
     public class LeaderboardEntryDto
     {
         public required SimpleUserReponse User { get; set; }
-        public decimal? Score { get; set; }
+        public decimal? TotalScore { get; set; }
+        public TimeSpan TotalTime { get; set; }
         public int? Rank { get; set; }
         public UserCompetitionStatus Status { get; set; }
         public bool IsCurrentUser { get; set; }

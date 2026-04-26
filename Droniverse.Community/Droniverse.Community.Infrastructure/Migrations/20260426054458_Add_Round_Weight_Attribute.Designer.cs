@@ -3,6 +3,7 @@ using System;
 using Droniverse.Community.Infrastructure.Persistence.MySql;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Droniverse.Community.Infrastructure.Migrations
 {
     [DbContext(typeof(MySqlDbContext))]
-    partial class MySqlDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260426054458_Add_Round_Weight_Attribute")]
+    partial class Add_Round_Weight_Attribute
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -667,9 +670,6 @@ namespace Droniverse.Community.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime");
 
-                    b.Property<Guid?>("OrderID")
-                        .HasColumnType("char(36)");
-
                     b.Property<Guid>("ReferenceID")
                         .HasColumnType("char(36)");
 
@@ -680,23 +680,17 @@ namespace Droniverse.Community.Infrastructure.Migrations
                     b.Property<Guid>("WalletID")
                         .HasColumnType("char(36)");
 
-                    b.Property<Guid?>("WithdrawRequestID")
-                        .HasColumnType("char(36)");
-
                     b.HasKey("TransactionID");
 
                     b.HasIndex("ClubID");
 
                     b.HasIndex("WalletID");
 
-                    b.HasIndex("WithdrawRequestID")
-                        .IsUnique();
-
                     b.ToTable("Transaction", null, t =>
                         {
-                            t.HasCheckConstraint("CK_Transaction_Type", "Type IN ('COMMISSION', 'WITHDRAWAL', 'REFUND')");
+                            t.HasCheckConstraint("CK_Transaction_Status", "Status IN (0, 1, 2)");
 
-                            t.HasCheckConstraint("CK_Transaction_Type_Club_WithdrawRequest", "((Type = 'COMMISSION' AND ClubID IS NOT NULL AND WithdrawRequestID IS NULL) OR (Type IN ('WITHDRAWAL', 'REFUND') AND WithdrawRequestID IS NOT NULL AND ClubID IS NULL))");
+                            t.HasCheckConstraint("CK_Transaction_Type", "Type IN ('COMMISSION', 'WITHDRAWAL', 'REFUND')");
                         });
                 });
 
@@ -1103,16 +1097,9 @@ namespace Droniverse.Community.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Droniverse.Community.Domain.Entities.WithdrawRequest", "WithdrawRequest")
-                        .WithOne("Transaction")
-                        .HasForeignKey("Droniverse.Community.Domain.Entities.Transaction", "WithdrawRequestID")
-                        .OnDelete(DeleteBehavior.Cascade);
-
                     b.Navigation("Club");
 
                     b.Navigation("Wallet");
-
-                    b.Navigation("WithdrawRequest");
                 });
 
             modelBuilder.Entity("Droniverse.Community.Domain.Entities.UserCompetition", b =>
@@ -1239,12 +1226,6 @@ namespace Droniverse.Community.Infrastructure.Migrations
             modelBuilder.Entity("Droniverse.Community.Domain.Entities.Wallet", b =>
                 {
                     b.Navigation("Transactions");
-                });
-
-            modelBuilder.Entity("Droniverse.Community.Domain.Entities.WithdrawRequest", b =>
-                {
-                    b.Navigation("Transaction")
-                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

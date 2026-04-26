@@ -16,6 +16,8 @@ namespace Droniverse.Community.Application.DTO.Request
         [Required]
         public DateTime EndTime { get; set; }
         [Required]
+        public int Weight { get; set; }
+        [Required]
         public TimeSpan LimitTime { get; set; }
     }
 }
