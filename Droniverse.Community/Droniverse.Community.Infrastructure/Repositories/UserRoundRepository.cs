@@ -227,7 +227,7 @@ internal class UserRoundRepository : MySqlRepository<UserRound>, IUserRoundRepos
             .AsNoTracking()
             .Where(ur =>
                 ur.Round.CompetitionID == competitionId &&
-                ur.Status == UserRoundStatus.Completed)
+                ur.Status == UserRoundStatus.Completed && ur.IsPassed == true)
             .Select(ur => new
             {
                 ur.UserID,

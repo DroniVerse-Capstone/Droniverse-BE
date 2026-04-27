@@ -392,7 +392,7 @@ namespace Droniverse.Community.Application.Services
             int pageSize = request.PageSize <= 0 ? 5 : request.PageSize;
 
             var userRounds = (await _unitOfWork.UserRounds.GetManyByCondition(
-                ur => ur.RoundID == roundId && ur.Status == UserRoundStatus.Completed,
+                ur => ur.RoundID == roundId && ur.Status == UserRoundStatus.Completed && ur.IsPassed == true,
                 q => q.OrderBy(ur => ur.Rank ?? int.MaxValue)
                       .ThenByDescending(ur => ur.Point)
                       .ThenBy(ur => ur.ExecutionTime)
