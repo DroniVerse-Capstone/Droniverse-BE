@@ -45,6 +45,7 @@ internal class RoundRepository : MySqlRepository<Round>, IRoundRepository
                 RoundNumber = r.RoundNumber,
                 StartTime = r.StartTime,
                 EndTime = r.EndTime,
+                Weight = r.Weight,
                 TimeLimit = r.TimeLimit,
                 Status = r.Status,
                 TotalParticipants = r.UserRounds.Count()
@@ -77,6 +78,7 @@ internal class RoundRepository : MySqlRepository<Round>, IRoundRepository
                 RoundNumber = r.RoundNumber,
                 StartTime = r.StartTime,
                 EndTime = r.EndTime,
+                Weight = r.Weight,
                 TimeLimit = r.TimeLimit,
                 Status = r.Status,
                 TotalParticipants = r.UserRounds.Count()
@@ -104,6 +106,7 @@ internal class RoundRepository : MySqlRepository<Round>, IRoundRepository
                 RoundNumber = r.RoundNumber,
                 StartTime = r.StartTime,
                 EndTime = r.EndTime,
+                Weight = r.Weight,
                 Status = r.Status,
                 TotalParticipants = r.UserRounds.Count()
             })

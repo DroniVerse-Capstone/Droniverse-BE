@@ -14,6 +14,7 @@ namespace Droniverse.Community.Application.DTO.Response
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
         public TimeSpan TimeLimit { get; set; }
+        public int Weight { get; set; }
         public RoundStatus RoundStatus { get; set; }
         public RoundLifeCycleStatus? RoundPhase { get; set; }
         public int TotalParticipants { get; set; }

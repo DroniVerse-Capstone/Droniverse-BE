@@ -1,4 +1,5 @@
-﻿using Droniverse.Community.API.Examples;
+﻿using DnsClient.Protocol;
+using Droniverse.Community.API.Examples;
 using Droniverse.Community.Application.DTO.Extensions;
 using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
@@ -32,18 +33,23 @@ namespace Droniverse.Community.API.Controllers
         private readonly IRoundService _roundService;
         private readonly ICompetitionPrizeService _competitionPrizeService;
         private readonly ICompetitionLevelService _competitionLevelService;
+        private readonly IUserPrizeService _userPrizeService;
+        //private readonly 
         public CompetitionController(
             ICompetitionService competitionService,
             ICompetitionCertificateService competitionCertificateService,
             IRoundService roundService,
             ICompetitionPrizeService competitionPrizeService,
-            ICompetitionLevelService competitionLevelService)
+            ICompetitionLevelService competitionLevelService,
+            IUserPrizeService userPrizeService
+            )
         {
             _competitionService = competitionService;
             _competitionCertificateService = competitionCertificateService;
             _roundService = roundService;
             _competitionPrizeService = competitionPrizeService;
             _competitionLevelService = competitionLevelService;
+            _userPrizeService = userPrizeService;
         }
 
         /// <summary>
@@ -273,6 +279,19 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
+        /// Api tính điểm xếp hạng và trao giải thưởng cho người chơi
+        /// </summary>
+        /// <param name="competitionId">ID của cuộc thi</param>
+        /// <returns></returns>
+        [HttpPost("{competitionId:guid}/aggregate")]
+        public async Task<ApiResponse> AggregateLeaderBoard(Guid competitionId)
+        {
+            var result = await _competitionService.AggregateLeaderBoardAsync(competitionId);
+            return SuccessResponse<bool>.Create(result, "Tính điểm xếp hạng và trao giải thành công");
+        }
+
+
+        /// <summary>
         /// Cập nhật trạng thái cuộc thi.
         /// </summary>
         /// <param name="competitionId">ID của cuộc thi</param>
@@ -318,7 +337,19 @@ namespace Droniverse.Community.API.Controllers
             );
         }
 
-
+        /// <summary>
+        /// Lấy danh sách giải thưởng của 1 member (trong tất cả các competition từng tham gia)
+        /// </summary>
+        /// <param name="request">Có filer theo name và pagination</param>
+        /// <returns> 200 - OK</returns>
+        [HttpGet("my-prizes")]
+        [Authorize(Roles = Roles.ClubMember)]
+        public async Task<ApiResponse> GetUserPrizesByCurrentUser([FromQuery] GetUserPrizeCurrentUserSearchRequest request)
+        {
+            var result = await _userPrizeService.GetUserPrizeByCurrentUser(request);
+            Console.WriteLine(result.Data.ToList()[0]);
+            return SuccessResponse<PaginationResult<IEnumerable<UserPrizeResponse>>>.Create(result, "Lấy danh sách giải thưởng của bạn thành công");
+        }
 
         /// <summary>
         /// Lấy danh sách vòng thi của cuộc thi

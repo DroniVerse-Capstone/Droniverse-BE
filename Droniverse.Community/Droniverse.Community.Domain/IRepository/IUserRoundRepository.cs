@@ -1,5 +1,4 @@
-﻿using Droniverse.Community.Domain.Entities;
-using Droniverse.Community.Domain.Enums;
+﻿using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.Enums.SeachRequest;
 using Droniverse.Community.Infrastructure.QueryModels;
 using Droniverse.Shared.Enums;
@@ -61,4 +60,13 @@ public interface IUserRoundRepository : IRepository<UserRound>
         IReadOnlyCollection<Guid>? userIds,
         int skip,
         int take);
+
+
+    Task<(int TotalRecords, IEnumerable<CompetitionLeaderboardQueryModel> Entries)> GetCompetitionLeaderboard(
+      Guid competitionId,
+      int skip,
+      int take);
+
+    Task<List<CompetitionLeaderboardQueryModel>> GetCompetitionLeaderboardAll(
+       Guid competitionId);
 }

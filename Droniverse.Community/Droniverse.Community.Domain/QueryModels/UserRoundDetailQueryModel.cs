@@ -12,11 +12,11 @@ namespace Droniverse.Community.Infrastructure.QueryModels
         public DateTime? SubmittedAt { get; set; }
         public bool? IsPassed { get; set; }
         public int? Rank { get; set; }
-
         public Guid RoundId { get; set; }
         public int RoundNumber { get; set; }
         public DateTime RoundStartTime { get; set; }
         public DateTime RoundEndTime { get; set; }
+        public int RoundWeight { get; set; }
         public TimeSpan RoundTimeLimit { get; set; }
         public RoundStatus RoundStatus { get; set; }
     }

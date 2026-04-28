@@ -16,6 +16,7 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Text.Json;
 using System.ComponentModel.DataAnnotations;
+using Droniverse.Shared.Constants;
 
 namespace Droniverse.Community.Application.Services
 {
@@ -432,9 +433,14 @@ namespace Droniverse.Community.Application.Services
             };
         }
 
-        public async Task<PaginationResult<IEnumerable<LeaderboardEntryDto>>> GetCompetitionLeaderboard(CompetitionLeaderboardSearchRequest request, Guid competitionId)
+        public async Task<PaginationResult<IEnumerable<LeaderboardEntryDto>>> GetCompetitionLeaderboard(
+         CompetitionLeaderboardSearchRequest request,
+         Guid competitionId)
         {
             var currentUserId = _currentUserService.UserId;
+            var currentUserRoles = _currentUserService.Roles;
+
+            var isManager = currentUserRoles.Contains(Roles.ClubManager);
 
             var competition = await _unitOfWork.Competitions.GetByCondition(
                 c => c.CompetitionID == competitionId,
@@ -443,8 +449,11 @@ namespace Droniverse.Community.Application.Services
             if (competition == null)
                 throw new KeyNotFoundException($"Không tìm thấy cuộc thi với ID [{competitionId}].");
 
-            if (competition.Status != CompetitionStatus.PUBLISHED)
-                throw new InvalidOperationException("Cuộc thi chưa được công bố.");
+            if (competition.Status != CompetitionStatus.PUBLISHED && competition.Status != CompetitionStatus.RESULT_PUBLISHED)
+                throw new InvalidOperationException("Kết quả cuộc thi chưa được công bố.");
+
+            if (!isManager && competition.Status == CompetitionStatus.PUBLISHED)
+                throw new InvalidOperationException("Chưa thể xem kết quả");
 
             if (_clock.Now < competition.EndDate)
                 throw new InvalidOperationException("Bảng xếp hạng chỉ khả dụng sau khi cuộc thi kết thúc.");
@@ -453,7 +462,7 @@ namespace Droniverse.Community.Application.Services
             int pageSize = Math.Max(1, request.PageSize);
             int skip = (currentPage - 1) * pageSize;
 
-            var (totalRecords, pageEntries) = await _unitOfWork.UserCompetitions.GetCompetitionLeaderboard(
+            var (totalRecords, pageEntries) = await _unitOfWork.UserRounds.GetCompetitionLeaderboard(
                 competitionId,
                 skip,
                 pageSize);
@@ -463,19 +472,20 @@ namespace Droniverse.Community.Application.Services
 
             var entries = pageEntries.ToList();
 
-            var userIds = entries.Select(uc => uc.UserId).Distinct().ToList();
+            var userIds = entries.Select(x => x.UserId).Distinct().ToList();
             var users = await GetUsersBulkSafe(userIds);
             var userDict = users.ToDictionary(u => u.UserId, u => u);
 
-            var leaderboard = entries.Select((uc, index) =>
+            var leaderboard = entries.Select(uc =>
             {
                 userDict.TryGetValue(uc.UserId, out var user);
 
                 return new LeaderboardEntryDto
                 {
                     User = ToSimpleUserResponse(uc.UserId, user),
-                    Score = uc.Score,
-                    Rank = uc.Rank ?? (skip + index + 1),
+                    TotalScore = uc.Score,
+                    TotalTime = uc.TotalTime,
+                    Rank = uc.Rank,
                     Status = uc.Status,
                     IsCurrentUser = uc.UserId == currentUserId
                 };
@@ -535,7 +545,6 @@ namespace Droniverse.Community.Application.Services
                 await BuildAndSetHotCompetitionCache(clubId);
             }
         }
-
 
 
         public async Task<UserCompetitionResponseDto> DisqualifiedFromCompetition(Guid competitionId, Guid userId)
@@ -622,6 +631,74 @@ namespace Droniverse.Community.Application.Services
                 RoundStatus = currentRound.Status,
                 TotalParticipants = currentRound.TotalParticipants
             };
+        }
+
+        public async Task<bool> AggregateLeaderBoardAsync(Guid competitionId)
+        {
+            var now = _clock.Now;
+            var currentUserId = _currentUserService.UserId;
+
+            var competition = await _unitOfWork.Competitions.GetByCondition(
+                c => c.CompetitionID == competitionId,
+                q => q
+                    .Include(x => x.CompetitionPrizes));
+
+            if (competition == null)
+                throw new KeyNotFoundException("Không tìm thấy cuộc thi.");
+
+            if (competition.Status != CompetitionStatus.PUBLISHED)
+                throw new InvalidOperationException("Cuộc thi chưa hợp lệ để tổng hợp.");
+
+            if (now < competition.EndDate)
+                throw new InvalidOperationException("Cuộc thi chưa kết thúc.");
+
+            var entries = await _unitOfWork.UserRounds.GetCompetitionLeaderboardAll(competitionId);
+
+            if (!entries.Any())
+                return false;
+
+            var rankingDict = entries
+                .OrderByDescending(x => x.Score)
+                .ThenBy(x => x.TotalTime)
+                .Select((x, index) => new
+                {
+                    x.UserId,
+                    Rank = index + 1
+                })
+                .ToDictionary(x => x.UserId, x => x.Rank);
+
+            var userPrizes = new List<UserPrize>();
+
+            foreach (var item in rankingDict)
+            {
+                var prize = competition.CompetitionPrizes
+                    .FirstOrDefault(p =>
+                        item.Value >= p.RankFrom &&
+                        item.Value <= p.RankTo);
+
+                if (prize == null)
+                    continue;
+
+                userPrizes.Add(UserPrizeFactory.Create(
+                    item.Key,
+                    competitionId,
+                    prize.CompetitionPrizeID,
+                    item.Value,
+                    prize.RewardType,
+                    prize.RewardValueMoney,
+                    prize.RewardValueGiftVN,
+                    prize.RewardValueGiftEN,
+                    currentUserId
+                ));
+            }
+
+            await _unitOfWork.UserPrizes.AddRange(userPrizes);
+
+            competition.PublishResult(currentUserId, now);
+
+            await _unitOfWork.SaveChangeAsync();
+
+            return true;
         }
 
         private async Task<List<HotCompetitionCacheItem>> GetOrBuildHotCompetitionCache(Guid clubId)
@@ -840,8 +917,16 @@ namespace Droniverse.Community.Application.Services
         {
             return targetStatus switch
             {
-                CompetitionStatus.PUBLISHED => q => q.Include(c => c.Rounds).Include(c => c.CompetitionPrizes),
-                CompetitionStatus.RESULT_PUBLISHED => q => q.Include(c => c.UserPrizes),
+                CompetitionStatus.PUBLISHED => q => q
+                    .Include(c => c.Rounds)
+                    .Include(c => c.CompetitionPrizes)
+                    .Include(c => c.UserCompetitions),
+
+                CompetitionStatus.RESULT_PUBLISHED => q => q
+                    .Include(c => c.Rounds)
+                    .Include(c => c.UserPrizes)
+                    .Include(c => c.UserCompetitions),
+
                 _ => null
             };
         }
@@ -882,6 +967,7 @@ namespace Droniverse.Community.Application.Services
                 EndDate = competition.EndDate,
                 CompetitionStatus = competition.Status,
                 IsRegistered = isRegistered,
+                IsSummarized = competition.IsSummarized,
                 CompetitionPhase = CommunityAppHelpers.GetCurrentCompetitionLifeCycle(competition, _clock.Now),
                 ResultPublishedAt = competition.ResultPublishedAt,
                 CreatedBy = ToSimpleUserResponse(competition.CreatedBy, createdByUser),
@@ -958,6 +1044,7 @@ namespace Droniverse.Community.Application.Services
                         ? ToSimpleUserResponse(competition.UpdatedBy.Value, updatedByUser)
                         : null,
                     IsRegistered = isRegistered,
+                    IsSummarized = competition.IsSummarized,
                     CreatedAt = competition.CreatedAt,
                     UpdatedAt = competition.UpdatedAt,
                     InvalidAt = competition.InvalidAt,

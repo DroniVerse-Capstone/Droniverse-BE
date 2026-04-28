@@ -23,11 +23,8 @@ namespace Droniverse.Community.Domain.Entities
 
         public string? RewardValueGiftVN { get; private set; }
         public string? RewardValueGiftEN { get; private set; }
-
         public bool IsAwarded { get; private set; }
-
         public DateTime? AwardedAt { get; private set; }
-
         public DateTime CreatedAt { get; private set; }
         public Guid CreatedBy { get; private set; }
 
@@ -88,6 +85,33 @@ namespace Droniverse.Community.Domain.Entities
 
             UpdatedAt = DateTime.UtcNow;
             UpdatedBy = updatedBy;
+        }
+    }
+
+    public static class UserPrizeFactory
+    {
+        public static UserPrize Create(
+            Guid userId,
+            Guid competitionId,
+            Guid prizeId,
+            int rank,
+            RewardType rewardType,
+            decimal? rewardValueMoney,
+            string? rewardValueGiftVN,
+            string? rewardValueGiftEN,
+            Guid createdBy)
+        {
+            return new UserPrize(
+                userId,
+                competitionId,
+                prizeId,
+                rank,
+                rewardType,
+                rewardValueMoney,
+                rewardValueGiftVN,
+                rewardValueGiftEN,
+                createdBy
+            );
         }
     }
 }

@@ -7,7 +7,6 @@ using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Community.Domain.IRepository.Mongo;
-using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Enums;
 using Droniverse.Shared.Exceptions;

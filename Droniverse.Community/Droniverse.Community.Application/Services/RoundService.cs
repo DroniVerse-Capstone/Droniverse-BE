@@ -59,6 +59,7 @@ namespace Droniverse.Community.Application.Services
                 request.StartTime,
                 request.EndTime,
                 request.LimitTime,
+                request.Weight,
                 now,
                 currentUserId
             );
@@ -157,6 +158,7 @@ namespace Droniverse.Community.Application.Services
                 request.StartTime,
                 request.EndTime,
                 request.TimeLimit,
+                request.Weight,
                 now,
                 currentUserId
             );
@@ -230,6 +232,7 @@ namespace Droniverse.Community.Application.Services
                     StartTime = r.StartTime,
                     EndTime = r.EndTime,
                     TimeLimit = r.TimeLimit,
+                    Weight = r.Weight,
                     RoundStatus = r.Status,
                     RoundPhase = CommunityAppHelpers.GetCurrentRoundLifeCycle(r.Status, r.StartTime, r.EndTime, _clock.Now),
                     TotalParticipants = r.TotalParticipants
@@ -389,7 +392,7 @@ namespace Droniverse.Community.Application.Services
             int pageSize = request.PageSize <= 0 ? 5 : request.PageSize;
 
             var userRounds = (await _unitOfWork.UserRounds.GetManyByCondition(
-                ur => ur.RoundID == roundId && ur.Status == UserRoundStatus.Completed,
+                ur => ur.RoundID == roundId && ur.Status == UserRoundStatus.Completed && ur.IsPassed == true,
                 q => q.OrderBy(ur => ur.Rank ?? int.MaxValue)
                       .ThenByDescending(ur => ur.Point)
                       .ThenBy(ur => ur.ExecutionTime)
@@ -771,6 +774,7 @@ namespace Droniverse.Community.Application.Services
                 StartTime = round.StartTime,
                 EndTime = round.EndTime,
                 TimeLimit = round.TimeLimit,
+                Weight = round.Weight,
                 RoundStatus = round.Status,
                 RoundPhase = CommunityAppHelpers.GetCurrentRoundLifeCycle(round.Status, round.StartTime, round.EndTime, _clock.Now),
                 TotalParticipants = round.TotalParticipants
