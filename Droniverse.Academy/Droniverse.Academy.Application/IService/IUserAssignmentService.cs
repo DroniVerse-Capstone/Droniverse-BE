@@ -1,4 +1,4 @@
-using Droniverse.Academy.Application.DTO.Request;
+﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Shared.DTOs.Response;
@@ -13,6 +13,11 @@ public interface IUserAssignmentService
         Guid? assignmentId,
         Guid? enrollmentId,
         UserAssignmentStatus? status,
+        int pageIndex = 1,
+        int pageSize = 10);
+    Task<PaginationResult<IEnumerable<UserAssignmentAttemptResponseDTO>>> GetAssignmentAttemptsByCourseAndClubAsync(
+        Guid? courseId,
+        Guid? clubId,
         int pageIndex = 1,
         int pageSize = 10);
     Task<PaginationResult<IEnumerable<UserAssignmentAttemptResponseDTO>>> GetMyAssignmentAttemptsAsync(
