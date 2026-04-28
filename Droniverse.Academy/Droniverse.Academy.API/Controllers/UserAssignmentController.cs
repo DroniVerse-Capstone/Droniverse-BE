@@ -54,7 +54,14 @@ public class UserAssignmentController : ControllerBase
             throw;
         }
     }
-
+    /// <summary>
+    /// Cho admin dùng, có thể lọc theo courseId hoặc clubId hoặc cả 2
+    /// </summary>
+    /// <param name="courseId"></param>
+    /// <param name="clubId"></param>
+    /// <param name="pageIndex"></param>
+    /// <param name="pageSize"></param>
+    /// <returns></returns>
     [HttpGet("attempts")]
     [SwaggerResponseExample(StatusCodes.Status200OK, typeof(UserAssignmentAttemptsSuccessResponseExample))]
     public async Task<IActionResult> GetAssignmentAttempts(
@@ -62,6 +69,41 @@ public class UserAssignmentController : ControllerBase
         [FromQuery] Guid? clubId = null,
         [FromQuery] int pageIndex = 1,
         [FromQuery] int pageSize = 10)
+    {
+        try
+        {
+            var result = await _service.GetAssignmentAttemptsByCourseAndClubAsync(
+                courseId,
+                clubId,
+                pageIndex,
+                pageSize);
+
+            return Ok(SuccessResponse<PaginationResult<IEnumerable<UserAssignmentAttemptResponseDTO>>>.Create(
+                result,
+                "Lấy danh sách attempt assignment thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lấy danh sách attempt assignment thất bại.");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Cho club manager dùng
+    /// </summary>
+    /// <param name="courseId"></param>
+    /// <param name="clubId"></param>
+    /// <param name="pageIndex"></param>
+    /// <param name="pageSize"></param>
+    /// <returns></returns>
+    [HttpGet("attempts/club/{clubId:guid}")]
+    [SwaggerResponseExample(StatusCodes.Status200OK, typeof(UserAssignmentAttemptsSuccessResponseExample))]
+    public async Task<IActionResult> GetAssignmentAttempts(
+        [FromRoute] Guid clubId,
+        [FromQuery] int pageIndex = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] Guid? courseId = null)
     {
         try
         {
