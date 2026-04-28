@@ -1,4 +1,4 @@
-using Droniverse.Community.Application.DTO.Response;
+﻿using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Entities;
@@ -484,6 +484,245 @@ namespace Droniverse.Community.Application.Services
                 .ToList();
 
             return new AdminClubRankingResponse { Clubs = result };
+        }
+
+        // ===================== Competition Stats =====================
+
+        public async Task<CompetitionStatsResponse> GetCompetitionStats(int top = 10)
+        {
+            if (top <= 0) top = 10;
+
+            // Lấy tất cả competitions
+            var allCompetitions = (await _unitOfWork.Competitions.GetAll())?.ToList() ?? [];
+            if (allCompetitions.Count == 0)
+                return new CompetitionStatsResponse
+                {
+                    Overview = new CompetitionOverviewResponse(),
+                    TopByParticipants = []
+                };
+
+            return await BuildCompetitionStats(allCompetitions, top);
+        }
+
+        public async Task<CompetitionStatsResponse> GetCompetitionStatsByClub(Guid clubId, int top = 10)
+        {
+            if (top <= 0) top = 10;
+
+            var clubExists = await _unitOfWork.Clubs.GetByCondition(c => c.ClubID == clubId, q => q.AsNoTracking());
+            if (clubExists == null)
+                throw new KeyNotFoundException($"Không tìm thấy câu lạc bộ với ID [{clubId}].");
+
+            // Lấy competitions của club
+            var clubCompetitions = (await _unitOfWork.Competitions
+                .GetManyByCondition(c => c.ClubID == clubId))?.ToList() ?? [];
+
+            if (clubCompetitions.Count == 0)
+                return new CompetitionStatsResponse
+                {
+                    Overview = new CompetitionOverviewResponse(),
+                    TopByParticipants = []
+                };
+
+            return await BuildCompetitionStats(clubCompetitions, top);
+        }
+
+        /// <summary>
+        /// Logic chung: build CompetitionStatsResponse từ danh sách competitions đã filter.
+        /// </summary>
+        private async Task<CompetitionStatsResponse> BuildCompetitionStats(
+            List<Competition> competitions, int top)
+        {
+            var now = _clock.Now;
+            var competitionIds = competitions.Select(c => c.CompetitionID).ToList();
+
+            // Lấy số người tham gia ACTIVE cho tất cả competitions một lần
+            var participantCounts = await _unitOfWork.UserCompetitions
+                .GetCompetitorCountsByCompetitionIds(competitionIds);
+
+            var totalParticipants = participantCounts.Values.Sum();
+            var publishedCount = competitions.Count(c => c.Status == CompetitionStatus.PUBLISHED);
+
+            // Đang diễn ra: PUBLISHED + trong khoảng StartDate → EndDate
+            var ongoingCount = competitions.Count(c =>
+                c.Status == CompetitionStatus.PUBLISHED
+                && c.StartDate <= now
+                && c.EndDate >= now);
+
+            var overview = new CompetitionOverviewResponse
+            {
+                TotalCompetitions = competitions.Count,
+                OngoingCompetitions = ongoingCount,
+                CompletedCompetitions = competitions.Count(c => c.Status == CompetitionStatus.RESULT_PUBLISHED),
+                CancelledCompetitions = competitions.Count(c => c.Status == CompetitionStatus.CANCELLED),
+                DraftCompetitions = competitions.Count(c => c.Status == CompetitionStatus.DRAFT),
+                TotalParticipants = totalParticipants,
+                AverageParticipantsPerCompetition = competitions.Count > 0
+                    ? Math.Round((double)totalParticipants / competitions.Count, 1)
+                    : 0
+            };
+
+            // Lấy tên club cho hiển thị
+            var clubIds = competitions.Select(c => c.ClubID).Distinct().ToList();
+            var clubs = (await _unitOfWork.Clubs
+                .GetManyByCondition(c => clubIds.Contains(c.ClubID)))
+                .ToDictionary(c => c.ClubID);
+
+            // Top cuộc thi theo số người tham gia
+            var topItems = competitions
+                .Select(c => new CompetitionStatItem
+                {
+                    CompetitionId = c.CompetitionID,
+                    NameVN = c.NameVN,
+                    NameEN = c.NameEN,
+                    Status = c.Status.ToString(),
+                    ClubId = c.ClubID,
+                    ClubNameVN = clubs.TryGetValue(c.ClubID, out var club) ? club.NameVN : string.Empty,
+                    ParticipantCount = participantCounts.TryGetValue(c.CompetitionID, out var count) ? count : 0,
+                    StartDate = c.StartDate,
+                    EndDate = c.EndDate
+                })
+                .OrderByDescending(x => x.ParticipantCount)
+                .Take(top)
+                .ToList();
+
+            return new CompetitionStatsResponse
+            {
+                Overview = overview,
+                TopByParticipants = topItems
+            };
+        }
+
+        // ===================== Code Stats =====================
+
+        public async Task<CodeStatsOverviewResponse> GetCodeStatsByClub(Guid clubId)
+        {
+            var clubExists = await _unitOfWork.Clubs.GetByCondition(c => c.ClubID == clubId, q => q.AsNoTracking());
+            if (clubExists == null)
+                throw new KeyNotFoundException($"Không tìm thấy câu lạc bộ với ID [{clubId}].");
+
+            // Gọi Academy service để lấy code stats
+            var codeStats = await _academyMicroserviceClient.GetCodeStatsByClub(clubId);
+            return codeStats;
+        }
+
+        public async Task<CodeStatsOverviewResponse> GetCodeStatsAdmin()
+        {
+            // Gọi Academy service để lấy code stats toàn hệ thống
+            var codeStats = await _academyMicroserviceClient.GetCodeStatsAdmin();
+            return codeStats;
+        }
+
+        // ===================== Top Buyers =====================
+
+        public async Task<TopBuyersResponse> GetTopBuyersByClub(Guid clubId, int top = 10)
+        {
+            if (top <= 0)
+                top = 10;
+
+            var clubExists = await _unitOfWork.Clubs.GetByCondition(c => c.ClubID == clubId, q => q.AsNoTracking());
+            if (clubExists == null)
+                throw new KeyNotFoundException($"Không tìm thấy câu lạc bộ với ID [{clubId}].");
+
+            var allOrders = await _orderRepository.GetAllSuccessfulOrders();
+            if (allOrders == null || !allOrders.Any())
+                return new TopBuyersResponse { Buyers = [], TotalSystemRevenue = 0 };
+
+            // Lấy các đơn hàng USER_PURCHASE của club
+            var clubUserPurchaseOrders = allOrders
+                .Where(o => o.ClubID == clubId
+                    && o.OrderType == Domain.Enums.OrderType.USER_PURCHASE)
+                .ToList();
+
+            if (!clubUserPurchaseOrders.Any())
+                return new TopBuyersResponse { Buyers = [], TotalSystemRevenue = 0 };
+
+            // Nhóm theo UserID để tính tổng chi tiêu và số lần mua
+            var buyerStats = clubUserPurchaseOrders
+                .GroupBy(o => o.UserID)
+                .Select(g => new
+                {
+                    UserId = g.Key,
+                    UserName = g.First().UserName,
+                    Email = g.First().UserEmail,
+                    TotalSpent = g.Sum(o => o.TotalAmount),
+                    PurchaseCount = g.Count()
+                })
+                .OrderByDescending(x => x.TotalSpent)
+                .Take(top)
+                .ToList();
+
+            var buyers = buyerStats
+                .Select(b => new BuyerStatItem
+                {
+                    UserId = b.UserId,
+                    UserName = b.UserName ?? string.Empty,
+                    Email = b.Email ?? string.Empty,
+                    ImageUrl = null,
+                    TotalSpent = b.TotalSpent,
+                    PurchaseCount = b.PurchaseCount
+                })
+                .ToList();
+
+            var clubRevenue = clubUserPurchaseOrders.Sum(o => o.TotalAmount);
+
+            return new TopBuyersResponse
+            {
+                Buyers = buyers,
+                TotalSystemRevenue = clubRevenue
+            };
+        }
+
+        public async Task<TopBuyersResponse> GetTopBuyersAdmin(int top = 10)
+        {
+            if (top <= 0)
+                top = 10;
+
+            var allOrders = await _orderRepository.GetAllSuccessfulOrders();
+            if (allOrders == null || !allOrders.Any())
+                return new TopBuyersResponse { Buyers = [], TotalSystemRevenue = 0 };
+
+            // Lấy tất cả đơn hàng USER_PURCHASE của toàn hệ thống
+            var allUserPurchaseOrders = allOrders
+                .Where(o => o.OrderType == Domain.Enums.OrderType.USER_PURCHASE)
+                .ToList();
+
+            if (!allUserPurchaseOrders.Any())
+                return new TopBuyersResponse { Buyers = [], TotalSystemRevenue = 0 };
+
+            // Nhóm theo UserID để tính tổng chi tiêu và số lần mua
+            var buyerStats = allUserPurchaseOrders
+                .GroupBy(o => o.UserID)
+                .Select(g => new
+                {
+                    UserId = g.Key,
+                    UserName = g.First().UserName,
+                    Email = g.First().UserEmail,
+                    TotalSpent = g.Sum(o => o.TotalAmount),
+                    PurchaseCount = g.Count()
+                })
+                .OrderByDescending(x => x.TotalSpent)
+                .Take(top)
+                .ToList();
+
+            var buyers = buyerStats
+                .Select(b => new BuyerStatItem
+                {
+                    UserId = b.UserId,
+                    UserName = b.UserName ?? string.Empty,
+                    Email = b.Email ?? string.Empty,
+                    ImageUrl = null,
+                    TotalSpent = b.TotalSpent,
+                    PurchaseCount = b.PurchaseCount
+                })
+                .ToList();
+
+            var totalSystemRevenue = allUserPurchaseOrders.Sum(o => o.TotalAmount);
+
+            return new TopBuyersResponse
+            {
+                Buyers = buyers,
+                TotalSystemRevenue = totalSystemRevenue
+            };
         }
     }
 }

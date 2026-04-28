@@ -163,5 +163,132 @@ namespace Droniverse.Community.API.Controllers
             var data = await _dashboardService.GetAdminClubRankingBySpent(top);
             return SuccessResponse<AdminClubRankingResponse>.Create(data, "Lấy bảng xếp hạng câu lạc bộ theo tiền bỏ ra thành công!");
         }
+
+        // ===================== Competition Stats =====================
+
+        /// <summary>
+        /// Lấy thống kê cuộc thi toàn hệ thống.
+        /// </summary>
+        /// <remarks>
+        /// Trả về tổng quan (tổng số, đang diễn ra, đã hoàn thành, đã hủy, nháp, tổng người tham gia, trung bình)
+        /// và danh sách top cuộc thi có số người tham gia cao nhất.
+        /// </remarks>
+        /// <param name="top">Số lượng cuộc thi top cần lấy (mặc định 10).</param>
+        [HttpGet("competitions/admin/stats")]
+        [ProducesResponseType(typeof(SuccessResponse<CompetitionStatsResponse>), StatusCodes.Status200OK)]
+        [Authorize(Roles = Roles.AdminOrSystemManager)]
+        public async Task<ApiResponse> GetCompetitionStats([FromQuery] int top = 10)
+        {
+            var data = await _dashboardService.GetCompetitionStats(top);
+            return SuccessResponse<CompetitionStatsResponse>.Create(data, "Lấy thống kê cuộc thi toàn hệ thống thành công!");
+        }
+
+        /// <summary>
+        /// Lấy thống kê cuộc thi theo câu lạc bộ.
+        /// </summary>
+        /// <remarks>
+        /// Trả về tổng quan và top cuộc thi trong phạm vi 1 câu lạc bộ cụ thể.
+        /// </remarks>
+        /// <param name="clubId">ID câu lạc bộ.</param>
+        /// <param name="top">Số lượng cuộc thi top cần lấy (mặc định 10).</param>
+        [HttpGet("competitions/clubs/{clubId:guid}/stats")]
+        [ProducesResponseType(typeof(SuccessResponse<CompetitionStatsResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Authorize(Roles = Roles.SystemRoles)]
+        public async Task<ApiResponse> GetCompetitionStatsByClub(Guid clubId, [FromQuery] int top = 10)
+        {
+            var data = await _dashboardService.GetCompetitionStatsByClub(clubId, top);
+            return SuccessResponse<CompetitionStatsResponse>.Create(data, "Lấy thống kê cuộc thi của câu lạc bộ thành công!");
+        }
+
+        // ===================== Code Stats =====================
+
+        /// <summary>
+        /// Lấy thống kê mã code activation của câu lạc bộ.
+        /// </summary>
+        /// <remarks>
+        /// Bao gồm tổng số code phát hành, số đã dùng, còn khả dụng, hết hạn, và tỉ lệ sử dụng.
+        /// Dữ liệu được lấy từ Academy service.
+        /// </remarks>
+        /// <param name="clubId">ID câu lạc bộ.</param>
+        /// <returns>
+        /// 200 OK - Trả về thống kê mã code của câu lạc bộ.
+        /// 404 NotFound - Không tìm thấy câu lạc bộ.
+        /// </returns>
+        [HttpGet("codes/clubs/{clubId:guid}/stats")]
+        [ProducesResponseType(typeof(SuccessResponse<CodeStatsOverviewResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Authorize(Roles = Roles.SystemRoles)]
+        public async Task<ApiResponse> GetCodeStatsByClub(Guid clubId)
+        {
+            var data = await _dashboardService.GetCodeStatsByClub(clubId);
+            return SuccessResponse<CodeStatsOverviewResponse>.Create(data, "Lấy thống kê mã code của câu lạc bộ thành công!");
+        }
+
+        ///// <summary>
+        ///// Lấy thống kê mã code activation toàn hệ thống.
+        ///// </summary>
+        ///// <remarks>
+        ///// Bao gồm tổng số code phát hành, số đã dùng, còn khả dụng, hết hạn, và tỉ lệ sử dụng của toàn hệ thống.
+        ///// Dữ liệu được lấy từ Academy service.
+        ///// </remarks>
+        ///// <returns>
+        ///// 200 OK - Trả về thống kê mã code toàn hệ thống.
+        ///// </returns>
+        //[HttpGet("codes/admin/stats")]
+        //[ProducesResponseType(typeof(SuccessResponse<CodeStatsOverviewResponse>), StatusCodes.Status200OK)]
+        //[Authorize(Roles = Roles.AdminOrSystemManager)]
+        //public async Task<ApiResponse> GetCodeStatsAdmin()
+        //{
+        //    var data = await _dashboardService.GetCodeStatsAdmin();
+        //    return SuccessResponse<CodeStatsOverviewResponse>.Create(data, "Lấy thống kê mã code toàn hệ thống thành công!");
+        //}
+
+        // ===================== Top Buyers =====================
+
+        /// <summary>
+        /// Lấy danh sách top buyers theo câu lạc bộ.
+        /// </summary>
+        /// <remarks>
+        /// Trả về danh sách những người dùng mua nhiều nhất (USER_PURCHASE) trong phạm vi 1 câu lạc bộ,
+        /// được sắp xếp giảm dần theo tổng số tiền bỏ ra.
+        /// Tất cả các chỉ số đều dựa trên các order có trạng thái <b>Status = SUCCESS</b>.
+        /// </remarks>
+        /// <param name="clubId">ID câu lạc bộ.</param>
+        /// <param name="top">Số lượng top buyers cần lấy (mặc định 10).</param>
+        /// <returns>
+        /// 200 OK - Trả về danh sách top buyers của câu lạc bộ.
+        /// 404 NotFound - Không tìm thấy câu lạc bộ.
+        /// </returns>
+        [HttpGet("buyers/clubs/{clubId:guid}/top")]
+        [ProducesResponseType(typeof(SuccessResponse<TopBuyersResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Authorize(Roles = Roles.SystemRoles)]
+        public async Task<ApiResponse> GetTopBuyersByClub(Guid clubId, [FromQuery] int top = 10)
+        {
+            var data = await _dashboardService.GetTopBuyersByClub(clubId, top);
+            return SuccessResponse<TopBuyersResponse>.Create(data, "Lấy danh sách top buyers của câu lạc bộ thành công!");
+        }
+
+        /// <summary>
+        /// Lấy danh sách top buyers toàn hệ thống.
+        /// </summary>
+        /// <remarks>
+        /// Trả về danh sách những người dùng mua nhiều nhất (USER_PURCHASE) của toàn hệ thống,
+        /// được sắp xếp giảm dần theo tổng số tiền bỏ ra.
+        /// Tất cả các chỉ số đều dựa trên các order có trạng thái <b>Status = SUCCESS</b>.
+        /// </remarks>
+        /// <param name="top">Số lượng top buyers cần lấy (mặc định 10).</param>
+        /// <returns>
+        /// 200 OK - Trả về danh sách top buyers toàn hệ thống.
+        /// </returns>
+        [HttpGet("buyers/admin/top")]
+        [ProducesResponseType(typeof(SuccessResponse<TopBuyersResponse>), StatusCodes.Status200OK)]
+        [Authorize(Roles = Roles.AdminOrSystemManager)]
+        public async Task<ApiResponse> GetTopBuyersAdmin([FromQuery] int top = 10)
+        {
+            var data = await _dashboardService.GetTopBuyersAdmin(top);
+            return SuccessResponse<TopBuyersResponse>.Create(data, "Lấy danh sách top buyers toàn hệ thống thành công!");
+        }
     }
 }
