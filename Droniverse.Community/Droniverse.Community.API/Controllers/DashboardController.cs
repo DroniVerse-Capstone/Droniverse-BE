@@ -21,16 +21,12 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
-        /// Lấy dữ liệu tổng quan chi phí và KPI giao dịch của câu lạc bộ theo các giao dịch đã thanh toán thành công.
+        /// Lấy dữ liệu tổng quan doanh thu của 1 câu lạc bộ bất kỳ
         /// </summary>
-        /// <remarks>
-        /// Bao gồm nhóm chỉ số chi phí và KPI giao dịch.
-        /// - Chi phí: <b>TotalExpense</b>, <b>ExpenseThisMonth</b>, <b>ExpenseLastMonth</b>.
-        /// - KPI giao dịch: <b>TotalTransactions</b>, <b>TransactionsThisMonth</b>.
-        /// </remarks>
+       
         /// <param name="clubId">ID câu lạc bộ.</param>
         /// <returns>
-        /// 200 OK - Trả về chỉ số chi phí và KPI giao dịch của câu lạc bộ.
+        /// 200 OK - Trả về doanh thu của câu lạc bộ.
         /// 404 NotFound - Không tìm thấy câu lạc bộ.
         /// </returns>
         [HttpGet("revenue/clubs/{clubId:guid}/overview")]

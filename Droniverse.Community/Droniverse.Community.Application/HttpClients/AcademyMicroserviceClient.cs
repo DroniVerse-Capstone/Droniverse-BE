@@ -1,4 +1,4 @@
-﻿using Droniverse.Community.Application.DTO.Response;
+using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.DTOs.Response;
@@ -787,8 +787,8 @@ public class AcademyMicroserviceClient
                 return [];
             }
 
-            var data = await response.Content.ReadFromJsonAsync<IEnumerable<SimpleCourseResponse>>(_jsonOptions, cancellationToken);
-            return data?
+            var wrapped = await response.Content.ReadFromJsonAsync<SuccessResponse<IEnumerable<SimpleCourseResponse>>>(_jsonOptions, cancellationToken);
+            return wrapped?.Data?
                 .Where(x => x != null && x.CourseId != Guid.Empty)
                 .ToList()
                 ?? [];
