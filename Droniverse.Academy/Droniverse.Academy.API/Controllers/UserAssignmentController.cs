@@ -1,4 +1,4 @@
-using Droniverse.Academy.Application.DTO.Request;
+﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.API.Examples;
@@ -15,12 +15,12 @@ namespace Droniverse.Academy.API.Controllers;
 [Route("academy/manager/assignments/submissions")]
 [ApiController]
 [Authorize(Roles = Roles.ClubManager)]
-public class ClubManagerAssignmentController : ControllerBase
+public class UserAssignmentController : ControllerBase
 {
-    private readonly ILogger<ClubManagerAssignmentController> _logger;
+    private readonly ILogger<UserAssignmentController> _logger;
     private readonly IUserAssignmentService _service;
 
-    public ClubManagerAssignmentController(ILogger<ClubManagerAssignmentController> logger, IUserAssignmentService service)
+    public UserAssignmentController(ILogger<UserAssignmentController> logger, IUserAssignmentService service)
     {
         _logger = logger;
         _service = service;
@@ -51,6 +51,33 @@ public class ClubManagerAssignmentController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Lấy danh sách submission assignment thất bại.");
+            throw;
+        }
+    }
+
+    [HttpGet("attempts")]
+    [SwaggerResponseExample(StatusCodes.Status200OK, typeof(UserAssignmentAttemptsSuccessResponseExample))]
+    public async Task<IActionResult> GetAssignmentAttempts(
+        [FromQuery] Guid? courseId = null,
+        [FromQuery] Guid? clubId = null,
+        [FromQuery] int pageIndex = 1,
+        [FromQuery] int pageSize = 10)
+    {
+        try
+        {
+            var result = await _service.GetAssignmentAttemptsByCourseAndClubAsync(
+                courseId,
+                clubId,
+                pageIndex,
+                pageSize);
+
+            return Ok(SuccessResponse<PaginationResult<IEnumerable<UserAssignmentAttemptResponseDTO>>>.Create(
+                result,
+                "Lấy danh sách attempt assignment thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lấy danh sách attempt assignment thất bại.");
             throw;
         }
     }

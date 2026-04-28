@@ -1,3 +1,4 @@
+using AutoMapper;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
@@ -16,12 +17,14 @@ public class AssignmentService : IAssignmentService
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUser;
     private readonly IClock _clock;
+    private readonly IMapper _mapper;
 
-    public AssignmentService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IClock clock)
+    public AssignmentService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IClock clock, IMapper mapper)
     {
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _clock = clock;
+        _mapper = mapper;
     }
 
     public async Task<AssignmentClientViewDTO> CreateAssignmentAsync(CreateAssignmentRequestDTO request)
@@ -147,22 +150,9 @@ public class AssignmentService : IAssignmentService
         return assignment;
     }
 
-    private static AssignmentClientViewDTO MapToDto(Assignment assignment)
+    private AssignmentClientViewDTO MapToDto(Assignment assignment)
     {
-        return new AssignmentClientViewDTO
-        {
-            AssignmentID = assignment.AssignmentID,
-            TitleEN = assignment.TitleEN,
-            TitleVN = assignment.TitleVN,
-            DescriptionEN = assignment.DescriptionEN,
-            DescriptionVN = assignment.DescriptionVN,
-            Requirement = assignment.Requirement,
-            EstimatedTime = assignment.EstimatedTime,
-            CreateBy = assignment.CreateBy,
-            UpdateBy = assignment.UpdateBy,
-            CreateAt = assignment.CreateAt,
-            UpdateAt = assignment.UpdateAt
-        };
+        return _mapper.Map<AssignmentClientViewDTO>(assignment);
     }
 
     private async Task<int> GetNextOrderIndexAsync(Guid moduleId)
