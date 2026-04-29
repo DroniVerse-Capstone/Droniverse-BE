@@ -8,7 +8,7 @@ namespace Droniverse.Academy.Application.DTO.Response
 {
     public class AssignmentOverview
     {
-        public AssignmentClientViewDTO assignment;
-        public UserAssignmentAttemptResponseDTO? userAssignment;
+        public AssignmentClientViewDTO? Assignment { get; set; }
+        public UserAssignmentAttemptResponseDTO? UserAssignment { get; set; }
     }
 }

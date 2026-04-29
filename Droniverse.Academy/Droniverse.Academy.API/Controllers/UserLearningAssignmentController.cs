@@ -46,24 +46,27 @@ public class UserLearningAssignmentController : ControllerBase
             throw;
         }
     }
-
-    [HttpGet("{assignmentId:guid")]
+    /// <summary>
+    /// Lấy đề kèm kết quả làm bài, nếu không có thì null
+    /// </summary>
+    /// <param name="enrollmentId"></param>
+    /// <param name="assignmentId"></param>
+    /// <returns></returns>
+    [HttpGet("{assignmentId:guid}")]
     public async Task<IActionResult> GetAssignmentOverview (
         Guid enrollmentId,
-        Guid assignmentId,
-        [FromQuery] int pageIndex = 1,
-        [FromQuery] int pageSize = 10)
+        Guid assignmentId)
     {
         try
         {
-            var result = await _service.GetAssignmentOverView(enrollmentId, assignmentId, pageIndex, pageSize);
-            return Ok(SuccessResponse<PaginationResult<IEnumerable<UserAssignmentAttemptResponseDTO>>>.Create(
+            var result = await _service.GetAssignmentOverView(enrollmentId, assignmentId);
+            return Ok(SuccessResponse<AssignmentOverview>.Create(
                 result,
-                "Lấy lịch sử nộp assignment thành công."));
+                "Lấy assignment overview thành công."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Lấy lịch sử nộp assignment thất bại.");
+            _logger.LogError(ex, "Lấy assignment overview thất bại.");
             throw;
         }
     }

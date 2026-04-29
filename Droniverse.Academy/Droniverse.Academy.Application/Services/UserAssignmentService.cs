@@ -9,6 +9,7 @@ using Droniverse.Shared.Enums;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Services.IServices;
+using AutoMapper;
 
 namespace Droniverse.Academy.Application.Services;
 
@@ -21,19 +22,22 @@ public class UserAssignmentService : IUserAssignmentService
     private readonly IClock _clock;
     private readonly LearningAssessmentAccessService _assessmentAccessService;
     private readonly CommunityMicroserviceClient _communityClient;
+    private readonly IMapper _mapper;
 
     public UserAssignmentService(
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUser,
         IClock clock,
         LearningAssessmentAccessService assessmentAccessService,
-        CommunityMicroserviceClient communityClient)
+        CommunityMicroserviceClient communityClient,
+        IMapper mapper)
     {
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _clock = clock;
         _assessmentAccessService = assessmentAccessService;
         _communityClient = communityClient;
+        _mapper = mapper;
     }
 
     public async Task<UserAssignmentSubmitResponseDTO> SubmitAssignmentAsync(Guid enrollmentId, Guid assignmentId, SubmitUserAssignmentRequestDTO request)
@@ -294,8 +298,20 @@ public class UserAssignmentService : IUserAssignmentService
         };
     }
 
-    public Task<AssignmentOverview> GetAssignmentOverView(Guid enrollmentId, Guid assignmentId)
+    public async Task<AssignmentOverview> GetAssignmentOverView(Guid enrollmentId, Guid assignmentId)
     {
-        throw new NotImplementedException();
+        //await _assessmentAccessService.GetAccessibleAssignmentAsync(enrollmentId, assignmentId);
+
+        var assignment = await _unitOfWork.Assignments.GetByIdAsync(assignmentId);
+
+
+        var userAssignment = await _unitOfWork.UserAssignments.GetByConditionAsync(
+            a => a.AssignmentID == assignmentId && a.EnrollmentID == enrollmentId);
+
+        return new AssignmentOverview
+        {
+            Assignment = _mapper.Map<AssignmentClientViewDTO>(assignment),
+            UserAssignment = userAssignment != null ? _mapper.Map<UserAssignmentAttemptResponseDTO>(userAssignment) :null
+        };
     }
 }
