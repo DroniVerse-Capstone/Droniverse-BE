@@ -1,4 +1,4 @@
-using Droniverse.Academy.Application.DTO.Request;
+﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
@@ -237,5 +237,10 @@ public class UserAssignmentService : IUserAssignmentService
             ReviewedAt = entity.ReviewedAt,
             SubmittedAt = entity.SubmittedAt
         };
+    }
+
+    public Task<AssignmentOverview> GetAssignmentOverView(Guid enrollmentId, Guid assignmentId)
+    {
+        throw new NotImplementedException();
     }
 }

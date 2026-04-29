@@ -1,4 +1,4 @@
-using Droniverse.Academy.Application.DTO.Request;
+﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Shared.DTOs.Response;
@@ -20,4 +20,7 @@ public interface IUserAssignmentService
         Guid assignmentId,
         int pageIndex = 1,
         int pageSize = 10);
+    Task<AssignmentOverview> GetAssignmentOverView(
+    Guid enrollmentId,
+    Guid assignmentId);
 }
