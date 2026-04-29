@@ -224,17 +224,18 @@ public class UserAssignmentService : IUserAssignmentService
             if (enrollment == null)
                 continue;
 
-            if (!accessByClub.TryGetValue(enrollment.ClubID, out var canAccess))
-            {
-                canAccess = await _communityClient.CheckParticipantByClubAsync(
-                    enrollment.ClubID,
-                    _currentUser.UserId,
-                    ParticipationStatus.ACTIVE);
+            //if (!accessByClub.TryGetValue(enrollment.ClubID, out var canAccess))
+            //{
+            //    canAccess = await _communityClient.CheckParticipantByClubAsync(
+            //        enrollment.ClubID,
+            //        _currentUser.UserId,
+            //        ParticipationStatus.ACTIVE);
 
-                accessByClub[enrollment.ClubID] = canAccess;
-            }
+            //    accessByClub[enrollment.ClubID] = canAccess;
+            //}
 
-            if (canAccess)
+            //if (canAccess)
+            //    accessibleItems.Add(item);
                 accessibleItems.Add(item);
         }
 
