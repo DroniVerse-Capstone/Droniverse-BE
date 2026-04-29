@@ -300,13 +300,13 @@ public class UserAssignmentService : IUserAssignmentService
 
     public async Task<AssignmentOverview> GetAssignmentOverView(Guid enrollmentId, Guid assignmentId)
     {
-        //await _assessmentAccessService.GetAccessibleAssignmentAsync(enrollmentId, assignmentId);
+        await _assessmentAccessService.GetAccessibleAssignmentAsync(enrollmentId, assignmentId);
 
         var assignment = await _unitOfWork.Assignments.GetByIdAsync(assignmentId);
 
         var top = await _unitOfWork.UserAssignments.GetAllAsync(
-            filter: x => x.AssignmentID == assignmentId && x.EnrollmentID == enrollmentId && x.Score.HasValue,
-            orderBy: q => q.OrderByDescending(x => x.Score).ThenByDescending(x => x.SubmittedAt),
+            filter: x => x.AssignmentID == assignmentId && x.EnrollmentID == enrollmentId ,
+            orderBy: q => q.OrderByDescending(x => x.SubmittedAt),
             pageIndex: 1,
             pageSize: 1);
 
