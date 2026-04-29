@@ -304,14 +304,17 @@ public class UserAssignmentService : IUserAssignmentService
 
         var assignment = await _unitOfWork.Assignments.GetByIdAsync(assignmentId);
 
+        var top = await _unitOfWork.UserAssignments.GetAllAsync(
+            filter: x => x.AssignmentID == assignmentId && x.EnrollmentID == enrollmentId && x.Score.HasValue,
+            orderBy: q => q.OrderByDescending(x => x.Score).ThenByDescending(x => x.SubmittedAt),
+            pageIndex: 1,
+            pageSize: 1);
 
-        var userAssignment = await _unitOfWork.UserAssignments.GetByConditionAsync(
-            a => a.AssignmentID == assignmentId && a.EnrollmentID == enrollmentId);
-
+        var bestAttempt = top.Data.FirstOrDefault();
         return new AssignmentOverview
         {
             Assignment = _mapper.Map<AssignmentClientViewDTO>(assignment),
-            UserAssignment = userAssignment != null ? _mapper.Map<UserAssignmentAttemptResponseDTO>(userAssignment) :null
+            UserAssignment = bestAttempt != null ? _mapper.Map<UserAssignmentAttemptResponseDTO>(bestAttempt) :null
         };
     }
 }
