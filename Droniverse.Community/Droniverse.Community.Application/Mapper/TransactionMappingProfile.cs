@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Domain.Entities;
 
@@ -10,8 +10,13 @@ public class TransactionMappingProfile : Profile
     {
         // Transaction
         CreateMap<Transaction, TransactionResponseDto>()
-            .ForMember(dest => dest.Wallet, opt => opt.MapFrom(src => src.Wallet));
-        
+            .ForMember(dest => dest.Club, opt => opt.MapFrom(src => src.Club))
+            .ForMember(dest => dest.Wallet, opt => opt.MapFrom(src => src.Wallet))
+            .ForMember(dest => dest.Order, opt => opt.Ignore())
+            .ForMember(dest => dest.WithdrawRequest, opt => opt.Ignore());
+
+        CreateMap<Club, ClubMiniResponse>();
+
         // Wallet
         CreateMap<Wallet, WalletResponseDto>();
     }

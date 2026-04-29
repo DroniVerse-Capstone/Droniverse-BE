@@ -195,6 +195,61 @@ public class UserAssignmentService : IUserAssignmentService
             normalizedPageSize);
     }
 
+    public async Task<PaginationResult<IEnumerable<UserAssignmentAttemptResponseDTO>>> GetAssignmentAttemptsByCourseAndClubAsync(
+        Guid? courseId,
+        Guid? clubId,
+        int pageIndex = 1,
+        int pageSize = 10)
+    {
+        var queryResult = await _unitOfWork.UserAssignments.GetAllAsync(
+            filter: x =>
+                (!courseId.HasValue || x.Enrollment.CourseID == courseId.Value) &&
+                (!clubId.HasValue || x.Enrollment.ClubID == clubId.Value),
+            orderBy: q => q.OrderByDescending(x => x.SubmittedAt).ThenByDescending(x => x.AttemptNumber),
+            pageIndex: 1,
+            pageSize: int.MaxValue,
+            includeProperties: "Enrollment");
+
+        var allItems = queryResult.Data.ToList();
+        var accessByClub = new Dictionary<Guid, bool>();
+        var accessibleItems = new List<UserAssignment>(allItems.Count);
+
+        foreach (var item in allItems)
+        {
+            var enrollment = item.Enrollment;
+            if (enrollment == null)
+                continue;
+
+            if (!accessByClub.TryGetValue(enrollment.ClubID, out var canAccess))
+            {
+                canAccess = await _communityClient.CheckParticipantByClubAsync(
+                    enrollment.ClubID,
+                    _currentUser.UserId,
+                    ParticipationStatus.ACTIVE);
+
+                accessByClub[enrollment.ClubID] = canAccess;
+            }
+
+            if (canAccess)
+                accessibleItems.Add(item);
+        }
+
+        var normalizedPageIndex = pageIndex < 1 ? 1 : pageIndex;
+        var normalizedPageSize = pageSize < 1 ? 10 : pageSize;
+
+        var paged = accessibleItems
+            .Skip((normalizedPageIndex - 1) * normalizedPageSize)
+            .Take(normalizedPageSize)
+            .Select(MapToAttemptResponse)
+            .ToList();
+
+        return new PaginationResult<IEnumerable<UserAssignmentAttemptResponseDTO>>(
+            paged,
+            accessibleItems.Count,
+            normalizedPageIndex,
+            normalizedPageSize);
+    }
+
     public async Task<PaginationResult<IEnumerable<UserAssignmentAttemptResponseDTO>>> GetMyAssignmentAttemptsAsync(
         Guid enrollmentId,
         Guid assignmentId,

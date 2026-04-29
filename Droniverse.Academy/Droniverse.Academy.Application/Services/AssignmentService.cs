@@ -1,8 +1,10 @@
+using AutoMapper;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
+using Droniverse.Academy.Application.Helpers;
 using Droniverse.Academy.Domain.IRepository;
 using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.DTOs.Response;
@@ -15,12 +17,14 @@ public class AssignmentService : IAssignmentService
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUser;
     private readonly IClock _clock;
+    private readonly IMapper _mapper;
 
-    public AssignmentService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IClock clock)
+    public AssignmentService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IClock clock, IMapper mapper)
     {
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _clock = clock;
+        _mapper = mapper;
     }
 
     public async Task<AssignmentClientViewDTO> CreateAssignmentAsync(CreateAssignmentRequestDTO request)
@@ -32,6 +36,18 @@ public class AssignmentService : IAssignmentService
 
         if (request.EstimatedTime < 0)
             throw new ValidationException("EstimatedTime phải lớn hơn hoặc bằng 0.");
+
+        var module = await _unitOfWork.Modules.GetByIdAsync(request.ModuleID);
+        if (module == null)
+            throw new BaseException("Không tìm thấy mô-đun.", "NOT_FOUND");
+
+        await CourseVersionDraftGuard.EnsureDraftByModuleIdAsync(
+            _unitOfWork,
+            request.ModuleID,
+            "Chỉ được chỉnh sửa lesson assignment khi phiên bản khóa học ở trạng thái Draft.");
+
+        var orderIndex = request.OrderIndex ?? await GetNextOrderIndexAsync(request.ModuleID);
+        await ValidateOrderIndexAsync(request.ModuleID, orderIndex);
 
         var assignment = new Assignment
         {
@@ -47,6 +63,18 @@ public class AssignmentService : IAssignmentService
         assignment.SetAuditOnCreate(_currentUser.UserId, _clock.Now);
 
         await _unitOfWork.Assignments.AddAsync(assignment);
+
+        var lesson = new Lesson
+        {
+            LessonID = Guid.NewGuid(),
+            ModuleID = request.ModuleID,
+            OrderIndex = orderIndex,
+            Type = LessonType.ASSIGNMENT,
+            ReferenceID = assignment.AssignmentID
+        };
+
+        await _unitOfWork.Lessons.AddAsync(lesson);
+
         await _unitOfWork.SaveChangesAsync();
 
         return MapToDto(assignment);
@@ -122,21 +150,32 @@ public class AssignmentService : IAssignmentService
         return assignment;
     }
 
-    private static AssignmentClientViewDTO MapToDto(Assignment assignment)
+    private AssignmentClientViewDTO MapToDto(Assignment assignment)
     {
-        return new AssignmentClientViewDTO
-        {
-            AssignmentID = assignment.AssignmentID,
-            TitleEN = assignment.TitleEN,
-            TitleVN = assignment.TitleVN,
-            DescriptionEN = assignment.DescriptionEN,
-            DescriptionVN = assignment.DescriptionVN,
-            Requirement = assignment.Requirement,
-            EstimatedTime = assignment.EstimatedTime,
-            CreateBy = assignment.CreateBy,
-            UpdateBy = assignment.UpdateBy,
-            CreateAt = assignment.CreateAt,
-            UpdateAt = assignment.UpdateAt
-        };
+        return _mapper.Map<AssignmentClientViewDTO>(assignment);
+    }
+
+    private async Task<int> GetNextOrderIndexAsync(Guid moduleId)
+    {
+        var lessons = await _unitOfWork.Lessons.GetAllAsync(
+            filter: l => l.ModuleID == moduleId,
+            orderBy: q => q.OrderByDescending(l => l.OrderIndex),
+            pageIndex: 1,
+            pageSize: 1);
+
+        var latest = lessons.Data.FirstOrDefault();
+        return (latest?.OrderIndex ?? 0) + 1;
+    }
+
+    private async Task ValidateOrderIndexAsync(Guid moduleId, int orderIndex)
+    {
+        if (orderIndex <= 0)
+            throw new ValidationException("OrderIndex phải lớn hơn 0.");
+
+        var duplicated = await _unitOfWork.Lessons.GetByConditionAsync(
+            l => l.ModuleID == moduleId && l.OrderIndex == orderIndex);
+
+        if (duplicated != null)
+            throw new ValidationException("OrderIndex phải là duy nhất trong mô-đun.");
     }
 }

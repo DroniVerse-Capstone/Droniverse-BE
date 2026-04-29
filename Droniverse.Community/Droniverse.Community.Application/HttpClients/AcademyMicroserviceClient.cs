@@ -787,8 +787,8 @@ public class AcademyMicroserviceClient
                 return [];
             }
 
-            var data = await response.Content.ReadFromJsonAsync<IEnumerable<SimpleCourseResponse>>(_jsonOptions, cancellationToken);
-            return data?
+            var wrapped = await response.Content.ReadFromJsonAsync<SuccessResponse<IEnumerable<SimpleCourseResponse>>>(_jsonOptions, cancellationToken);
+            return wrapped?.Data?
                 .Where(x => x != null && x.CourseId != Guid.Empty)
                 .ToList()
                 ?? [];
@@ -1103,6 +1103,56 @@ public class AcademyMicroserviceClient
         {
             _logger.LogError(ex, "Error fetching user level ids for user {UserId}", userId);
             return Enumerable.Empty<Guid>();
+        }
+    }
+
+    public async Task<CodeStatsOverviewResponse> GetCodeStatsByClub(Guid clubId)
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync(BuildAcademyPath($"codes/clubs/{clubId}/stats"));
+
+            if (!response.IsSuccessStatusCode)
+            {
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    _logger.LogWarning("Không tìm thấy code stats cho club {ClubId}", clubId);
+                    return new CodeStatsOverviewResponse();
+                }
+
+                _logger.LogWarning("Academy service lỗi khi gọi codes/clubs/{ClubId}/stats: {StatusCode}", clubId, response.StatusCode);
+                return new CodeStatsOverviewResponse();
+            }
+
+            var codeStats = await response.Content.ReadFromJsonAsync<CodeStatsOverviewResponse>(_jsonOptions);
+            return codeStats ?? new CodeStatsOverviewResponse();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi gọi Academy API codes/clubs/{ClubId}/stats", clubId);
+            return new CodeStatsOverviewResponse();
+        }
+    }
+
+    public async Task<CodeStatsOverviewResponse> GetCodeStatsAdmin()
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync(BuildAcademyPath("codes/admin/stats"));
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Academy service lỗi khi gọi codes/admin/stats: {StatusCode}", response.StatusCode);
+                return new CodeStatsOverviewResponse();
+            }
+
+            var codeStats = await response.Content.ReadFromJsonAsync<CodeStatsOverviewResponse>(_jsonOptions);
+            return codeStats ?? new CodeStatsOverviewResponse();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi gọi Academy API codes/admin/stats");
+            return new CodeStatsOverviewResponse();
         }
     }
 

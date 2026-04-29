@@ -1,4 +1,4 @@
-﻿using Droniverse.Community.Domain.Entities;
+using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Community.Infrastructure.Persistence.MySql;
 using Microsoft.EntityFrameworkCore;
@@ -16,6 +16,7 @@ internal class TransactionRepository : MySqlRepository<Transaction>, ITransactio
         return await _dbSet
             .Where(t => t.WalletID == walletId)
             .Include(t => t.Wallet)
+            .Include(t => t.Club)
             .OrderByDescending(t => t.CreatedAt)
             .ToListAsync();
     }

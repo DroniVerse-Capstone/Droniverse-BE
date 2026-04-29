@@ -1,4 +1,4 @@
-﻿using Droniverse.Community.Application.DTO.Response;
+using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Entities;
@@ -16,17 +16,20 @@ namespace Droniverse.Community.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IOrderRepository _orderRepository;
         private readonly AcademyMicroserviceClient _academyMicroserviceClient;
+        private readonly IdentityMicroserviceClient _identityMicroserviceClient;
         private readonly IClock _clock;
 
         public DashboardService(
             IUnitOfWork unitOfWork,
             IOrderRepository orderRepository,
             AcademyMicroserviceClient academyMicroserviceClient,
+            IdentityMicroserviceClient identityMicroserviceClient,
             IClock clock)
         {
             _unitOfWork = unitOfWork;
             _orderRepository = orderRepository;
             _academyMicroserviceClient = academyMicroserviceClient;
+            _identityMicroserviceClient = identityMicroserviceClient;
             _clock = clock;
         }
 
@@ -115,49 +118,56 @@ namespace Droniverse.Community.Application.Services
             if (top <= 0)
                 top = 10;
 
-            var (productIds, courseIdByProductId) = await GetClubProductContext(clubId);
-            if (productIds.Count == 0)
-                return new ClubCourseRevenueResponse { RevenueByCourse = [] };
-
             var allOrders = await _orderRepository.GetAllSuccessfulOrders();
             if (allOrders == null)
                 allOrders = [];
 
-            // Filter for CLUB_IMPORT orders for this club (club's spending/expense)
-            var clubImportOrders = allOrders
-                .Where(o => o.ClubID == clubId && o.OrderType == Domain.Enums.OrderType.CLUB_IMPORT)
+            // Lấy USER_PURCHASE orders của club (người dùng mua khóa học từ club = doanh thu theo khóa học)
+            var userPurchaseOrders = allOrders
+                .Where(o => o.ClubID == clubId
+                    && o.OrderType == Domain.Enums.OrderType.USER_PURCHASE
+                    && o.Item != null
+                    && o.Item.ProductID != Guid.Empty)
                 .ToList();
 
-            if (clubImportOrders.Count == 0)
+            if (userPurchaseOrders.Count == 0)
                 return new ClubCourseRevenueResponse { RevenueByCourse = [] };
 
-            var expenseByCourseId = clubImportOrders
-                .Where(x => x.Item?.ProductID != null && courseIdByProductId.ContainsKey(x.Item.ProductID))
-                .GroupBy(x => courseIdByProductId[x.Item.ProductID])
-                .ToDictionary(g => g.Key, g => g.Sum(x => x.TotalAmount));
+            // Lấy ProductID duy nhất rồi query SQL một lần
+            var productIds = userPurchaseOrders
+                .Select(o => o.Item.ProductID)
+                .Distinct()
+                .ToList();
 
-            if (expenseByCourseId.Count == 0)
+            var products = await _unitOfWork.Products
+                .GetManyByCondition(p => productIds.Contains(p.ProductID));
+
+            var courseIdByProductId = products
+                .Where(p => p.ReferenceID != Guid.Empty)
+                .ToDictionary(p => p.ProductID, p => p.ReferenceID);
+
+            if (courseIdByProductId.Count == 0)
                 return new ClubCourseRevenueResponse { RevenueByCourse = [] };
 
-            var courseIds = expenseByCourseId.Keys.ToList();
+            var revenueByCourseId = userPurchaseOrders
+                .Where(o => courseIdByProductId.ContainsKey(o.Item.ProductID))
+                .GroupBy(o => courseIdByProductId[o.Item.ProductID])
+                .ToDictionary(g => g.Key, g => g.Sum(o => o.TotalAmount));
+
+            if (revenueByCourseId.Count == 0)
+                return new ClubCourseRevenueResponse { RevenueByCourse = [] };
+
             var academyCourses = await _academyMicroserviceClient.GetCoursesByIdsSimple(clubId);
-            var filteredAcademyCourses = academyCourses
-                .Where(c => courseIds.Contains(c.CourseId))
-                .ToList();
-
-            var courseById = filteredAcademyCourses
+            var courseById = academyCourses
                 .GroupBy(c => c.CourseId)
                 .ToDictionary(g => g.Key, g => g.First());
 
-            var stats = expenseByCourseId
-                .Select(kvp =>
+            var stats = revenueByCourseId
+                .Where(kvp => courseById.ContainsKey(kvp.Key))
+                .Select(kvp => new CourseRevenueStat
                 {
-                    courseById.TryGetValue(kvp.Key, out var course);
-                    return new CourseRevenueStat
-                    {
-                        CourseInfo = course ?? throw new Exception("Lỗi hệ thống"),
-                        Revenue = kvp.Value
-                    };
+                    CourseInfo = courseById[kvp.Key],
+                    Revenue = kvp.Value
                 })
                 .OrderByDescending(x => x.Revenue)
                 .Take(top)
@@ -168,7 +178,29 @@ namespace Droniverse.Community.Application.Services
 
         private async Task<(List<Guid> ProductIds, Dictionary<Guid, Guid> CourseIdByProductId)> GetClubProductContext(Guid clubId)
         {
-           throw new NotImplementedException("Chưa implement mapping ProductID -> CourseID. Cần có thêm thông tin về Product để thực hiện mapping này.");
+            // Lấy tất cả đơn hàng USER_PURCHASE thành công của club để lấy danh sách ProductID
+            var allOrders = await _orderRepository.GetAllSuccessfulOrders();
+            var productIds = (allOrders ?? [])
+                .Where(o => o.ClubID == clubId
+                    && o.OrderType == Domain.Enums.OrderType.USER_PURCHASE
+                    && o.Item != null
+                    && o.Item.ProductID != Guid.Empty)
+                .Select(o => o.Item.ProductID)
+                .Distinct()
+                .ToList();
+
+            if (productIds.Count == 0)
+                return ([], []);
+
+            // Query bảng Product (SQL) để lấy ReferenceID = CourseID
+            var products = await _unitOfWork.Products
+                .GetManyByCondition(p => productIds.Contains(p.ProductID));
+
+            var courseIdByProductId = products
+                .Where(p => p.ReferenceID != Guid.Empty)
+                .ToDictionary(p => p.ProductID, p => p.ReferenceID);
+
+            return (productIds, courseIdByProductId);
         }
 
         private static double CalculateGrowthRate(decimal currentValue, decimal previousValue)
@@ -181,23 +213,6 @@ namespace Droniverse.Community.Application.Services
 
         public async Task<AdminRevenueOverviewResponse> GetAdminRevenueOverview()
         {
-            IEnumerable<Club> clubList = await _unitOfWork.Clubs.GetAll();
-
-            if (clubList == null || !clubList.Any())
-                return new AdminRevenueOverviewResponse
-                {
-                    TotalRevenue = 0,
-                    RevenueThisMonth = 0,
-                    RevenueLastMonth = 0,
-                    RevenueGrowthRate = 0,
-                    NetProfit = 0,
-                    ProfitThisMonth = 0,
-                    ProfitLastMonth = 0,
-                    ProfitGrowthRate = 0,
-                    TotalTransactions = 0,
-                    TransactionsThisMonth = 0
-                };
-
             // Get timestamp ranges
             var now = _clock.Now;
             var startThisMonth = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
@@ -211,28 +226,26 @@ namespace Droniverse.Community.Application.Services
             
             var allOrdersList = allOrders.ToList();
 
-            // Calculate Revenue and Profit from CLUB_IMPORT orders (clubs' spending on course codes)
-            var clubImportOrders = allOrdersList.Where(o => o.OrderType == Domain.Enums.OrderType.CLUB_IMPORT).ToList();
-            var totalRevenue = clubImportOrders.Sum(o => o.TotalAmount);
-            var revenueThisMonth = clubImportOrders
+            // For admin overview, revenue/profit are based on all successful orders in the system.
+            var totalRevenue = allOrdersList.Sum(o => o.TotalAmount);
+            var revenueThisMonth = allOrdersList
                 .Where(o => o.Payment != null 
                     && o.Payment.TransactionDate >= startThisMonth 
                     && o.Payment.TransactionDate < startNextMonth)
                 .Sum(o => o.TotalAmount);
-            var revenueLastMonth = clubImportOrders
+            var revenueLastMonth = allOrdersList
                 .Where(o => o.Payment != null 
                     && o.Payment.TransactionDate >= startLastMonth 
                     && o.Payment.TransactionDate < startThisMonth)
                 .Sum(o => o.TotalAmount);
 
-            // Profit is also based on CLUB_IMPORT orders
-            var netProfit = clubImportOrders.Sum(o => o.TotalAmount);
-            var profitThisMonth = clubImportOrders
+            var netProfit = allOrdersList.Sum(o => o.TotalAmount);
+            var profitThisMonth = allOrdersList
                 .Where(o => o.Payment != null 
                     && o.Payment.TransactionDate >= startThisMonth 
                     && o.Payment.TransactionDate < startNextMonth)
                 .Sum(o => o.TotalAmount);
-            var profitLastMonth = clubImportOrders
+            var profitLastMonth = allOrdersList
                 .Where(o => o.Payment != null 
                     && o.Payment.TransactionDate >= startLastMonth 
                     && o.Payment.TransactionDate < startThisMonth)
@@ -272,38 +285,21 @@ namespace Droniverse.Community.Application.Services
             if (months <= 0)
                 months = 12;
 
-            var clubList = await _unitOfWork.Clubs.GetAll();
-            if (clubList == null || !clubList.Any())
-                return new RevenueGrowthResponse { RevenueGrowth = [] };
-
             var now = _clock.Now;
             var startCurrentMonth = new DateTime(now.Year, now.Month, 1);
             var fromMonth = startCurrentMonth.AddMonths(-(months - 1));
             var toExclusive = startCurrentMonth.AddMonths(1);
 
-            var allRevenueData = new List<OrderRevenueData>();
+            var allOrders = await _orderRepository.GetAllSuccessfulOrders();
+            if (allOrders == null)
+                allOrders = [];
 
-            // Aggregate revenue data from all clubs using CLUB_IMPORT orders (admin's revenue)
-            foreach (var club in clubList)
-            {
-                try
-                {
-                    var revenueData = await _orderRepository.GetSuccessfulRevenueDataByClubId(club.ClubID, OrderType.CLUB_IMPORT, fromMonth, toExclusive);
-                    allRevenueData.AddRange(revenueData);
-                }
-                catch (Exception ex)
-                {
-                    // Log error but continue with other clubs
-                    continue;
-                }
-            }
-
-            if (allRevenueData.Count == 0)
-                return new RevenueGrowthResponse { RevenueGrowth = [] };
-
-            var valueByMonth = allRevenueData
-                .GroupBy(x => new DateTime(x.PaidAt.Year, x.PaidAt.Month, 1))
-                .ToDictionary(g => g.Key, g => g.Sum(x => x.Revenue));
+            var valueByMonth = allOrders
+                .Where(o => o.Payment != null
+                    && o.Payment.TransactionDate >= fromMonth
+                    && o.Payment.TransactionDate < toExclusive)
+                .GroupBy(o => new DateTime(o.Payment.TransactionDate.Year, o.Payment.TransactionDate.Month, 1))
+                .ToDictionary(g => g.Key, g => g.Sum(o => o.TotalAmount));
 
             var growth = Enumerable.Range(0, months)
                 .Select(i => fromMonth.AddMonths(i))
@@ -332,50 +328,55 @@ namespace Droniverse.Community.Application.Services
             if (top <= 0)
                 top = 10;
 
-            var clubList = await _unitOfWork.Clubs.GetAll();
-            if (clubList == null || !clubList.Any())
+            var allOrders = await _orderRepository.GetAllSuccessfulOrders();
+            if (allOrders == null)
+                allOrders = [];
+
+            // Lấy tất cả USER_PURCHASE orders (người dùng mua khóa học = doanh thu hệ thống)
+            var userPurchaseOrders = allOrders
+                .Where(o => o.OrderType == Domain.Enums.OrderType.USER_PURCHASE
+                    && o.Item != null
+                    && o.Item.ProductID != Guid.Empty)
+                .ToList();
+
+            if (userPurchaseOrders.Count == 0)
                 return new ClubCourseRevenueResponse { RevenueByCourse = [] };
 
-            var allRevenueData = new List<OrderRevenueData>();
-            var allCourseIdByProductId = new Dictionary<Guid, Guid>();
+            // Lấy tất cả ProductID duy nhất từ orders
+            var allProductIds = userPurchaseOrders
+                .Select(o => o.Item.ProductID)
+                .Distinct()
+                .ToList();
 
-            // Aggregate revenue data and product context from all clubs using CLUB_IMPORT orders (admin's revenue)
-            foreach (var club in clubList)
-            {
-                try
-                {
-                    var revenueData = await _orderRepository.GetSuccessfulRevenueDataByClubId(club.ClubID, OrderType.CLUB_IMPORT);
-                    allRevenueData.AddRange(revenueData);
+            // Query một lần duy nhất từ DB để lấy mapping ProductID -> CourseID (ReferenceID)
+            var products = await _unitOfWork.Products
+                .GetManyByCondition(p => allProductIds.Contains(p.ProductID));
 
-                    var (productIds, courseIdByProductId) = await GetClubProductContext(club.ClubID);
-                    foreach (var kvp in courseIdByProductId)
-                    {
-                        if (!allCourseIdByProductId.ContainsKey(kvp.Key))
-                            allCourseIdByProductId[kvp.Key] = kvp.Value;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    // Log error but continue with other clubs
-                    continue;
-                }
-            }
+            var allCourseIdByProductId = products
+                .Where(p => p.ReferenceID != Guid.Empty)
+                .ToDictionary(p => p.ProductID, p => p.ReferenceID);
 
-            if (allRevenueData.Count == 0 || allCourseIdByProductId.Count == 0)
+            if (allCourseIdByProductId.Count == 0)
                 return new ClubCourseRevenueResponse { RevenueByCourse = [] };
 
-            var revenueByCourseId = allRevenueData
-                .Where(x => allCourseIdByProductId.ContainsKey(x.ProductId))
-                .GroupBy(x => allCourseIdByProductId[x.ProductId])
-                .ToDictionary(g => g.Key, g => g.Sum(x => x.Revenue));
+            var revenueByCourseId = userPurchaseOrders
+                .Where(o => allCourseIdByProductId.ContainsKey(o.Item.ProductID))
+                .GroupBy(o => allCourseIdByProductId[o.Item.ProductID])
+                .ToDictionary(g => g.Key, g => g.Sum(o => o.TotalAmount));
 
             if (revenueByCourseId.Count == 0)
                 return new ClubCourseRevenueResponse { RevenueByCourse = [] };
 
+            // Lấy danh sách club liên quan để fetch course info
+            var clubIds = userPurchaseOrders
+                .Select(o => o.ClubID)
+                .Distinct()
+                .ToList();
+
             var allCourses = new List<SimpleCourseResponse>();
-            foreach (var club in clubList)
+            foreach (var clubId in clubIds)
             {
-                var coursesByClub = await _academyMicroserviceClient.GetCoursesByIdsSimple(club.ClubID);
+                var coursesByClub = await _academyMicroserviceClient.GetCoursesByIdsSimple(clubId);
                 allCourses.AddRange(coursesByClub);
             }
 
@@ -384,14 +385,11 @@ namespace Droniverse.Community.Application.Services
                 .ToDictionary(g => g.Key, g => g.First());
 
             var stats = revenueByCourseId
-                .Select(kvp =>
+                .Where(kvp => courseById.ContainsKey(kvp.Key))
+                .Select(kvp => new CourseRevenueStat
                 {
-                    courseById.TryGetValue(kvp.Key, out var course);
-                    return new CourseRevenueStat
-                    {
-                        CourseInfo = course ?? throw new Exception("Lỗi hệ thống"),
-                        Revenue = kvp.Value
-                    };
+                    CourseInfo = courseById[kvp.Key],
+                    Revenue = kvp.Value
                 })
                 .OrderByDescending(x => x.Revenue)
                 .Take(top)
@@ -415,16 +413,8 @@ namespace Droniverse.Community.Application.Services
             if (allOrders == null || !allOrders.Any())
                 return new AdminClubRankingResponse { Clubs = [] };
 
-            // Filter CLUB_IMPORT orders
-            var clubImportOrders = allOrders
-                .Where(o => o.OrderType == Domain.Enums.OrderType.CLUB_IMPORT)
-                .ToList();
-
-            if (clubImportOrders.Count == 0)
-                return new AdminClubRankingResponse { Clubs = [] };
-
-            // Group CLUB_IMPORT orders by ClubID
-            var ordersByClub = clubImportOrders
+            // Group all successful orders by ClubID
+            var ordersByClub = allOrders
                 .GroupBy(o => o.ClubID)
                 .ToDictionary(g => g.Key, g => g.ToList());
 
@@ -497,6 +487,259 @@ namespace Droniverse.Community.Application.Services
                 .ToList();
 
             return new AdminClubRankingResponse { Clubs = result };
+        }
+
+        // ===================== Competition Stats =====================
+
+        public async Task<CompetitionStatsResponse> GetCompetitionStats(int top = 10)
+        {
+            if (top <= 0) top = 10;
+
+            // Lấy tất cả competitions
+            var allCompetitions = (await _unitOfWork.Competitions.GetAll())?.ToList() ?? [];
+            if (allCompetitions.Count == 0)
+                return new CompetitionStatsResponse
+                {
+                    Overview = new CompetitionOverviewResponse(),
+                    TopByParticipants = []
+                };
+
+            return await BuildCompetitionStats(allCompetitions, top);
+        }
+
+        public async Task<CompetitionStatsResponse> GetCompetitionStatsByClub(Guid clubId, int top = 10)
+        {
+            if (top <= 0) top = 10;
+
+            var clubExists = await _unitOfWork.Clubs.GetByCondition(c => c.ClubID == clubId, q => q.AsNoTracking());
+            if (clubExists == null)
+                throw new KeyNotFoundException($"Không tìm thấy câu lạc bộ với ID [{clubId}].");
+
+            // Lấy competitions của club
+            var clubCompetitions = (await _unitOfWork.Competitions
+                .GetManyByCondition(c => c.ClubID == clubId))?.ToList() ?? [];
+
+            if (clubCompetitions.Count == 0)
+                return new CompetitionStatsResponse
+                {
+                    Overview = new CompetitionOverviewResponse(),
+                    TopByParticipants = []
+                };
+
+            return await BuildCompetitionStats(clubCompetitions, top);
+        }
+
+        /// <summary>
+        /// Logic chung: build CompetitionStatsResponse từ danh sách competitions đã filter.
+        /// </summary>
+        private async Task<CompetitionStatsResponse> BuildCompetitionStats(
+            List<Competition> competitions, int top)
+        {
+            var now = _clock.Now;
+            var competitionIds = competitions.Select(c => c.CompetitionID).ToList();
+
+            // Lấy số người tham gia ACTIVE cho tất cả competitions một lần
+            var participantCounts = await _unitOfWork.UserCompetitions
+                .GetCompetitorCountsByCompetitionIds(competitionIds);
+
+            var totalParticipants = participantCounts.Values.Sum();
+            var publishedCount = competitions.Count(c => c.Status == CompetitionStatus.PUBLISHED);
+
+            // Đang diễn ra: PUBLISHED + trong khoảng StartDate → EndDate
+            var ongoingCount = competitions.Count(c =>
+                c.Status == CompetitionStatus.PUBLISHED
+                && c.StartDate <= now
+                && c.EndDate >= now);
+
+            var overview = new CompetitionOverviewResponse
+            {
+                TotalCompetitions = competitions.Count,
+                OngoingCompetitions = ongoingCount,
+                CompletedCompetitions = competitions.Count(c => c.Status == CompetitionStatus.RESULT_PUBLISHED),
+                CancelledCompetitions = competitions.Count(c => c.Status == CompetitionStatus.CANCELLED),
+                DraftCompetitions = competitions.Count(c => c.Status == CompetitionStatus.DRAFT),
+                TotalParticipants = totalParticipants,
+                AverageParticipantsPerCompetition = competitions.Count > 0
+                    ? Math.Round((double)totalParticipants / competitions.Count, 1)
+                    : 0
+            };
+
+            // Lấy tên club cho hiển thị
+            var clubIds = competitions.Select(c => c.ClubID).Distinct().ToList();
+            var clubs = (await _unitOfWork.Clubs
+                .GetManyByCondition(c => clubIds.Contains(c.ClubID)))
+                .ToDictionary(c => c.ClubID);
+
+            // Top cuộc thi theo số người tham gia
+            var topItems = competitions
+                .Select(c => new CompetitionStatItem
+                {
+                    CompetitionId = c.CompetitionID,
+                    NameVN = c.NameVN,
+                    NameEN = c.NameEN,
+                    Status = c.Status.ToString(),
+                    ClubId = c.ClubID,
+                    ClubNameVN = clubs.TryGetValue(c.ClubID, out var club) ? club.NameVN : string.Empty,
+                    ParticipantCount = participantCounts.TryGetValue(c.CompetitionID, out var count) ? count : 0,
+                    StartDate = c.StartDate,
+                    EndDate = c.EndDate
+                })
+                .OrderByDescending(x => x.ParticipantCount)
+                .Take(top)
+                .ToList();
+
+            return new CompetitionStatsResponse
+            {
+                Overview = overview,
+                TopByParticipants = topItems
+            };
+        }
+
+        // ===================== Code Stats =====================
+
+        public async Task<CodeStatsOverviewResponse> GetCodeStatsByClub(Guid clubId)
+        {
+            var clubExists = await _unitOfWork.Clubs.GetByCondition(c => c.ClubID == clubId, q => q.AsNoTracking());
+            if (clubExists == null)
+                throw new KeyNotFoundException($"Không tìm thấy câu lạc bộ với ID [{clubId}].");
+
+            // Gọi Academy service để lấy code stats
+            var codeStats = await _academyMicroserviceClient.GetCodeStatsByClub(clubId);
+            return codeStats;
+        }
+
+        public async Task<CodeStatsOverviewResponse> GetCodeStatsAdmin()
+        {
+            // Gọi Academy service để lấy code stats toàn hệ thống
+            var codeStats = await _academyMicroserviceClient.GetCodeStatsAdmin();
+            return codeStats;
+        }
+
+        // ===================== Top Buyers =====================
+
+        public async Task<TopBuyersResponse> GetTopBuyersByClub(Guid clubId, int top = 10)
+        {
+            if (top <= 0)
+                top = 10;
+
+            var clubExists = await _unitOfWork.Clubs.GetByCondition(c => c.ClubID == clubId, q => q.AsNoTracking());
+            if (clubExists == null)
+                throw new KeyNotFoundException($"Không tìm thấy câu lạc bộ với ID [{clubId}].");
+
+            var allOrders = await _orderRepository.GetAllSuccessfulOrders();
+            if (allOrders == null || !allOrders.Any())
+                return new TopBuyersResponse { Buyers = [], TotalSystemRevenue = 0 };
+
+            // Lấy các đơn hàng USER_PURCHASE của club
+            var clubUserPurchaseOrders = allOrders
+                .Where(o => o.ClubID == clubId
+                    && o.OrderType == Domain.Enums.OrderType.USER_PURCHASE)
+                .ToList();
+
+            if (!clubUserPurchaseOrders.Any())
+                return new TopBuyersResponse { Buyers = [], TotalSystemRevenue = 0 };
+
+            // Nhóm theo UserID để tính tổng chi tiêu và số lần mua
+            var buyerStats = clubUserPurchaseOrders
+                .GroupBy(o => o.UserID)
+                .Select(g => new
+                {
+                    UserId = g.Key,
+                    Email = g.First().UserEmail,
+                    TotalSpent = g.Sum(o => o.TotalAmount),
+                    PurchaseCount = g.Count()
+                })
+                .OrderByDescending(x => x.TotalSpent)
+                .Take(top)
+                .ToList();
+
+            var userIds = buyerStats.Select(b => b.UserId).Distinct().ToList();
+            var users = await _identityMicroserviceClient.GetUsersBulk(userIds);
+            var userDict = users.ToDictionary(u => u.UserId);
+
+            var buyers = buyerStats
+                .Select(b => 
+                {
+                    var user = userDict.GetValueOrDefault(b.UserId);
+                    return new BuyerStatItem
+                    {
+                        UserId = b.UserId,
+                        UserName = user?.Username ?? string.Empty,
+                        Email = b.Email ?? string.Empty,
+                        ImageUrl = user?.ImageUrl,
+                        TotalSpent = b.TotalSpent,
+                        PurchaseCount = b.PurchaseCount
+                    };
+                })
+                .ToList();
+
+            var clubRevenue = clubUserPurchaseOrders.Sum(o => o.TotalAmount);
+
+            return new TopBuyersResponse
+            {
+                Buyers = buyers,
+                TotalSystemRevenue = clubRevenue
+            };
+        }
+
+        public async Task<TopBuyersResponse> GetTopBuyersAdmin(int top = 10)
+        {
+            if (top <= 0)
+                top = 10;
+
+            var allOrders = await _orderRepository.GetAllSuccessfulOrders();
+            if (allOrders == null || !allOrders.Any())
+                return new TopBuyersResponse { Buyers = [], TotalSystemRevenue = 0 };
+
+            // Lấy tất cả đơn hàng USER_PURCHASE của toàn hệ thống
+            var allUserPurchaseOrders = allOrders
+                .Where(o => o.OrderType == Domain.Enums.OrderType.USER_PURCHASE)
+                .ToList();
+
+            if (!allUserPurchaseOrders.Any())
+                return new TopBuyersResponse { Buyers = [], TotalSystemRevenue = 0 };
+
+            // Nhóm theo UserID để tính tổng chi tiêu và số lần mua
+            var buyerStats = allUserPurchaseOrders
+                .GroupBy(o => o.UserID)
+                .Select(g => new
+                {
+                    UserId = g.Key,
+                    Email = g.First().UserEmail,
+                    TotalSpent = g.Sum(o => o.TotalAmount),
+                    PurchaseCount = g.Count()
+                })
+                .OrderByDescending(x => x.TotalSpent)
+                .Take(top)
+                .ToList();
+
+            var userIds = buyerStats.Select(b => b.UserId).Distinct().ToList();
+            var users = await _identityMicroserviceClient.GetUsersBulk(userIds);
+            var userDict = users.ToDictionary(u => u.UserId);
+
+            var buyers = buyerStats
+                .Select(b => 
+                {
+                    var user = userDict.GetValueOrDefault(b.UserId);
+                    return new BuyerStatItem
+                    {
+                        UserId = b.UserId,
+                        UserName = user?.Username ?? string.Empty,
+                        Email = b.Email ?? string.Empty,
+                        ImageUrl = user?.ImageUrl,
+                        TotalSpent = b.TotalSpent,
+                        PurchaseCount = b.PurchaseCount
+                    };
+                })
+                .ToList();
+
+            var totalSystemRevenue = allUserPurchaseOrders.Sum(o => o.TotalAmount);
+
+            return new TopBuyersResponse
+            {
+                Buyers = buyers,
+                TotalSystemRevenue = totalSystemRevenue
+            };
         }
     }
 }

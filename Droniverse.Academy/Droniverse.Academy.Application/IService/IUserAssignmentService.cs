@@ -15,6 +15,11 @@ public interface IUserAssignmentService
         UserAssignmentStatus? status,
         int pageIndex = 1,
         int pageSize = 10);
+    Task<PaginationResult<IEnumerable<UserAssignmentAttemptResponseDTO>>> GetAssignmentAttemptsByCourseAndClubAsync(
+        Guid? courseId,
+        Guid? clubId,
+        int pageIndex = 1,
+        int pageSize = 10);
     Task<PaginationResult<IEnumerable<UserAssignmentAttemptResponseDTO>>> GetMyAssignmentAttemptsAsync(
         Guid enrollmentId,
         Guid assignmentId,
