@@ -124,7 +124,11 @@ public class UserAssignmentAttemptsSuccessResponseExample : IExamplesProvider<Su
                         AssignmentID = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
                         EnrollmentID = Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"),
                         AttemptNumber = 1,
-                        MediaID = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                        Media = new MediaMiniResponse
+                        {
+                            MediaID = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                            Url = "https://cdn.example.com/media/11111111-1111-1111-1111-111111111111.png"
+                        },
                         Description = "Đây là file mô tả quy trình thực hành và hình ảnh minh họa.",
                         Status = UserAssignmentStatus.SUBMITTED,
                         Score = null,
@@ -139,7 +143,11 @@ public class UserAssignmentAttemptsSuccessResponseExample : IExamplesProvider<Su
                         AssignmentID = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
                         EnrollmentID = Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"),
                         AttemptNumber = 2,
-                        MediaID = Guid.Parse("22222222-2222-2222-2222-222222222222"),
+                        Media = new MediaMiniResponse
+                        {
+                            MediaID = Guid.Parse("22222222-2222-2222-2222-222222222222"),
+                            Url = "https://cdn.example.com/media/22222222-2222-2222-2222-222222222222.png"
+                        },
                         Description = "Tôi đã thêm phần giải thích lựa chọn waypoint trong file đính kèm.",
                         Status = UserAssignmentStatus.PASSED,
                         Score = 85,

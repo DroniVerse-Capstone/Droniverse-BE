@@ -3,6 +3,7 @@ using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.Services;
 using Droniverse.Shared.DTOs;
+using Droniverse.Shared.DTOs.Response;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Droniverse.Academy.API.Controllers;
@@ -58,5 +59,12 @@ public class TestController : ControllerBase
             request.Email,
             request.CertificateImageUrl
         }, "Gửi email chứng chỉ test thành công."));
+    }
+    [HttpPost("community/media")]
+    [ProducesResponseType(typeof(SuccessResponse<IEnumerable<MediaMiniResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetMedia([FromBody] IEnumerable<Guid> referenceIds, CancellationToken cancellationToken)
+    {
+        var media = await _communityMicroserviceClient.GetMiniResponse(referenceIds, cancellationToken);
+        return Ok(SuccessResponse<IEnumerable<MediaMiniResponse>>.Create(media, "Test get media by reference ids thành công."));
     }
 }

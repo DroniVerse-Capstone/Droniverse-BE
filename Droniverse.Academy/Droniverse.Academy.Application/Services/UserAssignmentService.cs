@@ -1,15 +1,16 @@
-﻿using Droniverse.Academy.Application.DTO.Request;
+using AutoMapper;
+using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
-using Droniverse.Shared.Enums;
+using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Response;
+using Droniverse.Shared.Enums;
 using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Services.IServices;
-using AutoMapper;
 
 namespace Droniverse.Academy.Application.Services;
 
@@ -22,6 +23,7 @@ public class UserAssignmentService : IUserAssignmentService
     private readonly IClock _clock;
     private readonly LearningAssessmentAccessService _assessmentAccessService;
     private readonly CommunityMicroserviceClient _communityClient;
+    private readonly IdentityMicroserviceClient _identityClient;
     private readonly IMapper _mapper;
 
     public UserAssignmentService(
@@ -30,6 +32,7 @@ public class UserAssignmentService : IUserAssignmentService
         IClock clock,
         LearningAssessmentAccessService assessmentAccessService,
         CommunityMicroserviceClient communityClient,
+        IdentityMicroserviceClient identityClient,
         IMapper mapper)
     {
         _unitOfWork = unitOfWork;
@@ -37,6 +40,7 @@ public class UserAssignmentService : IUserAssignmentService
         _clock = clock;
         _assessmentAccessService = assessmentAccessService;
         _communityClient = communityClient;
+        _identityClient = identityClient;
         _mapper = mapper;
     }
 
@@ -105,16 +109,7 @@ public class UserAssignmentService : IUserAssignmentService
         if (userAssignment.Status is UserAssignmentStatus.PASSED or UserAssignmentStatus.FAILED)
             throw new ValidationException("Bài nộp đã được chấm, không thể chấm lại.");
 
-        var enrollment = userAssignment.Enrollment
-            ?? throw new NotFoundException("Không tìm thấy enrollment của bài nộp.");
-
-        var canAccessClub = await _communityClient.CheckParticipantByClubAsync(
-            enrollment.ClubID,
-            _currentUser.UserId,
-            ParticipationStatus.ACTIVE);
-
-        if (!canAccessClub)
-            throw new ForbiddenException("Bạn không có quyền chấm assignment của club này.");
+        _ = userAssignment.Enrollment ?? throw new NotFoundException("Không tìm thấy enrollment của bài nộp.");
 
         var reviewedAt = _clock.Now;
         var isPassed = request.Score >= PassScoreThreshold;
@@ -189,11 +184,12 @@ public class UserAssignmentService : IUserAssignmentService
         var paged = accessibleItems
             .Skip((normalizedPageIndex - 1) * normalizedPageSize)
             .Take(normalizedPageSize)
-            .Select(MapToAttemptResponse)
             .ToList();
 
+        var mapped = await MapToAttemptResponsesAsync(paged);
+
         return new PaginationResult<IEnumerable<UserAssignmentAttemptResponseDTO>>(
-            paged,
+            mapped,
             accessibleItems.Count,
             normalizedPageIndex,
             normalizedPageSize);
@@ -215,28 +211,14 @@ public class UserAssignmentService : IUserAssignmentService
             includeProperties: "Enrollment");
 
         var allItems = queryResult.Data.ToList();
-        var accessByClub = new Dictionary<Guid, bool>();
         var accessibleItems = new List<UserAssignment>(allItems.Count);
 
         foreach (var item in allItems)
         {
-            var enrollment = item.Enrollment;
-            if (enrollment == null)
+            if (item.Enrollment == null)
                 continue;
 
-            //if (!accessByClub.TryGetValue(enrollment.ClubID, out var canAccess))
-            //{
-            //    canAccess = await _communityClient.CheckParticipantByClubAsync(
-            //        enrollment.ClubID,
-            //        _currentUser.UserId,
-            //        ParticipationStatus.ACTIVE);
-
-            //    accessByClub[enrollment.ClubID] = canAccess;
-            //}
-
-            //if (canAccess)
-            //    accessibleItems.Add(item);
-                accessibleItems.Add(item);
+            accessibleItems.Add(item);
         }
 
         var normalizedPageIndex = pageIndex < 1 ? 1 : pageIndex;
@@ -245,11 +227,12 @@ public class UserAssignmentService : IUserAssignmentService
         var paged = accessibleItems
             .Skip((normalizedPageIndex - 1) * normalizedPageSize)
             .Take(normalizedPageSize)
-            .Select(MapToAttemptResponse)
             .ToList();
 
+        var mapped = await MapToAttemptResponsesAsync(paged);
+
         return new PaginationResult<IEnumerable<UserAssignmentAttemptResponseDTO>>(
-            paged,
+            mapped,
             accessibleItems.Count,
             normalizedPageIndex,
             normalizedPageSize);
@@ -267,11 +250,10 @@ public class UserAssignmentService : IUserAssignmentService
             filter: x => x.EnrollmentID == enrollmentId && x.AssignmentID == assignmentId,
             orderBy: q => q.OrderByDescending(x => x.AttemptNumber),
             pageIndex: pageIndex,
-            pageSize: pageSize);
+            pageSize: pageSize,
+            includeProperties: "Enrollment");
 
-        var mapped = result.Data
-            .Select(MapToAttemptResponse)
-            .ToList();
+        var mapped = await MapToAttemptResponsesAsync(result.Data);
 
         return new PaginationResult<IEnumerable<UserAssignmentAttemptResponseDTO>>(
             mapped,
@@ -280,15 +262,42 @@ public class UserAssignmentService : IUserAssignmentService
             result.PageSize);
     }
 
-    private static UserAssignmentAttemptResponseDTO MapToAttemptResponse(UserAssignment entity)
+    private async Task<List<UserAssignmentAttemptResponseDTO>> MapToAttemptResponsesAsync(IEnumerable<UserAssignment> entities)
     {
-        return new UserAssignmentAttemptResponseDTO
+        var items = entities.ToList();
+        if (items.Count == 0)
+        {
+            return [];
+        }
+
+        var mediaIds = items
+            .Select(x => x.MediaID)
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        var medias = await _communityClient.GetMiniResponse(mediaIds);
+        var mediaById = medias.ToDictionary(x => x.MediaID);
+
+        var userIds = items
+            .Select(x => x.Enrollment?.UserID ?? Guid.Empty)
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        var users = await ResolveUsersAsync(userIds);
+        var userById = users.ToDictionary(x => x.UserId);
+
+        return items.Select(entity => new UserAssignmentAttemptResponseDTO
         {
             UserAssignmentID = entity.UserAssignmentID,
             AssignmentID = entity.AssignmentID,
             EnrollmentID = entity.EnrollmentID,
             AttemptNumber = entity.AttemptNumber,
-            MediaID = entity.MediaID,
+            Media = mediaById.GetValueOrDefault(entity.MediaID),
+            User = entity.Enrollment != null && entity.Enrollment.UserID != Guid.Empty
+                ? userById.GetValueOrDefault(entity.Enrollment.UserID)
+                : null,
             Description = entity.Description,
             Status = entity.Status,
             Score = entity.Score,
@@ -296,7 +305,28 @@ public class UserAssignmentService : IUserAssignmentService
             ReviewedBy = entity.ReviewedBy,
             ReviewedAt = entity.ReviewedAt,
             SubmittedAt = entity.SubmittedAt
-        };
+        }).ToList();
+    }
+
+    private async Task<List<SimpleUserReponse>> ResolveUsersAsync(IEnumerable<Guid> userIds)
+    {
+        var distinctUserIds = userIds
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        if (distinctUserIds.Count == 0)
+        {
+            return [];
+        }
+
+        var userTasks = distinctUserIds.Select(userId => _identityClient.GetUserByUserID(userId));
+        var users = await Task.WhenAll(userTasks);
+
+        return users
+            .Where(x => x != null)
+            .Select(x => x!)
+            .ToList();
     }
 
     public async Task<AssignmentOverview> GetAssignmentOverView(Guid enrollmentId, Guid assignmentId)
@@ -306,16 +336,41 @@ public class UserAssignmentService : IUserAssignmentService
         var assignment = await _unitOfWork.Assignments.GetByIdAsync(assignmentId);
 
         var top = await _unitOfWork.UserAssignments.GetAllAsync(
-            filter: x => x.AssignmentID == assignmentId && x.EnrollmentID == enrollmentId ,
+            filter: x => x.AssignmentID == assignmentId && x.EnrollmentID == enrollmentId,
             orderBy: q => q.OrderByDescending(x => x.SubmittedAt),
             pageIndex: 1,
-            pageSize: 1);
+            pageSize: 1,
+            includeProperties: "Enrollment");
 
         var bestAttempt = top.Data.FirstOrDefault();
+        var media = bestAttempt == null
+            ? null
+            : (await _communityClient.GetMiniResponse([bestAttempt.MediaID])).FirstOrDefault();
+        var user = bestAttempt?.Enrollment == null
+            ? null
+            : await _identityClient.GetUserByUserID(bestAttempt.Enrollment.UserID);
+
         return new AssignmentOverview
         {
             Assignment = _mapper.Map<AssignmentClientViewDTO>(assignment),
-            UserAssignment = bestAttempt != null ? _mapper.Map<UserAssignmentAttemptResponseDTO>(bestAttempt) :null
+            UserAssignment = bestAttempt != null
+                ? new UserAssignmentAttemptResponseDTO
+                {
+                    UserAssignmentID = bestAttempt.UserAssignmentID,
+                    AssignmentID = bestAttempt.AssignmentID,
+                    EnrollmentID = bestAttempt.EnrollmentID,
+                    AttemptNumber = bestAttempt.AttemptNumber,
+                    Media = media,
+                    User = user,
+                    Description = bestAttempt.Description,
+                    Status = bestAttempt.Status,
+                    Score = bestAttempt.Score,
+                    ReviewComment = bestAttempt.ReviewComment,
+                    ReviewedBy = bestAttempt.ReviewedBy,
+                    ReviewedAt = bestAttempt.ReviewedAt,
+                    SubmittedAt = bestAttempt.SubmittedAt
+                }
+                : null
         };
     }
 }

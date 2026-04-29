@@ -16,12 +16,14 @@ namespace Droniverse.Academy.Application.HttpClients
     {
         private readonly ClubClient _clubClient;
         private readonly ClubCourseClient _clubCourseClient;
+        private readonly MediaClient _mediaClient;
         private readonly ProductClient _productClient;
 
         public CommunityMicroserviceClient(HttpClient httpClient, ILogger<CommunityMicroserviceClient> logger, ICacheService cacheService, IHostEnvironment environment)
         {
             _clubClient = new ClubClient(httpClient, logger, cacheService, environment);
             _clubCourseClient = new ClubCourseClient(httpClient, logger, cacheService, environment);
+            _mediaClient = new MediaClient(httpClient, logger, cacheService, environment);
             _productClient = new ProductClient(httpClient, logger, cacheService, environment);
         }
 
@@ -76,6 +78,13 @@ namespace Droniverse.Academy.Application.HttpClients
             CancellationToken cancellationToken = default)
         {
             return await _productClient.GetProductsBulkByReferenceIdsAsync(referenceIds, cancellationToken);
+        }
+
+        public async Task<IEnumerable<MediaMiniResponse>> GetMiniResponse(
+            IEnumerable<Guid> mediaIds,
+            CancellationToken cancellationToken = default)
+        {
+            return await _mediaClient.GetMiniResponse(mediaIds, cancellationToken);
         }
 
         public async Task<IEnumerable<SimpleClubResponse>> GetClubInfoBulkAsync(

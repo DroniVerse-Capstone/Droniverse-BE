@@ -99,12 +99,12 @@ namespace Droniverse.Community.API.Controllers
             return SuccessResponse<MediaResponseDto>.Create(mediaResponse, "Tải lên tệp media tạm thành công! (Lưu database background)");
         }
 
-        [HttpGet("mini/{mediaId}")]
-        public async Task<ActionResult<MediaMiniResponse>> GetMiniResponse(Guid mediaId)
+        [HttpGet("mini")]
+        [ProducesResponseType(typeof(IEnumerable<MediaMiniResponse>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<IEnumerable<MediaMiniResponse>>> GetMiniResponse([FromQuery] List<Guid>? mediaIds)
         {
-            var media = await _mediaService.GetMiniResponse(mediaId);
+            var media = await _mediaService.GetMiniResponse(mediaIds);
             return Ok(media);
-
         }
     }
 }

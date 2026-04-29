@@ -13,7 +13,6 @@ namespace Droniverse.Academy.Application.Mapper
     {
         public UserAssignmentProfile()
         {
-            CreateMap<UserAssignment, UserAssignmentAttemptResponseDTO>();
         }
     }
 }

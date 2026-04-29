@@ -148,17 +148,25 @@ public class MediaService : IMediaService
         }
     }
 
-    public async Task<MediaMiniResponse> GetMiniResponse(Guid mediaId)
+    public async Task<IEnumerable<MediaMiniResponse>> GetMiniResponse(IEnumerable<Guid>? mediaIds)
     {
         try
         {
-            var media = await _unitOfWork.Medias.GetByCondition(m => m.MediaID == mediaId);
-            return _mapper.Map<MediaMiniResponse>(media);
+            var filteredMediaIds = (mediaIds ?? Enumerable.Empty<Guid>())
+                .Where(id => id != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (filteredMediaIds.Count == 0)
+                return [];
+
+            var medias = await _unitOfWork.Medias.GetManyByCondition(m => filteredMediaIds.Contains(m.MediaID));
+            return _mapper.Map<IEnumerable<MediaMiniResponse>>(medias);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Error occurred while get media data");
-            return null;
+            return [];
         }
     }
 }

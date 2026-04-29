@@ -10,6 +10,6 @@ public interface IMediaService
     Task<IEnumerable<MediaResponseDto>> GetAllMedia();
     Task<MediaResponseDto?> GetMediaById(Guid id);
     Task<MediaResponseDto> UploadTempMedia(FileUploadMediaDto dto, ICloudinaryService cloudinaryService);
-    Task<MediaMiniResponse> GetMiniResponse(Guid mediaId);
+    Task<IEnumerable<MediaMiniResponse>> GetMiniResponse(IEnumerable<Guid>? mediaIds);
 }
 
