@@ -25,7 +25,7 @@ public class Transaction
         int amount,
         TransactionType type,
         Guid referenceID,
-                Guid? clubID,
+        Guid? clubID,
         Guid? orderID,
         Guid? withdrawRequestID
       )

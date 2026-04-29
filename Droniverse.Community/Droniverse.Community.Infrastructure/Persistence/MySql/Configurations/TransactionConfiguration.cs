@@ -26,8 +26,8 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
         builder.Property(t => t.WithdrawRequestID).HasColumnType("char(36)").IsRequired(false);
 
         builder.HasOne(t => t.WithdrawRequest)
-            .WithOne(wr => wr.Transaction)
-            .HasForeignKey<Transaction>(t => t.WithdrawRequestID)
+            .WithMany(wr => wr.Transactions)
+            .HasForeignKey(t => t.WithdrawRequestID)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.Property(t => t.ClubID).HasColumnType("char(36)").IsRequired(false);
