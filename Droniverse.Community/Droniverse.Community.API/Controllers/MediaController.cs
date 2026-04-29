@@ -3,6 +3,7 @@ using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.IService;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
+using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Services.IServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -97,6 +98,14 @@ namespace Droniverse.Community.API.Controllers
             var mediaResponse = await _mediaService.UploadTempMedia(dto, _cloudinaryService);
             return SuccessResponse<MediaResponseDto>.Create(mediaResponse, "Tải lên tệp media tạm thành công! (Lưu database background)");
         }
-    } 
+
+        [HttpGet("mini/{mediaId}")]
+        public async Task<ActionResult<MediaMiniResponse>> GetMiniResponse(Guid mediaId)
+        {
+            var media = await _mediaService.GetMiniResponse(mediaId);
+            return Ok(media);
+
+        }
+    }
 }
 
