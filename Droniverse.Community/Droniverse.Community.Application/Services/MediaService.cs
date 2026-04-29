@@ -5,6 +5,7 @@ using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.IRepository;
+using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Services.IServices;
 using Microsoft.AspNetCore.Components.Sections;
@@ -144,6 +145,20 @@ public class MediaService : IMediaService
         {
             _logger.LogError(ex, $"Error occurred while saving media {media.MediaID} to database");
             // Don't throw - this is a background operation
+        }
+    }
+
+    public async Task<MediaMiniResponse> GetMiniResponse(Guid mediaId)
+    {
+        try
+        {
+            var media = await _unitOfWork.Medias.GetByCondition(m => m.MediaID == mediaId);
+            return _mapper.Map<MediaMiniResponse>(media);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error occurred while get media data");
+            return null;
         }
     }
 }
