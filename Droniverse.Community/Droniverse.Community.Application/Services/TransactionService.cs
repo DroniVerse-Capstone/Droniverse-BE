@@ -51,6 +51,7 @@ namespace Droniverse.Community.Application.Services
             Transaction? transaction = await _unitOfWork.Transactions.GetByCondition(
                 t => t.TransactionID == transactionId,
                 include: q => q.Include(t => t.Wallet)
+                              .Include(t => t.Club)
                               .Include(t => t.WithdrawRequest));
             if (transaction == null)
             {
@@ -88,7 +89,8 @@ namespace Droniverse.Community.Application.Services
         {
             IEnumerable<Transaction> allTransactions = await _unitOfWork.Transactions.GetManyByCondition(
                 t => true,
-                include: q => q.Include(t => t.Wallet));
+                include: q => q.Include(t => t.Wallet)
+                              .Include(t => t.Club));
 
             // Apply filters
             if (request.Type.HasValue)
@@ -162,7 +164,8 @@ namespace Droniverse.Community.Application.Services
             // Get transactions for the user's wallet
             IEnumerable<Transaction> allTransactions = await _unitOfWork.Transactions.GetManyByCondition(
                 t => t.WalletID == userWallet.WalletID,
-                include: q => q.Include(t => t.Wallet));
+                include: q => q.Include(t => t.Wallet)
+                              .Include(t => t.Club));
 
             // Apply filters
             if (request.Type.HasValue)
@@ -194,7 +197,14 @@ namespace Droniverse.Community.Application.Services
             foreach (var (entity, dto) in pagedTransactions.Zip(mappedTransactions, (entity, dto) => (entity, dto)))
             {
                 await EnrichTransactionResponseAsync(entity, dto);
-                dto.ClubID = clubID;
+                if (dto.Club == null)
+                {
+                    dto.Club = new ClubMiniResponse { ClubID = clubID, NameVN = string.Empty, NameEN = string.Empty, ImageUrl = string.Empty };
+                }
+                else
+                {
+                    dto.Club.ClubID = clubID;
+                }
                 await PopulateOwnerNameAsync(dto);
             }
 

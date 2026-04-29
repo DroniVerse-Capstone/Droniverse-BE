@@ -1,4 +1,4 @@
-﻿using Droniverse.Community.Application.DTO.Response;
+using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Entities;
@@ -16,17 +16,20 @@ namespace Droniverse.Community.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IOrderRepository _orderRepository;
         private readonly AcademyMicroserviceClient _academyMicroserviceClient;
+        private readonly IdentityMicroserviceClient _identityMicroserviceClient;
         private readonly IClock _clock;
 
         public DashboardService(
             IUnitOfWork unitOfWork,
             IOrderRepository orderRepository,
             AcademyMicroserviceClient academyMicroserviceClient,
+            IdentityMicroserviceClient identityMicroserviceClient,
             IClock clock)
         {
             _unitOfWork = unitOfWork;
             _orderRepository = orderRepository;
             _academyMicroserviceClient = academyMicroserviceClient;
+            _identityMicroserviceClient = identityMicroserviceClient;
             _clock = clock;
         }
 
@@ -642,7 +645,6 @@ namespace Droniverse.Community.Application.Services
                 .Select(g => new
                 {
                     UserId = g.Key,
-                    UserName = g.First().UserName,
                     Email = g.First().UserEmail,
                     TotalSpent = g.Sum(o => o.TotalAmount),
                     PurchaseCount = g.Count()
@@ -651,15 +653,23 @@ namespace Droniverse.Community.Application.Services
                 .Take(top)
                 .ToList();
 
+            var userIds = buyerStats.Select(b => b.UserId).Distinct().ToList();
+            var users = await _identityMicroserviceClient.GetUsersBulk(userIds);
+            var userDict = users.ToDictionary(u => u.UserId);
+
             var buyers = buyerStats
-                .Select(b => new BuyerStatItem
+                .Select(b => 
                 {
-                    UserId = b.UserId,
-                    UserName = b.UserName ?? string.Empty,
-                    Email = b.Email ?? string.Empty,
-                    ImageUrl = null,
-                    TotalSpent = b.TotalSpent,
-                    PurchaseCount = b.PurchaseCount
+                    var user = userDict.GetValueOrDefault(b.UserId);
+                    return new BuyerStatItem
+                    {
+                        UserId = b.UserId,
+                        UserName = user?.Username ?? string.Empty,
+                        Email = b.Email ?? string.Empty,
+                        ImageUrl = user?.ImageUrl,
+                        TotalSpent = b.TotalSpent,
+                        PurchaseCount = b.PurchaseCount
+                    };
                 })
                 .ToList();
 
@@ -695,7 +705,6 @@ namespace Droniverse.Community.Application.Services
                 .Select(g => new
                 {
                     UserId = g.Key,
-                    UserName = g.First().UserName,
                     Email = g.First().UserEmail,
                     TotalSpent = g.Sum(o => o.TotalAmount),
                     PurchaseCount = g.Count()
@@ -704,15 +713,23 @@ namespace Droniverse.Community.Application.Services
                 .Take(top)
                 .ToList();
 
+            var userIds = buyerStats.Select(b => b.UserId).Distinct().ToList();
+            var users = await _identityMicroserviceClient.GetUsersBulk(userIds);
+            var userDict = users.ToDictionary(u => u.UserId);
+
             var buyers = buyerStats
-                .Select(b => new BuyerStatItem
+                .Select(b => 
                 {
-                    UserId = b.UserId,
-                    UserName = b.UserName ?? string.Empty,
-                    Email = b.Email ?? string.Empty,
-                    ImageUrl = null,
-                    TotalSpent = b.TotalSpent,
-                    PurchaseCount = b.PurchaseCount
+                    var user = userDict.GetValueOrDefault(b.UserId);
+                    return new BuyerStatItem
+                    {
+                        UserId = b.UserId,
+                        UserName = user?.Username ?? string.Empty,
+                        Email = b.Email ?? string.Empty,
+                        ImageUrl = user?.ImageUrl,
+                        TotalSpent = b.TotalSpent,
+                        PurchaseCount = b.PurchaseCount
+                    };
                 })
                 .ToList();
 
