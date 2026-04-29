@@ -17,6 +17,7 @@
 		<PackageReference Include="RabbitMQ.Client" Version="6.8.1" />
 	</ItemGroup>
 	<ItemGroup>
+	  <InternalsVisibleTo Include="Droniverse.Tests" />
 	  <ProjectReference Include="..\..\Droniverse.Shared\Droniverse.Shared.csproj" />
 	  <ProjectReference Include="..\Droniverse.Community.Domain\Droniverse.Community.Domain.csproj" />
 	</ItemGroup>

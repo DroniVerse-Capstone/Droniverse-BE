@@ -20,4 +20,4 @@ namespace Droniverse.Community.Application.DTO.Request
         [Required]
         public TimeSpan LimitTime { get; set; }
     }
-}
+}  

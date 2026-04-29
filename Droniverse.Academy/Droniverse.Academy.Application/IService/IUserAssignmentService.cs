@@ -25,4 +25,7 @@ public interface IUserAssignmentService
         Guid assignmentId,
         int pageIndex = 1,
         int pageSize = 10);
+    Task<AssignmentOverview> GetAssignmentOverView(
+    Guid enrollmentId,
+    Guid assignmentId);
 }

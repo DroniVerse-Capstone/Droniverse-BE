@@ -1,4 +1,4 @@
-using Droniverse.Academy.Application.DTO.Request;
+﻿using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.API.Examples;
@@ -43,6 +43,30 @@ public class UserLearningAssignmentController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Lấy lịch sử nộp assignment thất bại.");
+            throw;
+        }
+    }
+    /// <summary>
+    /// Lấy đề kèm kết quả làm bài, nếu không có thì null
+    /// </summary>
+    /// <param name="enrollmentId"></param>
+    /// <param name="assignmentId"></param>
+    /// <returns></returns>
+    [HttpGet("{assignmentId:guid}")]
+    public async Task<IActionResult> GetAssignmentOverview (
+        Guid enrollmentId,
+        Guid assignmentId)
+    {
+        try
+        {
+            var result = await _service.GetAssignmentOverView(enrollmentId, assignmentId);
+            return Ok(SuccessResponse<AssignmentOverview>.Create(
+                result,
+                "Lấy assignment overview thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lấy assignment overview thất bại.");
             throw;
         }
     }

@@ -9,6 +9,7 @@ using Droniverse.Shared.Enums;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Services.IServices;
+using AutoMapper;
 
 namespace Droniverse.Academy.Application.Services;
 
@@ -21,19 +22,22 @@ public class UserAssignmentService : IUserAssignmentService
     private readonly IClock _clock;
     private readonly LearningAssessmentAccessService _assessmentAccessService;
     private readonly CommunityMicroserviceClient _communityClient;
+    private readonly IMapper _mapper;
 
     public UserAssignmentService(
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUser,
         IClock clock,
         LearningAssessmentAccessService assessmentAccessService,
-        CommunityMicroserviceClient communityClient)
+        CommunityMicroserviceClient communityClient,
+        IMapper mapper)
     {
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _clock = clock;
         _assessmentAccessService = assessmentAccessService;
         _communityClient = communityClient;
+        _mapper = mapper;
     }
 
     public async Task<UserAssignmentSubmitResponseDTO> SubmitAssignmentAsync(Guid enrollmentId, Guid assignmentId, SubmitUserAssignmentRequestDTO request)
@@ -291,6 +295,26 @@ public class UserAssignmentService : IUserAssignmentService
             ReviewedBy = entity.ReviewedBy,
             ReviewedAt = entity.ReviewedAt,
             SubmittedAt = entity.SubmittedAt
+        };
+    }
+
+    public async Task<AssignmentOverview> GetAssignmentOverView(Guid enrollmentId, Guid assignmentId)
+    {
+        await _assessmentAccessService.GetAccessibleAssignmentAsync(enrollmentId, assignmentId);
+
+        var assignment = await _unitOfWork.Assignments.GetByIdAsync(assignmentId);
+
+        var top = await _unitOfWork.UserAssignments.GetAllAsync(
+            filter: x => x.AssignmentID == assignmentId && x.EnrollmentID == enrollmentId ,
+            orderBy: q => q.OrderByDescending(x => x.SubmittedAt),
+            pageIndex: 1,
+            pageSize: 1);
+
+        var bestAttempt = top.Data.FirstOrDefault();
+        return new AssignmentOverview
+        {
+            Assignment = _mapper.Map<AssignmentClientViewDTO>(assignment),
+            UserAssignment = bestAttempt != null ? _mapper.Map<UserAssignmentAttemptResponseDTO>(bestAttempt) :null
         };
     }
 }
