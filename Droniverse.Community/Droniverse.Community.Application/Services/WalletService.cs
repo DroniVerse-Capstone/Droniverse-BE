@@ -221,10 +221,10 @@ namespace Droniverse.Community.Application.Services
                 );
                 await _unitOfWork.Transactions.Add(transaction);
             }
-            else if(request.Status == WithdrawStatus.CANCELED) //
+            else if(request.Status == WithdrawStatus.CANCELLED) //
             {
                 wallet.UpdateBalance(withdrawRequest.Amount); // hoàn tiền vào ví
-                withdrawRequest.UpdateStatus(WithdrawStatus.CANCELED);
+                withdrawRequest.UpdateStatus(WithdrawStatus.CANCELLED);
                 withdrawRequest.ApproverID = _currentUserService.UserId;
                 withdrawRequest.ApprovedAt = _clock.Now;
 

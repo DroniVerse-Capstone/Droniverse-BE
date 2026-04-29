@@ -32,7 +32,7 @@ public class WithdrawApproveRequestExample : IMultipleExamplesProvider<WithdrawA
             Name = "Cancel (Hủy)",
             Value = new WithdrawApproveRequestDto
             {
-                Status = WithdrawStatus.CANCELED,
+                Status = WithdrawStatus.CANCELLED,
                 RejectReason = null
             }
         };

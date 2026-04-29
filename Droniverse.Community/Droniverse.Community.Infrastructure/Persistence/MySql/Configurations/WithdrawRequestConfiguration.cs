@@ -60,7 +60,7 @@ public class WithdrawRequestConfiguration : IEntityTypeConfiguration<WithdrawReq
         builder.Property(t => t.RejectReason).HasColumnType("text").IsRequired(false);
 
         builder.ToTable(t =>
-        t.HasCheckConstraint("CK_WithdrawRequest_Status", "Status IN ('PENDING', 'APPROVED', 'REJECTED', 'CANCELED')"));
+        t.HasCheckConstraint("CK_WithdrawRequest_Status", "Status IN ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED')"));
     }
 
 }

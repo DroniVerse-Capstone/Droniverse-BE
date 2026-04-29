@@ -4,5 +4,5 @@ public enum WithdrawStatus
     PENDING,
     APPROVED,
     REJECTED,
-    CANCELED
+    CANCELLED
 }

@@ -11,14 +11,14 @@ namespace Droniverse.Community.Infrastructure.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             //// 1. Gỡ bỏ Foreign Key đang trói buộc Index
-            migrationBuilder.DropForeignKey(
-                name: "FK_Transaction_WithdrawRequest_WithdrawRequestID",
-                table: "Transaction");
+            //migrationBuilder.DropForeignKey(
+            //    name: "FK_Transaction_WithdrawRequest_WithdrawRequestID",
+            //    table: "Transaction");
 
-            //// 2. Xóa Index Unique cũ
-            migrationBuilder.DropIndex(
-                name: "IX_Transaction_WithdrawRequestID",
-                table: "Transaction");
+            ////// 2. Xóa Index Unique cũ
+            //migrationBuilder.DropIndex(
+            //    name: "IX_Transaction_WithdrawRequestID",
+            //    table: "Transaction");
 
             // 3. Tạo lại Index mới (Không Unique)
             //migrationBuilder.CreateIndex(
