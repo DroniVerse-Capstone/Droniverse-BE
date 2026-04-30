@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.HttpClients;
@@ -279,14 +279,14 @@ public class UserAssignmentService : IUserAssignmentService
         var medias = await _communityClient.GetMiniResponse(mediaIds);
         var mediaById = medias.ToDictionary(x => x.MediaID);
 
-        var userIds = items
-            .Select(x => x.Enrollment?.UserID ?? Guid.Empty)
-            .Where(x => x != Guid.Empty)
-            .Distinct()
-            .ToList();
+        //var userIds = items
+        //    .Select(x => x.Enrollment?.UserID ?? Guid.Empty)
+        //    .Where(x => x != Guid.Empty)
+        //    .Distinct()
+        //    .ToList();
 
-        var users = await ResolveUsersAsync(userIds);
-        var userById = users.ToDictionary(x => x.UserId);
+        //var users = await ResolveUsersAsync(userIds);
+        //var userById = users.ToDictionary(x => x.UserId);
 
         return items.Select(entity => new UserAssignmentAttemptResponseDTO
         {
@@ -295,9 +295,10 @@ public class UserAssignmentService : IUserAssignmentService
             EnrollmentID = entity.EnrollmentID,
             AttemptNumber = entity.AttemptNumber,
             Media = mediaById.GetValueOrDefault(entity.MediaID),
-            User = entity.Enrollment != null && entity.Enrollment.UserID != Guid.Empty
-                ? userById.GetValueOrDefault(entity.Enrollment.UserID)
-                : null,
+            //User = entity.Enrollment != null && entity.Enrollment.UserID != Guid.Empty
+            //    ? userById.GetValueOrDefault(entity.Enrollment.UserID)
+            //    : null,
+            User = null,
             Description = entity.Description,
             Status = entity.Status,
             Score = entity.Score,
