@@ -18,19 +18,22 @@ public class EnrollmentService : IEnrollmentService
     private readonly ICurrentUserService _currentUser;
     private readonly IClock _clock;
     private readonly IUserLevelService _userLevelService;
+    private readonly IUserLookupService _userLookupService;
 
     public EnrollmentService(
         IUnitOfWork unitOfWork,
         IMapper mapper,
         ICurrentUserService currentUser,
         IClock clock,
-        IUserLevelService userLevelService)
+        IUserLevelService userLevelService,
+        IUserLookupService userLookupService)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _currentUser = currentUser;
         _clock = clock;
         _userLevelService = userLevelService;
+        _userLookupService = userLookupService;
     }
 
     public async Task<EnrollmentResponseDTO> CreateEnrollmentAsync(CreateEnrollmentRequestDTO request)
@@ -185,6 +188,58 @@ public class EnrollmentService : IEnrollmentService
                 LevelNumber = x.LevelNumber,
                 Name = x.Name
             }
+        }).ToList();
+
+        return new PaginationResult<IEnumerable<CoursesEnrollmentResponse>>(
+            mapped,
+            result.TotalRecords,
+            result.PageIndex,
+            result.PageSize);
+    }
+
+    public async Task<PaginationResult<IEnumerable<CoursesEnrollmentResponse>>> GetEnrollmentsByClubAsync(
+        Guid clubId,
+        int pageIndex,
+        int pageSize,
+        Guid? courseId = null,
+        Guid? userId = null)
+    {
+        if (clubId == Guid.Empty)
+            throw new ValidationException("ClubId không hợp lệ.");
+
+        var result = await _unitOfWork.Enrollments.GetEnrollmentsByClubAsync(
+            clubId: clubId,
+            courseId: courseId,
+            userId: userId,
+            pageIndex: pageIndex,
+            pageSize: pageSize);
+
+        var userLookup = await _userLookupService.BuildUserLookupAsync(
+            result.Data.Select(x => x.UserId).Distinct().ToList());
+
+        var mapped = result.Data.Select(x =>
+        {
+            userLookup.TryGetValue(x.UserId, out var user);
+
+            return new CoursesEnrollmentResponse
+            {
+                EnrollmentId = x.EnrollmentId,
+                CourseId = x.CourseId,
+                CourseVersionId = x.CourseVersionId,
+                CourseNameVN = x.CourseNameVN,
+                CourseNameEN = x.CourseNameEN,
+                ImageUrl = x.ImageUrl,
+                EstimatedDuration = x.EstimatedDuration,
+                Progress = x.Progress,
+                EnrollStatus = x.EnrollStatus,
+                Level = new LevelMiniResponse
+                {
+                    LevelID = x.LevelID,
+                    LevelNumber = x.LevelNumber,
+                    Name = x.Name
+                },
+                User = user
+            };
         }).ToList();
 
         return new PaginationResult<IEnumerable<CoursesEnrollmentResponse>>(

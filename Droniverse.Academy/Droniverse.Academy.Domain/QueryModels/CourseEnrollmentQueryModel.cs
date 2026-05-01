@@ -11,6 +11,7 @@ namespace Droniverse.Academy.Domain.QueryModels
     public class CourseEnrollmentQueryModel
     {
         public Guid EnrollmentId { get; set; }
+        public Guid UserId { get; set; }
         public Guid CourseId { get; set; }
         public Guid CourseVersionId { get; set; }
         public string CourseNameVN { get; set; } = string.Empty;

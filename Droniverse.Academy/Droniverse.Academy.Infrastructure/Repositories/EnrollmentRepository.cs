@@ -76,6 +76,73 @@ internal class EnrollmentRepository : MySqlRepository<Enrollment>, IEnrollmentRe
             .Select(e => new CourseEnrollmentQueryModel
             {
                 EnrollmentId = e.EnrollmentID,
+                UserId = e.UserID,
+                CourseId = e.CourseID,
+                CourseVersionId = e.CourseVersionID,
+                CourseNameVN = e.CourseVersion.TitleVN,
+                CourseNameEN = e.CourseVersion.TitleEN,
+                ImageUrl = e.CourseVersion.ImageUrl,
+                EstimatedDuration = e.CourseVersion.EstimatedDuration,
+                Progress = e.Progress,
+                EnrollStatus = e.Status,
+                LevelID = e.Course.Level.LevelID,
+                LevelNumber = e.Course.Level.LevelNumber,
+                Name = e.Course.Level.Name,
+            })
+            .Skip((normalizedPageIndex - 1) * normalizedPageSize)
+            .Take(normalizedPageSize)
+            .ToListAsync(cancellationToken);
+
+        return new PaginationResult<IEnumerable<CourseEnrollmentQueryModel>>(
+            items,
+            totalRecords,
+            normalizedPageIndex,
+            normalizedPageSize);
+    }
+
+    public async Task<PaginationResult<IEnumerable<CourseEnrollmentQueryModel>>> GetEnrollmentsByClubAsync(
+        Guid clubId,
+        int pageIndex,
+        int pageSize,
+        Guid? courseId = null,
+        Guid? userId = null,
+        EnrollStatus? enrollmentStatus = null,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedPageIndex = pageIndex < 1 ? 1 : pageIndex;
+        var normalizedPageSize = pageSize < 1 ? 10 : pageSize;
+
+        var query = _dbSet
+            .AsNoTracking()
+            .Where(e => e.ClubID == clubId);
+
+        if (courseId.HasValue)
+        {
+            var value = courseId.Value;
+            query = query.Where(e => e.CourseID == value);
+        }
+
+        if (userId.HasValue)
+        {
+            var value = userId.Value;
+            query = query.Where(e => e.UserID == value);
+        }
+
+        if (enrollmentStatus.HasValue)
+        {
+            var status = enrollmentStatus.Value;
+            query = query.Where(e => e.Status == status);
+        }
+
+        var totalRecords = await query.CountAsync(cancellationToken);
+
+        var items = await query
+            .OrderBy(e => e.Course.Level.LevelNumber)
+            .ThenByDescending(e => e.LastAccessDate)
+            .Select(e => new CourseEnrollmentQueryModel
+            {
+                EnrollmentId = e.EnrollmentID,
+                UserId = e.UserID,
                 CourseId = e.CourseID,
                 CourseVersionId = e.CourseVersionID,
                 CourseNameVN = e.CourseVersion.TitleVN,
