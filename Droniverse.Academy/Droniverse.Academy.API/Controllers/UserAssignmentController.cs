@@ -67,6 +67,7 @@ public class UserAssignmentController : ControllerBase
     public async Task<IActionResult> GetAssignmentAttempts(
         [FromQuery] Guid? courseId = null,
         [FromQuery] Guid? clubId = null,
+        [FromQuery] Domain.Enums.UserAssignmentStatus? status = null,
         [FromQuery] int pageIndex = 1,
         [FromQuery] int pageSize = 10)
     {
@@ -75,6 +76,7 @@ public class UserAssignmentController : ControllerBase
             var result = await _service.GetAssignmentAttemptsByCourseAndClubAsync(
                 courseId,
                 clubId,
+                status,
                 pageIndex,
                 pageSize);
 
@@ -103,13 +105,15 @@ public class UserAssignmentController : ControllerBase
         [FromRoute] Guid clubId,
         [FromQuery] int pageIndex = 1,
         [FromQuery] int pageSize = 10,
-        [FromQuery] Guid? courseId = null)
+        [FromQuery] Guid? courseId = null,
+        [FromQuery] Domain.Enums.UserAssignmentStatus? status = null)
     {
         try
         {
             var result = await _service.GetAssignmentAttemptsByCourseAndClubAsync(
                 courseId,
                 clubId,
+                status,
                 pageIndex,
                 pageSize);
 

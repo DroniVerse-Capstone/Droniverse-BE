@@ -197,13 +197,15 @@ public class UserAssignmentService : IUserAssignmentService
     public async Task<PaginationResult<IEnumerable<UserAssignmentAttemptResponseDTO>>> GetAssignmentAttemptsByCourseAndClubAsync(
         Guid? courseId,
         Guid? clubId,
+        UserAssignmentStatus? status,
         int pageIndex = 1,
         int pageSize = 10)
     {
         var queryResult = await _unitOfWork.UserAssignments.GetAllAsync(
             filter: x =>
                 (!courseId.HasValue || x.Enrollment.CourseID == courseId.Value) &&
-                (!clubId.HasValue || x.Enrollment.ClubID == clubId.Value),
+                (!clubId.HasValue || x.Enrollment.ClubID == clubId.Value) &&
+                (!status.HasValue || x.Status == status.Value),
             orderBy: q => q.OrderByDescending(x => x.SubmittedAt).ThenByDescending(x => x.AttemptNumber),
             pageIndex: 1,
             pageSize: int.MaxValue,
@@ -345,9 +347,6 @@ public class UserAssignmentService : IUserAssignmentService
         var media = bestAttempt == null
             ? null
             : (await _communityClient.GetMiniResponse([bestAttempt.MediaID])).FirstOrDefault();
-        var user = bestAttempt?.Enrollment == null
-            ? null
-            : await _identityClient.GetUserByUserID(bestAttempt.Enrollment.UserID);
 
         return new AssignmentOverview
         {
@@ -360,7 +359,7 @@ public class UserAssignmentService : IUserAssignmentService
                     EnrollmentID = bestAttempt.EnrollmentID,
                     AttemptNumber = bestAttempt.AttemptNumber,
                     Media = media,
-                    User = user,
+                    User = null,
                     Description = bestAttempt.Description,
                     Status = bestAttempt.Status,
                     Score = bestAttempt.Score,
