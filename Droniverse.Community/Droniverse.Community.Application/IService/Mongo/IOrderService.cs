@@ -7,6 +7,8 @@ using MongoDB.Driver;
 namespace Droniverse.Community.Application.IService.Mongo;
 public interface IOrderService
 {
+    Task<OrderOverviewDto> GetOrdersOverview();
+    Task<AllOrdersWithOverviewDto> GetAllOrdersWithOverview(OrderSearchRequest searchRequest);
     Task<PaginationResult<IEnumerable<OrderResponseDto?>>> GetAllOrders(OrderSearchRequest searchRequest);
     Task<List<OrderResponseDto?>> GetOrdersByCondition(FilterDefinition<Order> filter);
     Task<PaginationResult<IEnumerable<OrderResponseDto?>>> GetOrdersByConditionWithPagination(FilterDefinition<Order> filter, int currentPage, int pageSize);

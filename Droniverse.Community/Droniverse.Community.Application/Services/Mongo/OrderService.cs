@@ -403,6 +403,43 @@ internal class OrderService : IOrderService
         }
     }
 
+    public async Task<OrderOverviewDto> GetOrdersOverview()
+    {
+        var allOrders = await _orderRepository.GetOrdersByCondition(Builders<Order>.Filter.Empty);
+
+        int totalOrders = allOrders.Count();
+        int pendingOrders = allOrders.Count(o => o.Status == OrderStatus.PENDING);
+        int successOrders = allOrders.Count(o => o.Status == OrderStatus.SUCCESS);
+        int failedOrders = allOrders.Count(o => o.Status == OrderStatus.FAILED);
+        int cancelledOrders = allOrders.Count(o => o.Status == OrderStatus.CANCELLED);
+        int receivedOrders = allOrders.Count(o => o.Status == OrderStatus.RECEIVED);
+        int pendingRefundOrders = allOrders.Count(o => o.Status == OrderStatus.PENDING_REFUND);
+        int refundedOrders = allOrders.Count(o => o.Status == OrderStatus.REFUNDED);
+
+        return new OrderOverviewDto(
+            TotalOrders: totalOrders,
+            PendingOrders: pendingOrders,
+            SuccessOrders: successOrders,
+            FailedOrders: failedOrders,
+            CancelledOrders: cancelledOrders,
+            ReceivedOrders: receivedOrders,
+            PendingRefundOrders: pendingRefundOrders,
+            RefundedOrders: refundedOrders
+        );
+    }
+
+    public async Task<AllOrdersWithOverviewDto> GetAllOrdersWithOverview(OrderSearchRequest searchRequest)
+    {
+        var overview = await GetOrdersOverview();
+        var orders = await GetAllOrders(searchRequest);
+
+        return new AllOrdersWithOverviewDto(
+            Overview: overview,
+            Orders: orders
+        );
+    }
+
+
     public async Task<IEnumerable<OrderResponseDto?>> GetOrdersByCurrentUser()
     {
         var userId = _currentUserService.UserId;

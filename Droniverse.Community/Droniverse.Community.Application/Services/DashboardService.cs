@@ -1,4 +1,4 @@
-using Droniverse.Community.Application.DTO.Response;
+﻿using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Entities;
@@ -219,12 +219,20 @@ namespace Droniverse.Community.Application.Services
             var startNextMonth = startThisMonth.AddMonths(1);
             var startLastMonth = startThisMonth.AddMonths(-1);
 
+            var today = now.Date;
+            var startThisWeek = today.AddDays(-(int)today.DayOfWeek);
+            var startLastWeek = startThisWeek.AddDays(-7);
+
+            var startThisYear = new DateTime(now.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            var startLastYear = startThisYear.AddYears(-1);
+
+            // Get all orders (including pending/failed) for success rate calculation
+            var allSystemOrders = await _orderRepository.GetAllOrders();
+            if (allSystemOrders == null) allSystemOrders = [];
+            var allSystemOrdersList = allSystemOrders.ToList();
+
             // Get all successful orders across all clubs
-            var allOrders = await _orderRepository.GetAllSuccessfulOrders();
-            if (allOrders == null)
-                allOrders = [];
-            
-            var allOrdersList = allOrders.ToList();
+            var allOrdersList = allSystemOrdersList.Where(o => o.Status == OrderStatus.SUCCESS).ToList();
 
             // For admin overview, revenue/profit are based on all successful orders in the system.
             var totalRevenue = allOrdersList.Sum(o => o.TotalAmount);
@@ -263,6 +271,38 @@ namespace Droniverse.Community.Application.Services
                     && o.Payment.TransactionDate < startNextMonth)
                 .Count();
 
+            // Expanded KPIs
+            var totalOrdersCount = allSystemOrdersList.Count;
+            var successRate = totalOrdersCount > 0 ? (double)allOrdersList.Count / totalOrdersCount * 100 : 0;
+            var pendingRefunds = allSystemOrdersList.Count(o => o.Status == OrderStatus.PENDING_REFUND);
+
+            var revenueToday = allOrdersList
+                .Where(o => o.Payment != null && o.Payment.TransactionDate.Date == today)
+                .Sum(o => o.TotalAmount);
+            var revenueYesterday = allOrdersList
+                .Where(o => o.Payment != null && o.Payment.TransactionDate.Date == today.AddDays(-1))
+                .Sum(o => o.TotalAmount);
+
+            var revenueThisWeek = allOrdersList
+                .Where(o => o.Payment != null && o.Payment.TransactionDate.Date >= startThisWeek && o.Payment.TransactionDate.Date <= today)
+                .Sum(o => o.TotalAmount);
+            var revenueLastWeek = allOrdersList
+                .Where(o => o.Payment != null && o.Payment.TransactionDate.Date >= startLastWeek && o.Payment.TransactionDate.Date < startThisWeek)
+                .Sum(o => o.TotalAmount);
+
+            var revenueThisYear = allOrdersList
+                .Where(o => o.Payment != null && o.Payment.TransactionDate.Date >= startThisYear && o.Payment.TransactionDate.Date <= today)
+                .Sum(o => o.TotalAmount);
+            var revenueLastYear = allOrdersList
+                .Where(o => o.Payment != null && o.Payment.TransactionDate.Date >= startLastYear && o.Payment.TransactionDate.Date < startThisYear)
+                .Sum(o => o.TotalAmount);
+
+            var transactionsLastMonth = allOrdersList
+                .Where(o => o.Payment != null 
+                    && o.Payment.TransactionDate >= startLastMonth 
+                    && o.Payment.TransactionDate < startThisMonth)
+                .Count();
+
             return new AdminRevenueOverviewResponse
             {
                 TotalRevenue = totalRevenue,
@@ -276,7 +316,19 @@ namespace Droniverse.Community.Application.Services
                 ProfitGrowthRate = profitGrowthRate,
 
                 TotalTransactions = totalTransactions,
-                TransactionsThisMonth = transactionsThisMonth
+                TransactionsThisMonth = transactionsThisMonth,
+
+                SuccessRate = successRate,
+                PendingRefunds = pendingRefunds,
+
+                RevenueToday = revenueToday,
+                RevenueYesterday = revenueYesterday,
+                RevenueThisWeek = revenueThisWeek,
+                RevenueLastWeek = revenueLastWeek,
+                RevenueThisYear = revenueThisYear,
+                RevenueLastYear = revenueLastYear,
+
+                TransactionsLastMonth = transactionsLastMonth
             };
         }
 
@@ -665,7 +717,7 @@ namespace Droniverse.Community.Application.Services
                     {
                         UserId = b.UserId,
                         UserName = user?.Username ?? string.Empty,
-                        Email = b.Email ?? string.Empty,
+                        Email = user?.Email ?? b.Email ?? string.Empty,
                         ImageUrl = user?.ImageUrl,
                         TotalSpent = b.TotalSpent,
                         PurchaseCount = b.PurchaseCount
@@ -725,7 +777,7 @@ namespace Droniverse.Community.Application.Services
                     {
                         UserId = b.UserId,
                         UserName = user?.Username ?? string.Empty,
-                        Email = b.Email ?? string.Empty,
+                        Email = user?.Email ?? b.Email ?? string.Empty,
                         ImageUrl = user?.ImageUrl,
                         TotalSpent = b.TotalSpent,
                         PurchaseCount = b.PurchaseCount
@@ -739,6 +791,161 @@ namespace Droniverse.Community.Application.Services
             {
                 Buyers = buyers,
                 TotalSystemRevenue = totalSystemRevenue
+            };
+        }
+
+        // ===================== System Operations Management =====================
+
+        public async Task<SystemTransactionLogsResponse> GetSystemTransactionLogs(int page = 1, int limit = 10)
+        {
+            if (page < 1) page = 1;
+            if (limit <= 0) limit = 10;
+
+            var allOrders = await _orderRepository.GetAllOrders();
+            if (allOrders == null) allOrders = [];
+
+            var totalRecords = allOrders.Count();
+            var totalPages = (int)Math.Ceiling(totalRecords / (double)limit);
+
+            // Lọc và sắp xếp theo ngày tạo mới nhất, phân trang
+            var pagedOrders = allOrders
+                .OrderByDescending(o => o.CreateAt)
+                .Skip((page - 1) * limit)
+                .Take(limit)
+                .ToList();
+
+            var logs = pagedOrders.Select(o => new SystemTransactionLogEntry
+            {
+                OrderID = o._id.ToString(),
+                UserName = o.UserName ?? "Unknown",
+                Email = o.UserEmail ?? "Unknown",
+                ProductName = string.IsNullOrWhiteSpace(o.Item?.ProductNameVN) ? "Unknown Product" : o.Item.ProductNameVN,
+                Amount = o.TotalAmount,
+                Status = o.Status.ToString(),
+                PaymentMethod = "VNPAY", // Default hoặc lấy từ entity nếu có: o.Payment?.PaymentGateway ?? "VNPAY"
+                CreatedAt = o.CreateAt
+            }).ToList();
+
+            return new SystemTransactionLogsResponse
+            {
+                Data = logs,
+                TotalRecords = totalRecords,
+                TotalPages = totalPages
+            };
+        }
+
+        public async Task<SystemOperationsSummaryResponse> GetSystemOperationsSummary()
+        {
+            // 1. Pending Club Approvals
+            var clubRequests = await _unitOfWork.ClubCreationRequests.GetAll();
+            var pendingClubApprovals = clubRequests?.Count(r => r.Status == Domain.Enums.ClubCreationRequestStatus.PENDING) ?? 0;
+
+            // 2. Users (Lấy từ Identity service)
+            var users = await _identityMicroserviceClient.GetAllUsers();
+            var totalUsers = users?.Count ?? 0;
+
+            var now = _clock.Now;
+            var startThisMonth = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+            var newUsersThisMonth = users?.Count() ?? 0; // Temporarily omitted due to UserResponse schema
+
+            var memberCount = users?.Count(u => u.RoleName == Droniverse.Shared.Constants.Roles.ClubMember) ?? 0;
+            var clubOwnerCount = users?.Count(u => u.RoleName == Droniverse.Shared.Constants.Roles.ClubManager) ?? 0;
+
+            // 3. Course stats (Lấy từ hệ thống order)
+            var allOrders = await _orderRepository.GetAllSuccessfulOrders();
+            var totalCourseEnrollments = allOrders?.Count(o => o.OrderType == Domain.Enums.OrderType.USER_PURCHASE) ?? 0;
+
+            // Tạm thời set tỷ lệ là 0 (cần update từ AcademyService)
+            double completionRate = 0;
+
+            return new SystemOperationsSummaryResponse
+            {
+                PendingClubApprovals = pendingClubApprovals,
+                TotalUsers = totalUsers,
+                NewUsersThisMonth = newUsersThisMonth,
+                MemberCount = memberCount,
+                ClubOwnerCount = clubOwnerCount,
+                TotalCourseEnrollments = totalCourseEnrollments,
+                CourseCompletionRate = completionRate
+            };
+        }
+
+        public async Task<UserGrowthTrendResponse> GetUserGrowthTrend(int months = 12)
+        {
+            if (months <= 0) months = 12;
+
+            var users = await _identityMicroserviceClient.GetAllUsers();
+            if (users == null) users = new List<Droniverse.Shared.DTOs.Response.UserResponse>();
+
+            var now = _clock.Now;
+            var startCurrentMonth = new DateTime(now.Year, now.Month, 1);
+            var fromMonth = startCurrentMonth.AddMonths(-(months - 1));
+            var toExclusive = startCurrentMonth.AddMonths(1);
+
+            // Temporarily ignore creation date since UserResponse does not include CreatedAt yet
+            var usersByMonth = users
+                .GroupBy(u => new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc))
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            var growth = Enumerable.Range(0, months)
+                .Select(i => fromMonth.AddMonths(i))
+                .Select(m => new MonthlyUserStat
+                {
+                    Month = m,
+                    Value = usersByMonth.TryGetValue(m, out var value) ? value : 0
+                })
+                .ToList();
+
+            return new UserGrowthTrendResponse
+            {
+                UserGrowth = growth
+            };
+        }
+
+        public async Task<RecentActivityFeedResponse> GetRecentActivityFeed()
+        {
+            var activities = new List<ActivityFeedItem>();
+            var now = _clock.Now;
+
+            // 1. Transactions (Orders)
+            var recentOrders = await _orderRepository.GetAllOrders();
+            if (recentOrders != null)
+            {
+                activities.AddRange(recentOrders
+                    .OrderByDescending(o => o.CreateAt)
+                    .Take(10)
+                    .Select(o => new ActivityFeedItem
+                    {
+                        ActivityType = "NEW_TRANSACTION",
+                        Message = $"Giao dịch mới trị giá {o.TotalAmount:N0}đ từ User {o.UserName}",
+                        Timestamp = o.CreateAt
+                    }));
+            }
+
+            // 2. Club Creations
+            var recentClubs = await _unitOfWork.ClubCreationRequests.GetAll();
+            if (recentClubs != null)
+            {
+                activities.AddRange(recentClubs
+                    .OrderByDescending(c => c.CreatedAt)
+                    .Take(10)
+                    .Select(c => new ActivityFeedItem
+                    {
+                        ActivityType = "CLUB_REQUEST",
+                        Message = $"CLB {c.NameVN} vừa nộp yêu cầu tạo mới",
+                        Timestamp = c.CreatedAt
+                    }));
+            }
+
+            // Gộp lại và lấy top 10 mới nhất
+            var topActivities = activities
+                .OrderByDescending(a => a.Timestamp)
+                .Take(10)
+                .ToList();
+
+            return new RecentActivityFeedResponse
+            {
+                Activities = topActivities
             };
         }
     }

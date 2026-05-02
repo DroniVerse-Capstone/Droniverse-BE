@@ -46,5 +46,11 @@ namespace Droniverse.Community.Application.IService
         /// Lấy danh sách top buyers toàn hệ thống.
         /// </summary>
         Task<TopBuyersResponse> GetTopBuyersAdmin(int top = 10);
+
+        // System Operations Management
+        Task<SystemTransactionLogsResponse> GetSystemTransactionLogs(int page = 1, int limit = 10);
+        Task<SystemOperationsSummaryResponse> GetSystemOperationsSummary();
+        Task<UserGrowthTrendResponse> GetUserGrowthTrend(int months = 12);
+        Task<RecentActivityFeedResponse> GetRecentActivityFeed();
     }
 }

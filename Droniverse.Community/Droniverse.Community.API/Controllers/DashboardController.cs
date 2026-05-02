@@ -290,5 +290,55 @@ namespace Droniverse.Community.API.Controllers
             var data = await _dashboardService.GetTopBuyersAdmin(top);
             return SuccessResponse<TopBuyersResponse>.Create(data, "Lấy danh sách top buyers toàn hệ thống thành công!");
         }
+
+        // ===================== System Operations Management =====================
+
+        /// <summary>
+        /// API Nhật ký Giao dịch Hệ thống (Transaction Logs)
+        /// </summary>
+        [HttpGet("system/transactions")]
+        [ProducesResponseType(typeof(SuccessResponse<SystemTransactionLogsResponse>), StatusCodes.Status200OK)]
+        [Authorize(Roles = Roles.AdminOrSystemManager)]
+        public async Task<ApiResponse> GetSystemTransactionLogs([FromQuery] int page = 1, [FromQuery] int limit = 10)
+        {
+            var data = await _dashboardService.GetSystemTransactionLogs(page, limit);
+            return SuccessResponse<SystemTransactionLogsResponse>.Create(data, "Lấy nhật ký giao dịch thành công!");
+        }
+
+        /// <summary>
+        /// API Tóm tắt Vận hành Hệ thống (System Operations Summary)
+        /// </summary>
+        [HttpGet("system/summary")]
+        [ProducesResponseType(typeof(SuccessResponse<SystemOperationsSummaryResponse>), StatusCodes.Status200OK)]
+        [Authorize(Roles = Roles.AdminOrSystemManager)]
+        public async Task<ApiResponse> GetSystemOperationsSummary()
+        {
+            var data = await _dashboardService.GetSystemOperationsSummary();
+            return SuccessResponse<SystemOperationsSummaryResponse>.Create(data, "Lấy tóm tắt vận hành hệ thống thành công!");
+        }
+
+        /// <summary>
+        /// API Xu hướng Tăng trưởng Người dùng (User Growth Trend)
+        /// </summary>
+        [HttpGet("users/growth")]
+        [ProducesResponseType(typeof(SuccessResponse<UserGrowthTrendResponse>), StatusCodes.Status200OK)]
+        [Authorize(Roles = Roles.AdminOrSystemManager)]
+        public async Task<ApiResponse> GetUserGrowthTrend([FromQuery] int months = 12)
+        {
+            var data = await _dashboardService.GetUserGrowthTrend(months);
+            return SuccessResponse<UserGrowthTrendResponse>.Create(data, "Lấy xu hướng tăng trưởng người dùng thành công!");
+        }
+
+        /// <summary>
+        /// API Hoạt động Gần đây (Recent Activity Feed)
+        /// </summary>
+        [HttpGet("activity/recent")]
+        [ProducesResponseType(typeof(SuccessResponse<RecentActivityFeedResponse>), StatusCodes.Status200OK)]
+        [Authorize(Roles = Roles.AdminOrSystemManager)]
+        public async Task<ApiResponse> GetRecentActivityFeed()
+        {
+            var data = await _dashboardService.GetRecentActivityFeed();
+            return SuccessResponse<RecentActivityFeedResponse>.Create(data, "Lấy hoạt động hệ thống gần đây thành công!");
+        }
     }
 }

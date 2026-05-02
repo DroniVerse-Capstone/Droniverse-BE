@@ -39,5 +39,6 @@ public interface IOrderRepository
         DateTime startNextMonth);
 
     Task<IEnumerable<Order>> GetAllSuccessfulOrders();
+    Task<IEnumerable<Order>> GetAllOrders();
 }
 

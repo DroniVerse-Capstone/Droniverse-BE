@@ -145,7 +145,7 @@ public class CodeService : ICodeService
         throw new NotImplementedException();
     }
 
-    public async Task<PaginationResult<IEnumerable<CodeResponseDTO>>> GetAllCodesAsync(CodeSearchRequestDTO requestDTO)
+    public async Task<AllCodesWithOverviewDto> GetAllCodesAsync(CodeSearchRequestDTO requestDTO)
     {
         requestDTO ??= new CodeSearchRequestDTO();
 
@@ -159,12 +159,23 @@ public class CodeService : ICodeService
 
         var mappedCodes = codes.Data.Select(MapCodeResponse).ToList();
 
-        return new PaginationResult<IEnumerable<CodeResponseDTO>>(
+        // Calculate overview
+        var allCodes = codes.Data.ToList();
+        var totalCodes = codes.TotalRecords;
+        var availableCodes = allCodes.Count(c => c.Status == CodeStatus.AVAILABLE);
+        var usedCodes = allCodes.Count(c => c.Status == CodeStatus.USED);
+        var expiredCodes = allCodes.Count(c => c.Status == CodeStatus.EXPIRED);
+
+        var overview = new CodeOverviewDto(totalCodes, availableCodes, usedCodes, expiredCodes);
+
+        var paginationResult = new PaginationResult<IEnumerable<CodeResponseDTO>>(
             mappedCodes,
             codes.TotalRecords,
             codes.PageIndex,
             codes.PageSize
         );
+
+        return new AllCodesWithOverviewDto(overview, paginationResult);
     }
 
     public async Task<CodeResponseDTO> GetCodeAsync(string codeId)
