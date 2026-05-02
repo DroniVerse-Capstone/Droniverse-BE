@@ -606,10 +606,11 @@ namespace Droniverse.Community.Application.Services
             var overview = new CompetitionOverviewResponse
             {
                 TotalCompetitions = competitions.Count,
-                OngoingCompetitions = ongoingCount,
+                DraftCompetitions = competitions.Count(c => c.Status == CompetitionStatus.DRAFT),
+                PublishedCompetitions = publishedCount,
                 CompletedCompetitions = competitions.Count(c => c.Status == CompetitionStatus.RESULT_PUBLISHED),
                 CancelledCompetitions = competitions.Count(c => c.Status == CompetitionStatus.CANCELLED),
-                DraftCompetitions = competitions.Count(c => c.Status == CompetitionStatus.DRAFT),
+                InvalidCompetitions = competitions.Count(c => c.Status == CompetitionStatus.INVALID),
                 TotalParticipants = totalParticipants,
                 AverageParticipantsPerCompetition = competitions.Count > 0
                     ? Math.Round((double)totalParticipants / competitions.Count, 1)

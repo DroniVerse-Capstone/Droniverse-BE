@@ -1018,8 +1018,8 @@ namespace Droniverse.Community.Application.Services
                     competition.CompetitionID,
                     (RoundCount: 0, CompetitorCount: 0, PrizeCount: 0));
 
-                bool isRegistered = competition.UserCompetitions
-                   .Any(u => u.UserID == currentUserId && u.Status != UserCompetitionStatus.WITHDRAWN);
+                bool isRegistered = competition.UserCompetitions?
+                   .Any(u => u.UserID == currentUserId && u.Status != UserCompetitionStatus.WITHDRAWN) ?? false;
 
                 return new CompetitionResponse
                 {

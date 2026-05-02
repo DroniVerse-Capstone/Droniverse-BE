@@ -22,25 +22,6 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
-        /// Lấy ra số lượng các order theo status
-        /// </summary>
-        [ProducesResponseType(typeof(SuccessResponse<OrderOverviewDto>), StatusCodes.Status200OK)]
-        [HttpGet("overview")]
-        public async Task<ApiResponse> GetOrdersOverview()
-        {
-            try
-            {
-                OrderOverviewDto overview = await _orderService.GetOrdersOverview();
-                return SuccessResponse<OrderOverviewDto>.Create(overview, "Lấy thông tin tổng quan đơn hàng thành công!");
-            }
-            catch (Exception ex)
-            {
-                return ErrorResponse.Create(ex.Message, "ER101");
-            }
-        }
-
-
-        /// <summary>
         /// Lấy danh sách tất cả các đơn hàng cùng với thông tin tổng quan
         /// </summary>
         /// <returns>
