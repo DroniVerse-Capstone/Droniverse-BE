@@ -18,6 +18,7 @@ public interface IUserAssignmentService
     Task<PaginationResult<IEnumerable<UserAssignmentAttemptResponseDTO>>> GetAssignmentAttemptsByCourseAndClubAsync(
         Guid? courseId,
         Guid? clubId,
+        UserAssignmentStatus? status,
         int pageIndex = 1,
         int pageSize = 10);
     Task<PaginationResult<IEnumerable<UserAssignmentAttemptResponseDTO>>> GetMyAssignmentAttemptsAsync(

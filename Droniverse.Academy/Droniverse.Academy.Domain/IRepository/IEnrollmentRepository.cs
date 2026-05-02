@@ -19,5 +19,14 @@ public interface IEnrollmentRepository : IRepository<Enrollment>
         string? courseSearchName = null,
         EnrollStatus? enrollmentStatus = null,
         CancellationToken cancellationToken = default);
+
+    Task<PaginationResult<IEnumerable<CourseEnrollmentQueryModel>>> GetEnrollmentsByClubAsync(
+        Guid clubId,
+        int pageIndex,
+        int pageSize,
+        Guid? courseId = null,
+        Guid? userId = null,
+        EnrollStatus? enrollmentStatus = null,
+        CancellationToken cancellationToken = default);
 }
 

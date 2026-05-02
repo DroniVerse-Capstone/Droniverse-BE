@@ -7,7 +7,6 @@ using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
 using Droniverse.Shared.DTOs;
-using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Enums;
 using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Services.IServices;
@@ -198,13 +197,15 @@ public class UserAssignmentService : IUserAssignmentService
     public async Task<PaginationResult<IEnumerable<UserAssignmentAttemptResponseDTO>>> GetAssignmentAttemptsByCourseAndClubAsync(
         Guid? courseId,
         Guid? clubId,
+        UserAssignmentStatus? status,
         int pageIndex = 1,
         int pageSize = 10)
     {
         var queryResult = await _unitOfWork.UserAssignments.GetAllAsync(
             filter: x =>
                 (!courseId.HasValue || x.Enrollment.CourseID == courseId.Value) &&
-                (!clubId.HasValue || x.Enrollment.ClubID == clubId.Value),
+                (!clubId.HasValue || x.Enrollment.ClubID == clubId.Value) &&
+                (!status.HasValue || x.Status == status.Value),
             orderBy: q => q.OrderByDescending(x => x.SubmittedAt).ThenByDescending(x => x.AttemptNumber),
             pageIndex: 1,
             pageSize: int.MaxValue,
@@ -279,14 +280,14 @@ public class UserAssignmentService : IUserAssignmentService
         var medias = await _communityClient.GetMiniResponse(mediaIds);
         var mediaById = medias.ToDictionary(x => x.MediaID);
 
-        //var userIds = items
-        //    .Select(x => x.Enrollment?.UserID ?? Guid.Empty)
-        //    .Where(x => x != Guid.Empty)
-        //    .Distinct()
-        //    .ToList();
+        var userIds = items
+            .Select(x => x.Enrollment?.UserID ?? Guid.Empty)
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToList();
 
-        //var users = await ResolveUsersAsync(userIds);
-        //var userById = users.ToDictionary(x => x.UserId);
+        var users = await ResolveUsersAsync(userIds);
+        var userById = users.ToDictionary(x => x.UserId);
 
         return items.Select(entity => new UserAssignmentAttemptResponseDTO
         {
@@ -295,10 +296,9 @@ public class UserAssignmentService : IUserAssignmentService
             EnrollmentID = entity.EnrollmentID,
             AttemptNumber = entity.AttemptNumber,
             Media = mediaById.GetValueOrDefault(entity.MediaID),
-            //User = entity.Enrollment != null && entity.Enrollment.UserID != Guid.Empty
-            //    ? userById.GetValueOrDefault(entity.Enrollment.UserID)
-            //    : null,
-            User = null,
+            User = entity.Enrollment != null && entity.Enrollment.UserID != Guid.Empty
+                ? userById.GetValueOrDefault(entity.Enrollment.UserID)
+                : null,
             Description = entity.Description,
             Status = entity.Status,
             Score = entity.Score,
@@ -347,9 +347,6 @@ public class UserAssignmentService : IUserAssignmentService
         var media = bestAttempt == null
             ? null
             : (await _communityClient.GetMiniResponse([bestAttempt.MediaID])).FirstOrDefault();
-        var user = bestAttempt?.Enrollment == null
-            ? null
-            : await _identityClient.GetUserByUserID(bestAttempt.Enrollment.UserID);
 
         return new AssignmentOverview
         {
@@ -362,7 +359,7 @@ public class UserAssignmentService : IUserAssignmentService
                     EnrollmentID = bestAttempt.EnrollmentID,
                     AttemptNumber = bestAttempt.AttemptNumber,
                     Media = media,
-                    User = user,
+                    User = null,
                     Description = bestAttempt.Description,
                     Status = bestAttempt.Status,
                     Score = bestAttempt.Score,

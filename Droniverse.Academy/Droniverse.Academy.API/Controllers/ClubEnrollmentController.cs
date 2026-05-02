@@ -1,69 +1,93 @@
-﻿using Droniverse.Academy.API.Enums;
+﻿using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Application.DTO.Response;
-using Droniverse.Academy.Application.IService;
-using Droniverse.Academy.Domain.Entities;
-using Droniverse.Academy.Domain.Enums;
+using Droniverse.Academy.API.Examples;
+using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
-using Microsoft.AspNetCore.Http;
+using Droniverse.Shared.DTOs.Response;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Filters;
 
-namespace Droniverse.Academy.API.Controllers
+namespace Droniverse.Academy.API.Controllers;
+
+[Route("academy/club/enrollments")]
+[ApiController]
+[Authorize(Roles = Roles.ClubManager)]
+public class ClubEnrollmentController : ControllerBase
 {
+    private readonly ILogger<ClubEnrollmentController> _logger;
+    private readonly IEnrollmentService _enrollmentService;
+    private readonly ILearningService _learningService;
 
-    [Route("api/club")]
-    [ApiController]
-    public class ClubEnrollmentController : ControllerBase
+    public ClubEnrollmentController(
+        ILogger<ClubEnrollmentController> logger,
+        IEnrollmentService enrollmentService,
+        ILearningService learningService)
     {
-        private readonly ILogger<AdminEnrollmentController> _logger;
-        private readonly IAdminEnrollmentService _service;
-        public ClubEnrollmentController(ILogger<AdminEnrollmentController> logger, IAdminEnrollmentService service)
-        {
-            _logger = logger;
-            _service = service;
-        }
-        /// <summary>
-        /// Lấy danh sách enrollment của một club
-        /// </summary>
-        /// <param name="pageIndex">Trang hiện tại, bắt đầu từ 1.</param>
-        /// <param name="pageSize">Số bản ghi trên mỗi trang.</param>
-        /// <param name="userId">Lọc theo người dùng.</param>
-        /// <param name="courseVersionId">Lọc theo phiên bản khóa học.</param>
-        /// <param name="droneId">Lọc theo drone.</param>
-        /// <param name="levelId">Lọc theo level.</param>
-        /// <param name="status">Lọc theo trạng thái enrollment.</param>
-        [HttpGet("{clubId:guid}/enrollment")]       
-        public async Task<IActionResult> GetEnrollments(
-        Guid clubId,
-        [FromQuery] int pageIndex = 1,
-        [FromQuery] int pageSize = 10,
+        _logger = logger;
+        _enrollmentService = enrollmentService;
+        _learningService = learningService;
+    }
+
+    /// <summary>
+    /// Lấy danh sách enrollment trong club, sắp xếp theo level khóa học, có lọc theo khóa học hoặc user
+    /// </summary>
+    /// <param name="clubId">ID của club</param>
+    /// <param name="courseId">ID của khóa học (tùy chọn)</param>
+    /// <param name="userId">ID của user (tùy chọn)</param>
+    /// <param name="pageIndex">Trang hiện tại (mặc định: 1)</param>
+    /// <param name="pageSize">Số lượng phần tử mỗi trang (mặc định: 10)</param>
+    /// <returns>Danh sách enrollment với thông tin tiến độ (phần trăm)</returns>
+    [HttpGet("{clubId:guid}")]
+    [SwaggerResponseExample(StatusCodes.Status200OK, typeof(UserAssignmentAttemptsSuccessResponseExample))]
+    public async Task<IActionResult> GetEnrollmentsByClub(
+        [FromRoute] Guid clubId,
+        [FromQuery] Guid? courseId = null,
         [FromQuery] Guid? userId = null,
-        [FromQuery] Guid? courseVersionId = null,
-        [FromQuery] Guid? droneId = null,
-        [FromQuery] Guid? levelId = null,
-        [FromQuery] EnrollmentStatusFilter status = EnrollmentStatusFilter.All)
+        [FromQuery] int pageIndex = 1,
+        [FromQuery] int pageSize = 10)
+    {
+        try
         {
-            try
-            {
-                var result = await _service.GetEnrollmentsAsync(pageIndex, pageSize, userId, courseVersionId, droneId, levelId, clubId, MapEnrollmentStatus(status));
-                return Ok(SuccessResponse<PaginationResult<IEnumerable<CoursesEnrollmentResponse>>>.Create(result, "Lấy danh sách enrollment thành công."));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Lấy danh sách enrollment thất bại.");
-                throw;
-            }
+            var result = await _enrollmentService.GetEnrollmentsByClubAsync(
+                clubId,
+                pageIndex,
+                pageSize,
+                courseId,
+                userId);
+
+            return Ok(SuccessResponse<PaginationResult<IEnumerable<CoursesEnrollmentResponse>>>.Create(
+                result,
+                "Lấy danh sách enrollment trong club thành công."));
         }
-        private static EnrollStatus? MapEnrollmentStatus(EnrollmentStatusFilter status)
+        catch (Exception ex)
         {
-            return status switch
-            {
-                EnrollmentStatusFilter.All => null,
-                EnrollmentStatusFilter.Dropped => EnrollStatus.DROPPED,
-                EnrollmentStatusFilter.Active => EnrollStatus.ACTIVE,
-                EnrollmentStatusFilter.Completed => EnrollStatus.COMPLETED,
-                EnrollmentStatusFilter.LimitedAccess => EnrollStatus.LIMITED_ACCESS,
-                _ => null
-            };
+            _logger.LogError(ex, "Lấy danh sách enrollment trong club thất bại.");
+            throw;
         }
     }
+
+    /// <summary>
+    /// Lấy learning path của một user, bao gồm tất cả module, lesson, và trạng thái hoàn thành
+    /// </summary>
+    /// <param name="enrollmentId">ID của enrollment</param>
+    /// <returns>Learning path chi tiết với tiến độ</returns>
+    [HttpGet("learning-path/{enrollmentId:guid}")]
+    [SwaggerResponseExample(StatusCodes.Status200OK, typeof(UserAssignmentAttemptsSuccessResponseExample))]
+    public async Task<IActionResult> GetUserLearningPath([FromRoute] Guid enrollmentId)
+    {
+        try
+        {
+            var result = await _learningService.GetLearningPathAsync(enrollmentId);
+
+            return Ok(SuccessResponse<object>.Create(
+                result,
+                "Lấy learning path thành công."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lấy learning path thất bại.");
+            throw;
+        }
     }
+}

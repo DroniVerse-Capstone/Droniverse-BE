@@ -67,6 +67,31 @@ public class LearningService : ILearningService
             userModules);
     }
 
+    public async Task<LearningPathDTO> GetLearningPathAsync(Guid enrollmentId)
+    {
+        var enrollment = await _unitOfWork.Enrollments.GetByIdAsync(enrollmentId)
+            ?? throw new NotFoundException("Không tìm thấy enrollment.");
+
+        var courseVersion = await _learningContextLoader.GetCourseVersionAsync(enrollment.CourseVersionID);
+
+        var modules = await _learningContextLoader.GetModulesByCourseVersionAsync(enrollment.CourseVersionID);
+        var moduleIds = modules.Select(x => x.ModuleID).ToArray();
+
+        var lessons = await _learningContextLoader.GetLessonsByModuleIdsAsync(moduleIds);
+        var lessonIds = lessons.Select(x => x.LessonID).ToArray();
+
+        var userLessons = await _learningContextLoader.GetUserLessonsLookupAsync(enrollment.UserID, lessonIds);
+        var userModules = await _learningContextLoader.GetUserModulesLookupAsync(enrollment.UserID, moduleIds);
+
+        return await _learningPathAssembler.BuildLearningPathAsync(
+            enrollment,
+            courseVersion,
+            modules,
+            lessons,
+            userLessons,
+            userModules);
+    }
+
     public async Task<IEnumerable<IncompleteVRLessonResponseDTO>> GetListVRsAsync()
     {
         var userLessonsResult = await _unitOfWork.UserLessons.GetAllAsync(
