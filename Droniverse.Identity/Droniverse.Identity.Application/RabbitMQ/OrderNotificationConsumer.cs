@@ -114,64 +114,64 @@ public class OrderNotificationConsumer : IDisposable
                 {
                     if (routingKey == "order.created")
                     {
-                        _logger.LogInformation("🔄 Processing order.created...");
+                        _logger.LogInformation("Processing order.created...");
                         try
                         {
                             var orderMsg = JsonSerializer.Deserialize<OrderCreatedNotificationMessage>(message);
                             if (orderMsg != null)
                             {
                                 await HandleOrderCreatedAsync(orderMsg);
-                                _logger.LogInformation("✅ Order created notification processed for order {OrderId}", orderMsg.OrderId);
+                                _logger.LogInformation("Order created notification processed for order {OrderId}", orderMsg.OrderId);
                             }
                             else
                             {
-                                _logger.LogWarning("⚠️ Failed to deserialize OrderCreatedNotificationMessage. Payload: {Payload}", message);
+                                _logger.LogWarning("Failed to deserialize OrderCreatedNotificationMessage. Payload: {Payload}", message);
                             }
                         }
                         catch (JsonException jsonEx)
                         {
-                            _logger.LogError(jsonEx, "❌ JSON deserialization error for order.created. Payload: {Payload}", message);
+                            _logger.LogError(jsonEx, "JSON deserialization error for order.created. Payload: {Payload}", message);
                         }
                     }
                     else if (routingKey == "payment.successful")
                     {
-                        _logger.LogInformation("🔄 Processing payment.successful...");
+                        _logger.LogInformation("Processing payment.successful...");
                         try
                         {
                             var paymentMsg = JsonSerializer.Deserialize<PaymentSuccessfulNotificationMessage>(message);
                             if (paymentMsg != null)
                             {
                                 await HandlePaymentSuccessfulAsync(paymentMsg);
-                                _logger.LogInformation("✅ Payment successful notification processed for order {OrderId}", paymentMsg.OrderId);
+                                _logger.LogInformation("Payment successful notification processed for order {OrderId}", paymentMsg.OrderId);
                             }
                             else
                             {
-                                _logger.LogWarning("⚠️ Failed to deserialize PaymentSuccessfulNotificationMessage. Payload: {Payload}", message);
+                                _logger.LogWarning("Failed to deserialize PaymentSuccessfulNotificationMessage. Payload: {Payload}", message);
                             }
                         }
                         catch (JsonException jsonEx)
                         {
-                            _logger.LogError(jsonEx, "❌ JSON deserialization error for payment.successful. Payload: {Payload}", message);
+                            _logger.LogError(jsonEx, " JSON deserialization error for payment.successful. Payload: {Payload}", message);
                         }
                     }
                     else
                     {
-                        _logger.LogWarning("⚠️ Unknown routing key: {RoutingKey}", routingKey);
+                        _logger.LogWarning("Unknown routing key: {RoutingKey}", routingKey);
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "❌ Error processing message with routing key {RoutingKey}", routingKey);
+                    _logger.LogError(ex, "Error processing message with routing key {RoutingKey}", routingKey);
                 }
             };
 
-            _logger.LogInformation("🔄 Starting BasicConsume on queue: {QueueName}", queueName);
+            _logger.LogInformation("Starting BasicConsume on queue: {QueueName}", queueName);
             _channel.BasicConsume(queue: queueName, consumer: consumer, autoAck: true);
-            _logger.LogInformation("✅ Order notification consumer started successfully - waiting for messages...");
+            _logger.LogInformation("Order notification consumer started successfully - waiting for messages...");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Error starting order notification consumer");
+            _logger.LogError(ex, "Error starting order notification consumer");
         }
     }
 

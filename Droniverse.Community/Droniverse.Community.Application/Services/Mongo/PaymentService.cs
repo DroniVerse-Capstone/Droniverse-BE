@@ -341,18 +341,23 @@ internal class PaymentService : IPaymentService
             Order? order = await _orderRepository.GetOrderByOrderCode(webhook.Data.OrderCode);
             if (order == null)
             {
-                _logger.LogWarning("Payment not found for OrderCode: {OrderCode}", webhook.Data.OrderCode);
+                _logger.LogWarning("❌ Payment not found for OrderCode: {OrderCode} - Webhook will not be processed", webhook.Data.OrderCode);
                 return false;
             }
+
+            _logger.LogInformation("✅ Found order for webhook - OrderCode: {OrderCode}, OrderId: {OrderId}, Status: {Status}",
+                webhook.Data.OrderCode, order._id, order.Status);
 
             Payment? payment = order.Payment;
             if (payment == null)
             {
-                _logger.LogWarning("Payment object is null for PaymentLinkId: {PaymentLinkId}", webhook.Data.PaymentLinkId);
+                _logger.LogWarning("❌ Payment object is null for OrderCode: {OrderCode}", webhook.Data.OrderCode);
                 return false;
             }
 
             _logger.LogInformation("Webhook code: {Code}, webhook is success: {IsSuccess}", webhook.Code, webhook.IsSuccess);
+            _logger.LogInformation("🔍 Checking webhook conditions - Code='00':{CodeCheck}, IsSuccess=true:{SuccessCheck}", 
+                webhook.Code == "00", webhook.IsSuccess);
 
             if (webhook.Code == "00" && webhook.IsSuccess)
             {
@@ -438,6 +443,9 @@ internal class PaymentService : IPaymentService
                 //Publish notification event after successful payment
                 try
                 {
+                    _logger.LogInformation("🔔 About to publish payment successful notification - UserId: {UserId}, OrderId: {OrderId}, Email: {Email}",
+                        order.UserID, order._id, userEmail);
+                    
                     if (!string.IsNullOrWhiteSpace(userEmail))
                     {
                         var notificationEvent = new PaymentSuccessfulNotificationMessage(
@@ -450,12 +458,16 @@ internal class PaymentService : IPaymentService
                         );
 
                         await _orderNotificationPublisher.PublishPaymentSuccessfulAsync(notificationEvent);
-                        _logger.LogInformation($"Payment successful notification published for order {order._id}");
+                        _logger.LogInformation($"✅ Payment successful notification published for order {order._id}");
+                    }
+                    else
+                    {
+                        _logger.LogWarning("⚠️ Skipped publishing notification - userEmail is empty for UserId: {UserId}", order.UserID);
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Failed to publish payment successful notification");
+                    _logger.LogError(ex, "❌ Failed to publish payment successful notification for order {OrderId}", order._id);
                     // Don't throw - payment is already successful, notification failure shouldn't fail the flow
                 }
 
@@ -545,20 +557,20 @@ internal class PaymentService : IPaymentService
             }
             else if (webhook.Code == "05")
             {
+                _logger.LogWarning("⚠️ Payment CANCELLED by user - OrderCode: {OrderCode}", webhook.Data.OrderCode);
                 payment.PaymentStatus = PaymentStatus.CANCELLED;
                 order.Status = OrderStatus.CANCELLED;
-                _logger.LogWarning("Payment CANCELLED for orderId: {OrderId}", order._id);
             }
             else if (!webhook.IsSuccess)
             {
+                _logger.LogWarning("❌ Payment FAILED - OrderCode: {OrderCode}, Code: {Code}", webhook.Data.OrderCode, webhook.Code);
                 payment.PaymentStatus = PaymentStatus.FAILED;
                 order.Status = OrderStatus.FAILED;
-                _logger.LogWarning("Payment FAILED for orderId: {OrderId}, Code: {Code}",
-                    order._id, webhook.Code);
             }
             else
             {
-                _logger.LogWarning("Unknown webhook code: {Code}", webhook.Code);
+                _logger.LogWarning("⚠️ Unknown webhook code - OrderCode: {OrderCode}, Code: {Code}, IsSuccess: {IsSuccess}", 
+                    webhook.Data.OrderCode, webhook.Code, webhook.IsSuccess);
                 return false;
             }
             payment.TransactionDate = DateTime.UtcNow.AddHours(7);

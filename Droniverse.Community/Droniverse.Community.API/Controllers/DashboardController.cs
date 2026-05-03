@@ -42,7 +42,7 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
-        /// Lấy biểu đồ tăng trưởng chi phí theo tháng của câu lạc bộ.
+        /// Lấy biểu đồ tăng doanh thu theo tháng của câu lạc bộ.
         /// </summary>
         /// <param name="clubId">ID câu lạc bộ.</param>
         /// <param name="months">Số tháng cần lấy dữ liệu (mặc định 12).</param>
@@ -394,9 +394,9 @@ namespace Droniverse.Community.API.Controllers
         // ===================== System Operations Management =====================
 
         /// <summary>
-        /// API Nhật ký Giao dịch Hệ thống (Transaction Logs)
+        /// API Nhật ký Giao dịch Hệ thống (Orders Logs)
         /// </summary>
-        [HttpGet("system/transactions")]
+        [HttpGet("system/orders")]
         [ProducesResponseType(typeof(SuccessResponse<SystemTransactionLogsResponse>), StatusCodes.Status200OK)]
         [Authorize(Roles = Roles.AdminOrSystemManager)]
         public async Task<ApiResponse> GetSystemTransactionLogs([FromQuery] int page = 1, [FromQuery] int limit = 10)
