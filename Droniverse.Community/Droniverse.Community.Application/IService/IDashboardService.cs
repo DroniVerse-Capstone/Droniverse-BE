@@ -1,4 +1,5 @@
 ﻿using Droniverse.Community.Application.DTO.Response;
+using Droniverse.Community.Application.DTO.Request;
 
 namespace Droniverse.Community.Application.IService
 {
@@ -17,14 +18,14 @@ namespace Droniverse.Community.Application.IService
 
         // Competition Stats Dashboard
         /// <summary>
-        /// Thống kê cuộc thi toàn hệ thống (Admin).
+        /// Thống kê cuộc thi toàn hệ thống (Admin) với hỗ trợ filter.
         /// </summary>
-        Task<CompetitionStatsResponse> GetCompetitionStats(int top = 10);
+        Task<CompetitionStatsResponse> GetCompetitionStats(int top = 10, CompetitionFilterRequest? filter = null);
 
         /// <summary>
-        /// Thống kê cuộc thi theo câu lạc bộ.
+        /// Thống kê cuộc thi theo câu lạc bộ với hỗ trợ filter.
         /// </summary>
-        Task<CompetitionStatsResponse> GetCompetitionStatsByClub(Guid clubId, int top = 10);
+        Task<CompetitionStatsResponse> GetCompetitionStatsByClub(Guid clubId, int top = 10, CompetitionFilterRequest? filter = null);
 
         // Code Stats & Top Buyers Dashboard
         /// <summary>

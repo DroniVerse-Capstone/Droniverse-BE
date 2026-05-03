@@ -102,6 +102,10 @@ namespace Droniverse.Community.Application.Services
                 throw new InvalidOperationException("Số dư trong ví không đủ để thực hiện rút tiền.");
             }
 
+            WithdrawRequest? existingRequest = await _unitOfWork.WithdrawRequests.GetByCondition(w => w.RequesterID == userId && w.Status == WithdrawStatus.PENDING);
+            if(existingRequest != null)
+                throw new ValidationException("Đã tồn tại yêu cầu rút tiền đang chờ xử lý. Vui lòng đợi yêu cầu đó được xử lý trước khi tạo yêu cầu mới.");
+
             WithdrawRequest withdrawRequest = new WithdrawRequest(
                 requesterId: userId,
                 note: request.Note,

@@ -38,7 +38,8 @@ public class CompetitionStatItem
     public Guid CompetitionId { get; set; }
     public string NameVN { get; set; } = string.Empty;
     public string NameEN { get; set; } = string.Empty;
-    public string Status { get; set; } = string.Empty;
+    public Droniverse.Community.Domain.Enums.CompetitionStatus CompetitionStatus { get; set; }
+    public Droniverse.Community.Domain.Enums.CompetitionLifeCycleStatus? CompetitionPhase { get; set; }
     public Guid ClubId { get; set; }
     public string ClubNameVN { get; set; } = string.Empty;
     public int ParticipantCount { get; set; }

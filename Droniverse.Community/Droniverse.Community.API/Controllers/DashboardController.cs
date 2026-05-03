@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Droniverse.Community.Application.DTO.Response;
+using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.IService;
+using Droniverse.Community.Domain.Enums;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
@@ -167,37 +169,135 @@ namespace Droniverse.Community.API.Controllers
         // ===================== Competition Stats =====================
 
         /// <summary>
-        /// Lấy thống kê cuộc thi toàn hệ thống.
+        /// Lấy thống kê cuộc thi toàn hệ thống với hỗ trợ filter.
         /// </summary>
         /// <remarks>
         /// Trả về tổng quan (tổng số, đang diễn ra, đã hoàn thành, đã hủy, nháp, tổng người tham gia, trung bình)
         /// và danh sách top cuộc thi có số người tham gia cao nhất.
+        /// Hỗ trợ lọc theo: trạng thái, giai đoạn, club, ngày, người tạo, người cập nhật, số vòng, số giải, số thí sinh.
         /// </remarks>
         /// <param name="top">Số lượng cuộc thi top cần lấy (mặc định 10).</param>
+        /// <param name="competitionStatus">Lọc theo trạng thái cuộc thi (nullable).</param>
+        /// <param name="competitionPhase">Lọc theo giai đoạn cuộc thi (nullable).</param>
+        /// <param name="clubId">Lọc theo ID câu lạc bộ (nullable).</param>
+        /// <param name="startDateFrom">Lọc cuộc thi có ngày bắt đầu từ ngày này (nullable).</param>
+        /// <param name="startDateTo">Lọc cuộc thi có ngày bắt đầu đến ngày này (nullable).</param>
+        /// <param name="endDateFrom">Lọc cuộc thi có ngày kết thúc từ ngày này (nullable).</param>
+        /// <param name="endDateTo">Lọc cuộc thi có ngày kết thúc đến ngày này (nullable).</param>
+        /// <param name="createdBy">Lọc cuộc thi được tạo bởi user ID này (nullable).</param>
+        /// <param name="updatedBy">Lọc cuộc thi được cập nhật bởi user ID này (nullable).</param>
+        /// <param name="minTotalRounds">Lọc cuộc thi có số vòng thi tối thiểu (nullable).</param>
+        /// <param name="maxTotalRounds">Lọc cuộc thi có số vòng thi tối đa (nullable).</param>
+        /// <param name="minTotalPrizes">Lọc cuộc thi có số giải thưởng tối thiểu (nullable).</param>
+        /// <param name="maxTotalPrizes">Lọc cuộc thi có số giải thưởng tối đa (nullable).</param>
+        /// <param name="minTotalCompetitors">Lọc cuộc thi có số thí sinh tối thiểu (nullable).</param>
+        /// <param name="maxTotalCompetitors">Lọc cuộc thi có số thí sinh tối đa (nullable).</param>
         [HttpGet("competitions/admin/stats")]
         [ProducesResponseType(typeof(SuccessResponse<CompetitionStatsResponse>), StatusCodes.Status200OK)]
         [Authorize(Roles = Roles.AdminOrSystemManager)]
-        public async Task<ApiResponse> GetCompetitionStats([FromQuery] int top = 10)
+        public async Task<ApiResponse> GetCompetitionStats(
+            [FromQuery] int top = 10,
+            [FromQuery] CompetitionStatus? competitionStatus = null,
+            [FromQuery] CompetitionLifeCycleStatus? competitionPhase = null,
+            [FromQuery] Guid? clubId = null,
+            [FromQuery] DateTime? startDateFrom = null,
+            [FromQuery] DateTime? startDateTo = null,
+            [FromQuery] DateTime? endDateFrom = null,
+            [FromQuery] DateTime? endDateTo = null,
+            [FromQuery] Guid? createdBy = null,
+            [FromQuery] Guid? updatedBy = null,
+            [FromQuery] int? minTotalRounds = null,
+            [FromQuery] int? maxTotalRounds = null,
+            [FromQuery] int? minTotalPrizes = null,
+            [FromQuery] int? maxTotalPrizes = null,
+            [FromQuery] int? minTotalCompetitors = null,
+            [FromQuery] int? maxTotalCompetitors = null)
         {
-            var data = await _dashboardService.GetCompetitionStats(top);
+            var filter = new CompetitionFilterRequest
+            {
+                CompetitionStatus = competitionStatus,
+                CompetitionPhase = competitionPhase,
+                ClubId = clubId,
+                StartDateFrom = startDateFrom,
+                StartDateTo = startDateTo,
+                EndDateFrom = endDateFrom,
+                EndDateTo = endDateTo,
+                CreatedBy = createdBy,
+                UpdatedBy = updatedBy,
+                MinTotalRounds = minTotalRounds,
+                MaxTotalRounds = maxTotalRounds,
+                MinTotalPrizes = minTotalPrizes,
+                MaxTotalPrizes = maxTotalPrizes,
+                MinTotalCompetitors = minTotalCompetitors,
+                MaxTotalCompetitors = maxTotalCompetitors
+            };
+            var data = await _dashboardService.GetCompetitionStats(top, filter);
             return SuccessResponse<CompetitionStatsResponse>.Create(data, "Lấy thống kê cuộc thi toàn hệ thống thành công!");
         }
 
         /// <summary>
-        /// Lấy thống kê cuộc thi theo câu lạc bộ.
+        /// Lấy thống kê cuộc thi theo câu lạc bộ với hỗ trợ filter.
         /// </summary>
         /// <remarks>
         /// Trả về tổng quan và top cuộc thi trong phạm vi 1 câu lạc bộ cụ thể.
+        /// Hỗ trợ lọc theo: trạng thái, giai đoạn, ngày, người tạo, người cập nhật, số vòng, số giải, số thí sinh.
         /// </remarks>
         /// <param name="clubId">ID câu lạc bộ.</param>
         /// <param name="top">Số lượng cuộc thi top cần lấy (mặc định 10).</param>
+        /// <param name="competitionStatus">Lọc theo trạng thái cuộc thi (nullable).</param>
+        /// <param name="competitionPhase">Lọc theo giai đoạn cuộc thi (nullable).</param>
+        /// <param name="startDateFrom">Lọc cuộc thi có ngày bắt đầu từ ngày này (nullable).</param>
+        /// <param name="startDateTo">Lọc cuộc thi có ngày bắt đầu đến ngày này (nullable).</param>
+        /// <param name="endDateFrom">Lọc cuộc thi có ngày kết thúc từ ngày này (nullable).</param>
+        /// <param name="endDateTo">Lọc cuộc thi có ngày kết thúc đến ngày này (nullable).</param>
+        /// <param name="createdBy">Lọc cuộc thi được tạo bởi user ID này (nullable).</param>
+        /// <param name="updatedBy">Lọc cuộc thi được cập nhật bởi user ID này (nullable).</param>
+        /// <param name="minTotalRounds">Lọc cuộc thi có số vòng thi tối thiểu (nullable).</param>
+        /// <param name="maxTotalRounds">Lọc cuộc thi có số vòng thi tối đa (nullable).</param>
+        /// <param name="minTotalPrizes">Lọc cuộc thi có số giải thưởng tối thiểu (nullable).</param>
+        /// <param name="maxTotalPrizes">Lọc cuộc thi có số giải thưởng tối đa (nullable).</param>
+        /// <param name="minTotalCompetitors">Lọc cuộc thi có số thí sinh tối thiểu (nullable).</param>
+        /// <param name="maxTotalCompetitors">Lọc cuộc thi có số thí sinh tối đa (nullable).</param>
         [HttpGet("competitions/clubs/{clubId:guid}/stats")]
         [ProducesResponseType(typeof(SuccessResponse<CompetitionStatsResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [Authorize(Roles = Roles.SystemRoles)]
-        public async Task<ApiResponse> GetCompetitionStatsByClub(Guid clubId, [FromQuery] int top = 10)
+        public async Task<ApiResponse> GetCompetitionStatsByClub(
+            Guid clubId,
+            [FromQuery] int top = 10,
+            [FromQuery] CompetitionStatus? competitionStatus = null,
+            [FromQuery] CompetitionLifeCycleStatus? competitionPhase = null,
+            [FromQuery] DateTime? startDateFrom = null,
+            [FromQuery] DateTime? startDateTo = null,
+            [FromQuery] DateTime? endDateFrom = null,
+            [FromQuery] DateTime? endDateTo = null,
+            [FromQuery] Guid? createdBy = null,
+            [FromQuery] Guid? updatedBy = null,
+            [FromQuery] int? minTotalRounds = null,
+            [FromQuery] int? maxTotalRounds = null,
+            [FromQuery] int? minTotalPrizes = null,
+            [FromQuery] int? maxTotalPrizes = null,
+            [FromQuery] int? minTotalCompetitors = null,
+            [FromQuery] int? maxTotalCompetitors = null)
         {
-            var data = await _dashboardService.GetCompetitionStatsByClub(clubId, top);
+            var filter = new CompetitionFilterRequest
+            {
+                CompetitionStatus = competitionStatus,
+                CompetitionPhase = competitionPhase,
+                StartDateFrom = startDateFrom,
+                StartDateTo = startDateTo,
+                EndDateFrom = endDateFrom,
+                EndDateTo = endDateTo,
+                CreatedBy = createdBy,
+                UpdatedBy = updatedBy,
+                MinTotalRounds = minTotalRounds,
+                MaxTotalRounds = maxTotalRounds,
+                MinTotalPrizes = minTotalPrizes,
+                MaxTotalPrizes = maxTotalPrizes,
+                MinTotalCompetitors = minTotalCompetitors,
+                MaxTotalCompetitors = maxTotalCompetitors
+            };
+            var data = await _dashboardService.GetCompetitionStatsByClub(clubId, top, filter);
             return SuccessResponse<CompetitionStatsResponse>.Create(data, "Lấy thống kê cuộc thi của câu lạc bộ thành công!");
         }
 

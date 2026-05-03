@@ -1,6 +1,8 @@
 ﻿using Droniverse.Community.Application.DTO.Response;
+using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
+using Droniverse.Community.Domain.AppHelpers;
 using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.Entities.Mongo;
 using Droniverse.Community.Domain.Enums;
@@ -543,7 +545,7 @@ namespace Droniverse.Community.Application.Services
 
         // ===================== Competition Stats =====================
 
-        public async Task<CompetitionStatsResponse> GetCompetitionStats(int top = 10)
+        public async Task<CompetitionStatsResponse> GetCompetitionStats(int top = 10, CompetitionFilterRequest? filter = null)
         {
             if (top <= 0) top = 10;
 
@@ -556,10 +558,10 @@ namespace Droniverse.Community.Application.Services
                     TopByParticipants = []
                 };
 
-            return await BuildCompetitionStats(allCompetitions, top);
+            return await BuildCompetitionStats(allCompetitions, top, filter);
         }
 
-        public async Task<CompetitionStatsResponse> GetCompetitionStatsByClub(Guid clubId, int top = 10)
+        public async Task<CompetitionStatsResponse> GetCompetitionStatsByClub(Guid clubId, int top = 10, CompetitionFilterRequest? filter = null)
         {
             if (top <= 0) top = 10;
 
@@ -578,59 +580,86 @@ namespace Droniverse.Community.Application.Services
                     TopByParticipants = []
                 };
 
-            return await BuildCompetitionStats(clubCompetitions, top);
+            return await BuildCompetitionStats(clubCompetitions, top, filter);
         }
 
         /// <summary>
         /// Logic chung: build CompetitionStatsResponse từ danh sách competitions đã filter.
         /// </summary>
         private async Task<CompetitionStatsResponse> BuildCompetitionStats(
-            List<Competition> competitions, int top)
+            List<Competition> competitions, int top, CompetitionFilterRequest? filter = null)
         {
             var now = _clock.Now;
-            var competitionIds = competitions.Select(c => c.CompetitionID).ToList();
 
-            // Lấy số người tham gia ACTIVE cho tất cả competitions một lần
+            // Áp dụng filters trước khi tính toán statistics
+            var filteredCompetitions = ApplyCompetitionFilters(competitions, filter, now);
+
+            var competitionIds = filteredCompetitions.Select(c => c.CompetitionID).ToList();
+
+            // Lấy số người tham gia ACTIVE cho tất cả filtered competitions một lần
             var participantCounts = await _unitOfWork.UserCompetitions
                 .GetCompetitorCountsByCompetitionIds(competitionIds);
 
+            // Nếu có filter về competitors, lọc thêm dựa trên participantCounts
+            if (filter?.MinTotalCompetitors.HasValue == true || filter?.MaxTotalCompetitors.HasValue == true)
+            {
+                filteredCompetitions = filteredCompetitions
+                    .Where(c =>
+                    {
+                        var count = participantCounts.TryGetValue(c.CompetitionID, out var cnt) ? cnt : 0;
+                        var minOk = !filter.MinTotalCompetitors.HasValue || count >= filter.MinTotalCompetitors.Value;
+                        var maxOk = !filter.MaxTotalCompetitors.HasValue || count <= filter.MaxTotalCompetitors.Value;
+                        return minOk && maxOk;
+                    })
+                    .ToList();
+
+                // Cập nhật lại competitionIds sau khi lọc
+                competitionIds = filteredCompetitions.Select(c => c.CompetitionID).ToList();
+                
+                // Cập nhật participantCounts để chỉ chứa những ID đã lọc
+                participantCounts = participantCounts
+                    .Where(kvp => competitionIds.Contains(kvp.Key))
+                    .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            }
+
             var totalParticipants = participantCounts.Values.Sum();
-            var publishedCount = competitions.Count(c => c.Status == CompetitionStatus.PUBLISHED);
+            var publishedCount = filteredCompetitions.Count(c => c.Status == CompetitionStatus.PUBLISHED);
 
             // Đang diễn ra: PUBLISHED + trong khoảng StartDate → EndDate
-            var ongoingCount = competitions.Count(c =>
+            var ongoingCount = filteredCompetitions.Count(c =>
                 c.Status == CompetitionStatus.PUBLISHED
                 && c.StartDate <= now
                 && c.EndDate >= now);
 
             var overview = new CompetitionOverviewResponse
             {
-                TotalCompetitions = competitions.Count,
-                DraftCompetitions = competitions.Count(c => c.Status == CompetitionStatus.DRAFT),
+                TotalCompetitions = filteredCompetitions.Count,
+                DraftCompetitions = filteredCompetitions.Count(c => c.Status == CompetitionStatus.DRAFT),
                 PublishedCompetitions = publishedCount,
-                CompletedCompetitions = competitions.Count(c => c.Status == CompetitionStatus.RESULT_PUBLISHED),
-                CancelledCompetitions = competitions.Count(c => c.Status == CompetitionStatus.CANCELLED),
-                InvalidCompetitions = competitions.Count(c => c.Status == CompetitionStatus.INVALID),
+                CompletedCompetitions = filteredCompetitions.Count(c => c.Status == CompetitionStatus.RESULT_PUBLISHED),
+                CancelledCompetitions = filteredCompetitions.Count(c => c.Status == CompetitionStatus.CANCELLED),
+                InvalidCompetitions = filteredCompetitions.Count(c => c.Status == CompetitionStatus.INVALID),
                 TotalParticipants = totalParticipants,
-                AverageParticipantsPerCompetition = competitions.Count > 0
-                    ? Math.Round((double)totalParticipants / competitions.Count, 1)
+                AverageParticipantsPerCompetition = filteredCompetitions.Count > 0
+                    ? Math.Round((double)totalParticipants / filteredCompetitions.Count, 1)
                     : 0
             };
 
             // Lấy tên club cho hiển thị
-            var clubIds = competitions.Select(c => c.ClubID).Distinct().ToList();
+            var clubIds = filteredCompetitions.Select(c => c.ClubID).Distinct().ToList();
             var clubs = (await _unitOfWork.Clubs
                 .GetManyByCondition(c => clubIds.Contains(c.ClubID)))
                 .ToDictionary(c => c.ClubID);
 
             // Top cuộc thi theo số người tham gia
-            var topItems = competitions
+            var topItems = filteredCompetitions
                 .Select(c => new CompetitionStatItem
                 {
                     CompetitionId = c.CompetitionID,
                     NameVN = c.NameVN,
                     NameEN = c.NameEN,
-                    Status = c.Status.ToString(),
+                    CompetitionStatus = c.Status,
+                    CompetitionPhase = CommunityAppHelpers.GetCurrentCompetitionLifeCycle(c, now),
                     ClubId = c.ClubID,
                     ClubNameVN = clubs.TryGetValue(c.ClubID, out var club) ? club.NameVN : string.Empty,
                     ParticipantCount = participantCounts.TryGetValue(c.CompetitionID, out var count) ? count : 0,
@@ -646,6 +675,104 @@ namespace Droniverse.Community.Application.Services
                 Overview = overview,
                 TopByParticipants = topItems
             };
+        }
+
+        /// <summary>
+        /// Áp dụng tất cả filter conditions vào danh sách competitions.
+        /// Sử dụng CommunityAppHelpers.GetCurrentCompetitionLifeCycle() để tính toán CompetitionPhase.
+        /// </summary>
+        private List<Competition> ApplyCompetitionFilters(
+            List<Competition> competitions,
+            CompetitionFilterRequest? filter,
+            DateTime now)
+        {
+            if (filter == null)
+                return competitions;
+
+            var result = competitions.AsEnumerable();
+
+            // Lọc theo CompetitionStatus
+            if (filter.CompetitionStatus.HasValue)
+            {
+                result = result.Where(c => c.Status == filter.CompetitionStatus.Value);
+            }
+
+            // Lọc theo CompetitionPhase (giai đoạn vòng đời)
+            if (filter.CompetitionPhase.HasValue)
+            {
+                result = result.Where(c =>
+                {
+                    var phase = CommunityAppHelpers.GetCurrentCompetitionLifeCycle(c, now);
+                    return phase == filter.CompetitionPhase.Value;
+                });
+            }
+
+            // Lọc theo ClubId
+            if (filter.ClubId.HasValue)
+            {
+                result = result.Where(c => c.ClubID == filter.ClubId.Value);
+            }
+
+            // Lọc theo StartDate range
+            if (filter.StartDateFrom.HasValue)
+            {
+                result = result.Where(c => c.StartDate >= filter.StartDateFrom.Value);
+            }
+
+            if (filter.StartDateTo.HasValue)
+            {
+                result = result.Where(c => c.StartDate <= filter.StartDateTo.Value);
+            }
+
+            // Lọc theo EndDate range
+            if (filter.EndDateFrom.HasValue)
+            {
+                result = result.Where(c => c.EndDate >= filter.EndDateFrom.Value);
+            }
+
+            if (filter.EndDateTo.HasValue)
+            {
+                result = result.Where(c => c.EndDate <= filter.EndDateTo.Value);
+            }
+
+            // Lọc theo CreatedBy
+            if (filter.CreatedBy.HasValue)
+            {
+                result = result.Where(c => c.CreatedBy == filter.CreatedBy.Value);
+            }
+
+            // Lọc theo UpdatedBy
+            if (filter.UpdatedBy.HasValue)
+            {
+                result = result.Where(c => c.UpdatedBy == filter.UpdatedBy.Value);
+            }
+
+            // Lọc theo số vòng (Rounds count)
+            if (filter.MinTotalRounds.HasValue)
+            {
+                result = result.Where(c => c.Rounds.Count >= filter.MinTotalRounds.Value);
+            }
+
+            if (filter.MaxTotalRounds.HasValue)
+            {
+                result = result.Where(c => c.Rounds.Count <= filter.MaxTotalRounds.Value);
+            }
+
+            // Lọc theo số giải thưởng (CompetitionPrizes count)
+            if (filter.MinTotalPrizes.HasValue)
+            {
+                result = result.Where(c => c.CompetitionPrizes.Count >= filter.MinTotalPrizes.Value);
+            }
+
+            if (filter.MaxTotalPrizes.HasValue)
+            {
+                result = result.Where(c => c.CompetitionPrizes.Count <= filter.MaxTotalPrizes.Value);
+            }
+
+            // Note: Lọc theo MinTotalCompetitors và MaxTotalCompetitors được xử lý sau 
+            // vì cần lấy dữ liệu từ UserCompetitions (sẽ được thực hiện trong BuildCompetitionStats)
+
+            return result.ToList();
         }
 
         // ===================== Code Stats =====================
