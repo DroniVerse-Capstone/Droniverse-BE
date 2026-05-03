@@ -12,6 +12,7 @@ using Droniverse.Academy.Domain.IRepository;
 using Droniverse.Academy.Domain.QueryModels;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Request;
+using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Enums;
 using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Helpers;
@@ -157,7 +158,7 @@ public class CodeService : ICodeService
             pageIndex,
             pageSize);
 
-        var mappedCodes = codes.Data.Select(MapCodeResponse).ToList();
+        var mappedCodes = await MapCodeResponsesAsync(codes.Data);
 
         // Calculate overview
         var allCodes = codes.Data.ToList();
@@ -186,7 +187,7 @@ public class CodeService : ICodeService
             throw new NotFoundException($"Code with id {codeId} not found");
         }
 
-        return MapCodeResponse(code);
+        return (await MapCodeResponsesAsync([code])).First();
     }
 
     public Task<CodeResponseDTO> UpdateCodeAsync(string codeId)
@@ -734,7 +735,7 @@ public class CodeService : ICodeService
             code.CodeID,
             currentUserId);
 
-        return MapCodeResponse(code);
+        return (await MapCodeResponsesAsync([code])).First();
     }
 
     public async Task<GetCodeByUsersResponseDTO> GetCodeByUsers(Guid clubId, Guid courseId)
@@ -848,19 +849,80 @@ public class CodeService : ICodeService
     //    await _emailService.SendEmailAsync(user.Email, subject, message);
     //}
 
-    private static CodeResponseDTO MapCodeResponse(Code code)
+    private async Task<List<CodeResponseDTO>> MapCodeResponsesAsync(IEnumerable<Code> codes)
     {
-        return new CodeResponseDTO
+        var codeList = codes?.ToList() ?? [];
+
+        if (codeList.Count == 0)
+        {
+            return [];
+        }
+
+        var clubIds = codeList
+            .Select(code => code.ClubID)
+            .Where(clubId => clubId != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        var ownerUserIds = codeList
+            .Select(code => code.CreatedBy)
+            .Where(userId => userId != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        var usedByUserIds = codeList
+            .Select(code => code.UsedByUserID)
+            .Where(userId => userId.HasValue && userId.Value != Guid.Empty)
+            .Select(userId => userId!.Value)
+            .Distinct()
+            .ToList();
+
+        Task<IEnumerable<SimpleClubResponse>> clubsTask = clubIds.Count > 0
+            ? _communityMicroserviceClient.GetClubInfoBulkAsync(clubIds)
+            : Task.FromResult<IEnumerable<SimpleClubResponse>>(Array.Empty<SimpleClubResponse>());
+
+        Task<IEnumerable<UserResponse>> ownerUsersTask = ownerUserIds.Count > 0
+            ? _identityMicroserviceClient.GetUsersBulk(ownerUserIds)
+            : Task.FromResult<IEnumerable<UserResponse>>(Array.Empty<UserResponse>());
+
+        Task<IEnumerable<UserResponse>> usedByUsersTask = usedByUserIds.Count > 0
+            ? _identityMicroserviceClient.GetUsersBulk(usedByUserIds)
+            : Task.FromResult<IEnumerable<UserResponse>>(Array.Empty<UserResponse>());
+
+        await Task.WhenAll(clubsTask, ownerUsersTask, usedByUsersTask);
+
+        var clubsById = (await clubsTask)
+            .Where(club => club != null && club.ClubId != Guid.Empty)
+            .GroupBy(club => club.ClubId)
+            .ToDictionary(group => group.Key, group => group.First());
+
+        var ownerUsersById = (await ownerUsersTask)
+            .Where(user => user != null && user.UserId != Guid.Empty)
+            .GroupBy(user => user.UserId)
+            .ToDictionary(group => group.Key, group => group.First());
+
+        var usedByUsersById = (await usedByUsersTask)
+            .Where(user => user != null && user.UserId != Guid.Empty)
+            .GroupBy(user => user.UserId)
+            .ToDictionary(group => group.Key, group => group.First());
+
+        return codeList.Select(code => new CodeResponseDTO
         {
             CodeID = code.CodeID,
             CourseID = code.CourseID.ToString(),
-            ClubID = code.ClubID.ToString(),
-            OwnedUserID = null,
-            UsedByUserID = code.UsedByUserID,
+            Club = clubsById.TryGetValue(code.ClubID, out var club)
+                ? club
+                : null,
+            OwnerUser = ownerUsersById.TryGetValue(code.CreatedBy, out var ownerUser)
+                ? ownerUser
+                : null,
+            UsedByUser = code.UsedByUserID.HasValue && usedByUsersById.TryGetValue(code.UsedByUserID.Value, out var usedByUser)
+                ? usedByUser
+                : null,
             UsedDate = code.UsedDate,
             ExpireDate = code.ExpireDate,
             Status = code.Status
-        };
+        }).ToList();
     }
 }
 
