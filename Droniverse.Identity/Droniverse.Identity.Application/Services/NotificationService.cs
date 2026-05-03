@@ -42,15 +42,15 @@ internal class NotificationService : INotificationService
                 ErrorMessage = null
             };
 
+            _logger.LogInformation("Creating notification entity for user {UserId} title={Title} relatedEntityId={RelatedEntityId}", userId, title, relatedEntityId);
             await _unitOfWork.Notifications.Add(notification);
-            await _unitOfWork.SaveChangeAsync();
-
-            _logger.LogInformation($"Notification created successfully for user {userId}");
+            var saved = await _unitOfWork.SaveChangeAsync();
+            _logger.LogInformation("Saved notification {NotificationId} to DB (result={SaveResult})", notification.NotificationID, saved);
             return notification;
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Error creating notification for user {userId}: {ex.Message}");
+            _logger.LogError(ex, "Error creating notification for user {UserId}", userId);
             throw;
         }
     }
@@ -84,13 +84,14 @@ internal class NotificationService : INotificationService
 
         try
         {
+            _logger.LogInformation("Preparing to send notification to user {UserId} via {Type} (email={Email})", userId, type, userEmail);
             // Gửi notification ngay (real-time)
             if (type == NotificationType.EMAIL)
             {
                 await _emailService.SendEmailAsync(userEmail, title, message);
                 notification.Status = NotificationStatus.SENT;
                 notification.SentAt = DateTime.UtcNow;
-                _logger.LogInformation($"Notification sent successfully to {userEmail}");
+                _logger.LogInformation("Notification sent successfully to {Email}", userEmail);
             }
             else
             {
@@ -104,12 +105,22 @@ internal class NotificationService : INotificationService
             notification.Status = NotificationStatus.FAILED;
             notification.ErrorMessage = ex.Message;
             notification.RetryCount = 1;
-            _logger.LogError($"Failed to send notification to user {userId}: {ex.Message}");
+            _logger.LogError(ex, "Failed to send notification to user {UserId}", userId);
         }
 
         // Lưu notification vào DB
-        await _unitOfWork.Notifications.Add(notification);
-        await _unitOfWork.SaveChangeAsync();
+        try
+        {
+            _logger.LogInformation("Adding notification entity to DB for user {UserId} (NotificationId={NotificationId})", userId, notification.NotificationID);
+            await _unitOfWork.Notifications.Add(notification);
+            var saved = await _unitOfWork.SaveChangeAsync();
+            _logger.LogInformation("Saved notification {NotificationId} to DB (result={SaveResult})", notification.NotificationID, saved);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving notification to DB for user {UserId} NotificationId={NotificationId}", userId, notification.NotificationID);
+            throw;
+        }
 
         return notification;
     }
