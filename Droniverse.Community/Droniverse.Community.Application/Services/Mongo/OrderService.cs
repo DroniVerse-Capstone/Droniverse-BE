@@ -161,7 +161,7 @@ internal class OrderService : IOrderService
                         UserEmail: userEmail,
                         UserName: userName ?? "User",
                         Total: createdOrder.TotalAmount,
-                        CreatedAt: DateTime.UtcNow
+                        CreatedAt: DateTime.UtcNow.AddHours(7)
                     );
 
                     await _orderNotificationPublisher.PublishOrderCreatedAsync(notificationEvent);

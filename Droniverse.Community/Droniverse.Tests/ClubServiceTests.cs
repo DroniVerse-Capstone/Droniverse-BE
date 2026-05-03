@@ -10,6 +10,7 @@ using AutoMapper;
 using Moq;
 using Droniverse.Community.Domain.Enums;
 using Droniverse.Shared.DTOs;
+using Droniverse.Shared.Enums;
 using Droniverse.Shared.DTOs.Request;
 
 namespace Droniverse.Tests;
@@ -51,7 +52,7 @@ public class ClubServiceTests
     }
 
     // ===== Helper Methods =====
-    private static Club CreateTestClub(Guid? clubId = null, string? clubCode = null)
+    private static Club CreateTestClub(Guid? clubId = null, string? clubCode = null, Guid? createdBy = null)
     {
         var id = clubId ?? Guid.NewGuid();
         var code = clubCode ?? "123456";
@@ -62,7 +63,7 @@ public class ClubServiceTests
             clubCode: code,
             limitParticipation: 10,
             limitClubManagers: 2,
-            createdBy: Guid.NewGuid(),
+            createdBy: createdBy ?? Guid.NewGuid(),
             now: DateTime.UtcNow,
             imageUrl: null,
             managerID: Guid.NewGuid(),
@@ -306,6 +307,53 @@ public class ClubServiceTests
         Assert.NotNull(result);
         Assert.Equal(club.ClubID, result.ClubID);
         _unitOfWorkMock.Verify(u => u.ClubAttemptRequests.Add(It.IsAny<ClubAttemptRequest>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task LeaveClub_ShouldMarkParticipationLeft_WhenMemberIsActive()
+    {
+        var clubId = Guid.NewGuid();
+        var currentUserId = Guid.NewGuid();
+        var participation = new Participation(currentUserId, clubId, null);
+
+        _currentUserServiceMock.Setup(s => s.UserID).Returns(currentUserId.ToString());
+        _unitOfWorkMock.Setup(u => u.Participations.GetByCondition(It.IsAny<System.Linq.Expressions.Expression<Func<Participation, bool>>>(), It.IsAny<Func<IQueryable<Participation>, IQueryable<Participation>>>() ))
+            .ReturnsAsync(participation);
+        _unitOfWorkMock.Setup(u => u.Participations.Update(participation)).ReturnsAsync(participation);
+        _unitOfWorkMock.Setup(u => u.SaveChangeAsync()).ReturnsAsync(1);
+
+        var result = await _clubService.LeaveClub(clubId);
+
+        Assert.True(result);
+        Assert.Equal(ParticipationStatus.LEFT, participation.Status);
+        Assert.NotNull(participation.LeftDate);
+    }
+
+    [Fact]
+    public async Task KickMemberFromClub_ShouldMarkParticipationBanned_WhenAllowedUserKicksMember()
+    {
+        var clubId = Guid.NewGuid();
+        var currentUserId = Guid.NewGuid();
+        var targetUserId = Guid.NewGuid();
+        var club = CreateTestClub(clubId, createdBy: currentUserId);
+        var participation = new Participation(targetUserId, clubId, null);
+        var request = new ClubKickMemberRequest { Reason = "Vi phạm nội quy" };
+
+        _currentUserServiceMock.Setup(s => s.UserID).Returns(currentUserId.ToString());
+        _currentUserServiceMock.Setup(s => s.Roles).Returns(new List<string> { Droniverse.Shared.Constants.Roles.ClubManager });
+        _unitOfWorkMock.Setup(u => u.Clubs.GetByCondition(It.IsAny<System.Linq.Expressions.Expression<Func<Club, bool>>>(), It.IsAny<Func<IQueryable<Club>, IQueryable<Club>>>() ))
+            .ReturnsAsync(club);
+        _unitOfWorkMock.Setup(u => u.Participations.GetByCondition(It.IsAny<System.Linq.Expressions.Expression<Func<Participation, bool>>>(), It.IsAny<Func<IQueryable<Participation>, IQueryable<Participation>>>() ))
+            .ReturnsAsync(participation);
+        _unitOfWorkMock.Setup(u => u.Participations.Update(participation)).ReturnsAsync(participation);
+        _unitOfWorkMock.Setup(u => u.SaveChangeAsync()).ReturnsAsync(1);
+
+        var result = await _clubService.KickMemberFromClub(clubId, targetUserId, request);
+
+        Assert.True(result);
+        Assert.Equal(ParticipationStatus.BANNED, participation.Status);
+        Assert.Equal("Vi phạm nội quy", participation.Note);
+        Assert.NotNull(participation.LeftDate);
     }
 
     [Fact]

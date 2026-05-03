@@ -1,11 +1,13 @@
 ﻿using AutoMapper;
+using Droniverse.Academy.Application.DTO.Extension;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
-using Droniverse.Academy.Application.DTO.Extension;
+using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
+using Droniverse.Shared.Constants;
 using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Services.IServices;
 
@@ -19,14 +21,15 @@ public class EnrollmentService : IEnrollmentService
     private readonly IClock _clock;
     private readonly IUserLevelService _userLevelService;
     private readonly IUserLookupService _userLookupService;
-
+    private readonly CommunityMicroserviceClient _communityMicroserviceClient;
     public EnrollmentService(
         IUnitOfWork unitOfWork,
         IMapper mapper,
         ICurrentUserService currentUser,
         IClock clock,
         IUserLevelService userLevelService,
-        IUserLookupService userLookupService)
+        IUserLookupService userLookupService,
+        CommunityMicroserviceClient communityMicroserviceClient)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
@@ -34,6 +37,7 @@ public class EnrollmentService : IEnrollmentService
         _clock = clock;
         _userLevelService = userLevelService;
         _userLookupService = userLookupService;
+        _communityMicroserviceClient = communityMicroserviceClient;
     }
 
     public async Task<EnrollmentResponseDTO> CreateEnrollmentAsync(CreateEnrollmentRequestDTO request)
@@ -162,6 +166,17 @@ public class EnrollmentService : IEnrollmentService
             UserEnrollment.COMPLETED => EnrollStatus.COMPLETED,
             _ => null
         };
+        //xác thực cho club member đã rời club nhưng vẫn còn enrollment ở trạng thái active/completed, không cho phép xem thông tin khóa học nữa
+        var userRoles = _currentUser.Roles;
+        var isMember = userRoles.Contains(Roles.ClubMember);
+        if (isMember)
+        {
+            bool isActiveParticipant = await _communityMicroserviceClient.CheckParticipantByClubAsync(clubId, _currentUser.UserId);
+            if (!isActiveParticipant)
+            {
+                throw new ForbiddenException("Bạn đã rời câu lạc bộ này, vui lòng liên hệ quản lý câu lạc bộ (club manager) hoặc admin để biết thêm chi tiết.");
+            }
+        }
 
         var result = await _unitOfWork.Enrollments.GetCoursesOfUserAsync(
             userId: currentUserId,
@@ -204,6 +219,19 @@ public class EnrollmentService : IEnrollmentService
         Guid? courseId = null,
         Guid? userId = null)
     {
+
+        //xác thực cho club member đã rời club nhưng vẫn còn enrollment ở trạng thái active/completed, không cho phép xem thông tin khóa học nữa
+        var userRoles = _currentUser.Roles;
+        var isMember = userRoles.Contains(Roles.ClubMember);
+        if (isMember)
+        {
+            bool isActiveParticipant = await _communityMicroserviceClient.CheckParticipantByClubAsync(clubId, _currentUser.UserId);
+            if (!isActiveParticipant)
+            {
+                throw new ForbiddenException("Bạn đã rời câu lạc bộ này, vui lòng liên hệ quản lý câu lạc bộ (club manager) hoặc admin để biết thêm chi tiết.");
+            }
+        }
+
         if (clubId == Guid.Empty)
             throw new ValidationException("ClubId không hợp lệ.");
 
