@@ -59,7 +59,7 @@ namespace Droniverse.Community.API.Controllers
         [HttpPost("webhook")]
         [HttpPut("webhook")]
         [AllowAnonymous]
-        public async Task<IActionResult> HandleWebhookAsync()
+        public async Task<IActionResult> HandleWebhookAsync([FromBody] PayOSWebhookDto? webhook)
         {
             try
             {
@@ -101,14 +101,22 @@ namespace Droniverse.Community.API.Controllers
 
                 if (webhook == null)
                 {
-                    _logger.LogError("Failed to deserialize webhook");
-                    return BadRequest("Invalid webhook format");
+                    _logger.LogError("Webhook payload is null or could not be bound from request body");
+                    return BadRequest("Invalid webhook payload");
                 }
+
+                _logger.LogInformation("Received webhook: {Webhook}", JsonSerializer.Serialize(webhook));
 
                 if (webhook.Data == null)
                 {
                     _logger.LogError("Webhook data is null");
                     return BadRequest("Webhook data is missing");
+                }
+
+                if (string.IsNullOrWhiteSpace(webhook.Signature))
+                {
+                    _logger.LogError("Webhook signature is missing");
+                    return BadRequest("Webhook signature is missing");
                 }
 
                 // Verify signature using data object (serialize with camelCase for proper signature computation)
