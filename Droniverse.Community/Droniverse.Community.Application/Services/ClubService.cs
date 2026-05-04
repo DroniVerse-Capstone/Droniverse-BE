@@ -128,11 +128,11 @@ internal class ClubService : IClubService
     public async Task<ClubResponseDto> GetClubById(Guid id)
     {
         Guid userID = _currentUserService.UserId;
-        if(userID == Guid.Empty)
+        if (userID == Guid.Empty)
             throw new UnauthorizedAccessException("Người dùng chưa được xác thực.");
 
         UserResponse? user = await _identityMicroserviceClient.GetUserByUserID(userID);
-        if(user == null)
+        if (user == null)
             throw new UnauthorizedAccessException("Người dùng chưa được xác thực.");
 
         var userRoles = _currentUserService.Roles;
@@ -143,8 +143,8 @@ internal class ClubService : IClubService
             Participation? participation = await _unitOfWork.Participations.GetByCondition(p =>
                 p.ClubID == id &&
                 p.UserID == userID &&
-                p.Status == ParticipationStatus.LEFT || p.Status == ParticipationStatus.BANNED);
-            if(participation != null)
+                p.Status == ParticipationStatus.ACTIVE);
+            if (participation == null)
             {
                 throw new ForbiddenException("Bạn đã rời câu lạc bộ này, vui lòng liên hệ quản lý câu lạc bộ (club manager) hoặc admin để biết thêm chi tiết.");
             }
@@ -637,8 +637,19 @@ internal class ClubService : IClubService
         IEnumerable<Club> clubs;
 
         if (isMember)
+        {
             // CLUB_MEMBER: Lấy clubs đã tham gia
+            // Check xem member đó còn trong group hay không
+            Participation? participation = await _unitOfWork.Participations.GetByCondition(p =>
+                p.UserID == currentUserId &&
+                p.Status == ParticipationStatus.ACTIVE);
+            if(participation == null)
+            {
+                throw new ForbiddenException("Bạn hiện tại đã không hoạt động trong câu lạc bộ này, vui lòng liên hệ quản lý câu lạc bộ (club manager) hoặc admin để biết thêm chi tiết.");
+            }
+
             clubs = await _unitOfWork.Clubs.GetClubsByParticipantUserId(currentUserId, status);
+        }
         else
             // CLUB_MANAGER/ADMIN/SYSTEM_MANAGER: Lấy clubs đã tạo
             clubs = await _unitOfWork.Clubs.GetClubsByClubManagerID(currentUserId, status);

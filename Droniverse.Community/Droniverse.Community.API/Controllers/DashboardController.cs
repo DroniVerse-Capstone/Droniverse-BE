@@ -45,18 +45,32 @@ namespace Droniverse.Community.API.Controllers
         /// Lấy biểu đồ tăng doanh thu theo tháng của câu lạc bộ.
         /// </summary>
         /// <param name="clubId">ID câu lạc bộ.</param>
-        /// <param name="months">Số tháng cần lấy dữ liệu (mặc định 12).</param>
+        /// <param name="months">Số tháng cần lấy dữ liệu (mặc định 12). Bỏ qua nếu sử dụng fromDate và toDate.</param>
+        /// <param name="fromDate">Ngày bắt đầu (inclusive). Format: yyyy-MM-dd. Nếu cung cấp, sẽ override tham số months.</param>
+        /// <param name="toDate">Ngày kết thúc (inclusive). Format: yyyy-MM-dd. Cần cung cấp cùng với fromDate.</param>
         /// <returns>
-        /// 200 OK - Trả về danh sách chi phí theo tháng.
+        /// 200 OK - Trả về danh sách chi phí theo tháng hoặc ngày.
         /// 404 NotFound - Không tìm thấy câu lạc bộ.
         /// </returns>
         [HttpGet("expense/clubs/{clubId:guid}/growth")]
         [ProducesResponseType(typeof(SuccessResponse<RevenueGrowthResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [Authorize(Roles = Roles.SystemRoles)]
-        public async Task<ApiResponse> GetRevenueGrowth(Guid clubId, [FromQuery] int months = 12)
+        public async Task<ApiResponse> GetRevenueGrowth(Guid clubId, [FromQuery] int months = 12, [FromQuery] DateTime? fromDate = null, [FromQuery] DateTime? toDate = null)
         {
-            var data = await _dashboardService.GetRevenueGrowthByClub(clubId, months);
+            RevenueGrowthResponse data;
+            
+            if (fromDate.HasValue && toDate.HasValue)
+            {
+                // Use date range filter
+                data = await _dashboardService.GetRevenueGrowthByClub(clubId, fromDate.Value, toDate.Value);
+            }
+            else
+            {
+                // Use months filter (default behavior)
+                data = await _dashboardService.GetRevenueGrowthByClub(clubId, months);
+            }
+            
             return SuccessResponse<RevenueGrowthResponse>.Create(data, "Lấy tăng trưởng doanh thu câu lạc bộ thành công!");
         }
 
@@ -114,16 +128,30 @@ namespace Droniverse.Community.API.Controllers
         /// <remarks>
         /// Tất cả các chỉ số đều dựa trên các order có trạng thái <b>Status = SUCCESS</b>.
         /// </remarks>
-        /// <param name="months">Số tháng cần lấy dữ liệu (mặc định 12).</param>
+        /// <param name="months">Số tháng cần lấy dữ liệu (mặc định 12). Bỏ qua nếu sử dụng fromDate và toDate.</param>
+        /// <param name="fromDate">Ngày bắt đầu (inclusive). Format: yyyy-MM-dd. Nếu cung cấp, sẽ override tham số months.</param>
+        /// <param name="toDate">Ngày kết thúc (inclusive). Format: yyyy-MM-dd. Cần cung cấp cùng với fromDate.</param>
         /// <returns>
-        /// 200 OK - Trả về danh sách doanh thu theo tháng của tất cả club.
+        /// 200 OK - Trả về danh sách doanh thu theo tháng hoặc ngày của tất cả club.
         /// </returns>
         [HttpGet("revenue/admin/growth")]
         [ProducesResponseType(typeof(SuccessResponse<RevenueGrowthResponse>), StatusCodes.Status200OK)]
         [Authorize(Roles = Roles.AdminOrSystemManager)]
-        public async Task<ApiResponse> GetAdminRevenueGrowth([FromQuery] int months = 12)
+        public async Task<ApiResponse> GetAdminRevenueGrowth([FromQuery] int months = 12, [FromQuery] DateTime? fromDate = null, [FromQuery] DateTime? toDate = null)
         {
-            var data = await _dashboardService.GetRevenueGrowthByAllClubs(months);
+            RevenueGrowthResponse data;
+            
+            if (fromDate.HasValue && toDate.HasValue)
+            {
+                // Use date range filter
+                data = await _dashboardService.GetRevenueGrowthByAllClubs(fromDate.Value, toDate.Value);
+            }
+            else
+            {
+                // Use months filter (default behavior)
+                data = await _dashboardService.GetRevenueGrowthByAllClubs(months);
+            }
+            
             return SuccessResponse<RevenueGrowthResponse>.Create(data, "Lấy tăng trưởng doanh thu hệ thống thành công!");
         }
 

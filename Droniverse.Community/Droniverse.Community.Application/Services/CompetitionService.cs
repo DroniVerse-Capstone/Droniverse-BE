@@ -261,8 +261,8 @@ namespace Droniverse.Community.Application.Services
                 Participation? participation = await _unitOfWork.Participations.GetByCondition(p =>
                     p.ClubID == clubId &&
                     p.UserID == userID &&
-                    p.Status == ParticipationStatus.LEFT || p.Status == ParticipationStatus.BANNED);
-                if (participation != null)
+                    p.Status == ParticipationStatus.ACTIVE);
+                if (participation == null)
                 {
                     throw new ForbiddenException("Bạn đã rời câu lạc bộ này, vui lòng liên hệ quản lý câu lạc bộ (club manager) hoặc admin để biết thêm chi tiết.");
                 }

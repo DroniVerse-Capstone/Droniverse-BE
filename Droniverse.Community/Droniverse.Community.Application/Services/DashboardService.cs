@@ -115,6 +115,61 @@ namespace Droniverse.Community.Application.Services
             };
         }
 
+        /// <summary>
+        /// Lấy biểu đồ tăng doanh thu theo ngày của câu lạc bộ trong khoảng thời gian cụ thể.
+        /// </summary>
+        public async Task<RevenueGrowthResponse> GetRevenueGrowthByClub(Guid clubId, DateTime fromDate, DateTime toDate)
+        {
+            var clubExists = await _unitOfWork.Clubs.GetByCondition(c => c.ClubID == clubId, q => q.AsNoTracking());
+            if (clubExists == null)
+                throw new KeyNotFoundException($"Không tìm thấy câu lạc bộ với ID [{clubId}].");
+
+            // Normalize dates to start and end of day
+            var from = fromDate.Date;
+            var to = toDate.Date.AddDays(1); // Inclusive of toDate
+
+            var allOrders = await _orderRepository.GetAllSuccessfulOrders();
+            if (allOrders == null)
+                allOrders = [];
+
+            // Filter for CLUB_IMPORT orders for this club (club's spending/expense) by date range
+            var clubImportOrders = allOrders
+                .Where(o => o.ClubID == clubId 
+                    && o.OrderType == Domain.Enums.OrderType.CLUB_IMPORT
+                    && o.Payment?.TransactionDate >= from
+                    && o.Payment?.TransactionDate < to)
+                .ToList();
+
+            // Group by date
+            var valueByDate = clubImportOrders
+                .GroupBy(x => x.Payment.TransactionDate.Date)
+                .OrderBy(g => g.Key)
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.TotalAmount));
+
+            // Generate daily stats for the entire date range
+            var dailyStats = new List<MonthlyStat>();
+            for (var date = from; date < to; date = date.AddDays(1))
+            {
+                dailyStats.Add(new MonthlyStat
+                {
+                    Month = date, // Using Month field for date (for compatibility)
+                    Value = valueByDate.TryGetValue(date, out var value) ? value : 0
+                });
+            }
+
+            var totalValue = dailyStats.Sum(x => x.Value);
+            var firstValue = dailyStats.FirstOrDefault()?.Value ?? 0;
+            var lastValue = dailyStats.LastOrDefault()?.Value ?? 0;
+            var growthRate = (decimal)CalculateGrowthRate(lastValue, firstValue);
+
+            return new RevenueGrowthResponse 
+            { 
+                RevenueGrowth = dailyStats,
+                TotalValue = totalValue,
+                GrowthRate = growthRate
+            };
+        }
+
         public async Task<ClubCourseRevenueResponse> GetRevenueByCourseByClub(Guid clubId, int top)
         {
             if (top <= 0)
@@ -372,6 +427,56 @@ namespace Droniverse.Community.Application.Services
             return new RevenueGrowthResponse 
             { 
                 RevenueGrowth = growth,
+                TotalValue = totalValue,
+                GrowthRate = growthRate
+            };
+        }
+
+        /// <summary>
+        /// Lấy biểu đồ tăng doanh thu theo ngày của toàn bộ hệ thống trong khoảng thời gian cụ thể.
+        /// </summary>
+        public async Task<RevenueGrowthResponse> GetRevenueGrowthByAllClubs(DateTime fromDate, DateTime toDate)
+        {
+            // Normalize dates to start and end of day
+            var from = fromDate.Date;
+            var to = toDate.Date.AddDays(1); // Inclusive of toDate
+
+            var allOrders = await _orderRepository.GetAllSuccessfulOrders();
+            if (allOrders == null)
+                allOrders = [];
+
+            // Filter all orders by date range
+            var filteredOrders = allOrders
+                .Where(o => o.Payment != null
+                    && o.Payment.TransactionDate >= from
+                    && o.Payment.TransactionDate < to)
+                .ToList();
+
+            // Group by date
+            var valueByDate = filteredOrders
+                .GroupBy(o => o.Payment.TransactionDate.Date)
+                .OrderBy(g => g.Key)
+                .ToDictionary(g => g.Key, g => g.Sum(o => o.TotalAmount));
+
+            // Generate daily stats for the entire date range
+            var dailyStats = new List<MonthlyStat>();
+            for (var date = from; date < to; date = date.AddDays(1))
+            {
+                dailyStats.Add(new MonthlyStat
+                {
+                    Month = date, // Using Month field for date (for compatibility)
+                    Value = valueByDate.TryGetValue(date, out var value) ? value : 0
+                });
+            }
+
+            var totalValue = dailyStats.Sum(x => x.Value);
+            var firstValue = dailyStats.FirstOrDefault()?.Value ?? 0;
+            var lastValue = dailyStats.LastOrDefault()?.Value ?? 0;
+            var growthRate = (decimal)CalculateGrowthRate(lastValue, firstValue);
+
+            return new RevenueGrowthResponse 
+            { 
+                RevenueGrowth = dailyStats,
                 TotalValue = totalValue,
                 GrowthRate = growthRate
             };
