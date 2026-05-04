@@ -9,6 +9,7 @@ using Droniverse.Academy.Application.Validators;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
+using Droniverse.Academy.Domain.Models;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.DTOs.Response;
@@ -209,34 +210,110 @@ public class CourseService : ICourseService
         CancellationToken cancellationToken = default)
     {
         var currentUserId = _currentUser.UserId;
+        var course = await GetCourseWithCurrentVersionAsync(courseId);
+        var courseVersionId = EnsureCurrentVersionId(course, courseId);
+        var overviewData = await GetCourseOverviewDataAsync(courseVersionId, currentUserId, cancellationToken);
 
-        var course = await _unitOfWork.Courses.GetByIdWithCurrentVersionAsync(courseId)
+        var response = MapOverviewResponse(overviewData);
+        await PopulatePrerequisitesAndEligibilityAsync(response, overviewData.CourseID, course, currentUserId);
+        response.IsPrerequisitesCompleted = await ArePrerequisitesCompletedAsync(response.PrerequisiteCourses, currentUserId);
+        response.EnrollmentID = await GetEnrollmentIdAsync(clubId, currentUserId, courseVersionId);
+        await PopulateUserInfoAsync(response, overviewData);
+        response.LastUpdatedAt = overviewData.LastUpdatedAt;
+        await PopulateExternalDataAsync(response, overviewData.CourseID, clubId, cancellationToken);
+
+        return response;
+    }
+
+    private async Task<Course> GetCourseWithCurrentVersionAsync(Guid courseId)
+    {
+        return await _unitOfWork.Courses.GetByIdWithCurrentVersionAsync(courseId)
             ?? throw new NotFoundException($"Không tìm thấy khóa học với id {courseId}.");
+    }
 
-        var courseVersionId = course.CurrentVersionID
+    private static Guid EnsureCurrentVersionId(Course course, Guid courseId)
+    {
+        return course.CurrentVersionID
             ?? throw new NotFoundException($"Khóa học {courseId} chưa có phiên bản hiện tại.");
+    }
 
+    private async Task<CourseOverviewData> GetCourseOverviewDataAsync(
+        Guid courseVersionId,
+        Guid currentUserId,
+        CancellationToken cancellationToken)
+    {
         var overviewData = await _unitOfWork.CourseVersions
             .GetCourseOverviewDataAsync(courseVersionId, currentUserId, cancellationToken);
 
         if (overviewData == null)
             throw new NotFoundException($"Không tìm thấy phiên bản khóa học với id {courseVersionId}.");
 
-        var response = _mapper.Map<CourseOverviewResponseDTO>(overviewData);
-        var prerequisiteLookup = await BuildPrerequisiteLookupAsync([overviewData.CourseID]);
-        response.PrerequisiteCourses = prerequisiteLookup.TryGetValue(overviewData.CourseID, out var prerequisiteCourses)
+        return overviewData;
+    }
+
+    private CourseOverviewResponseDTO MapOverviewResponse(CourseOverviewData overviewData)
+    {
+        return _mapper.Map<CourseOverviewResponseDTO>(overviewData);
+    }
+
+    private async Task PopulatePrerequisitesAndEligibilityAsync(
+        CourseOverviewResponseDTO response,
+        Guid courseId,
+        Course course,
+        Guid currentUserId)
+    {
+        var prerequisiteLookup = await BuildPrerequisiteLookupAsync([courseId]);
+        response.PrerequisiteCourses = prerequisiteLookup.TryGetValue(courseId, out var prerequisiteCourses)
             ? prerequisiteCourses
             : [];
+
         response.Level = _mapper.Map<LevelMiniResponse?>(course.Level);
         response.Drone = _mapper.Map<DroneMiniResponse?>(course.Drone);
         response.IsEligibleByLevel = await CanCurrentUserLearnCourseByLevelAsync(course, currentUserId);
+    }
 
+    private async Task<bool> ArePrerequisitesCompletedAsync(
+        IReadOnlyCollection<PrerequisiteCourseMiniReponse> prerequisiteCourses,
+        Guid currentUserId)
+    {
+        var prerequisiteCourseIds = prerequisiteCourses
+            .Select(x => x.CourseID)
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        if (prerequisiteCourseIds.Count == 0)
+        {
+            return true;
+        }
+
+        var completedEnrollments = await _unitOfWork.Enrollments.GetAllAsync(
+            filter: x => x.UserID == currentUserId
+                         && x.Status == EnrollStatus.COMPLETED
+                         && prerequisiteCourseIds.Contains(x.CourseID),
+            pageIndex: 1,
+            pageSize: int.MaxValue);
+
+        var completedCourseIds = completedEnrollments.Data
+            .Select(x => x.CourseID)
+            .Distinct()
+            .ToHashSet();
+
+        return prerequisiteCourseIds.All(completedCourseIds.Contains);
+    }
+
+    private async Task<Guid?> GetEnrollmentIdAsync(Guid clubId, Guid currentUserId, Guid courseVersionId)
+    {
         var enrollment = await _unitOfWork.Enrollments.GetByConditionAsync(
             x => x.UserID == currentUserId
                  && x.ClubID == clubId
                  && x.CourseVersionID == courseVersionId);
-        response.EnrollmentID = enrollment?.EnrollmentID;
 
+        return enrollment?.EnrollmentID;
+    }
+
+    private async Task PopulateUserInfoAsync(CourseOverviewResponseDTO response, CourseOverviewData overviewData)
+    {
         var userIds = new List<Guid> { overviewData.AuthorId };
         if (overviewData.LastUpdatedById.HasValue && overviewData.LastUpdatedById.Value != Guid.Empty)
         {
@@ -255,18 +332,22 @@ public class CourseService : ICourseService
         {
             response.LastUpdatedBy = lastUpdatedBy;
         }
+    }
 
-        response.LastUpdatedAt = overviewData.LastUpdatedAt;
-        var product = await _communityMicroserviceClient.GetProductByReferenceIdAsync(overviewData.CourseID, cancellationToken);
+    private async Task PopulateExternalDataAsync(
+        CourseOverviewResponseDTO response,
+        Guid courseId,
+        Guid clubId,
+        CancellationToken cancellationToken)
+    {
+        var product = await _communityMicroserviceClient
+            .GetProductByReferenceIdAsync(courseId, cancellationToken);
         response.MiniProduct = product == null
             ? null
             : _mapper.Map<ProductMiniResponseDTO>(product);
-        var remainingQuantityData = await _communityMicroserviceClient.GetRemainingQuantityAsync(
-            clubId,
-            overviewData.CourseID,
-            cancellationToken);
-        response.ClubCourseOwn = remainingQuantityData;
-        return response;
+
+        response.ClubCourseOwn = await _communityMicroserviceClient
+            .GetRemainingQuantityAsync(clubId, courseId, cancellationToken);
     }
 
     public async Task PublishCourseAsync(Guid courseId)
