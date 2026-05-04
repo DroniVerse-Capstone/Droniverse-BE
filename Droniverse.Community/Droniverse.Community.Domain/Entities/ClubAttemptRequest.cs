@@ -17,7 +17,7 @@ public class ClubAttemptRequest
 
     private ClubAttemptRequest() { } // For EF
 
-    public ClubAttemptRequest(Guid requesterId, Guid clubId, Guid? mediaID, string? clubRequirement)
+    public ClubAttemptRequest(Guid requesterId, Guid clubId, Guid? mediaID, string? clubRequirement, DateTime createdAt)
     {
         ClubRequestID = Guid.NewGuid();
         RequesterID = requesterId;
@@ -25,27 +25,27 @@ public class ClubAttemptRequest
         MediaID = mediaID;
         ClubRequirement = clubRequirement;
         Status = ClubAttemptRequestStatus.PENDING;
-        CreatedAt = DateTime.UtcNow;
+        CreatedAt = createdAt;
     }
 
-    public void Approve(Guid approverId)
+    public void Approve(Guid approverId, DateTime dateTime)
     {
         if (Status != ClubAttemptRequestStatus.PENDING)
             throw new InvalidOperationException("Only pending request can be approved.");
 
         Status = ClubAttemptRequestStatus.APPROVED;
         ApproverID = approverId;
-        ProcessedAt = DateTime.UtcNow;
+        ProcessedAt = dateTime;
     }
 
-    public void Reject(Guid approverId)
+    public void Reject(Guid approverId, DateTime dateTime)
     {
         if (Status != ClubAttemptRequestStatus.PENDING)
             throw new InvalidOperationException("Only pending request can be rejected.");
 
         Status = ClubAttemptRequestStatus.REJECT;
         ApproverID = approverId;
-        ProcessedAt = DateTime.UtcNow;
+        ProcessedAt = dateTime;
     }
 
     public void ResetToPending()

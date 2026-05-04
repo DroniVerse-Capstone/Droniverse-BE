@@ -55,7 +55,8 @@ namespace Droniverse.Community.Domain.Entities
             Guid mediaID,
             string clubPolicyVN,
             string? clubPolicyEN,
-            string? clubRequirement)
+            string? clubRequirement,
+            DateTime createdAt)
         {
             ClubCreationRequestID = Guid.NewGuid();
             NameVN = nameVN;
@@ -66,7 +67,7 @@ namespace Droniverse.Community.Domain.Entities
             ImageUrl = imageUrl;
             RequesterID = requesterId;
 
-            CreatedAt = DateTime.UtcNow.AddHours(7);
+            CreatedAt = createdAt;
             Status = ClubCreationRequestStatus.PENDING;
             DroneID = droneID;
             ClubPolicyVN = clubPolicyVN;
@@ -92,7 +93,7 @@ namespace Droniverse.Community.Domain.Entities
             UpdatedAt = now;
         }
 
-        public void Reject(Guid approverId, string reason, DateTime now)
+        public void Reject(Guid approverId, string reason, DateTime updatedAt)
         {
             if (string.IsNullOrWhiteSpace(reason))
                 throw new ArgumentException("Lý do từ chối là bắt buộc.");
@@ -103,10 +104,10 @@ namespace Droniverse.Community.Domain.Entities
             Status = ClubCreationRequestStatus.REJECTED;
             ApproverID = approverId;
             RejectReason = reason;
-            UpdatedAt = DateTime.UtcNow;
+            UpdatedAt = updatedAt;
         }
 
-        public void Cancel(Guid requesterId)
+        public void Cancel(Guid requesterId, DateTime updatedAt)
         {
             if (Status != ClubCreationRequestStatus.PENDING)
                 throw new InvalidOperationException("Chỉ yêu cầu ở trạng thái PENDING mới có thể bị hủy.");
@@ -115,7 +116,7 @@ namespace Droniverse.Community.Domain.Entities
                 throw new InvalidOperationException("Chỉ người tạo yêu cầu mới có thể hủy yêu cầu này.");
 
             Status = ClubCreationRequestStatus.CANCEL;
-            UpdatedAt = DateTime.UtcNow;
+            UpdatedAt = updatedAt;
         }
 
         public void UpdateInfo(
@@ -130,7 +131,8 @@ namespace Droniverse.Community.Domain.Entities
             string clubPolicyVN,
             string clubPolicyEN,
             Guid mediaID,
-            string? clubRequirement)
+            string? clubRequirement,
+            DateTime updatedAt)
         {
             if (Status != ClubCreationRequestStatus.PENDING)
                 throw new InvalidOperationException("Chỉ yêu cầu ở trạng thái PENDING mới có thể được cập nhật.");
@@ -144,7 +146,7 @@ namespace Droniverse.Community.Domain.Entities
             LimitParticipant = limitParticipant;
             LimitClubManager = limitClubManager;
             ImageUrl = imageUrl;
-            UpdatedAt = DateTime.UtcNow;
+            UpdatedAt = updatedAt;
 
             DroneID = droneID;
             ClubPolicyVN = clubPolicyVN;

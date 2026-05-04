@@ -22,14 +22,22 @@ namespace Droniverse.Community.Application.Services
         private readonly IdentityMicroserviceClient _identityMicroserviceClient;
         private readonly AcademyMicroserviceClient _academyMicroserviceClient;
         private readonly ICurrentUserService _currentUserService;
+        private readonly IClock _clock;
 
-        public ClubAttemptRequestService(IUnitOfWork unitOfWork, IMapper mapper, IdentityMicroserviceClient identityMicroserviceClient, AcademyMicroserviceClient academyMicroserviceClient, ICurrentUserService currentUserService)
+        public ClubAttemptRequestService(
+            IUnitOfWork unitOfWork, 
+            IMapper mapper, 
+            IdentityMicroserviceClient identityMicroserviceClient, 
+            AcademyMicroserviceClient academyMicroserviceClient, 
+            ICurrentUserService currentUserService, 
+            IClock clock)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _identityMicroserviceClient = identityMicroserviceClient;
             _academyMicroserviceClient = academyMicroserviceClient;
             _currentUserService = currentUserService;
+            _clock = clock;
         }
 
         public async Task CreateAttemptClubRequest(Guid clubID)
@@ -44,7 +52,7 @@ namespace Droniverse.Community.Application.Services
             }
 
             Guid? mediaID = null;
-            ClubAttemptRequest clubRequest = new(requesterID, clubID, mediaID, null);
+            ClubAttemptRequest clubRequest = new(requesterID, clubID, mediaID, null, _clock.Now);
             await _unitOfWork.ClubAttemptRequests.Add(clubRequest);
             await _unitOfWork.SaveChangeAsync();
         }
@@ -129,7 +137,7 @@ namespace Droniverse.Community.Application.Services
                 switch (dto.Status)
                 {
                     case ClubAttemptRequestStatus.APPROVED:
-                        request.Approve(approverId);
+                        request.Approve(approverId, _clock.Now);
 
                         // Check if user already exists in club
                         var existingParticipation = await _unitOfWork.Participations.GetByCondition(
@@ -141,7 +149,8 @@ namespace Droniverse.Community.Application.Services
                         var participation = new Participation(
                             request.RequesterID,
                             request.ClubID,
-                            approverId
+                            approverId,
+                            _clock.Now
                         );
 
                         await _unitOfWork.Participations.Add(participation);
@@ -149,7 +158,7 @@ namespace Droniverse.Community.Application.Services
                         break;
 
                     case ClubAttemptRequestStatus.REJECT:
-                        request.Reject(approverId);
+                        request.Reject(approverId, _clock.Now);
                         break;
 
                     case ClubAttemptRequestStatus.PENDING:

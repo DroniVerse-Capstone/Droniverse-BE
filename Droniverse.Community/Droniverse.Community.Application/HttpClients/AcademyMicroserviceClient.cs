@@ -51,6 +51,7 @@ public class AcademyMicroserviceClient
     };
     private static string GetUserLevelCacheKey(Guid userId) => $"userLevel:{userId}";
     private static string GetUserLevelMaxCacheKey(Guid userId) => $"userLevelMax:{userId}";
+    private readonly IClock _clock;
     public AcademyMicroserviceClient(
         HttpClient httpClient,
         ILogger<AcademyMicroserviceClient> logger,
@@ -58,7 +59,8 @@ public class AcademyMicroserviceClient
         IHostEnvironment environment,
         ICurrentUserService currentUserService,
         IdentityMicroserviceClient identityMicroserviceClient,
-        IConfiguration configuration
+        IConfiguration configuration,
+        IClock clock
         )
     {
         _httpClient = httpClient;
@@ -68,6 +70,7 @@ public class AcademyMicroserviceClient
         _currentUserService = currentUserService;
         _identityMicroserviceClient = identityMicroserviceClient;
         _configuration = configuration;
+        _clock = clock;
     }
 
     public async Task<UserLevelResponseDto?> GetUserLevelsAsync(Guid userId)
@@ -1333,7 +1336,7 @@ public class AcademyMicroserviceClient
         try
         {
             // Return cached token if still valid
-            if (!string.IsNullOrEmpty(_cachedServiceToken) && DateTime.UtcNow < _tokenExpiresAt)
+            if (!string.IsNullOrEmpty(_cachedServiceToken) && _clock.Now < _tokenExpiresAt)
             {
                 _logger.LogInformation("Using cached service token");
                 return _cachedServiceToken;
@@ -1353,7 +1356,7 @@ public class AcademyMicroserviceClient
 
             // Cache token with 50-minute expiration (service token TTL is 1 hour)
             _cachedServiceToken = token;
-            _tokenExpiresAt = DateTime.UtcNow.AddMinutes(50);
+            _tokenExpiresAt = _clock.Now.AddMinutes(50);
 
             _logger.LogInformation("Service token obtained and cached");
             return token;

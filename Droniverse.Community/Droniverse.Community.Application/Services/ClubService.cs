@@ -232,7 +232,8 @@ internal class ClubService : IClubService
             currentUserId,
             club.ClubID,
             mediaId,
-            request.clubRequirement
+            request.clubRequirement,
+            _clock.Now
         );
 
         await _unitOfWork.ClubAttemptRequests.Add(clubAttemptRequest);
@@ -254,7 +255,7 @@ internal class ClubService : IClubService
         if (participation == null)
             throw new KeyNotFoundException("Bạn không phải là thành viên đang hoạt động của câu lạc bộ này.");
 
-        participation.Leave("Người dùng chủ động rời khỏi câu lạc bộ.");
+        participation.Leave("Người dùng chủ động rời khỏi câu lạc bộ.", _clock.Now);
 
         await _unitOfWork.Participations.Update(participation);
         await _unitOfWork.SaveChangeAsync();
@@ -290,7 +291,7 @@ internal class ClubService : IClubService
         if (participation == null)
             throw new KeyNotFoundException("Người dùng này không phải là thành viên đang hoạt động của câu lạc bộ.");
 
-        participation.Ban(reason);
+        participation.Ban(reason, _clock.Now);
 
         await _unitOfWork.Participations.Update(participation);
         await _unitOfWork.SaveChangeAsync();
@@ -639,15 +640,6 @@ internal class ClubService : IClubService
         if (isMember)
         {
             // CLUB_MEMBER: Lấy clubs đã tham gia
-            // Check xem member đó còn trong group hay không
-            Participation? participation = await _unitOfWork.Participations.GetByCondition(p =>
-                p.UserID == currentUserId &&
-                p.Status == ParticipationStatus.ACTIVE);
-            if(participation == null)
-            {
-                throw new ForbiddenException("Bạn hiện tại đã không hoạt động trong câu lạc bộ này, vui lòng liên hệ quản lý câu lạc bộ (club manager) hoặc admin để biết thêm chi tiết.");
-            }
-
             clubs = await _unitOfWork.Clubs.GetClubsByParticipantUserId(currentUserId, status);
         }
         else

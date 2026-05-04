@@ -40,6 +40,7 @@ internal class PaymentService : IPaymentService
     private readonly IEmailService _emailService;
     private readonly IOrderNotificationPublisher _orderNotificationPublisher;
     private readonly string _checksumKey;
+    private readonly IClock _clock;
     public PaymentService(
         IConfiguration configuration,
         ILogger<PaymentService> logger,
@@ -50,7 +51,8 @@ internal class PaymentService : IPaymentService
         IdentityMicroserviceClient identityMicroserviceClient,
         IEmailService emailService,
         AcademyMicroserviceClient academyMicroserviceClient,
-        IOrderNotificationPublisher orderNotificationPublisher)
+        IOrderNotificationPublisher orderNotificationPublisher,
+        IClock clock)
     {
         _orderRepository = orderRepository;
         _configuration = configuration;
@@ -97,6 +99,7 @@ internal class PaymentService : IPaymentService
         }
 
         _invoiceRepository = invoiceRepository;
+        _clock = clock;
     }
 
     public async Task<PaymentResponseDto> CreatePaymentLink(Guid orderId, PaymentCreateDto paymentCreateDto)
@@ -185,7 +188,7 @@ internal class PaymentService : IPaymentService
                 TransactionID = orderId,
                 PaymentMethod = paymentCreateDto.PaymentMethod,
                 PaymentStatus = PaymentStatus.PENDING,
-                TransactionDate = DateTime.UtcNow.AddHours(7), // +7 để dùng múi giờ VN
+                TransactionDate = _clock.Now, // +7 để dùng múi giờ VN
                 PaymentUrl = response.CheckoutUrl,
                 PaymentLinkID = orderCode.ToString()  // Dùng OrderCode để match webhook
             };
@@ -365,7 +368,7 @@ internal class PaymentService : IPaymentService
                 payment.PaymentStatus = PaymentStatus.SUCCESS;
                 payment.Reference = webhook.Data.Reference;
                 payment.PaymentLinkID = webhook.Data.PaymentLinkId;
-                payment.WebhookReceivedAt = DateTime.UtcNow;
+                payment.WebhookReceivedAt = _clock.Now;
 
                 order.Status = OrderStatus.SUCCESS;
 
@@ -388,7 +391,7 @@ internal class PaymentService : IPaymentService
                         $"Payment for {order.Item.ProductNameEN} " +
                         $"(Qty: {order.Item.Quantity}) " +
                         $"with total amount {order.TotalAmount:N0} VND";
-                invoice.IssueAt = DateTime.UtcNow.AddHours(7);
+                invoice.IssueAt = _clock.Now;
                 invoice.CustomerInfo = new CustomerInfo
                 {
                     UserID = order.UserID,
@@ -454,11 +457,11 @@ internal class PaymentService : IPaymentService
                             UserEmail: userEmail,
                             UserName: userName ?? "User",
                             Amount: order.TotalAmount,
-                            PaidAt: DateTime.UtcNow
+                            PaidAt: _clock.Now
                         );
 
                         await _orderNotificationPublisher.PublishPaymentSuccessfulAsync(notificationEvent);
-                        _logger.LogInformation($"✅ Payment successful notification published for order {order._id}");
+                        _logger.LogInformation($"Payment successful notification published for order {order._id}");
                     }
                     else
                     {
@@ -524,7 +527,7 @@ internal class PaymentService : IPaymentService
                         if (wallet == null)
                             throw new NotFoundException("Không tìm thấy ví cho managerId: " + managerId);
 
-                        wallet.UpdateBalance(commissionAmount);
+                        wallet.UpdateBalance(commissionAmount, _clock.Now);
                         await _unitOfWork.Wallets.Update(wallet);
 
                         //tạo transaction
@@ -573,8 +576,8 @@ internal class PaymentService : IPaymentService
                     webhook.Data.OrderCode, webhook.Code, webhook.IsSuccess);
                 return false;
             }
-            payment.TransactionDate = DateTime.UtcNow.AddHours(7);
-            payment.WebhookReceivedAt = DateTime.UtcNow.AddHours(7);
+            payment.TransactionDate = _clock.Now;
+            payment.WebhookReceivedAt = _clock.Now;
 
             await _orderRepository.UpdatePayment(order._id, payment);
             await _orderRepository.UpdateOrder(order);

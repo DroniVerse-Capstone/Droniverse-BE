@@ -19,16 +19,19 @@ public class ProductService : IProductService
     private readonly ICacheService _cacheService;
     private readonly ILogger<ProductService> _logger;
     private const string ProductCacheKeyPrefix = "product";
+    private readonly IClock _clock;
     public ProductService(
         IUnitOfWork unitOfWork,
         IMapper mapper,
         ICacheService cacheService,
-        ILogger<ProductService> logger)
+        ILogger<ProductService> logger,
+        IClock clock)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _cacheService = cacheService;
         _logger = logger;
+        _clock = clock;
     }
 
     public async Task<ProductResponseDto> CreateProduct(ProductRequestDto request)
@@ -115,7 +118,7 @@ public class ProductService : IProductService
         product.Price = request.Price;
         product.Currency = request.Currency;
         product.Status = request.Status;
-        product.UpdateAt = DateTime.UtcNow;
+        product.UpdateAt = _clock.Now;
 
         // Set ProductCategory
         ProductCategory? category = await _unitOfWork.ProductCategories.GetByCondition(c => c.CategoryID == Guid.Parse("16993e60-b569-4a76-9d3a-3f0fdc0da64b"));

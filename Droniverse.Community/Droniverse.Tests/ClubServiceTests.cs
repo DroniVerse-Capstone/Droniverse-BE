@@ -29,7 +29,6 @@ public class ClubServiceTests
     {
         _unitOfWorkMock = new Mock<IUnitOfWork>();
         _mapperMock = new Mock<IMapper>();
-
         // Use default HttpClients to satisfy constructor requirements
         // A more advanced mock would use HttpMessageHandler
         var httpClient = new HttpClient();
@@ -40,6 +39,7 @@ public class ClubServiceTests
 
         _currentUserServiceMock = new Mock<ICurrentUserService>();
         _clockMock = new Mock<IClock>();
+        _clockMock.SetupGet(x => x.Now).Returns(DateTime.UtcNow);
 
         _clubService = new ClubService(
             _unitOfWorkMock.Object,
@@ -52,7 +52,7 @@ public class ClubServiceTests
     }
 
     // ===== Helper Methods =====
-    private static Club CreateTestClub(Guid? clubId = null, string? clubCode = null, Guid? createdBy = null)
+    private Club CreateTestClub(Guid? clubId = null, string? clubCode = null, Guid? createdBy = null)
     {
         var id = clubId ?? Guid.NewGuid();
         var code = clubCode ?? "123456";
@@ -64,7 +64,7 @@ public class ClubServiceTests
             limitParticipation: 10,
             limitClubManagers: 2,
             createdBy: createdBy ?? Guid.NewGuid(),
-            now: DateTime.UtcNow,
+            now: _clockMock.Object.Now,
             imageUrl: null,
             managerID: Guid.NewGuid(),
             droneID: Guid.NewGuid(),
@@ -314,7 +314,7 @@ public class ClubServiceTests
     {
         var clubId = Guid.NewGuid();
         var currentUserId = Guid.NewGuid();
-        var participation = new Participation(currentUserId, clubId, null);
+        var participation = new Participation(currentUserId, clubId, null, _clockMock.Object.Now);
 
         _currentUserServiceMock.Setup(s => s.UserID).Returns(currentUserId.ToString());
         _unitOfWorkMock.Setup(u => u.Participations.GetByCondition(It.IsAny<System.Linq.Expressions.Expression<Func<Participation, bool>>>(), It.IsAny<Func<IQueryable<Participation>, IQueryable<Participation>>>() ))
@@ -336,7 +336,7 @@ public class ClubServiceTests
         var currentUserId = Guid.NewGuid();
         var targetUserId = Guid.NewGuid();
         var club = CreateTestClub(clubId, createdBy: currentUserId);
-        var participation = new Participation(targetUserId, clubId, null);
+        var participation = new Participation(targetUserId, clubId, null, _clockMock.Object.Now);
         var request = new ClubKickMemberRequest { Reason = "Vi phạm nội quy" };
 
         _currentUserServiceMock.Setup(s => s.UserID).Returns(currentUserId.ToString());
@@ -350,7 +350,9 @@ public class ClubServiceTests
 
         var result = await _clubService.KickMemberFromClub(clubId, targetUserId, request);
 
-        Assert.True(result);
+        Assert.NotNull(result);
+        Assert.Equal(club.NameVN, result.ClubName);
+        Assert.Equal("Thành viên", result.Username);
         Assert.Equal(ParticipationStatus.BANNED, participation.Status);
         Assert.Equal("Vi phạm nội quy", participation.Note);
         Assert.NotNull(participation.LeftDate);

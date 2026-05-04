@@ -33,6 +33,7 @@ internal class OrderService : IOrderService
     private readonly AcademyMicroserviceClient _academyMicroserviceClient;
     private readonly IOrderNotificationPublisher _orderNotificationPublisher;
     private readonly IdentityMicroserviceClient _identityMicroserviceClient;
+    private readonly IClock _clock;
     public OrderService(
         IOrderRepository orderRepository,
         IMapper mapper,
@@ -44,7 +45,8 @@ internal class OrderService : IOrderService
         IEmailService emailService,
         AcademyMicroserviceClient academyMicroserviceClient,
         IOrderNotificationPublisher orderNotificationPublisher,
-        IdentityMicroserviceClient identityMicroserviceClient)
+        IdentityMicroserviceClient identityMicroserviceClient,
+        IClock clock)
     {
         _orderRepository = orderRepository;
         _mapper = mapper;
@@ -57,6 +59,7 @@ internal class OrderService : IOrderService
         _academyMicroserviceClient = academyMicroserviceClient;
         _orderNotificationPublisher = orderNotificationPublisher;
         _identityMicroserviceClient = identityMicroserviceClient;
+        _clock = clock;
     }
 
     public async Task<OrderResponseDto?> AddOrder(Guid clubId, OrderCreateDto orderAddRequest)
@@ -121,7 +124,7 @@ internal class OrderService : IOrderService
             UserEmail = _currentUserService.Email ?? string.Empty,
             UserName = _currentUserService.UserName ?? string.Empty,
             ClubID = clubId,
-            CreateAt = DateTime.UtcNow.AddHours(7),
+            CreateAt = _clock.Now,
             OrderType = isMember ? OrderType.USER_PURCHASE : OrderType.CLUB_IMPORT,
             Item = orderItem,
             Status = OrderStatus.PENDING,
@@ -161,7 +164,7 @@ internal class OrderService : IOrderService
                         UserEmail: userEmail,
                         UserName: userName ?? "User",
                         Total: createdOrder.TotalAmount,
-                        CreatedAt: DateTime.UtcNow.AddHours(7)
+                        CreatedAt: _clock.Now
                     );
 
                     await _orderNotificationPublisher.PublishOrderCreatedAsync(notificationEvent);

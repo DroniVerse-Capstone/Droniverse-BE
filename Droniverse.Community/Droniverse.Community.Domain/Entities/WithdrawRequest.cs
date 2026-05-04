@@ -24,20 +24,21 @@ public class WithdrawRequest
         Guid requesterId,
         string? note,
         decimal amount,
-        Guid walletId)
+        Guid walletId,
+        DateTime createdAt)
     {
         RequesterID = requesterId;
-        CreatedAt = DateTime.UtcNow.AddHours(7);
+        CreatedAt = createdAt;
         Note = note;
         Amount = amount;
         Status = WithdrawStatus.PENDING;
         WalletID = walletId;
     }
 
-    public void UpdateStatus(WithdrawStatus status)
+    public void UpdateStatus(WithdrawStatus status, DateTime updatedAt)
     {
         Status = status;
-        UpdatedAt = DateTime.UtcNow.AddHours(7);
+        UpdatedAt = updatedAt;
     }
 
 }

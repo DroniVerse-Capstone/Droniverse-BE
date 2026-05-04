@@ -72,7 +72,8 @@ namespace Droniverse.Community.Application.Services
                 dto.Media,
                 dto.ClubPolicyVN,
                 dto.ClubPolicyEN,
-                dto.ClubRequirement
+                dto.ClubRequirement,
+                _clock.Now
             );
 
             await _unitOfWork.ClubCreationRequests.Add(request);
@@ -404,7 +405,7 @@ namespace Droniverse.Community.Application.Services
                     if (!isRequester)
                         throw new ForbiddenException("Chỉ người tạo request mới được cancel.");
 
-                    request.Cancel(request.RequesterID);
+                    request.Cancel(request.RequesterID, _clock.Now);
                     break;
 
                 default:
@@ -422,7 +423,7 @@ namespace Droniverse.Community.Application.Services
                 NameVN = request.NameVN,
                 NameEN = request.NameEN,
                 Status = request.Status,
-                UpdatedAt = request.UpdatedAt ?? DateTime.UtcNow,
+                UpdatedAt = request.UpdatedAt ?? _clock.Now,
                 RejectReason = request.RejectReason,
                 ClubID = request.ClubID
             };
@@ -463,7 +464,8 @@ namespace Droniverse.Community.Application.Services
                 dto.ClubPolicyVN,
                 dto.ClubPolicyEN,
                 dto.Media,
-                dto.ClubRequirement
+                dto.ClubRequirement,
+                _clock.Now
             );
 
             // Save changes

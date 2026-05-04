@@ -715,7 +715,8 @@ namespace Droniverse.Community.Application.Services
                     prize.RewardValueMoney,
                     prize.RewardValueGiftVN,
                     prize.RewardValueGiftEN,
-                    currentUserId
+                    currentUserId,
+                    _clock.Now
                 ));
             }
 

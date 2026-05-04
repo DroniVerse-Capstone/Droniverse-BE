@@ -3,13 +3,16 @@ using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Community.Infrastructure.Persistence.MySql;
 using Droniverse.Community.Infrastructure.QueryModels;
+using Droniverse.Shared.Services.IServices;
 using Microsoft.EntityFrameworkCore;
 
 namespace Droniverse.Community.Infrastructure.Repositories;
 internal class RoundRepository : MySqlRepository<Round>, IRoundRepository
 {
-    public RoundRepository(MySqlDbContext context) : base(context)
+    private readonly IClock _clock;
+    public RoundRepository(MySqlDbContext context, IClock clock) : base(context)
     {
+        _clock = clock;
     }
 
     public async Task<Dictionary<Guid, int>> GetRoundCountsByCompetitionIds(IEnumerable<Guid> competitionIds)
@@ -87,7 +90,7 @@ internal class RoundRepository : MySqlRepository<Round>, IRoundRepository
     }
     public async Task<RoundQueryModel?> GetCurrentRoundByCompetitionID(Guid competitionID)
     {
-        var now = DateTime.UtcNow;
+        var now = _clock.Now;
 
         return await _context.Rounds
             .AsNoTracking()
