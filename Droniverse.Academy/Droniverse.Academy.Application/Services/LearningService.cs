@@ -58,13 +58,19 @@ public class LearningService : ILearningService
         var userLessons = await _learningContextLoader.GetUserLessonsLookupAsync(_currentUser.UserId, lessonIds);
         var userModules = await _learningContextLoader.GetUserModulesLookupAsync(_currentUser.UserId, moduleIds);
 
-        return await _learningPathAssembler.BuildLearningPathAsync(
+        var learningPath = await _learningPathAssembler.BuildLearningPathAsync(
             enrollment,
             courseVersion,
             modules,
             lessons,
             userLessons,
             userModules);
+
+        var feedback = await _unitOfWork.Feedbacks.GetByConditionAsync(
+            x => x.UserID == _currentUser.UserId && x.CourseVersionID == enrollment.CourseVersionID);
+        learningPath.IsFeedbacked = feedback != null;
+
+        return learningPath;
     }
 
     public async Task<LearningPathDTO> GetLearningPathAsync(Guid enrollmentId)
