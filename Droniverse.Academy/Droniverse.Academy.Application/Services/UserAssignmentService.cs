@@ -20,6 +20,7 @@ public class UserAssignmentService : IUserAssignmentService
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUser;
     private readonly IClock _clock;
+    private readonly ILearningService _learningService;
     private readonly LearningAssessmentAccessService _assessmentAccessService;
     private readonly CommunityMicroserviceClient _communityClient;
     private readonly IdentityMicroserviceClient _identityClient;
@@ -29,6 +30,7 @@ public class UserAssignmentService : IUserAssignmentService
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUser,
         IClock clock,
+        ILearningService learningService,
         LearningAssessmentAccessService assessmentAccessService,
         CommunityMicroserviceClient communityClient,
         IdentityMicroserviceClient identityClient,
@@ -37,6 +39,7 @@ public class UserAssignmentService : IUserAssignmentService
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _clock = clock;
+        _learningService = learningService;
         _assessmentAccessService = assessmentAccessService;
         _communityClient = communityClient;
         _identityClient = identityClient;
@@ -121,6 +124,21 @@ public class UserAssignmentService : IUserAssignmentService
 
         await _unitOfWork.UserAssignments.UpdateAsync(userAssignment);
         await _unitOfWork.SaveChangesAsync();
+
+        if (isPassed)
+        {
+            var lesson = await _unitOfWork.Lessons.GetByConditionAsync(
+                x => x.Type == LessonType.ASSIGNMENT && x.ReferenceID == userAssignment.AssignmentID);
+
+            if (lesson == null)
+                throw new NotFoundException("Không tìm thấy lesson của assignment.");
+
+            var learnerId = userAssignment.Enrollment.UserID;
+            await _learningService.CompleteLessonByAssessmentForUserAsync(
+                userAssignment.EnrollmentID,
+                lesson.LessonID,
+                learnerId);
+        }
 
         return new UserAssignmentReviewResponseDTO
         {

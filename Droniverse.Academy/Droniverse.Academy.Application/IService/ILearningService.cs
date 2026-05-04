@@ -14,4 +14,5 @@ public interface ILearningService
     Task<CompleteLessonResultDTO> CompleteLessonAsync(Guid enrollmentId, Guid lessonId);
     Task<CompleteLessonResultDTO> CompleteLessonBySimulatorSubmitAsync(Guid enrollmentId, Guid lessonId);
     Task<CompleteLessonResultDTO> CompleteLessonByAssessmentAsync(Guid enrollmentId, Guid lessonId);
+    Task<CompleteLessonResultDTO> CompleteLessonByAssessmentForUserAsync(Guid enrollmentId, Guid lessonId, Guid userId);
 }

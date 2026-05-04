@@ -287,25 +287,40 @@ public class LearningService : ILearningService
 
     public async Task<CompleteLessonResultDTO> CompleteLessonAsync(Guid enrollmentId, Guid lessonId)
     {
-        return await CompleteLessonInternalAsync(enrollmentId, lessonId, CompletionMode.Direct);
+        return await CompleteLessonInternalAsync(enrollmentId, lessonId, CompletionMode.Direct, _currentUser.UserId);
     }
 
     public async Task<CompleteLessonResultDTO> CompleteLessonBySimulatorSubmitAsync(Guid enrollmentId, Guid lessonId)
     {
-        return await CompleteLessonInternalAsync(enrollmentId, lessonId, CompletionMode.SimulatorSubmit);
+        return await CompleteLessonInternalAsync(enrollmentId, lessonId, CompletionMode.SimulatorSubmit, _currentUser.UserId);
     }
 
     public async Task<CompleteLessonResultDTO> CompleteLessonByAssessmentAsync(Guid enrollmentId, Guid lessonId)
     {
-        return await CompleteLessonInternalAsync(enrollmentId, lessonId, CompletionMode.Assessment);
+        return await CompleteLessonInternalAsync(enrollmentId, lessonId, CompletionMode.Assessment, _currentUser.UserId);
     }
 
-    private async Task<CompleteLessonResultDTO> CompleteLessonInternalAsync(Guid enrollmentId, Guid lessonId, CompletionMode mode)
+    public async Task<CompleteLessonResultDTO> CompleteLessonByAssessmentForUserAsync(
+        Guid enrollmentId,
+        Guid lessonId,
+        Guid userId)
+    {
+        if (userId == Guid.Empty)
+            throw new ValidationException("UserId không hợp lệ.");
+
+        return await CompleteLessonInternalAsync(enrollmentId, lessonId, CompletionMode.Assessment, userId);
+    }
+
+    private async Task<CompleteLessonResultDTO> CompleteLessonInternalAsync(
+        Guid enrollmentId,
+        Guid lessonId,
+        CompletionMode mode,
+        Guid userId)
     {
         return await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
             var now = _clock.Now;
-            var context = await BuildCompletionContextAsync(enrollmentId, lessonId);
+            var context = await BuildCompletionContextAsync(enrollmentId, lessonId, userId);
 
             EnsureLessonCanBeCompletedInMode(context.Lesson, mode);
 
@@ -316,14 +331,14 @@ public class LearningService : ILearningService
                 context.Lessons,
                 context.UserLessons);
 
-            var isAlreadyCompleted = await UpsertCompletedUserLessonAsync(context, now);
+            var isAlreadyCompleted = await UpsertCompletedUserLessonAsync(context, now, userId);
 
             await _learningProgressService.UpdateUserModulesProgressAsync(
                 context.Modules,
                 context.Lessons,
                 context.UserLessons,
                 context.UserModules,
-                moduleId => CreateUserModule(moduleId, now),
+                moduleId => CreateUserModule(moduleId, now, userId),
                 now);
 
             await _learningProgressService.UpdateEnrollmentProgressAsync(
@@ -334,11 +349,11 @@ public class LearningService : ILearningService
                 context.UserModules,
                 now);
 
-            await TryUpgradeUserLevelAsync(context.Enrollment);
+            await TryUpgradeUserLevelAsync(context.Enrollment, userId);
 
             var certificateIssued = await _learningCertificateService.TryIssueCertificateAsync(
                 context.Enrollment,
-                _currentUser.UserId,
+                userId,
                 now);
 
             await _unitOfWork.SaveChangesAsync();
@@ -359,9 +374,12 @@ public class LearningService : ILearningService
             throw new ForbiddenException("Chỉ lesson quiz, lab hoặc assignment mới có thể hoàn thành qua nộp bài.");
     }
 
-    private async Task<CompletionContext> BuildCompletionContextAsync(Guid enrollmentId, Guid lessonId)
+    private async Task<CompletionContext> BuildCompletionContextAsync(
+        Guid enrollmentId,
+        Guid lessonId,
+        Guid userId)
     {
-        var enrollment = await _learningContextLoader.GetEnrollmentAsync(enrollmentId, _currentUser.UserId);
+        var enrollment = await _learningContextLoader.GetEnrollmentAsync(enrollmentId, userId);
         var lesson = LearningValidator.EnsureLessonExists(await _unitOfWork.Lessons.GetByIdAsync(lessonId));
 
         var modules = await _learningContextLoader.GetModulesByCourseVersionAsync(enrollment.CourseVersionID);
@@ -370,13 +388,13 @@ public class LearningService : ILearningService
         var lessons = await _learningContextLoader.GetLessonsByModuleIdsAsync(moduleIds);
         var lessonIds = lessons.Select(x => x.LessonID).ToArray();
 
-        var userLessons = await _learningContextLoader.GetUserLessonsLookupAsync(_currentUser.UserId, lessonIds);
-        var userModules = await _learningContextLoader.GetUserModulesLookupAsync(_currentUser.UserId, moduleIds);
+        var userLessons = await _learningContextLoader.GetUserLessonsLookupAsync(userId, lessonIds);
+        var userModules = await _learningContextLoader.GetUserModulesLookupAsync(userId, moduleIds);
 
         return new CompletionContext(enrollment, lesson, modules, lessons, userLessons, userModules);
     }
 
-    private async Task<bool> UpsertCompletedUserLessonAsync(CompletionContext context, DateTime now)
+    private async Task<bool> UpsertCompletedUserLessonAsync(CompletionContext context, DateTime now, Guid userId)
     {
         if (context.UserLessons.TryGetValue(context.Lesson.LessonID, out var existingUserLesson))
         {
@@ -390,7 +408,7 @@ public class LearningService : ILearningService
         var newUserLesson = new UserLesson
         {
             UserLessonID = Guid.NewGuid(),
-            UserID = _currentUser.UserId,
+            UserID = userId,
             LessonID = context.Lesson.LessonID,
             LastAccessDate = now
         };
@@ -410,12 +428,12 @@ public class LearningService : ILearningService
     }
 
 
-    private UserModule CreateUserModule(Guid moduleId, DateTime now)
+    private UserModule CreateUserModule(Guid moduleId, DateTime now, Guid userId)
     {
         return new UserModule
         {
             UserModuleID = Guid.NewGuid(),
-            UserID = _currentUser.UserId,
+            UserID = userId,
             ModuleID = moduleId,
             EnrollDate = now,
             Progress = 0,
@@ -445,7 +463,7 @@ public class LearningService : ILearningService
         };
     }
 
-    private async Task TryUpgradeUserLevelAsync(Enrollment enrollment)
+    private async Task TryUpgradeUserLevelAsync(Enrollment enrollment, Guid userId)
     {
         if (enrollment.Status != EnrollStatus.COMPLETED)
             return;
@@ -454,11 +472,11 @@ public class LearningService : ILearningService
         if (course?.DroneID == null || course.DroneID == Guid.Empty)
             return;
 
-        var canUpgrade = await _userLevelService.CanUserUpgradeAsync(_currentUser.UserId, course.DroneID.Value);
+        var canUpgrade = await _userLevelService.CanUserUpgradeAsync(userId, course.DroneID.Value);
         if (!canUpgrade)
             return;
 
-        await _userLevelService.UpgradeUserLevelAsync(_currentUser.UserId, course.DroneID.Value);
+        await _userLevelService.UpgradeUserLevelAsync(userId, course.DroneID.Value);
     }
 
 
