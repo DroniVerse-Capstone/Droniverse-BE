@@ -1,0 +1,20 @@
+﻿using Droniverse.Community.Domain.Enums;
+using System.Text.Json.Serialization;
+
+namespace Droniverse.Community.Application.DTO.Response.Mongo;
+
+public record OrderOverviewDto(
+    int TotalOrders,
+    int PendingOrders,
+    int SuccessOrders,
+    int FailedOrders,
+    int CancelledOrders,
+    int ReceivedOrders,
+    int PendingRefundOrders,
+    int RefundedOrders
+)
+{
+    public OrderOverviewDto() : this(0, 0, 0, 0, 0, 0, 0, 0)
+    {
+    }
+}

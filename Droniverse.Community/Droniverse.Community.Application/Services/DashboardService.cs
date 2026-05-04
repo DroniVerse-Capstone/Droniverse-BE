@@ -1,6 +1,8 @@
-using Droniverse.Community.Application.DTO.Response;
+﻿using Droniverse.Community.Application.DTO.Response;
+using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
+using Droniverse.Community.Domain.AppHelpers;
 using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.Entities.Mongo;
 using Droniverse.Community.Domain.Enums;
@@ -113,6 +115,61 @@ namespace Droniverse.Community.Application.Services
             };
         }
 
+        /// <summary>
+        /// Lấy biểu đồ tăng doanh thu theo ngày của câu lạc bộ trong khoảng thời gian cụ thể.
+        /// </summary>
+        public async Task<RevenueGrowthResponse> GetRevenueGrowthByClub(Guid clubId, DateTime fromDate, DateTime toDate)
+        {
+            var clubExists = await _unitOfWork.Clubs.GetByCondition(c => c.ClubID == clubId, q => q.AsNoTracking());
+            if (clubExists == null)
+                throw new KeyNotFoundException($"Không tìm thấy câu lạc bộ với ID [{clubId}].");
+
+            // Normalize dates to start and end of day
+            var from = fromDate.Date;
+            var to = toDate.Date.AddDays(1); // Inclusive of toDate
+
+            var allOrders = await _orderRepository.GetAllSuccessfulOrders();
+            if (allOrders == null)
+                allOrders = [];
+
+            // Filter for CLUB_IMPORT orders for this club (club's spending/expense) by date range
+            var clubImportOrders = allOrders
+                .Where(o => o.ClubID == clubId 
+                    && o.OrderType == Domain.Enums.OrderType.CLUB_IMPORT
+                    && o.Payment?.TransactionDate >= from
+                    && o.Payment?.TransactionDate < to)
+                .ToList();
+
+            // Group by date
+            var valueByDate = clubImportOrders
+                .GroupBy(x => x.Payment.TransactionDate.Date)
+                .OrderBy(g => g.Key)
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.TotalAmount));
+
+            // Generate daily stats for the entire date range
+            var dailyStats = new List<MonthlyStat>();
+            for (var date = from; date < to; date = date.AddDays(1))
+            {
+                dailyStats.Add(new MonthlyStat
+                {
+                    Month = date, // Using Month field for date (for compatibility)
+                    Value = valueByDate.TryGetValue(date, out var value) ? value : 0
+                });
+            }
+
+            var totalValue = dailyStats.Sum(x => x.Value);
+            var firstValue = dailyStats.FirstOrDefault()?.Value ?? 0;
+            var lastValue = dailyStats.LastOrDefault()?.Value ?? 0;
+            var growthRate = (decimal)CalculateGrowthRate(lastValue, firstValue);
+
+            return new RevenueGrowthResponse 
+            { 
+                RevenueGrowth = dailyStats,
+                TotalValue = totalValue,
+                GrowthRate = growthRate
+            };
+        }
+
         public async Task<ClubCourseRevenueResponse> GetRevenueByCourseByClub(Guid clubId, int top)
         {
             if (top <= 0)
@@ -219,12 +276,20 @@ namespace Droniverse.Community.Application.Services
             var startNextMonth = startThisMonth.AddMonths(1);
             var startLastMonth = startThisMonth.AddMonths(-1);
 
+            var today = now.Date;
+            var startThisWeek = today.AddDays(-(int)today.DayOfWeek);
+            var startLastWeek = startThisWeek.AddDays(-7);
+
+            var startThisYear = new DateTime(now.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            var startLastYear = startThisYear.AddYears(-1);
+
+            // Get all orders (including pending/failed) for success rate calculation
+            var allSystemOrders = await _orderRepository.GetAllOrders();
+            if (allSystemOrders == null) allSystemOrders = [];
+            var allSystemOrdersList = allSystemOrders.ToList();
+
             // Get all successful orders across all clubs
-            var allOrders = await _orderRepository.GetAllSuccessfulOrders();
-            if (allOrders == null)
-                allOrders = [];
-            
-            var allOrdersList = allOrders.ToList();
+            var allOrdersList = allSystemOrdersList.Where(o => o.Status == OrderStatus.SUCCESS).ToList();
 
             // For admin overview, revenue/profit are based on all successful orders in the system.
             var totalRevenue = allOrdersList.Sum(o => o.TotalAmount);
@@ -263,6 +328,38 @@ namespace Droniverse.Community.Application.Services
                     && o.Payment.TransactionDate < startNextMonth)
                 .Count();
 
+            // Expanded KPIs
+            var totalOrdersCount = allSystemOrdersList.Count;
+            var successRate = totalOrdersCount > 0 ? (double)allOrdersList.Count / totalOrdersCount * 100 : 0;
+            var pendingRefunds = allSystemOrdersList.Count(o => o.Status == OrderStatus.PENDING_REFUND);
+
+            var revenueToday = allOrdersList
+                .Where(o => o.Payment != null && o.Payment.TransactionDate.Date == today)
+                .Sum(o => o.TotalAmount);
+            var revenueYesterday = allOrdersList
+                .Where(o => o.Payment != null && o.Payment.TransactionDate.Date == today.AddDays(-1))
+                .Sum(o => o.TotalAmount);
+
+            var revenueThisWeek = allOrdersList
+                .Where(o => o.Payment != null && o.Payment.TransactionDate.Date >= startThisWeek && o.Payment.TransactionDate.Date <= today)
+                .Sum(o => o.TotalAmount);
+            var revenueLastWeek = allOrdersList
+                .Where(o => o.Payment != null && o.Payment.TransactionDate.Date >= startLastWeek && o.Payment.TransactionDate.Date < startThisWeek)
+                .Sum(o => o.TotalAmount);
+
+            var revenueThisYear = allOrdersList
+                .Where(o => o.Payment != null && o.Payment.TransactionDate.Date >= startThisYear && o.Payment.TransactionDate.Date <= today)
+                .Sum(o => o.TotalAmount);
+            var revenueLastYear = allOrdersList
+                .Where(o => o.Payment != null && o.Payment.TransactionDate.Date >= startLastYear && o.Payment.TransactionDate.Date < startThisYear)
+                .Sum(o => o.TotalAmount);
+
+            var transactionsLastMonth = allOrdersList
+                .Where(o => o.Payment != null 
+                    && o.Payment.TransactionDate >= startLastMonth 
+                    && o.Payment.TransactionDate < startThisMonth)
+                .Count();
+
             return new AdminRevenueOverviewResponse
             {
                 TotalRevenue = totalRevenue,
@@ -276,7 +373,19 @@ namespace Droniverse.Community.Application.Services
                 ProfitGrowthRate = profitGrowthRate,
 
                 TotalTransactions = totalTransactions,
-                TransactionsThisMonth = transactionsThisMonth
+                TransactionsThisMonth = transactionsThisMonth,
+
+                SuccessRate = successRate,
+                PendingRefunds = pendingRefunds,
+
+                RevenueToday = revenueToday,
+                RevenueYesterday = revenueYesterday,
+                RevenueThisWeek = revenueThisWeek,
+                RevenueLastWeek = revenueLastWeek,
+                RevenueThisYear = revenueThisYear,
+                RevenueLastYear = revenueLastYear,
+
+                TransactionsLastMonth = transactionsLastMonth
             };
         }
 
@@ -318,6 +427,56 @@ namespace Droniverse.Community.Application.Services
             return new RevenueGrowthResponse 
             { 
                 RevenueGrowth = growth,
+                TotalValue = totalValue,
+                GrowthRate = growthRate
+            };
+        }
+
+        /// <summary>
+        /// Lấy biểu đồ tăng doanh thu theo ngày của toàn bộ hệ thống trong khoảng thời gian cụ thể.
+        /// </summary>
+        public async Task<RevenueGrowthResponse> GetRevenueGrowthByAllClubs(DateTime fromDate, DateTime toDate)
+        {
+            // Normalize dates to start and end of day
+            var from = fromDate.Date;
+            var to = toDate.Date.AddDays(1); // Inclusive of toDate
+
+            var allOrders = await _orderRepository.GetAllSuccessfulOrders();
+            if (allOrders == null)
+                allOrders = [];
+
+            // Filter all orders by date range
+            var filteredOrders = allOrders
+                .Where(o => o.Payment != null
+                    && o.Payment.TransactionDate >= from
+                    && o.Payment.TransactionDate < to)
+                .ToList();
+
+            // Group by date
+            var valueByDate = filteredOrders
+                .GroupBy(o => o.Payment.TransactionDate.Date)
+                .OrderBy(g => g.Key)
+                .ToDictionary(g => g.Key, g => g.Sum(o => o.TotalAmount));
+
+            // Generate daily stats for the entire date range
+            var dailyStats = new List<MonthlyStat>();
+            for (var date = from; date < to; date = date.AddDays(1))
+            {
+                dailyStats.Add(new MonthlyStat
+                {
+                    Month = date, // Using Month field for date (for compatibility)
+                    Value = valueByDate.TryGetValue(date, out var value) ? value : 0
+                });
+            }
+
+            var totalValue = dailyStats.Sum(x => x.Value);
+            var firstValue = dailyStats.FirstOrDefault()?.Value ?? 0;
+            var lastValue = dailyStats.LastOrDefault()?.Value ?? 0;
+            var growthRate = (decimal)CalculateGrowthRate(lastValue, firstValue);
+
+            return new RevenueGrowthResponse 
+            { 
+                RevenueGrowth = dailyStats,
                 TotalValue = totalValue,
                 GrowthRate = growthRate
             };
@@ -491,7 +650,7 @@ namespace Droniverse.Community.Application.Services
 
         // ===================== Competition Stats =====================
 
-        public async Task<CompetitionStatsResponse> GetCompetitionStats(int top = 10)
+        public async Task<CompetitionStatsResponse> GetCompetitionStats(int top = 10, CompetitionFilterRequest? filter = null)
         {
             if (top <= 0) top = 10;
 
@@ -504,10 +663,10 @@ namespace Droniverse.Community.Application.Services
                     TopByParticipants = []
                 };
 
-            return await BuildCompetitionStats(allCompetitions, top);
+            return await BuildCompetitionStats(allCompetitions, top, filter);
         }
 
-        public async Task<CompetitionStatsResponse> GetCompetitionStatsByClub(Guid clubId, int top = 10)
+        public async Task<CompetitionStatsResponse> GetCompetitionStatsByClub(Guid clubId, int top = 10, CompetitionFilterRequest? filter = null)
         {
             if (top <= 0) top = 10;
 
@@ -526,58 +685,86 @@ namespace Droniverse.Community.Application.Services
                     TopByParticipants = []
                 };
 
-            return await BuildCompetitionStats(clubCompetitions, top);
+            return await BuildCompetitionStats(clubCompetitions, top, filter);
         }
 
         /// <summary>
         /// Logic chung: build CompetitionStatsResponse từ danh sách competitions đã filter.
         /// </summary>
         private async Task<CompetitionStatsResponse> BuildCompetitionStats(
-            List<Competition> competitions, int top)
+            List<Competition> competitions, int top, CompetitionFilterRequest? filter = null)
         {
             var now = _clock.Now;
-            var competitionIds = competitions.Select(c => c.CompetitionID).ToList();
 
-            // Lấy số người tham gia ACTIVE cho tất cả competitions một lần
+            // Áp dụng filters trước khi tính toán statistics
+            var filteredCompetitions = ApplyCompetitionFilters(competitions, filter, now);
+
+            var competitionIds = filteredCompetitions.Select(c => c.CompetitionID).ToList();
+
+            // Lấy số người tham gia ACTIVE cho tất cả filtered competitions một lần
             var participantCounts = await _unitOfWork.UserCompetitions
                 .GetCompetitorCountsByCompetitionIds(competitionIds);
 
+            // Nếu có filter về competitors, lọc thêm dựa trên participantCounts
+            if (filter?.MinTotalCompetitors.HasValue == true || filter?.MaxTotalCompetitors.HasValue == true)
+            {
+                filteredCompetitions = filteredCompetitions
+                    .Where(c =>
+                    {
+                        var count = participantCounts.TryGetValue(c.CompetitionID, out var cnt) ? cnt : 0;
+                        var minOk = !filter.MinTotalCompetitors.HasValue || count >= filter.MinTotalCompetitors.Value;
+                        var maxOk = !filter.MaxTotalCompetitors.HasValue || count <= filter.MaxTotalCompetitors.Value;
+                        return minOk && maxOk;
+                    })
+                    .ToList();
+
+                // Cập nhật lại competitionIds sau khi lọc
+                competitionIds = filteredCompetitions.Select(c => c.CompetitionID).ToList();
+                
+                // Cập nhật participantCounts để chỉ chứa những ID đã lọc
+                participantCounts = participantCounts
+                    .Where(kvp => competitionIds.Contains(kvp.Key))
+                    .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            }
+
             var totalParticipants = participantCounts.Values.Sum();
-            var publishedCount = competitions.Count(c => c.Status == CompetitionStatus.PUBLISHED);
+            var publishedCount = filteredCompetitions.Count(c => c.Status == CompetitionStatus.PUBLISHED);
 
             // Đang diễn ra: PUBLISHED + trong khoảng StartDate → EndDate
-            var ongoingCount = competitions.Count(c =>
+            var ongoingCount = filteredCompetitions.Count(c =>
                 c.Status == CompetitionStatus.PUBLISHED
                 && c.StartDate <= now
                 && c.EndDate >= now);
 
             var overview = new CompetitionOverviewResponse
             {
-                TotalCompetitions = competitions.Count,
-                OngoingCompetitions = ongoingCount,
-                CompletedCompetitions = competitions.Count(c => c.Status == CompetitionStatus.RESULT_PUBLISHED),
-                CancelledCompetitions = competitions.Count(c => c.Status == CompetitionStatus.CANCELLED),
-                DraftCompetitions = competitions.Count(c => c.Status == CompetitionStatus.DRAFT),
+                TotalCompetitions = filteredCompetitions.Count,
+                DraftCompetitions = filteredCompetitions.Count(c => c.Status == CompetitionStatus.DRAFT),
+                PublishedCompetitions = publishedCount,
+                CompletedCompetitions = filteredCompetitions.Count(c => c.Status == CompetitionStatus.RESULT_PUBLISHED),
+                CancelledCompetitions = filteredCompetitions.Count(c => c.Status == CompetitionStatus.CANCELLED),
+                InvalidCompetitions = filteredCompetitions.Count(c => c.Status == CompetitionStatus.INVALID),
                 TotalParticipants = totalParticipants,
-                AverageParticipantsPerCompetition = competitions.Count > 0
-                    ? Math.Round((double)totalParticipants / competitions.Count, 1)
+                AverageParticipantsPerCompetition = filteredCompetitions.Count > 0
+                    ? Math.Round((double)totalParticipants / filteredCompetitions.Count, 1)
                     : 0
             };
 
             // Lấy tên club cho hiển thị
-            var clubIds = competitions.Select(c => c.ClubID).Distinct().ToList();
+            var clubIds = filteredCompetitions.Select(c => c.ClubID).Distinct().ToList();
             var clubs = (await _unitOfWork.Clubs
                 .GetManyByCondition(c => clubIds.Contains(c.ClubID)))
                 .ToDictionary(c => c.ClubID);
 
             // Top cuộc thi theo số người tham gia
-            var topItems = competitions
+            var topItems = filteredCompetitions
                 .Select(c => new CompetitionStatItem
                 {
                     CompetitionId = c.CompetitionID,
                     NameVN = c.NameVN,
                     NameEN = c.NameEN,
-                    Status = c.Status.ToString(),
+                    CompetitionStatus = c.Status,
+                    CompetitionPhase = CommunityAppHelpers.GetCurrentCompetitionLifeCycle(c, now),
                     ClubId = c.ClubID,
                     ClubNameVN = clubs.TryGetValue(c.ClubID, out var club) ? club.NameVN : string.Empty,
                     ParticipantCount = participantCounts.TryGetValue(c.CompetitionID, out var count) ? count : 0,
@@ -593,6 +780,104 @@ namespace Droniverse.Community.Application.Services
                 Overview = overview,
                 TopByParticipants = topItems
             };
+        }
+
+        /// <summary>
+        /// Áp dụng tất cả filter conditions vào danh sách competitions.
+        /// Sử dụng CommunityAppHelpers.GetCurrentCompetitionLifeCycle() để tính toán CompetitionPhase.
+        /// </summary>
+        private List<Competition> ApplyCompetitionFilters(
+            List<Competition> competitions,
+            CompetitionFilterRequest? filter,
+            DateTime now)
+        {
+            if (filter == null)
+                return competitions;
+
+            var result = competitions.AsEnumerable();
+
+            // Lọc theo CompetitionStatus
+            if (filter.CompetitionStatus.HasValue)
+            {
+                result = result.Where(c => c.Status == filter.CompetitionStatus.Value);
+            }
+
+            // Lọc theo CompetitionPhase (giai đoạn vòng đời)
+            if (filter.CompetitionPhase.HasValue)
+            {
+                result = result.Where(c =>
+                {
+                    var phase = CommunityAppHelpers.GetCurrentCompetitionLifeCycle(c, now);
+                    return phase == filter.CompetitionPhase.Value;
+                });
+            }
+
+            // Lọc theo ClubId
+            if (filter.ClubId.HasValue)
+            {
+                result = result.Where(c => c.ClubID == filter.ClubId.Value);
+            }
+
+            // Lọc theo StartDate range
+            if (filter.StartDateFrom.HasValue)
+            {
+                result = result.Where(c => c.StartDate >= filter.StartDateFrom.Value);
+            }
+
+            if (filter.StartDateTo.HasValue)
+            {
+                result = result.Where(c => c.StartDate <= filter.StartDateTo.Value);
+            }
+
+            // Lọc theo EndDate range
+            if (filter.EndDateFrom.HasValue)
+            {
+                result = result.Where(c => c.EndDate >= filter.EndDateFrom.Value);
+            }
+
+            if (filter.EndDateTo.HasValue)
+            {
+                result = result.Where(c => c.EndDate <= filter.EndDateTo.Value);
+            }
+
+            // Lọc theo CreatedBy
+            if (filter.CreatedBy.HasValue)
+            {
+                result = result.Where(c => c.CreatedBy == filter.CreatedBy.Value);
+            }
+
+            // Lọc theo UpdatedBy
+            if (filter.UpdatedBy.HasValue)
+            {
+                result = result.Where(c => c.UpdatedBy == filter.UpdatedBy.Value);
+            }
+
+            // Lọc theo số vòng (Rounds count)
+            if (filter.MinTotalRounds.HasValue)
+            {
+                result = result.Where(c => c.Rounds.Count >= filter.MinTotalRounds.Value);
+            }
+
+            if (filter.MaxTotalRounds.HasValue)
+            {
+                result = result.Where(c => c.Rounds.Count <= filter.MaxTotalRounds.Value);
+            }
+
+            // Lọc theo số giải thưởng (CompetitionPrizes count)
+            if (filter.MinTotalPrizes.HasValue)
+            {
+                result = result.Where(c => c.CompetitionPrizes.Count >= filter.MinTotalPrizes.Value);
+            }
+
+            if (filter.MaxTotalPrizes.HasValue)
+            {
+                result = result.Where(c => c.CompetitionPrizes.Count <= filter.MaxTotalPrizes.Value);
+            }
+
+            // Note: Lọc theo MinTotalCompetitors và MaxTotalCompetitors được xử lý sau 
+            // vì cần lấy dữ liệu từ UserCompetitions (sẽ được thực hiện trong BuildCompetitionStats)
+
+            return result.ToList();
         }
 
         // ===================== Code Stats =====================
@@ -665,7 +950,7 @@ namespace Droniverse.Community.Application.Services
                     {
                         UserId = b.UserId,
                         UserName = user?.Username ?? string.Empty,
-                        Email = b.Email ?? string.Empty,
+                        Email = user?.Email ?? b.Email ?? string.Empty,
                         ImageUrl = user?.ImageUrl,
                         TotalSpent = b.TotalSpent,
                         PurchaseCount = b.PurchaseCount
@@ -725,7 +1010,7 @@ namespace Droniverse.Community.Application.Services
                     {
                         UserId = b.UserId,
                         UserName = user?.Username ?? string.Empty,
-                        Email = b.Email ?? string.Empty,
+                        Email = user?.Email ?? b.Email ?? string.Empty,
                         ImageUrl = user?.ImageUrl,
                         TotalSpent = b.TotalSpent,
                         PurchaseCount = b.PurchaseCount
@@ -739,6 +1024,161 @@ namespace Droniverse.Community.Application.Services
             {
                 Buyers = buyers,
                 TotalSystemRevenue = totalSystemRevenue
+            };
+        }
+
+        // ===================== System Operations Management =====================
+
+        public async Task<SystemTransactionLogsResponse> GetSystemTransactionLogs(int page = 1, int limit = 10)
+        {
+            if (page < 1) page = 1;
+            if (limit <= 0) limit = 10;
+
+            var allOrders = await _orderRepository.GetAllOrders();
+            if (allOrders == null) allOrders = [];
+
+            var totalRecords = allOrders.Count();
+            var totalPages = (int)Math.Ceiling(totalRecords / (double)limit);
+
+            // Lọc và sắp xếp theo ngày tạo mới nhất, phân trang
+            var pagedOrders = allOrders
+                .OrderByDescending(o => o.CreateAt)
+                .Skip((page - 1) * limit)
+                .Take(limit)
+                .ToList();
+
+            var logs = pagedOrders.Select(o => new SystemTransactionLogEntry
+            {
+                OrderID = o._id.ToString(),
+                UserName = o.UserName ?? "Unknown",
+                Email = o.UserEmail ?? "Unknown",
+                ProductName = string.IsNullOrWhiteSpace(o.Item?.ProductNameVN) ? "Unknown Product" : o.Item.ProductNameVN,
+                Amount = o.TotalAmount,
+                Status = o.Status.ToString(),
+                PaymentMethod = "VNPAY", // Default hoặc lấy từ entity nếu có: o.Payment?.PaymentGateway ?? "VNPAY"
+                CreatedAt = o.CreateAt
+            }).ToList();
+
+            return new SystemTransactionLogsResponse
+            {
+                Data = logs,
+                TotalRecords = totalRecords,
+                TotalPages = totalPages
+            };
+        }
+
+        public async Task<SystemOperationsSummaryResponse> GetSystemOperationsSummary()
+        {
+            // 1. Pending Club Approvals
+            var clubRequests = await _unitOfWork.ClubCreationRequests.GetAll();
+            var pendingClubApprovals = clubRequests?.Count(r => r.Status == Domain.Enums.ClubCreationRequestStatus.PENDING) ?? 0;
+
+            // 2. Users (Lấy từ Identity service)
+            var users = await _identityMicroserviceClient.GetAllUsers();
+            var totalUsers = users?.Count ?? 0;
+
+            var now = _clock.Now;
+            var startThisMonth = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+            var newUsersThisMonth = users?.Count() ?? 0; // Temporarily omitted due to UserResponse schema
+
+            var memberCount = users?.Count(u => u.RoleName == Droniverse.Shared.Constants.Roles.ClubMember) ?? 0;
+            var clubOwnerCount = users?.Count(u => u.RoleName == Droniverse.Shared.Constants.Roles.ClubManager) ?? 0;
+
+            // 3. Course stats (Lấy từ hệ thống order)
+            var allOrders = await _orderRepository.GetAllSuccessfulOrders();
+            var totalCourseEnrollments = allOrders?.Count(o => o.OrderType == Domain.Enums.OrderType.USER_PURCHASE) ?? 0;
+
+            // Tạm thời set tỷ lệ là 0 (cần update từ AcademyService)
+            double completionRate = 0;
+
+            return new SystemOperationsSummaryResponse
+            {
+                PendingClubApprovals = pendingClubApprovals,
+                TotalUsers = totalUsers,
+                NewUsersThisMonth = newUsersThisMonth,
+                MemberCount = memberCount,
+                ClubOwnerCount = clubOwnerCount,
+                TotalCourseEnrollments = totalCourseEnrollments,
+                CourseCompletionRate = completionRate
+            };
+        }
+
+        public async Task<UserGrowthTrendResponse> GetUserGrowthTrend(int months = 12)
+        {
+            if (months <= 0) months = 12;
+
+            var users = await _identityMicroserviceClient.GetAllUsers();
+            if (users == null) users = new List<Droniverse.Shared.DTOs.Response.UserResponse>();
+
+            var now = _clock.Now;
+            var startCurrentMonth = new DateTime(now.Year, now.Month, 1);
+            var fromMonth = startCurrentMonth.AddMonths(-(months - 1));
+            var toExclusive = startCurrentMonth.AddMonths(1);
+
+            // Temporarily ignore creation date since UserResponse does not include CreatedAt yet
+            var usersByMonth = users
+                .GroupBy(u => new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc))
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            var growth = Enumerable.Range(0, months)
+                .Select(i => fromMonth.AddMonths(i))
+                .Select(m => new MonthlyUserStat
+                {
+                    Month = m,
+                    Value = usersByMonth.TryGetValue(m, out var value) ? value : 0
+                })
+                .ToList();
+
+            return new UserGrowthTrendResponse
+            {
+                UserGrowth = growth
+            };
+        }
+
+        public async Task<RecentActivityFeedResponse> GetRecentActivityFeed()
+        {
+            var activities = new List<ActivityFeedItem>();
+            var now = _clock.Now;
+
+            // 1. Transactions (Orders)
+            var recentOrders = await _orderRepository.GetAllOrders();
+            if (recentOrders != null)
+            {
+                activities.AddRange(recentOrders
+                    .OrderByDescending(o => o.CreateAt)
+                    .Take(10)
+                    .Select(o => new ActivityFeedItem
+                    {
+                        ActivityType = "NEW_TRANSACTION",
+                        Message = $"Giao dịch mới trị giá {o.TotalAmount:N0}đ từ User {o.UserName}",
+                        Timestamp = o.CreateAt
+                    }));
+            }
+
+            // 2. Club Creations
+            var recentClubs = await _unitOfWork.ClubCreationRequests.GetAll();
+            if (recentClubs != null)
+            {
+                activities.AddRange(recentClubs
+                    .OrderByDescending(c => c.CreatedAt)
+                    .Take(10)
+                    .Select(c => new ActivityFeedItem
+                    {
+                        ActivityType = "CLUB_REQUEST",
+                        Message = $"CLB {c.NameVN} vừa nộp yêu cầu tạo mới",
+                        Timestamp = c.CreatedAt
+                    }));
+            }
+
+            // Gộp lại và lấy top 10 mới nhất
+            var topActivities = activities
+                .OrderByDescending(a => a.Timestamp)
+                .Take(10)
+                .ToList();
+
+            return new RecentActivityFeedResponse
+            {
+                Activities = topActivities
             };
         }
     }

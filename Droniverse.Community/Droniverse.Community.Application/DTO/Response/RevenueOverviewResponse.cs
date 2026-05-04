@@ -41,5 +41,21 @@ namespace Droniverse.Community.Application.DTO.Response
         // ===== KPI =====
         public int TotalTransactions { get; set; }
         public int TransactionsThisMonth { get; set; }
+
+        // ===== EXPANDED KPI =====
+        public double SuccessRate { get; set; }
+        public int PendingRefunds { get; set; }
+
+        public decimal RevenueToday { get; set; }
+        public decimal RevenueYesterday { get; set; }
+
+        public decimal RevenueThisWeek { get; set; }
+        public decimal RevenueLastWeek { get; set; }
+
+        public decimal RevenueThisYear { get; set; }
+        public decimal RevenueLastYear { get; set; }
+
+        public int TransactionsLastMonth { get; set; }
     }
 }
+

@@ -1,4 +1,4 @@
-namespace Droniverse.Community.Application.DTO.Response;
+﻿namespace Droniverse.Community.Application.DTO.Response;
 
 /// <summary>
 /// Tổng quan thống kê cuộc thi — dành cho Admin hoặc Club Manager.
@@ -8,17 +8,20 @@ public class CompetitionOverviewResponse
     /// <summary>Tổng số cuộc thi.</summary>
     public int TotalCompetitions { get; set; }
 
-    /// <summary>Số cuộc thi đang diễn ra (PUBLISHED và đang trong timeline StartDate → EndDate).</summary>
-    public int OngoingCompetitions { get; set; }
+    /// <summary>Số cuộc thi ở trạng thái nháp (DRAFT).</summary>
+    public int DraftCompetitions { get; set; }
 
-    /// <summary>Số cuộc thi đã công bố kết quả.</summary>
+    /// <summary>Số cuộc thi đã được công bố (PUBLISHED).</summary>
+    public int PublishedCompetitions { get; set; }
+
+    /// <summary>Số cuộc thi đã công bố kết quả (RESULT_PUBLISHED).</summary>
     public int CompletedCompetitions { get; set; }
 
-    /// <summary>Số cuộc thi đã bị hủy.</summary>
+    /// <summary>Số cuộc thi đã bị hủy (CANCELLED).</summary>
     public int CancelledCompetitions { get; set; }
 
-    /// <summary>Số cuộc thi đang ở trạng thái nháp.</summary>
-    public int DraftCompetitions { get; set; }
+    /// <summary>Số cuộc thi không hợp lệ (INVALID).</summary>
+    public int InvalidCompetitions { get; set; }
 
     /// <summary>Tổng lượt người tham gia (ACTIVE) trên tất cả cuộc thi.</summary>
     public int TotalParticipants { get; set; }
@@ -35,7 +38,8 @@ public class CompetitionStatItem
     public Guid CompetitionId { get; set; }
     public string NameVN { get; set; } = string.Empty;
     public string NameEN { get; set; } = string.Empty;
-    public string Status { get; set; } = string.Empty;
+    public Droniverse.Community.Domain.Enums.CompetitionStatus CompetitionStatus { get; set; }
+    public Droniverse.Community.Domain.Enums.CompetitionLifeCycleStatus? CompetitionPhase { get; set; }
     public Guid ClubId { get; set; }
     public string ClubNameVN { get; set; } = string.Empty;
     public int ParticipantCount { get; set; }

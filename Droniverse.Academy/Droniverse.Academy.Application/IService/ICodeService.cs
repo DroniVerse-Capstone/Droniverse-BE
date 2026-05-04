@@ -11,7 +11,7 @@ public interface ICodeService
     Task<CodeResponseDTO> UpdateCodeAsync(string codeId);
     Task<CodeResponseDTO> DeleteCodeAsync(string codeId);
     Task<CodeResponseDTO> GetCodeAsync(string codeId);
-    Task<PaginationResult<IEnumerable<CodeResponseDTO>>> GetAllCodesAsync(CodeSearchRequestDTO requestDTO);
+    Task<AllCodesWithOverviewDto> GetAllCodesAsync(CodeSearchRequestDTO requestDTO);
     Task<CodeUsageResponseDTO> EnterCodeAsync(Guid clubId, string codeId);
     Task<CreateCodesResponse> CreateCodeAsync(GenerateCodesRequestDTO request);
     Task<ClubCodesResponse> GetCodesByClub(Guid clubId, Guid courseId, GetAllCodesByClubSearchRequest request);

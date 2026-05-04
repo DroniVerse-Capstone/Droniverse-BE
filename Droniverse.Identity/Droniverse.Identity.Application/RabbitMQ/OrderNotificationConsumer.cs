@@ -114,64 +114,64 @@ public class OrderNotificationConsumer : IDisposable
                 {
                     if (routingKey == "order.created")
                     {
-                        _logger.LogInformation("🔄 Processing order.created...");
+                        _logger.LogInformation("Processing order.created...");
                         try
                         {
                             var orderMsg = JsonSerializer.Deserialize<OrderCreatedNotificationMessage>(message);
                             if (orderMsg != null)
                             {
                                 await HandleOrderCreatedAsync(orderMsg);
-                                _logger.LogInformation("✅ Order created notification processed for order {OrderId}", orderMsg.OrderId);
+                                _logger.LogInformation("Order created notification processed for order {OrderId}", orderMsg.OrderId);
                             }
                             else
                             {
-                                _logger.LogWarning("⚠️ Failed to deserialize OrderCreatedNotificationMessage. Payload: {Payload}", message);
+                                _logger.LogWarning("Failed to deserialize OrderCreatedNotificationMessage. Payload: {Payload}", message);
                             }
                         }
                         catch (JsonException jsonEx)
                         {
-                            _logger.LogError(jsonEx, "❌ JSON deserialization error for order.created. Payload: {Payload}", message);
+                            _logger.LogError(jsonEx, "JSON deserialization error for order.created. Payload: {Payload}", message);
                         }
                     }
                     else if (routingKey == "payment.successful")
                     {
-                        _logger.LogInformation("🔄 Processing payment.successful...");
+                        _logger.LogInformation("Processing payment.successful...");
                         try
                         {
                             var paymentMsg = JsonSerializer.Deserialize<PaymentSuccessfulNotificationMessage>(message);
                             if (paymentMsg != null)
                             {
                                 await HandlePaymentSuccessfulAsync(paymentMsg);
-                                _logger.LogInformation("✅ Payment successful notification processed for order {OrderId}", paymentMsg.OrderId);
+                                _logger.LogInformation("Payment successful notification processed for order {OrderId}", paymentMsg.OrderId);
                             }
                             else
                             {
-                                _logger.LogWarning("⚠️ Failed to deserialize PaymentSuccessfulNotificationMessage. Payload: {Payload}", message);
+                                _logger.LogWarning("Failed to deserialize PaymentSuccessfulNotificationMessage. Payload: {Payload}", message);
                             }
                         }
                         catch (JsonException jsonEx)
                         {
-                            _logger.LogError(jsonEx, "❌ JSON deserialization error for payment.successful. Payload: {Payload}", message);
+                            _logger.LogError(jsonEx, " JSON deserialization error for payment.successful. Payload: {Payload}", message);
                         }
                     }
                     else
                     {
-                        _logger.LogWarning("⚠️ Unknown routing key: {RoutingKey}", routingKey);
+                        _logger.LogWarning("Unknown routing key: {RoutingKey}", routingKey);
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "❌ Error processing message with routing key {RoutingKey}", routingKey);
+                    _logger.LogError(ex, "Error processing message with routing key {RoutingKey}", routingKey);
                 }
             };
 
-            _logger.LogInformation("🔄 Starting BasicConsume on queue: {QueueName}", queueName);
+            _logger.LogInformation("Starting BasicConsume on queue: {QueueName}", queueName);
             _channel.BasicConsume(queue: queueName, consumer: consumer, autoAck: true);
-            _logger.LogInformation("✅ Order notification consumer started successfully - waiting for messages...");
+            _logger.LogInformation("Order notification consumer started successfully - waiting for messages...");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Error starting order notification consumer");
+            _logger.LogError(ex, "Error starting order notification consumer");
         }
     }
 
@@ -190,14 +190,32 @@ public class OrderNotificationConsumer : IDisposable
                 using (var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(30)))
                 {
                     // Tạo notification pending cho order mới
-                    await notificationService.SendAndCreateNotificationAsync(
-                        message.UserId,
-                        "Đơn hàng đang chờ thanh toán",
-                        $"Bạn vừa tạo đơn hàng #{message.OrderId}. Tổng tiền: {FormatCurrency(message.Total)}. Vui lòng thực hiện thanh toán để hoàn tất đơn hàng.",
-                        NotificationType.EMAIL,
-                        message.UserEmail,
-                        message.OrderId.ToString()
-                    );
+                    try
+                    {
+                        var created = await notificationService.SendAndCreateNotificationAsync(
+                            message.UserId,
+                            "Đơn hàng đang chờ thanh toán",
+                            $"Bạn vừa tạo đơn hàng #{message.OrderId}. Tổng tiền: {FormatCurrency(message.Total)}. Vui lòng thực hiện thanh toán để hoàn tất đơn hàng.",
+                            NotificationType.EMAIL,
+                            message.UserEmail,
+                            message.OrderId.ToString()
+                        );
+
+                        if (created != null)
+                        {
+                            _logger.LogInformation("Notification created: Id={NotificationId}, Status={Status}, User={UserId}, OrderId={OrderId}",
+                                created.NotificationID, created.Status, message.UserId, message.OrderId);
+                        }
+                        else
+                        {
+                            _logger.LogWarning("SendAndCreateNotificationAsync returned null for order {OrderId}", message.OrderId);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "SendAndCreateNotificationAsync failed for order {OrderId}, user {UserId}", message.OrderId, message.UserId);
+                        throw;
+                    }
                 }
             }
 
@@ -226,14 +244,32 @@ public class OrderNotificationConsumer : IDisposable
                 {
                     // Mark previous pending notification as read (nếu có)
                     // Tạo notification mới về thanh toán thành công
-                    await notificationService.SendAndCreateNotificationAsync(
-                        message.UserId,
-                        "Thanh toán thành công",
-                        $"Đơn hàng #{message.OrderId} của bạn đã được thanh toán thành công. Số tiền: {FormatCurrency(message.Amount)}. Cảm ơn bạn đã mua hàng!",
-                        NotificationType.EMAIL,
-                        message.UserEmail,
-                        message.OrderId.ToString()
-                    );
+                    try
+                    {
+                        var created = await notificationService.SendAndCreateNotificationAsync(
+                            message.UserId,
+                            "Thanh toán thành công",
+                            $"Đơn hàng #{message.OrderId} của bạn đã được thanh toán thành công. Số tiền: {FormatCurrency(message.Amount)}. Cảm ơn bạn đã mua hàng!",
+                            NotificationType.EMAIL,
+                            message.UserEmail,
+                            message.OrderId.ToString()
+                        );
+
+                        if (created != null)
+                        {
+                            _logger.LogInformation("Notification created: Id={NotificationId}, Status={Status}, User={UserId}, OrderId={OrderId}",
+                                created.NotificationID, created.Status, message.UserId, message.OrderId);
+                        }
+                        else
+                        {
+                            _logger.LogWarning("SendAndCreateNotificationAsync returned null for payment order {OrderId}", message.OrderId);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "SendAndCreateNotificationAsync failed for payment order {OrderId}, user {UserId}", message.OrderId, message.UserId);
+                        throw;
+                    }
                 }
             }
 

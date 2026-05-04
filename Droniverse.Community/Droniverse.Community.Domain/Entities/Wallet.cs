@@ -15,25 +15,27 @@ public class Wallet
     public Wallet(
         Guid ownerID,
         string bank,
-        string bankNumber)
+        string bankNumber,
+        DateTime createdAt,
+        DateTime updatedAt)
     {
         OwnerID = ownerID;
         Bank = bank;
         BankNumber = bankNumber;
         Balance = 0;
-        CreatedAt = DateTime.UtcNow.AddHours(7);
-        UpdatedAt = DateTime.UtcNow.AddHours(7);
+        CreatedAt = createdAt; 
+        UpdatedAt = updatedAt;
         WalletID = Guid.NewGuid();
     }
 
-    public void UpdateProfile(string bankNumber, string bank)
+    public void UpdateProfile(string bankNumber, string bank, DateTime updatedAt)
     {
         BankNumber = bankNumber;
         Bank = bank;
-        UpdatedAt = DateTime.UtcNow.AddHours(7);
+        UpdatedAt = updatedAt;
     }
 
-    public void UpdateBalance(decimal amount)
+    public void UpdateBalance(decimal amount, DateTime updatedAt)
     {
         if (amount < 0 && Balance + amount < 0)
         {
@@ -41,6 +43,6 @@ public class Wallet
         }
 
         Balance += amount;
-        UpdatedAt = DateTime.UtcNow.AddHours(7);
+        UpdatedAt = updatedAt;
     }
 }

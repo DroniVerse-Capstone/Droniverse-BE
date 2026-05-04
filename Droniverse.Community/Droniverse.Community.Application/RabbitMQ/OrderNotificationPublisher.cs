@@ -13,11 +13,13 @@ internal class OrderNotificationPublisher : IOrderNotificationPublisher, IDispos
     private readonly ILogger<OrderNotificationPublisher> _logger;
     private IModel? _channel;
     private IConnection? _connection;
+    private readonly IClock _clock;
 
-    public OrderNotificationPublisher(IConfiguration configuration, ILogger<OrderNotificationPublisher> logger)
+    public OrderNotificationPublisher(IConfiguration configuration, ILogger<OrderNotificationPublisher> logger, IClock clock)
     {
         _configuration = configuration;
         _logger = logger;
+        _clock = clock;
     }
 
     private void EnsureConnection()
@@ -81,7 +83,7 @@ internal class OrderNotificationPublisher : IOrderNotificationPublisher, IDispos
             var basicProperties = _channel!.CreateBasicProperties();
             basicProperties.Persistent = true;
             basicProperties.ContentType = "application/json";
-            basicProperties.Timestamp = new AmqpTimestamp(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+            basicProperties.Timestamp = new AmqpTimestamp(new DateTimeOffset(_clock.Now).ToUnixTimeSeconds());
 
             _channel!.BasicPublish(
                 exchange: exchange,
@@ -117,7 +119,7 @@ internal class OrderNotificationPublisher : IOrderNotificationPublisher, IDispos
             basicProperties.Headers = headers;
             basicProperties.Persistent = true;
             basicProperties.ContentType = "application/json";
-            basicProperties.Timestamp = new AmqpTimestamp(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+            basicProperties.Timestamp = basicProperties.Timestamp = new AmqpTimestamp(new DateTimeOffset(_clock.Now).ToUnixTimeSeconds());
 
             _channel!.BasicPublish(
                 exchange: exchangeName,

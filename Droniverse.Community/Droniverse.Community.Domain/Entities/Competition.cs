@@ -149,6 +149,7 @@ public class Competition
         int rankFrom,
         int rankTo,
         Guid createdBy,
+        DateTime createdAt,
         decimal? rewardValueMoney = null,
         string? rewardValueGiftVN = null,
         string? rewardValueGiftEN = null,
@@ -170,6 +171,7 @@ public class Competition
             rankFrom,
             rankTo,
             createdBy,
+            createdAt,
             rewardValueMoney,
             rewardValueGiftVN,
             rewardValueGiftEN,
@@ -216,7 +218,8 @@ public class Competition
             prize.RewardValueMoney,
             prize.RewardValueGiftVN,
             prize.RewardValueGiftEN,
-            createdBy
+            createdBy,
+            now
         );
 
         UserPrizes.Add(userPrize);
@@ -259,7 +262,8 @@ public class Competition
                 prize.RewardValueMoney,
                 prize.RewardValueGiftVN,
                 prize.RewardValueGiftEN,
-                createdBy
+                createdBy,
+                now
             );
 
             UserPrizes.Add(userPrize);

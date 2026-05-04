@@ -1,4 +1,5 @@
 ﻿using Droniverse.Community.Application.DTO.Response;
+using Droniverse.Community.Application.DTO.Request;
 
 namespace Droniverse.Community.Application.IService
 {
@@ -7,24 +8,26 @@ namespace Droniverse.Community.Application.IService
         // Club Manager Dashboard
         Task<RevenueOverviewResponse> GetRevenueOverviewByClub(Guid clubId);
         Task<RevenueGrowthResponse> GetRevenueGrowthByClub(Guid clubId, int months);
+        Task<RevenueGrowthResponse> GetRevenueGrowthByClub(Guid clubId, DateTime fromDate, DateTime toDate);
         Task<ClubCourseRevenueResponse> GetRevenueByCourseByClub(Guid clubId, int top);
 
         // Admin & System Manager Dashboard
         Task<AdminRevenueOverviewResponse> GetAdminRevenueOverview();
         Task<RevenueGrowthResponse> GetRevenueGrowthByAllClubs(int months);
+        Task<RevenueGrowthResponse> GetRevenueGrowthByAllClubs(DateTime fromDate, DateTime toDate);
         Task<ClubCourseRevenueResponse> GetRevenueByCourseByAllClubs(int top);
         Task<AdminClubRankingResponse> GetAdminClubRankingBySpent(int top = 10);
 
         // Competition Stats Dashboard
         /// <summary>
-        /// Thống kê cuộc thi toàn hệ thống (Admin).
+        /// Thống kê cuộc thi toàn hệ thống (Admin) với hỗ trợ filter.
         /// </summary>
-        Task<CompetitionStatsResponse> GetCompetitionStats(int top = 10);
+        Task<CompetitionStatsResponse> GetCompetitionStats(int top = 10, CompetitionFilterRequest? filter = null);
 
         /// <summary>
-        /// Thống kê cuộc thi theo câu lạc bộ.
+        /// Thống kê cuộc thi theo câu lạc bộ với hỗ trợ filter.
         /// </summary>
-        Task<CompetitionStatsResponse> GetCompetitionStatsByClub(Guid clubId, int top = 10);
+        Task<CompetitionStatsResponse> GetCompetitionStatsByClub(Guid clubId, int top = 10, CompetitionFilterRequest? filter = null);
 
         // Code Stats & Top Buyers Dashboard
         /// <summary>
@@ -46,5 +49,11 @@ namespace Droniverse.Community.Application.IService
         /// Lấy danh sách top buyers toàn hệ thống.
         /// </summary>
         Task<TopBuyersResponse> GetTopBuyersAdmin(int top = 10);
+
+        // System Operations Management
+        Task<SystemTransactionLogsResponse> GetSystemTransactionLogs(int page = 1, int limit = 10);
+        Task<SystemOperationsSummaryResponse> GetSystemOperationsSummary();
+        Task<UserGrowthTrendResponse> GetUserGrowthTrend(int months = 12);
+        Task<RecentActivityFeedResponse> GetRecentActivityFeed();
     }
 }

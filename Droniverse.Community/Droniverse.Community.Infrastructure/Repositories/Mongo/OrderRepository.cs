@@ -161,6 +161,11 @@ internal class OrderRepository : IOrderRepository
         return deleteResult.DeletedCount > 0;
     }
 
+    public async Task<IEnumerable<Order>> GetAllOrders()
+    {
+        return await _orders.Find(Builders<Order>.Filter.Empty).ToListAsync();
+    }
+
     public async Task<Payment> GetPaymentByOrderID(Guid orderID)
     {
         FilterDefinition<Order> filter = Builders<Order>.Filter.Eq(temp => temp._id, orderID);

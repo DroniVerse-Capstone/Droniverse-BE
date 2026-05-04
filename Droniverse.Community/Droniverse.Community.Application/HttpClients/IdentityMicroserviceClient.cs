@@ -44,6 +44,19 @@ public class IdentityMicroserviceClient
         _environment = environment;
     }
 
+    public async Task<List<UserResponse>> GetAllUsers()
+    {
+        var response = await _httpClient.GetAsync(BuildIdentityPath("users"));
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogWarning($"Failed to get all users, status: {response.StatusCode}");
+            return new List<UserResponse>();
+        }
+
+        var result = await response.Content.ReadFromJsonAsync<SuccessResponse<List<UserResponse>>>(JsonOptions);
+        return result?.Data ?? new List<UserResponse>();
+    }
+
     public async Task<UserResponse?> GetUserByUserID(Guid userId)
     {
 

@@ -12,7 +12,7 @@ namespace Droniverse.Academy.API.Controllers;
 
 [Route("academy/club/enrollments")]
 [ApiController]
-[Authorize(Roles = Roles.ClubManager)]
+[Authorize(Roles = Roles.AdminOrManagerRoles)]
 public class ClubEnrollmentController : ControllerBase
 {
     private readonly ILogger<ClubEnrollmentController> _logger;

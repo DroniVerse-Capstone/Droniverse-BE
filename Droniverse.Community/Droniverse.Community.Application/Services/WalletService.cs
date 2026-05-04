@@ -67,7 +67,7 @@ namespace Droniverse.Community.Application.Services
                 throw new InvalidOperationException("Người dùng đã có ví.");
             }
 
-            Wallet wallet = new Wallet(userId, request.Bank, request.BankNumber);
+            Wallet wallet = new Wallet(userId, request.Bank, request.BankNumber, _clock.Now, _clock.Now);
             Wallet createdWallet = await _unitOfWork.Wallets.Add(wallet);
             await _unitOfWork.SaveChangeAsync();
 
@@ -102,14 +102,19 @@ namespace Droniverse.Community.Application.Services
                 throw new InvalidOperationException("Số dư trong ví không đủ để thực hiện rút tiền.");
             }
 
+            WithdrawRequest? existingRequest = await _unitOfWork.WithdrawRequests.GetByCondition(w => w.RequesterID == userId && w.Status == WithdrawStatus.PENDING);
+            if(existingRequest != null)
+                throw new ValidationException("Đã tồn tại yêu cầu rút tiền đang chờ xử lý. Vui lòng đợi yêu cầu đó được xử lý trước khi tạo yêu cầu mới.");
+
             WithdrawRequest withdrawRequest = new WithdrawRequest(
                 requesterId: userId,
                 note: request.Note,
                 amount: request.Amount,
-                walletId: wallet.WalletID);
+                walletId: wallet.WalletID,
+                _clock.Now);
 
             WithdrawRequest createdWithdrawRequest = await _unitOfWork.WithdrawRequests.Add(withdrawRequest);
-            wallet.UpdateBalance(-request.Amount);
+            wallet.UpdateBalance(-request.Amount, _clock.Now);
             await _unitOfWork.Wallets.Update(wallet);
 
             Club? club = await _unitOfWork.Clubs.GetByCondition(c => c.ManagerID == wallet.OwnerID);
@@ -197,16 +202,16 @@ namespace Droniverse.Community.Application.Services
             if (request.Status == WithdrawStatus.APPROVED)
             {
                 //cập nhật lại thành approved
-                withdrawRequest.UpdateStatus(WithdrawStatus.APPROVED);
+                withdrawRequest.UpdateStatus(WithdrawStatus.APPROVED, _clock.Now);
                 withdrawRequest.ApproverID = _currentUserService.UserId;
                 withdrawRequest.ApprovedAt = _clock.Now; // referenceID có thể là withdrawID
 
             }
             else if (request.Status == WithdrawStatus.REJECTED) // vi pham policy
             {
-                wallet.UpdateBalance(withdrawRequest.Amount); // hoàn tiền vào ví
+                wallet.UpdateBalance(withdrawRequest.Amount, _clock.Now); // hoàn tiền vào ví
                 withdrawRequest.RejectReason = request.RejectReason;
-                withdrawRequest.UpdateStatus(WithdrawStatus.REJECTED);
+                withdrawRequest.UpdateStatus(WithdrawStatus.REJECTED, _clock.Now);
                 withdrawRequest.ApproverID = _currentUserService.UserId;
                 withdrawRequest.ApprovedAt = _clock.Now;
                 Transaction transaction = new Transaction
@@ -223,8 +228,8 @@ namespace Droniverse.Community.Application.Services
             }
             else if(request.Status == WithdrawStatus.CANCELLED) //
             {
-                wallet.UpdateBalance(withdrawRequest.Amount); // hoàn tiền vào ví
-                withdrawRequest.UpdateStatus(WithdrawStatus.CANCELLED);
+                wallet.UpdateBalance(withdrawRequest.Amount, _clock.Now); // hoàn tiền vào ví
+                withdrawRequest.UpdateStatus(WithdrawStatus.CANCELLED, _clock.Now);
                 withdrawRequest.ApproverID = _currentUserService.UserId;
                 withdrawRequest.ApprovedAt = _clock.Now;
 

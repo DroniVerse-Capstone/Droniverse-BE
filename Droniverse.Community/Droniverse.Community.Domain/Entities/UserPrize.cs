@@ -44,7 +44,8 @@ namespace Droniverse.Community.Domain.Entities
             decimal? rewardValueMoney,
             string? rewardValueGiftVN,
             string? rewardValueGiftEN,
-            Guid createdBy)
+            Guid createdBy,
+            DateTime createdAt)
         {
             UserPrizeID = Guid.NewGuid();
             UserID = userId;
@@ -60,30 +61,30 @@ namespace Droniverse.Community.Domain.Entities
 
             IsAwarded = false;
 
-            CreatedAt = DateTime.UtcNow;
+            CreatedAt = createdAt;
             CreatedBy = createdBy;
         }
 
 
-        public void Award(Guid awardedBy)
+        public void Award(Guid awardedBy, DateTime awardedAt, DateTime updatedAt)
         {
             if (IsAwarded)
                 throw new InvalidOperationException("Prize already awarded");
 
             IsAwarded = true;
-            AwardedAt = DateTime.UtcNow;
+            AwardedAt = awardedAt;
 
-            UpdatedAt = DateTime.UtcNow;
+            UpdatedAt = updatedAt;
             UpdatedBy = awardedBy;
         }
 
 
-        public void UpdateGiftInfo(string? giftVN, string? giftEN, Guid updatedBy)
+        public void UpdateGiftInfo(string? giftVN, string? giftEN, Guid updatedBy, DateTime updatedAt)
         {
             RewardValueGiftVN = giftVN;
             RewardValueGiftEN = giftEN;
 
-            UpdatedAt = DateTime.UtcNow;
+            UpdatedAt = updatedAt;
             UpdatedBy = updatedBy;
         }
     }
@@ -99,7 +100,8 @@ namespace Droniverse.Community.Domain.Entities
             decimal? rewardValueMoney,
             string? rewardValueGiftVN,
             string? rewardValueGiftEN,
-            Guid createdBy)
+            Guid createdBy,
+            DateTime createdAt)
         {
             return new UserPrize(
                 userId,
@@ -110,7 +112,8 @@ namespace Droniverse.Community.Domain.Entities
                 rewardValueMoney,
                 rewardValueGiftVN,
                 rewardValueGiftEN,
-                createdBy
+                createdBy,
+                createdAt
             );
         }
     }

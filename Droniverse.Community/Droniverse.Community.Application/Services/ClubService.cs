@@ -7,12 +7,13 @@ using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository;
+using Droniverse.Shared.Constants;
+using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.DTOs.Response;
-using Microsoft.EntityFrameworkCore;
 using Droniverse.Shared.Enums;
-using Droniverse.Shared.DTOs;
 using Droniverse.Shared.Exceptions;
+using Microsoft.EntityFrameworkCore;
 
 namespace Droniverse.Community.Application.Services;
 
@@ -126,6 +127,29 @@ internal class ClubService : IClubService
 
     public async Task<ClubResponseDto> GetClubById(Guid id)
     {
+        Guid userID = _currentUserService.UserId;
+        if (userID == Guid.Empty)
+            throw new UnauthorizedAccessException("Người dùng chưa được xác thực.");
+
+        UserResponse? user = await _identityMicroserviceClient.GetUserByUserID(userID);
+        if (user == null)
+            throw new UnauthorizedAccessException("Người dùng chưa được xác thực.");
+
+        var userRoles = _currentUserService.Roles;
+        var isMember = userRoles.Contains(Roles.ClubMember);
+
+        if (isMember)
+        {
+            Participation? participation = await _unitOfWork.Participations.GetByCondition(p =>
+                p.ClubID == id &&
+                p.UserID == userID &&
+                p.Status == ParticipationStatus.ACTIVE);
+            if (participation == null)
+            {
+                throw new ForbiddenException("Bạn đã rời câu lạc bộ này, vui lòng liên hệ quản lý câu lạc bộ (club manager) hoặc admin để biết thêm chi tiết.");
+            }
+        }
+
         Club? club = await _unitOfWork.Clubs.GetByIdWithCategories(id);
         if (club == null)
         {
@@ -208,7 +232,8 @@ internal class ClubService : IClubService
             currentUserId,
             club.ClubID,
             mediaId,
-            request.clubRequirement
+            request.clubRequirement,
+            _clock.Now
         );
 
         await _unitOfWork.ClubAttemptRequests.Add(clubAttemptRequest);
@@ -217,6 +242,61 @@ internal class ClubService : IClubService
         await _unitOfWork.SaveChangeAsync();
 
         return response;
+    }
+
+    public async Task<bool> LeaveClub(Guid clubId)
+    {
+        var currentUserId = Guid.Parse(_currentUserService.UserID
+            ?? throw new UnauthorizedAccessException("Người dùng chưa được xác thực."));
+
+        var participation = await _unitOfWork.Participations.GetByCondition(
+            p => p.ClubID == clubId && p.UserID == currentUserId && p.Status == ParticipationStatus.ACTIVE);
+
+        if (participation == null)
+            throw new KeyNotFoundException("Bạn không phải là thành viên đang hoạt động của câu lạc bộ này.");
+
+        participation.Leave("Người dùng chủ động rời khỏi câu lạc bộ.", _clock.Now);
+
+        await _unitOfWork.Participations.Update(participation);
+        await _unitOfWork.SaveChangeAsync();
+
+        return true;
+    }
+
+    public async Task<KickMemberFromClubResponse> KickMemberFromClub(Guid clubId, Guid userId, ClubKickMemberRequest request)
+    {
+        if (userId == Guid.Empty)
+            throw new ArgumentException("UserId không hợp lệ.");
+
+        if (request == null)
+            throw new ArgumentNullException(nameof(request), "Thông tin kick thành viên không được để trống.");
+
+        var reason = request.Reason?.Trim();
+        if (string.IsNullOrWhiteSpace(reason))
+            throw new ArgumentException("Lý do kick không được để trống.");
+
+        var club = await _unitOfWork.Clubs.GetByCondition(c => c.ClubID == clubId);
+        if (club == null)
+            throw new KeyNotFoundException($"Club with ID {clubId} not found.");
+
+        var currentUserId = Guid.Parse(_currentUserService.UserID
+            ?? throw new UnauthorizedAccessException("Người dùng chưa được xác thực."));
+
+        var userRoles = _currentUserService.Roles.ToList();
+        ValidateKickMemberPermission(club, userRoles, currentUserId, userId);
+
+        var participation = await _unitOfWork.Participations.GetByCondition(
+            p => p.ClubID == clubId && p.UserID == userId && p.Status == ParticipationStatus.ACTIVE);
+
+        if (participation == null)
+            throw new KeyNotFoundException("Người dùng này không phải là thành viên đang hoạt động của câu lạc bộ.");
+
+        participation.Ban(reason, _clock.Now);
+
+        await _unitOfWork.Participations.Update(participation);
+        await _unitOfWork.SaveChangeAsync();
+
+        return new KickMemberFromClubResponse { ClubName = club.NameVN, Username = _currentUserService.UserName != null ? _currentUserService.UserName : "Thành viên" };
     }
 
     public async Task<IEnumerable<SimpleClubResponse>> GetClubInfoBulk(GetClubSimpleInfoRequest request)
@@ -558,8 +638,10 @@ internal class ClubService : IClubService
         IEnumerable<Club> clubs;
 
         if (isMember)
+        {
             // CLUB_MEMBER: Lấy clubs đã tham gia
             clubs = await _unitOfWork.Clubs.GetClubsByParticipantUserId(currentUserId, status);
+        }
         else
             // CLUB_MANAGER/ADMIN/SYSTEM_MANAGER: Lấy clubs đã tạo
             clubs = await _unitOfWork.Clubs.GetClubsByClubManagerID(currentUserId, status);
@@ -746,6 +828,30 @@ internal class ClubService : IClubService
             default:
                 throw new ArgumentException($"Invalid target status: {targetStatus}");
         }
+    }
+
+    private void ValidateKickMemberPermission(
+        Club club,
+        List<string> userRoles,
+        Guid currentUserId,
+        Guid targetUserId)
+    {
+        if (currentUserId == targetUserId)
+            throw new InvalidOperationException("Không thể kick chính mình. Hãy sử dụng API rời khỏi câu lạc bộ.");
+
+        bool isAdmin = userRoles.Contains(Droniverse.Shared.Constants.Roles.Admin);
+        bool isSystemManager = userRoles.Contains(Droniverse.Shared.Constants.Roles.SystemManager);
+        bool isClubManager = userRoles.Contains(Droniverse.Shared.Constants.Roles.ClubManager);
+        bool isClubOwner = club.CreatedBy == currentUserId;
+
+        if (isAdmin || isSystemManager)
+            return;
+
+        if (isClubManager && isClubOwner)
+            return;
+
+        throw new Droniverse.Shared.Exceptions.ForbiddenException(
+            "Only CLUB_MANAGER (owner), ADMIN or SYSTEM_MANAGER can kick a club member.");
     }
 
 

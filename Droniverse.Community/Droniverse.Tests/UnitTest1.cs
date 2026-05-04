@@ -119,8 +119,8 @@ public class CompetitionServiceAggregateLeaderBoardAsyncTests
         var now = DateTime.UtcNow;
         var currentUserId = Guid.NewGuid();
         var competition = CreatePublishedCompetition(now, now.AddHours(-1));
-        competition.AddPrize("Top 1", "Top 1", RewardType.MONEY, 1, 1, currentUserId, rewardValueMoney: 100);
-        competition.AddPrize("Top 2-3", "Top 2-3", RewardType.GIFT, 2, 3, currentUserId, rewardValueGiftVN: "Gift VN", rewardValueGiftEN: "Gift EN");
+        competition.AddPrize("Top 1", "Top 1", RewardType.MONEY, 1, 1, currentUserId, rewardValueMoney: 100, createdAt: now);
+        competition.AddPrize("Top 2-3", "Top 2-3", RewardType.GIFT, 2, 3, currentUserId, rewardValueGiftVN: "Gift VN", rewardValueGiftEN: "Gift EN", createdAt: now);
 
         var user1 = Guid.NewGuid();
         var user2 = Guid.NewGuid();

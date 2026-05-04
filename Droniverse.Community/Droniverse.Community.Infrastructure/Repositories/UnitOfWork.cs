@@ -1,11 +1,13 @@
 ﻿using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Community.Infrastructure.Persistence.MySql;
+using Droniverse.Shared.Services.IServices;
 
 namespace Droniverse.Community.Infrastructure.Repositories;
 internal class UnitOfWork : IUnitOfWork
 {
     private readonly MySqlDbContext _context;
+    private readonly IClock _clock;
 
     private IClubRepository _club;
     private IClubAttemptRequestRepository _clubAttemptRequest;
@@ -24,9 +26,10 @@ internal class UnitOfWork : IUnitOfWork
     private IUserRoundRepository _userRound;
     private IWalletRepository _wallet;
     private IWithdrawRequestRepository _withdrawRequest;
-    public UnitOfWork(MySqlDbContext context)
+    public UnitOfWork(MySqlDbContext context, IClock clock)
     {
         _context = context;
+        _clock = clock;
     }
 
     public IClubRepository Clubs
@@ -51,7 +54,7 @@ internal class UnitOfWork : IUnitOfWork
         => _product ??= new ProductRepository(_context);
 
     public IRoundRepository Rounds
-        => _round ??= new RoundRepository(_context);
+        => _round ??= new RoundRepository(_context, _clock);
 
     public IClubCreationRequestRepository ClubCreationRequests => _clubCreationRequest ??= new ClubCreationRequestRepository(_context);
 

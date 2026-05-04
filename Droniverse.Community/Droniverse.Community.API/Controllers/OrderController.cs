@@ -22,20 +22,20 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
-        /// Lấy danh sách tất cả các đơn hàng
+        /// Lấy danh sách tất cả các đơn hàng cùng với thông tin tổng quan
         /// </summary>
         /// <returns>
-        /// 200 OK - Trả về danh sách đơn hàng
+        /// 200 OK - Trả về danh sách đơn hàng kèm thông tin tổng quan
         /// </returns>
         [HttpGet]
-        [ProducesResponseType(typeof(SuccessResponse<List<OrderResponseDto?>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(SuccessResponse<AllOrdersWithOverviewDto>), StatusCodes.Status200OK)]
         public async Task<ApiResponse> GetAllOrders([FromQuery] OrderSearchRequest searchRequest)
         {
             try
             {
-                var orders = await _orderService.GetAllOrders(searchRequest);
-                return SuccessResponse<PaginationResult<IEnumerable<OrderResponseDto?>>>
-                    .Create(orders, "Lấy danh sách đơn hàng thành công!");
+                var result = await _orderService.GetAllOrdersWithOverview(searchRequest);
+                return SuccessResponse<AllOrdersWithOverviewDto>
+                    .Create(result, "Lấy danh sách đơn hàng cùng thông tin tổng quan thành công!");
             }
             catch (Exception ex)
             {

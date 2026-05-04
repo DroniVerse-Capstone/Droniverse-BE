@@ -16,46 +16,46 @@ public class Participation
 
     private Participation() { } // For EF
 
-    public Participation(Guid userId, Guid clubId, Guid? approverId)
+    public Participation(Guid userId, Guid clubId, Guid? approverId, DateTime joinDate)
     {
         ParticipationID = Guid.NewGuid();
         UserID = userId;
         ClubID = clubId;
         ApproverID = approverId;
         Status = ParticipationStatus.ACTIVE;
-        JoinDate = DateTime.UtcNow;
+        JoinDate = joinDate;
         Note = null;
         LeftDate = null;
     }
 
-    public void Leave(string note)
+    public void Leave(string note, DateTime leftDate)
     {
         if (Status != ParticipationStatus.ACTIVE)
             throw new InvalidOperationException("Only active member can leave.");
 
         Status = ParticipationStatus.LEFT;
-        LeftDate = DateTime.UtcNow;
+        LeftDate = leftDate;
         Note = note;
     }
 
-    public void Ban(string note)
+    public void Ban(string note, DateTime leftDate)
     {
         if (Status == ParticipationStatus.BANNED)
             throw new InvalidOperationException("Member is already banned.");
 
         Status = ParticipationStatus.BANNED;
-        LeftDate = DateTime.UtcNow;
+        LeftDate = leftDate;
         Note = note;
     }
 
-    public void Reactivate(Guid approverId)
+    public void Reactivate(Guid approverId, DateTime joinDate)
     {
         if (Status == ParticipationStatus.BANNED)
             throw new InvalidOperationException("Banned member cannot be reactivated.");
 
         Status = ParticipationStatus.ACTIVE;
         ApproverID = approverId;
-        JoinDate = DateTime.UtcNow;
+        JoinDate = joinDate;
         LeftDate = null;
     }
 }

@@ -59,56 +59,28 @@ namespace Droniverse.Community.API.Controllers
         [HttpPost("webhook")]
         [HttpPut("webhook")]
         [AllowAnonymous]
-        public async Task<IActionResult> HandleWebhookAsync()
+        public async Task<IActionResult> HandleWebhookAsync([FromBody] PayOSWebhookDto? webhook)
         {
             try
             {
-                // Buffering is enabled in Program.cs middleware - stream should support seeking
-                // Try to seek to beginning (will work with buffered streams, may fail on raw Kestrel stream)
-                try
-                {
-                    HttpContext.Request.Body.Position = 0;
-                }
-                catch
-                {
-                    // If seek fails, it means stream is not seekable - likely not buffered
-                    _logger.LogWarning("Request body stream does not support seeking - buffering may not be enabled");
-                }
-
-                // Read raw request body
-                using var reader = new StreamReader(HttpContext.Request.Body, leaveOpen: true);
-                string rawBody = await reader.ReadToEndAsync();
-                
-                _logger.LogInformation("Received webhook: {RawBody}", rawBody);
-                
-                // Check if body is empty
-                if (string.IsNullOrWhiteSpace(rawBody))
-                {
-                    _logger.LogError("Webhook body is empty");
-                    return BadRequest("Webhook body is empty");
-                }
-
-                // Reset position for downstream
-                try
-                {
-                    HttpContext.Request.Body.Position = 0;
-                }
-                catch { }
-
-                // Deserialize webhook
-                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                var webhook = JsonSerializer.Deserialize<PayOSWebhookDto>(rawBody, options);
-
                 if (webhook == null)
                 {
-                    _logger.LogError("Failed to deserialize webhook");
-                    return BadRequest("Invalid webhook format");
+                    _logger.LogError("Webhook payload is null or could not be bound from request body");
+                    return BadRequest("Invalid webhook payload");
                 }
+
+                _logger.LogInformation("Received webhook: {Webhook}", JsonSerializer.Serialize(webhook));
 
                 if (webhook.Data == null)
                 {
                     _logger.LogError("Webhook data is null");
                     return BadRequest("Webhook data is missing");
+                }
+
+                if (string.IsNullOrWhiteSpace(webhook.Signature))
+                {
+                    _logger.LogError("Webhook signature is missing");
+                    return BadRequest("Webhook signature is missing");
                 }
 
                 // Verify signature using data object (serialize with camelCase for proper signature computation)

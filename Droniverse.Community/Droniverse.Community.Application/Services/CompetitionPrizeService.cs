@@ -12,11 +12,13 @@ namespace Droniverse.Community.Application.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly ICurrentUserService _currentUserService;
+        private readonly IClock _clock;
 
-        public CompetitionPrizeService(IUnitOfWork unitOfWork, ICurrentUserService currentUserService)
+        public CompetitionPrizeService(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, IClock clock)
         {
             _unitOfWork = unitOfWork;
             _currentUserService = currentUserService;
+            _clock = clock;
         }
 
         public async Task<CompetitionPrizeResponseDto> CreatePrize(Guid competitionId, CompetitionPrizeCreateDto request)
@@ -39,6 +41,7 @@ namespace Droniverse.Community.Application.Services
                 request.RankFrom,
                 request.RankTo,
                 currentUserId,
+                _clock.Now,
                 request.RewardValueMoney,
                 request.RewardValueGiftVN,
                 request.RewardValueGiftEN,
@@ -85,6 +88,7 @@ namespace Droniverse.Community.Application.Services
                 request.RankFrom,
                 request.RankTo,
                 currentUserId,
+                _clock.Now,
                 request.DescriptionVN,
                 request.DescriptionEN,
                 request.RewardValueMoney,

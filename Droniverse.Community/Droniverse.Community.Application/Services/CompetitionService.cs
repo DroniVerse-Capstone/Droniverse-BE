@@ -1,22 +1,24 @@
 ﻿using Droniverse.Community.Application.DTO.Extensions;
 using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
-using Droniverse.Shared.Helpers;
 using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.AppHelpers;
 using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository;
+using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Response;
+using Droniverse.Shared.Enums;
+using Droniverse.Shared.Exceptions;
+using Droniverse.Shared.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
-using System.Text.Json;
 using System.ComponentModel.DataAnnotations;
-using Droniverse.Shared.Constants;
+using System.Text.Json;
 
 namespace Droniverse.Community.Application.Services
 {
@@ -242,6 +244,31 @@ namespace Droniverse.Community.Application.Services
 
         public async Task<PaginationResult<IEnumerable<CompetitionResponse>>> GetHotCompetitionsByClub(Guid clubId, HotCompetitionSearchRequest searchRequest)
         {
+            //xác thực cho member đã out group
+            Guid userID = _currentUserService.UserId;
+            if (userID == Guid.Empty)
+                throw new UnauthorizedAccessException("Người dùng chưa được xác thực.");
+
+            UserResponse? user = await _identityMicroserviceClient.GetUserByUserID(userID);
+            if (user == null)
+                throw new UnauthorizedAccessException("Người dùng chưa được xác thực.");
+
+            var userRoles = _currentUserService.Roles;
+            var isMember = userRoles.Contains(Roles.ClubMember);
+
+            if (isMember)
+            {
+                Participation? participation = await _unitOfWork.Participations.GetByCondition(p =>
+                    p.ClubID == clubId &&
+                    p.UserID == userID &&
+                    p.Status == ParticipationStatus.ACTIVE);
+                if (participation == null)
+                {
+                    throw new ForbiddenException("Bạn đã rời câu lạc bộ này, vui lòng liên hệ quản lý câu lạc bộ (club manager) hoặc admin để biết thêm chi tiết.");
+                }
+            }
+            //xác thực cho member đã out group
+
             var currentPage = searchRequest.CurrentPage <= 0 ? 1 : searchRequest.CurrentPage;
             var pageSize = searchRequest.PageSize <= 0 ? 5 : searchRequest.PageSize;
 
@@ -280,7 +307,7 @@ namespace Droniverse.Community.Application.Services
                 .IsUserInClub(competition.ClubID, currentUserId);
 
             if (!isClubMember)
-                throw new ValidationException("Người dùng không thuộc câu lạc bộ của cuộc thi này.");
+                throw new Shared.Exceptions.ValidationException("Người dùng không thuộc câu lạc bộ của cuộc thi này.");
 
             // ❗ check thời gian đăng ký
             if (now < competition.RegistrationStartDate || now > competition.RegistrationEndDate)
@@ -688,7 +715,8 @@ namespace Droniverse.Community.Application.Services
                     prize.RewardValueMoney,
                     prize.RewardValueGiftVN,
                     prize.RewardValueGiftEN,
-                    currentUserId
+                    currentUserId,
+                    _clock.Now
                 ));
             }
 
@@ -1018,8 +1046,8 @@ namespace Droniverse.Community.Application.Services
                     competition.CompetitionID,
                     (RoundCount: 0, CompetitorCount: 0, PrizeCount: 0));
 
-                bool isRegistered = competition.UserCompetitions
-                   .Any(u => u.UserID == currentUserId && u.Status != UserCompetitionStatus.WITHDRAWN);
+                bool isRegistered = competition.UserCompetitions?
+                   .Any(u => u.UserID == currentUserId && u.Status != UserCompetitionStatus.WITHDRAWN) ?? false;
 
                 return new CompetitionResponse
                 {

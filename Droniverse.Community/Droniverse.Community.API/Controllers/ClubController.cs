@@ -184,6 +184,49 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
+        /// Thành viên chủ động rời khỏi câu lạc bộ.
+        /// </summary>
+        /// <param name="clubId">ID của câu lạc bộ</param>
+        /// <returns>200 OK - Rời câu lạc bộ thành công</returns>
+        [HttpPost("{clubId:guid}/leave")]
+        [ProducesResponseType(typeof(SuccessResponse<string>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Authorize(Roles = Roles.ClubMember)]
+        public async Task<ApiResponse> LeaveClub(Guid clubId)
+        {
+            await _clubService.LeaveClub(clubId);
+
+            return SuccessResponse<string>.Create(
+                null,
+                $"Bạn đã rời câu lạc bộ với ID [{clubId}] thành công!");
+        }
+
+        /// <summary>
+        /// Câu lạc bộ manager/admin/system manager kick một thành viên khỏi nhóm.
+        /// </summary>
+        /// <param name="clubId">ID của câu lạc bộ</param>
+        /// <param name="userId">ID của thành viên cần kick</param>
+        /// <param name="request">Lý do kick</param>
+        /// <returns>200 OK - Kick thành viên thành công</returns>
+        [HttpPost("{clubId:guid}/participants/{userId:guid}/kick")]
+        [ProducesResponseType(typeof(SuccessResponse<string>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [Authorize(Roles = Roles.AdminOrManagerRoles)]
+        public async Task<ApiResponse> KickMemberFromClub(
+            Guid clubId,
+            Guid userId,
+            [FromBody] ClubKickMemberRequest request)
+        {
+            await _clubService.KickMemberFromClub(clubId, userId, request);
+
+            return SuccessResponse<string>.Create(
+                null,
+                $"Đã kick thành viên [{userId}] khỏi câu lạc bộ với ID [{clubId}] thành công!");
+        }
+
+        /// <summary>
         /// Cập nhật thông tin câu lạc bộ theo ID (không bao gồm status)
         /// </summary>
         /// <param name="clubId">GUID của câu lạc bộ cần cập nhật</param>

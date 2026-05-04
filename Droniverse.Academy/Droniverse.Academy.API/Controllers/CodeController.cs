@@ -37,8 +37,8 @@ public class CodeController : ControllerBase
     [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> GetAllCodes([FromQuery] CodeSearchRequestDTO requestDTO)
     {
-        PaginationResult<IEnumerable<CodeResponseDTO>> list = await _codeService.GetAllCodesAsync(requestDTO);
-        return Ok(SuccessResponse<PaginationResult<IEnumerable<CodeResponseDTO>>>.Create(list, "Lấy danh sách code thành công."));
+        AllCodesWithOverviewDto result = await _codeService.GetAllCodesAsync(requestDTO);
+        return Ok(SuccessResponse<AllCodesWithOverviewDto>.Create(result, "Lấy danh sách code thành công."));
     }
 
     /// <summary>

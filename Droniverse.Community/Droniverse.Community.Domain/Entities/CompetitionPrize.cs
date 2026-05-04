@@ -32,6 +32,7 @@ public class CompetitionPrize
         int rankFrom,
         int rankTo,
         Guid createdBy,
+        DateTime createdAt,
         decimal? rewardValueMoney = null,
         string? rewardValueGiftVN = null,
         string? rewardValueGiftEN = null,
@@ -71,7 +72,7 @@ public class CompetitionPrize
         RankFrom = rankFrom;
         RankTo = rankTo;
 
-        CreatedAt = DateTime.UtcNow;
+        CreatedAt = createdAt;
         CreatedBy = createdBy;
 
         UserPrizes = new List<UserPrize>();
@@ -83,6 +84,7 @@ public class CompetitionPrize
          int rankFrom,
         int rankTo,
         Guid updatedBy,
+        DateTime updateAt,
         string? descriptionVN = null,
         string? descriptionEN = null
        )
@@ -98,7 +100,7 @@ public class CompetitionPrize
         RankFrom = rankFrom;
         RankTo = rankTo;
 
-        SetUpdated(updatedBy);
+        SetUpdated(updatedBy, updateAt);
     }
 
     public void UpdateFullInformation(
@@ -108,6 +110,7 @@ public class CompetitionPrize
         int rankFrom,
         int rankTo,
         Guid updatedBy,
+        DateTime updatedAt,
         string? descriptionVN = null,
         string? descriptionEN = null,
         decimal? rewardValueMoney = null,
@@ -143,10 +146,10 @@ public class CompetitionPrize
         RankFrom = rankFrom;
         RankTo = rankTo;
 
-        SetUpdated(updatedBy);
+        SetUpdated(updatedBy, updatedAt);
     }
 
-    public void UpdateMoneyReward(decimal amount, Guid updatedBy)
+    public void UpdateMoneyReward(decimal amount, Guid updatedBy, DateTime updatedAt)
     {
         if (RewardType != RewardType.MONEY)
             throw new InvalidOperationException("Phần thưởng này không phải loại tiền.");
@@ -156,10 +159,10 @@ public class CompetitionPrize
 
         RewardValueMoney = amount;
 
-        SetUpdated(updatedBy);
+        SetUpdated(updatedBy, updatedAt);
     }
 
-    public void UpdateGiftReward(string giftVN, string giftEN, Guid updatedBy)
+    public void UpdateGiftReward(string giftVN, string giftEN, Guid updatedBy, DateTime updateAt)
     {
         if (RewardType != RewardType.GIFT)
             throw new InvalidOperationException("Phần thưởng này không phải loại quà.");
@@ -167,7 +170,7 @@ public class CompetitionPrize
         RewardValueGiftVN = giftVN;
         RewardValueGiftEN = giftEN;
 
-        SetUpdated(updatedBy);
+        SetUpdated(updatedBy, updateAt);
     }
 
     private static void ValidateRank(int from, int to)
@@ -196,9 +199,9 @@ public class CompetitionPrize
         }
     }
 
-    private void SetUpdated(Guid updatedBy)
+    private void SetUpdated(Guid updatedBy, DateTime updatedAt)
     {
         UpdatedBy = updatedBy;
-        UpdatedAt = DateTime.UtcNow;
+        UpdatedAt = updatedAt;
     }
 }

@@ -10,11 +10,13 @@ using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
 using Droniverse.Academy.Domain.Models;
+using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Enums;
 using Droniverse.Shared.Exceptions;
+using Droniverse.Shared.Services;
 using Droniverse.Shared.Services.IServices;
 using System.Linq.Expressions;
 
@@ -530,6 +532,17 @@ public class CourseService : ICourseService
         Guid clubId,
         HotCoursesSearchRequest searchRequest)
     {
+        var userRoles = _currentUser.Roles;
+        var isMember = userRoles.Contains(Roles.ClubMember);
+        if (isMember)
+        {
+            bool isActiveParticipant = await _communityMicroserviceClient.CheckParticipantByClubAsync(clubId, _currentUser.UserId);
+            if (!isActiveParticipant)
+            {
+                throw new ForbiddenException("Bạn đã rời câu lạc bộ này, vui lòng liên hệ quản lý câu lạc bộ (club manager) hoặc admin để biết thêm chi tiết.");
+            }
+        }
+
         searchRequest ??= new HotCoursesSearchRequest();
         var droneId = await _communityMicroserviceClient.GetDroneFromClubAsync(clubId);
 
@@ -619,6 +632,18 @@ public class CourseService : ICourseService
 
     public async Task<IEnumerable<SimpleCourseResponse>> GetCoursesByIdsSimpleAsync(Guid clubId)
     {
+
+        var userRoles = _currentUser.Roles;
+        var isMember = userRoles.Contains(Roles.ClubMember);
+        if (isMember)
+        {
+            bool isActiveParticipant = await _communityMicroserviceClient.CheckParticipantByClubAsync(clubId, _currentUser.UserId);
+            if (!isActiveParticipant)
+            {
+                throw new ForbiddenException("Bạn đã rời câu lạc bộ này, vui lòng liên hệ quản lý câu lạc bộ (club manager) hoặc admin để biết thêm chi tiết.");
+            }
+        }
+
         var droneId = await _communityMicroserviceClient.GetDroneFromClubAsync(clubId);
 
         if (droneId == Guid.Empty)
