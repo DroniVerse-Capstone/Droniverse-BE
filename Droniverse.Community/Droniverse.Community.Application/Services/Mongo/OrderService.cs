@@ -415,19 +415,13 @@ internal class OrderService : IOrderService
         int successOrders = allOrders.Count(o => o.Status == OrderStatus.SUCCESS);
         int failedOrders = allOrders.Count(o => o.Status == OrderStatus.FAILED);
         int cancelledOrders = allOrders.Count(o => o.Status == OrderStatus.CANCELLED);
-        int receivedOrders = allOrders.Count(o => o.Status == OrderStatus.RECEIVED);
-        int pendingRefundOrders = allOrders.Count(o => o.Status == OrderStatus.PENDING_REFUND);
-        int refundedOrders = allOrders.Count(o => o.Status == OrderStatus.REFUNDED);
 
         return new OrderOverviewDto(
             TotalOrders: totalOrders,
             PendingOrders: pendingOrders,
             SuccessOrders: successOrders,
             FailedOrders: failedOrders,
-            CancelledOrders: cancelledOrders,
-            ReceivedOrders: receivedOrders,
-            PendingRefundOrders: pendingRefundOrders,
-            RefundedOrders: refundedOrders
+            CancelledOrders: cancelledOrders
         );
     }
 
@@ -490,7 +484,7 @@ internal class OrderService : IOrderService
             Order? order = await _orderRepository.GetOrderByCondition(Builders<Order>.Filter.Eq(o => o._id, orderId));
             if (order == null)
                 throw new NotFoundException($"Không tìm thấy đơn hàng với mã đơn hàng #{orderId}");
-            order.Status = OrderStatus.RECEIVED;
+            order.Status = OrderStatus.SUCCESS;
             await _orderRepository.UpdateOrder(order);
             return true;
         }

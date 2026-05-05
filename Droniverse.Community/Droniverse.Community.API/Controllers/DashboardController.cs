@@ -422,14 +422,47 @@ namespace Droniverse.Community.API.Controllers
         // ===================== System Operations Management =====================
 
         /// <summary>
-        /// API Nhật ký Giao dịch Hệ thống (Orders Logs)
+        /// API Nhật ký Giao dịch Hệ thống (Orders Logs).
         /// </summary>
+        /// <remarks>
+        /// Trả về danh sách đơn hàng của toàn hệ thống theo dạng phân trang, gồm:
+        /// `orderID`, `userName`, `email`, `productName`, `amount`, `status`, `paymentMethod`, `createdAt`.
+        /// Hỗ trợ filter theo:
+        /// - `status`: trạng thái đơn hàng, ví dụ `SUCCESS`, `PENDING`, `FAILED`.
+        /// - `productName`: tên sản phẩm/khóa học, tìm theo kiểu contains, không phân biệt hoa thường.
+        /// - `minAmount`, `maxAmount`: khoảng số tiền của đơn hàng.
+        /// - `createdAtFrom`, `createdAtTo`: khoảng thời gian tạo đơn hàng.
+        /// </remarks>
+        /// <param name="page">Trang hiện tại, mặc định 1.</param>
+        /// <param name="limit">Số bản ghi mỗi trang, mặc định 10.</param>
+        /// <param name="status">Lọc theo trạng thái đơn hàng.</param>
+        /// <param name="productName">Lọc theo tên sản phẩm/khóa học.</param>
+        /// <param name="minAmount">Số tiền tối thiểu.</param>
+        /// <param name="maxAmount">Số tiền tối đa.</param>
+        /// <param name="createdAtFrom">Ngày tạo từ mốc này.</param>
+        /// <param name="createdAtTo">Ngày tạo đến mốc này.</param>
         [HttpGet("system/orders")]
         [ProducesResponseType(typeof(SuccessResponse<SystemTransactionLogsResponse>), StatusCodes.Status200OK)]
         [Authorize(Roles = Roles.AdminOrSystemManager)]
-        public async Task<ApiResponse> GetSystemTransactionLogs([FromQuery] int page = 1, [FromQuery] int limit = 10)
+        public async Task<ApiResponse> GetSystemTransactionLogs(
+            [FromQuery] int page = 1,
+            [FromQuery] int limit = 10,
+            [FromQuery] OrderStatus? status = null,
+            [FromQuery] string? productName = null,
+            [FromQuery] decimal? minAmount = null,
+            [FromQuery] decimal? maxAmount = null,
+            [FromQuery] DateTime? createdAtFrom = null,
+            [FromQuery] DateTime? createdAtTo = null)
         {
-            var data = await _dashboardService.GetSystemTransactionLogs(page, limit);
+            var data = await _dashboardService.GetSystemTransactionLogs(
+                page,
+                limit,
+                status,
+                productName,
+                minAmount,
+                maxAmount,
+                createdAtFrom,
+                createdAtTo);
             return SuccessResponse<SystemTransactionLogsResponse>.Create(data, "Lấy nhật ký giao dịch thành công!");
         }
 

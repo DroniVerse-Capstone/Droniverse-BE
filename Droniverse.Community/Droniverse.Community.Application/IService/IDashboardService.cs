@@ -1,5 +1,6 @@
 ﻿using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.DTO.Request;
+using Droniverse.Community.Domain.Enums;
 
 namespace Droniverse.Community.Application.IService
 {
@@ -51,7 +52,15 @@ namespace Droniverse.Community.Application.IService
         Task<TopBuyersResponse> GetTopBuyersAdmin(int top = 10);
 
         // System Operations Management
-        Task<SystemTransactionLogsResponse> GetSystemTransactionLogs(int page = 1, int limit = 10);
+        Task<SystemTransactionLogsResponse> GetSystemTransactionLogs(
+            int page = 1,
+            int limit = 10,
+            OrderStatus? status = null,
+            string? productName = null,
+            decimal? minAmount = null,
+            decimal? maxAmount = null,
+            DateTime? createdAtFrom = null,
+            DateTime? createdAtTo = null);
         Task<IEnumerable<IdentityTimelineOptionDto>> GetSystemFilterTimeLines();
         Task<SystemOperationsSummaryResponse> GetSystemOperationsSummary(string identityFilterTimeLine = "month");
         Task<UserGrowthTrendResponse> GetUserGrowthTrend(int months = 12);

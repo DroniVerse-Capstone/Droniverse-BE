@@ -331,7 +331,6 @@ namespace Droniverse.Community.Application.Services
             // Expanded KPIs
             var totalOrdersCount = allSystemOrdersList.Count;
             var successRate = totalOrdersCount > 0 ? (double)allOrdersList.Count / totalOrdersCount * 100 : 0;
-            var pendingRefunds = allSystemOrdersList.Count(o => o.Status == OrderStatus.PENDING_REFUND);
 
             var revenueToday = allOrdersList
                 .Where(o => o.Payment != null && o.Payment.TransactionDate.Date == today)
@@ -376,7 +375,6 @@ namespace Droniverse.Community.Application.Services
                 TransactionsThisMonth = transactionsThisMonth,
 
                 SuccessRate = successRate,
-                PendingRefunds = pendingRefunds,
 
                 RevenueToday = revenueToday,
                 RevenueYesterday = revenueYesterday,
@@ -1029,7 +1027,15 @@ namespace Droniverse.Community.Application.Services
 
         // ===================== System Operations Management =====================
 
-        public async Task<SystemTransactionLogsResponse> GetSystemTransactionLogs(int page = 1, int limit = 10)
+        public async Task<SystemTransactionLogsResponse> GetSystemTransactionLogs(
+            int page = 1,
+            int limit = 10,
+            OrderStatus? status = null,
+            string? productName = null,
+            decimal? minAmount = null,
+            decimal? maxAmount = null,
+            DateTime? createdAtFrom = null,
+            DateTime? createdAtTo = null)
         {
             if (page < 1) page = 1;
             if (limit <= 0) limit = 10;
@@ -1037,12 +1043,48 @@ namespace Droniverse.Community.Application.Services
             var allOrders = await _orderRepository.GetAllOrders();
             if (allOrders == null) allOrders = [];
 
-            var totalRecords = allOrders.Count();
+            var filteredOrders = allOrders.AsEnumerable();
+
+            if (status.HasValue)
+            {
+                filteredOrders = filteredOrders.Where(o => o.Status == status.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(productName))
+            {
+                filteredOrders = filteredOrders.Where(o =>
+                    !string.IsNullOrWhiteSpace(o.Item?.ProductNameVN) &&
+                    o.Item!.ProductNameVN.Contains(productName, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (minAmount.HasValue)
+            {
+                filteredOrders = filteredOrders.Where(o => o.TotalAmount >= minAmount.Value);
+            }
+
+            if (maxAmount.HasValue)
+            {
+                filteredOrders = filteredOrders.Where(o => o.TotalAmount <= maxAmount.Value);
+            }
+
+            if (createdAtFrom.HasValue)
+            {
+                var from = createdAtFrom.Value.Date;
+                filteredOrders = filteredOrders.Where(o => o.CreateAt >= from);
+            }
+
+            if (createdAtTo.HasValue)
+            {
+                var toExclusive = createdAtTo.Value.Date.AddDays(1);
+                filteredOrders = filteredOrders.Where(o => o.CreateAt < toExclusive);
+            }
+
+            var orderedOrders = filteredOrders.OrderByDescending(o => o.CreateAt).ToList();
+            var totalRecords = orderedOrders.Count;
             var totalPages = (int)Math.Ceiling(totalRecords / (double)limit);
 
             // Lọc và sắp xếp theo ngày tạo mới nhất, phân trang
-            var pagedOrders = allOrders
-                .OrderByDescending(o => o.CreateAt)
+            var pagedOrders = orderedOrders
                 .Skip((page - 1) * limit)
                 .Take(limit)
                 .ToList();
