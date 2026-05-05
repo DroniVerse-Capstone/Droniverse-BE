@@ -16,6 +16,7 @@ public class LearningPathDTO
     public int TotalLessons { get; set; }
     public int? Duration { get; set; }
     public float Progress { get; set; }
+    public bool IsFeedbacked { get; set; }
     public UserCertificateResponseDTO? UserCertificate { get; set; } = null;
     public IReadOnlyCollection<LearningPathModuleDTO> Modules { get; set; } = [];
 }
