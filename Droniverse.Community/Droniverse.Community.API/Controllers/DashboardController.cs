@@ -434,27 +434,36 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
-        /// API Tóm tắt Vận hành Hệ thống (System Operations Summary)
+        /// API tóm tắt vận hành hệ thống.
         /// </summary>
+        /// <param name="identityFilterTimeLine">
+        /// Bộ lọc timeline cho new users/member/club owner trong summary.
+        /// Có thể chọn từ dropdown bằng API `GET /community/dashboards/system/summary/filter-time-line-options` hoặc nhập tay.
+        /// Ví dụ: `day`, `week`, `last_week`, `month`, `last_month`, `year`, `month:2026-04`, `year:2026`.
+        /// </param>
         [HttpGet("system/summary")]
         [ProducesResponseType(typeof(SuccessResponse<SystemOperationsSummaryResponse>), StatusCodes.Status200OK)]
         [Authorize(Roles = Roles.AdminOrSystemManager)]
-        public async Task<ApiResponse> GetSystemOperationsSummary()
+        public async Task<ApiResponse> GetSystemOperationsSummary([FromQuery] string identityFilterTimeLine = "month")
         {
-            var data = await _dashboardService.GetSystemOperationsSummary();
+            var data = await _dashboardService.GetSystemOperationsSummary(identityFilterTimeLine);
             return SuccessResponse<SystemOperationsSummaryResponse>.Create(data, "Lấy tóm tắt vận hành hệ thống thành công!");
         }
 
         /// <summary>
-        /// API Xu hướng Tăng trưởng Người dùng (User Growth Trend)
+        /// API lấy danh sách tùy chọn filter timeline cho màn hình System Summary (dropdown).
         /// </summary>
-        [HttpGet("users/growth")]
-        [ProducesResponseType(typeof(SuccessResponse<UserGrowthTrendResponse>), StatusCodes.Status200OK)]
+        /// <remarks>
+        /// Endpoint này chỉ cung cấp options gợi ý cho UI dropdown.
+        /// Người dùng vẫn có thể nhập tay `identityFilterTimeLine` khi gọi `GET /community/dashboards/system/summary`.
+        /// </remarks>
+        [HttpGet("system/summary/filter-time-line-options")]
+        [ProducesResponseType(typeof(SuccessResponse<IEnumerable<IdentityTimelineOptionDto>>), StatusCodes.Status200OK)]
         [Authorize(Roles = Roles.AdminOrSystemManager)]
-        public async Task<ApiResponse> GetUserGrowthTrend([FromQuery] int months = 12)
+        public async Task<ApiResponse> GetSystemFilterTimeLines()
         {
-            var data = await _dashboardService.GetUserGrowthTrend(months);
-            return SuccessResponse<UserGrowthTrendResponse>.Create(data, "Lấy xu hướng tăng trưởng người dùng thành công!");
+            var data = await _dashboardService.GetSystemFilterTimeLines();
+            return SuccessResponse<IEnumerable<IdentityTimelineOptionDto>>.Create(data, "Lấy danh sách tùy chọn filter timeline cho System Summary thành công!");
         }
 
         /// <summary>

@@ -80,6 +80,7 @@ public static class DependencyInjection
 
         services.AddScoped<ILevelService, LevelService>();
         services.AddScoped<IPrerequisiteCourseService, PrerequisiteCourseService>();
+        services.AddScoped<ILearningStatisticsService, LearningStatisticsService>();
 
         services.AddTransient<AuthorizationDelegatingHandler>();
 

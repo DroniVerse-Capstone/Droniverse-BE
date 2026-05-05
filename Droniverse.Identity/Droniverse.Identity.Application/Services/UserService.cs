@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Droniverse.Identity.Application.DTO.Extension;
 using Droniverse.Identity.Application.DTO.Request;
+using Droniverse.Identity.Application.DTO.Response;
 using Droniverse.Identity.Application.HttpClients;
 using Droniverse.Identity.Application.IService;
 using Droniverse.Identity.Domain.Entities;
@@ -44,6 +45,114 @@ internal class UserService : IUserService
         _cloudinaryService = cloudinaryService;
         _academyMicroserviceClient = academyMicroserviceClient;
         _logger = logger;
+    }
+
+    public async Task<UserDashboardSummaryResponse> GetUserDashboardSummary(string filterTimeLine = "month")
+    {
+        var (startDate, endDate) = GetTimelineRange(filterTimeLine);
+
+        var totalUser = await _unitOfWork.Accounts.CountAsync();
+        var newUsers = await _unitOfWork.Accounts.CountByCondition(a => a.CreateAt >= startDate && a.CreateAt < endDate);
+        var memberCount = await _unitOfWork.Accounts.CountByCondition(a => a.Role.RoleName == RoleNameEnum.CLUB_MEMBER.ToString() && a.CreateAt >= startDate && a.CreateAt < endDate);
+        var clubOwnerCount = await _unitOfWork.Accounts.CountByCondition(a => a.Role.RoleName == RoleNameEnum.CLUB_MANAGER.ToString() && a.CreateAt >= startDate && a.CreateAt < endDate);
+        return new UserDashboardSummaryResponse
+        {
+            TotalUser = totalUser,
+            NewUsers = newUsers,
+            MemberCount = memberCount,
+            ClubOwnerCount = clubOwnerCount
+        };
+    }
+
+    private static (DateTime StartDate, DateTime EndDate) GetTimelineRange(string filterTimeLine)
+    {
+        if (string.IsNullOrWhiteSpace(filterTimeLine))
+            filterTimeLine = "month";
+
+        var now = DateTime.UtcNow;
+        var normalized = filterTimeLine.Trim().ToLowerInvariant();
+
+        if (normalized.StartsWith("month:", StringComparison.Ordinal))
+        {
+            return GetSpecificMonthRange(normalized[6..]);
+        }
+
+        if (normalized.StartsWith("year:", StringComparison.Ordinal))
+        {
+            return GetSpecificYearRange(normalized[5..]);
+        }
+
+        return normalized switch
+        {
+            "day" => (now.Date, now.Date.AddDays(1)),
+            "week" => GetCurrentWeekRange(now),
+            "last_week" => GetPreviousWeekRange(now),
+            "month" => (new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc), new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(1)),
+            "last_month" => GetPreviousMonthRange(now),
+            "year" => (new DateTime(now.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc), new DateTime(now.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddYears(1)),
+            _ => throw new ArgumentException("filterTimeLine must be one of: day, week, last_week, month, last_month, year, month:YYYY-MM, year:YYYY.", nameof(filterTimeLine))
+        };
+    }
+
+    public Task<IEnumerable<UserTimelineOptionResponse>> GetFilterTimeLineOptions()
+    {
+        // Options moved to Community Swagger example. Identity service no longer exposes hardcoded timeline examples.
+        return Task.FromResult(Enumerable.Empty<UserTimelineOptionResponse>() as IEnumerable<UserTimelineOptionResponse>);
+    }
+
+    private static (DateTime StartDate, DateTime EndDate) GetCurrentWeekRange(DateTime now)
+    {
+        var daysFromMonday = ((int)now.DayOfWeek + 6) % 7;
+        var startDate = now.Date.AddDays(-daysFromMonday);
+        var endDate = startDate.AddDays(7);
+        return (startDate, endDate);
+    }
+
+    private static (DateTime StartDate, DateTime EndDate) GetPreviousWeekRange(DateTime now)
+    {
+        var (currentWeekStart, _) = GetCurrentWeekRange(now);
+        var previousWeekStart = currentWeekStart.AddDays(-7);
+        var previousWeekEnd = currentWeekStart;
+        return (previousWeekStart, previousWeekEnd);
+    }
+
+    private static (DateTime StartDate, DateTime EndDate) GetPreviousMonthRange(DateTime now)
+    {
+        var currentMonthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var previousMonthStart = currentMonthStart.AddMonths(-1);
+        return (previousMonthStart, currentMonthStart);
+    }
+
+    private static (DateTime StartDate, DateTime EndDate) GetSpecificMonthRange(string monthValue)
+    {
+        if (!DateTime.TryParseExact(monthValue, "yyyy-MM", null, System.Globalization.DateTimeStyles.None, out var parsedMonth))
+        {
+            throw new ArgumentException("month filter must use format month:YYYY-MM, for example month:2026-03.");
+        }
+
+        var startDate = new DateTime(parsedMonth.Year, parsedMonth.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var endDate = startDate.AddMonths(1);
+        return (startDate, endDate);
+    }
+
+    private static (DateTime StartDate, DateTime EndDate) GetSpecificYearRange(string yearValue)
+    {
+        if (!int.TryParse(yearValue, out var year) || year < 1 || year > 9999)
+        {
+            throw new ArgumentException("year filter must use format year:YYYY, for example year:2026.");
+        }
+
+        var startDate = new DateTime(year, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var endDate = startDate.AddYears(1);
+        return (startDate, endDate);
+    }
+
+    public async Task<IEnumerable<UserResponse>> GetNewUsersByTimeline(string filterTimeLine)
+    {
+        var (startDate, endDate) = GetTimelineRange(filterTimeLine);
+
+        IEnumerable<Account> newAccounts = await _unitOfWork.Accounts.GetManyByCondition(a => a.CreateAt >= startDate && a.CreateAt < endDate);
+        return _mapper.Map<IEnumerable<UserResponse>>(newAccounts);
     }
 
     public async Task<PaginationResult<IEnumerable<UserResponse>>> GetAllUsers(

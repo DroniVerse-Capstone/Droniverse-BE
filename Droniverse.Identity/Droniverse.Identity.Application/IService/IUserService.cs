@@ -9,6 +9,9 @@ using Microsoft.AspNetCore.Http;
 namespace Droniverse.Identity.Application.IService;
 public interface IUserService
 {
+    Task<UserDashboardSummaryResponse> GetUserDashboardSummary(string filterTimeLine = "month");
+    Task<IEnumerable<UserTimelineOptionResponse>> GetFilterTimeLineOptions();
+    Task<IEnumerable<UserResponse>> GetNewUsersByTimeline(string filterTimeLine);
     Task<PaginationResult<IEnumerable<UserResponse>>> GetAllUsers(
         UserSearchRequest userSearchRequest,
         int pageIndex,

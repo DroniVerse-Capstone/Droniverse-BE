@@ -1,4 +1,5 @@
 ﻿using DotNetEnv;
+using Droniverse.Community.API.JsonConverters;
 using Droniverse.Community.Application;
 using Droniverse.Community.Infrastructure;
 using Droniverse.Shared;
@@ -40,6 +41,8 @@ builder.Services.AddControllers()
     {
         // Convert enum sang string khi serialize/deserialize JSON
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        // Remove 'Z' suffix from DateTime serialization
+        options.JsonSerializerOptions.Converters.Add(new CustomDateTimeConverter());
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
         options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.Never;
     });

@@ -52,7 +52,8 @@ namespace Droniverse.Community.Application.IService
 
         // System Operations Management
         Task<SystemTransactionLogsResponse> GetSystemTransactionLogs(int page = 1, int limit = 10);
-        Task<SystemOperationsSummaryResponse> GetSystemOperationsSummary();
+        Task<IEnumerable<IdentityTimelineOptionDto>> GetSystemFilterTimeLines();
+        Task<SystemOperationsSummaryResponse> GetSystemOperationsSummary(string identityFilterTimeLine = "month");
         Task<UserGrowthTrendResponse> GetUserGrowthTrend(int months = 12);
         Task<RecentActivityFeedResponse> GetRecentActivityFeed();
     }

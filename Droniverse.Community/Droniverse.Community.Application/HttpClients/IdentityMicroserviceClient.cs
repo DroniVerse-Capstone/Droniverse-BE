@@ -44,17 +44,87 @@ public class IdentityMicroserviceClient
         _environment = environment;
     }
 
+    public async Task<int> GetTotalUserCount()
+    {
+        try
+        {
+            // Use the regular users endpoint with pageIndex and pageSize to get pagination metadata
+            var query = "users?pageIndex=1&pageSize=1";
+            var response = await _httpClient.GetAsync(BuildIdentityPath(query));
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning($"Failed to get user count, status: {response.StatusCode}");
+                return 0;
+            }
+
+            using var jsonDoc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
+            var root = jsonDoc.RootElement;
+
+            // Check if root is an object (has pagination metadata)
+            if (root.ValueKind == System.Text.Json.JsonValueKind.Object)
+            {
+                // Extract totalRecords from response
+                if (root.TryGetProperty("totalRecords", out var totalRecordsElement))
+                {
+                    return totalRecordsElement.GetInt32();
+                }
+            }
+
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting total user count");
+            return 0;
+        }
+    }
+
     public async Task<List<UserResponse>> GetAllUsers()
     {
-        var response = await _httpClient.GetAsync(BuildIdentityPath("users"));
-        if (!response.IsSuccessStatusCode)
+        var allUsers = new List<UserResponse>();
+        int pageIndex = 1;
+        int pageSize = 100; // Fetch more records per page to reduce API calls
+        int totalPages = 1;
+
+        while (pageIndex <= totalPages)
         {
-            _logger.LogWarning($"Failed to get all users, status: {response.StatusCode}");
-            return new List<UserResponse>();
+            // Build URL with query parameters using the search endpoint
+            var query = $"users/search?SearchName=&SortDirection=Asc&pageIndex={pageIndex}&pageSize={pageSize}";
+            var response = await _httpClient.GetAsync(BuildIdentityPath(query));
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning($"Failed to get users at page {pageIndex}, status: {response.StatusCode}");
+                // Return what we've collected so far if subsequent pages fail
+                if (pageIndex > 1)
+                    break;
+                return new List<UserResponse>();
+            }
+
+            // Deserialize paginated response
+            using var jsonDoc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
+            var root = jsonDoc.RootElement;
+
+            // Extract pagination info
+            if (root.TryGetProperty("totalPages", out var totalPagesElement))
+                totalPages = totalPagesElement.GetInt32();
+
+            // Extract users data
+            if (root.TryGetProperty("data", out var dataElement))
+            {
+                var users = JsonSerializer.Deserialize<List<UserResponse>>(dataElement.GetRawText(), JsonOptions);
+                if (users != null && users.Count > 0)
+                {
+                    allUsers.AddRange(users);
+                }
+            }
+
+            pageIndex++;
         }
 
-        var result = await response.Content.ReadFromJsonAsync<SuccessResponse<List<UserResponse>>>(JsonOptions);
-        return result?.Data ?? new List<UserResponse>();
+        _logger.LogInformation($"Retrieved {allUsers.Count} users from Identity service");
+        return allUsers;
     }
 
     public async Task<UserResponse?> GetUserByUserID(Guid userId)
@@ -288,6 +358,49 @@ public class IdentityMicroserviceClient
         }
 
         return userIds;
+    }
+
+    public async Task<IdentityUserSummaryResponse?> GetUserSummaryAsync(string filterTimeLine)
+    {
+        try
+        {
+            var query = $"users/summary?filterTimeLine={Uri.EscapeDataString(filterTimeLine)}";
+            var response = await _httpClient.GetAsync(BuildIdentityPath(query));
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning($"Failed to get user summary, status: {response.StatusCode}");
+                return null;
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<IdentityUserSummaryResponse>(JsonOptions);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting user summary from Identity service");
+            return null;
+        }
+    }
+
+    public async Task<IEnumerable<IdentityTimelineOptionDto>> GetFilterTimeLinesAsync()
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync(BuildIdentityPath("users/filter-time-lines"));
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning($"Failed to get filter-time-lines, status: {response.StatusCode}");
+                return [];
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<IEnumerable<IdentityTimelineOptionDto>>(JsonOptions);
+            return result ?? [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting filter-time-lines from Identity service");
+            return [];
+        }
     }
 
     private string BuildIdentityPath(string relativePath)
