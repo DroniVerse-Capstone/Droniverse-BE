@@ -449,10 +449,10 @@ namespace Droniverse.Community.API.Controllers
         /// <param name="createdAtFrom">Ngày tạo từ mốc này.</param>
         /// <param name="createdAtTo">Ngày tạo đến mốc này.</param>
         [HttpGet("system/orders")]
-        [ProducesResponseType(typeof(SuccessResponse<SystemTransactionLogsResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(SuccessResponse<AllOrdersWithOverviewDto>), StatusCodes.Status200OK)]
         [Authorize(Roles = Roles.AdminOrSystemManager)]
         public async Task<ApiResponse> GetSystemTransactionLogs(
-            OrderSearchRequest orderSearchRequest
+            [FromQuery] OrderSearchRequest orderSearchRequest)
         {
             var data = await _orderService.GetAllOrdersWithOverview(orderSearchRequest);
             return SuccessResponse<AllOrdersWithOverviewDto>.Create(data, "Lấy nhật ký giao dịch thành công!");
