@@ -7,6 +7,9 @@ using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Droniverse.Community.Application.IService.Mongo;
+using Droniverse.Shared.DTOs.Request;
+using Droniverse.Community.Application.DTO.Response.Mongo;
 
 namespace Droniverse.Community.API.Controllers
 {
@@ -16,10 +19,14 @@ namespace Droniverse.Community.API.Controllers
     public class DashboardController : ControllerBase
     {
         private readonly IDashboardService _dashboardService;
+        private readonly IOrderService _orderService;
 
-        public DashboardController(IDashboardService dashboardService)
+        public DashboardController(
+            IDashboardService dashboardService,
+            IOrderService orderService)
         {
             _dashboardService = dashboardService;
+            _orderService = orderService;
         }
 
         /// <summary>
@@ -445,25 +452,10 @@ namespace Droniverse.Community.API.Controllers
         [ProducesResponseType(typeof(SuccessResponse<SystemTransactionLogsResponse>), StatusCodes.Status200OK)]
         [Authorize(Roles = Roles.AdminOrSystemManager)]
         public async Task<ApiResponse> GetSystemTransactionLogs(
-            [FromQuery] int page = 1,
-            [FromQuery] int limit = 10,
-            [FromQuery] OrderStatus? status = null,
-            [FromQuery] string? productName = null,
-            [FromQuery] decimal? minAmount = null,
-            [FromQuery] decimal? maxAmount = null,
-            [FromQuery] DateTime? createdAtFrom = null,
-            [FromQuery] DateTime? createdAtTo = null)
+            OrderSearchRequest orderSearchRequest
         {
-            var data = await _dashboardService.GetSystemTransactionLogs(
-                page,
-                limit,
-                status,
-                productName,
-                minAmount,
-                maxAmount,
-                createdAtFrom,
-                createdAtTo);
-            return SuccessResponse<SystemTransactionLogsResponse>.Create(data, "Lấy nhật ký giao dịch thành công!");
+            var data = await _orderService.GetAllOrdersWithOverview(orderSearchRequest);
+            return SuccessResponse<AllOrdersWithOverviewDto>.Create(data, "Lấy nhật ký giao dịch thành công!");
         }
 
         /// <summary>
