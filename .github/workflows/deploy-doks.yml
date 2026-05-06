@@ -188,10 +188,6 @@ jobs:
         if: env.DEPLOY_GATEWAY == 'true'
         run: kubectl -n "$K8S_NAMESPACE" set image deployment/$GATEWAY_DEPLOYMENT $GATEWAY_CONTAINER=$GW
 
-      - name: Set Gateway environment to Production
-        if: env.DEPLOY_GATEWAY == 'true'
-        run: kubectl -n "$K8S_NAMESPACE" set env deployment/$GATEWAY_DEPLOYMENT ASPNETCORE_ENVIRONMENT=Production
-
       - name: Rollout Academy
         if: env.DEPLOY_ACADEMY == 'true'
         run: kubectl -n "$K8S_NAMESPACE" set image deployment/$ACADEMY_DEPLOYMENT $ACADEMY_CONTAINER=$ACA
