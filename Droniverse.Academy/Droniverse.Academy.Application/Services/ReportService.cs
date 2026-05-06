@@ -1,8 +1,10 @@
 ﻿using AutoMapper;
+using Droniverse.Academy.Application.Common.Extensions;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
+using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs.Response;
@@ -16,12 +18,14 @@ public class ReportService : IReportService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly ICurrentUserService _currentUser;
+    private readonly IUserLookupService _userLookupService;
 
-    public ReportService(IUnitOfWork unitOfWork, IMapper mapper, ICurrentUserService currentUser)
+    public ReportService(IUnitOfWork unitOfWork, IMapper mapper, ICurrentUserService currentUser, IUserLookupService userLookupService)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _currentUser = currentUser;
+        _userLookupService = userLookupService;
     }
 
     public async Task<ReportResponseDTO> CreateReportAsync(CreateReportRequestDTO request)
@@ -29,7 +33,7 @@ public class ReportService : IReportService
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
-        if (string.IsNullOrWhiteSpace(request.Content))
+        if (string.IsNullOrWhiteSpace(request.ContentVN) && string.IsNullOrWhiteSpace(request.ContentEN))
             throw new ValidationException("Nội dung báo cáo là bắt buộc.");
 
         if (request.ReferenceID == Guid.Empty)
@@ -38,39 +42,48 @@ public class ReportService : IReportService
         var report = _mapper.Map<Report>(request);
         report.ReportID = Guid.NewGuid();
         report.UserID = _currentUser.UserId;
-        report.ResponseVN = string.Empty;
-        report.ResponseEN = string.Empty;
+        report.ResponseVN = null;
+        report.ResponseEN = null;
+        report.Responser = null;
 
         await _unitOfWork.Reports.AddAsync(report);
         await _unitOfWork.SaveChangesAsync();
 
-        return _mapper.Map<ReportResponseDTO>(report);
+        var response = _mapper.Map<ReportResponseDTO>(report);
+        await PopulateUsersAsync(report, response);
+        return response;
     }
 
-    public async Task<PaginationResult<IEnumerable<ReportResponseDTO>>> GetReportsAsync(int pageIndex = 1, int pageSize = 10, Guid? referenceId = null, Guid? userId = null)
+    public async Task<PaginationResult<IEnumerable<ReportResponseDTO>>> GetReportsAsync(int pageIndex = 1, int pageSize = 10, Guid? referenceId = null, Guid? userId = null, ReportType? reportType = null)
     {
         var result = await _unitOfWork.Reports.GetAllAsync(
             filter: r => (!referenceId.HasValue || r.ReferenceID == referenceId.Value)
-                      && (!userId.HasValue || r.UserID == userId.Value),
+                      && (!userId.HasValue || r.UserID == userId.Value)
+                      && (!reportType.HasValue || r.ReportType == reportType.Value),
             orderBy: q => q.OrderByDescending(x => x.ReportID),
             pageIndex: pageIndex,
             pageSize: pageSize);
 
-        var mapped = _mapper.Map<IEnumerable<ReportResponseDTO>>(result.Data);
+        var reports = result.Data.ToList();
+        var mapped = _mapper.Map<List<ReportResponseDTO>>(reports);
+        await PopulateUsersAsync(reports, mapped);
         return new PaginationResult<IEnumerable<ReportResponseDTO>>(mapped, result.TotalRecords, result.PageIndex, result.PageSize);
     }
 
-    public async Task<PaginationResult<IEnumerable<ReportResponseDTO>>> GetMyReportsAsync(int pageIndex = 1, int pageSize = 10)
+    public async Task<PaginationResult<IEnumerable<ReportResponseDTO>>> GetMyReportsAsync(int pageIndex = 1, int pageSize = 10, ReportType? reportType = null)
     {
         var userId = _currentUser.UserId;
 
         var result = await _unitOfWork.Reports.GetAllAsync(
-            filter: r => r.UserID == userId,
+            filter: r => r.UserID == userId
+                      && (!reportType.HasValue || r.ReportType == reportType.Value),
             orderBy: q => q.OrderByDescending(x => x.ReportID),
             pageIndex: pageIndex,
             pageSize: pageSize);
 
-        var mapped = _mapper.Map<IEnumerable<ReportResponseDTO>>(result.Data);
+        var reports = result.Data.ToList();
+        var mapped = _mapper.Map<List<ReportResponseDTO>>(reports);
+        await PopulateUsersAsync(reports, mapped);
         return new PaginationResult<IEnumerable<ReportResponseDTO>>(mapped, result.TotalRecords, result.PageIndex, result.PageSize);
     }
 
@@ -83,7 +96,9 @@ public class ReportService : IReportService
         if (!HasManagerPermission() && report.UserID != _currentUser.UserId)
             throw new ForbiddenException("Bạn không có quyền truy cập report này.");
 
-        return _mapper.Map<ReportResponseDTO>(report);
+        var response = _mapper.Map<ReportResponseDTO>(report);
+        await PopulateUsersAsync(report, response);
+        return response;
     }
 
     public async Task<ReportResponseDTO> UpdateMyReportAsync(Guid reportId, UpdateReportRequestDTO request)
@@ -91,7 +106,7 @@ public class ReportService : IReportService
         if (request == null)
             throw new ArgumentNullException(nameof(request));
 
-        if (string.IsNullOrWhiteSpace(request.Content))
+        if (string.IsNullOrWhiteSpace(request.ContentVN) && string.IsNullOrWhiteSpace(request.ContentEN))
             throw new ValidationException("Nội dung báo cáo là bắt buộc.");
 
         var report = await _unitOfWork.Reports.GetByIdAsync(reportId);
@@ -106,7 +121,9 @@ public class ReportService : IReportService
         await _unitOfWork.Reports.UpdateAsync(report);
         await _unitOfWork.SaveChangesAsync();
 
-        return _mapper.Map<ReportResponseDTO>(report);
+        var response = _mapper.Map<ReportResponseDTO>(report);
+        await PopulateUsersAsync(report, response);
+        return response;
     }
 
     public async Task<ReportResponseDTO> RespondReportAsync(Guid reportId, RespondReportRequestDTO request)
@@ -122,11 +139,14 @@ public class ReportService : IReportService
             throw new BaseException("Không tìm thấy report.", "NOT_FOUND");
 
         _mapper.Map(request, report);
+        report.Responser = _currentUser.UserId;
 
         await _unitOfWork.Reports.UpdateAsync(report);
         await _unitOfWork.SaveChangesAsync();
 
-        return _mapper.Map<ReportResponseDTO>(report);
+        var response = _mapper.Map<ReportResponseDTO>(report);
+        await PopulateUsersAsync(report, response);
+        return response;
     }
 
     public async Task DeleteMyReportAsync(Guid reportId)
@@ -148,5 +168,43 @@ public class ReportService : IReportService
             role == Roles.Admin ||
             role == Roles.SystemManager ||
             role == Roles.ClubManager);
+    }
+
+    private async Task PopulateUsersAsync(Report report, ReportResponseDTO response)
+    {
+        var userIds = new Guid?[] { report.UserID, report.Responser }.ToDistinctValidIds();
+        var userLookup = await _userLookupService.BuildUserLookupAsync(userIds);
+
+        if (userLookup.TryGetValue(report.UserID, out var reporter))
+        {
+            response.User = reporter;
+        }
+
+        if (report.Responser.HasValue && userLookup.TryGetValue(report.Responser.Value, out var responser))
+        {
+            response.ResponserUser = responser;
+        }
+    }
+
+    private async Task PopulateUsersAsync(IReadOnlyList<Report> reports, IList<ReportResponseDTO> responses)
+    {
+        var userIds = reports
+            .SelectMany(r => new Guid?[] { r.UserID, r.Responser })
+            .ToDistinctValidIds();
+
+        var userLookup = await _userLookupService.BuildUserLookupAsync(userIds);
+
+        foreach (var (report, response) in reports.Zip(responses))
+        {
+            if (userLookup.TryGetValue(report.UserID, out var reporter))
+            {
+                response.User = reporter;
+            }
+
+            if (report.Responser.HasValue && userLookup.TryGetValue(report.Responser.Value, out var responser))
+            {
+                response.ResponserUser = responser;
+            }
+        }
     }
 }

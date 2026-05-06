@@ -12,6 +12,7 @@ public class ReportMappingProfile : Profile
         CreateMap<CreateReportRequestDTO, Report>()
             .ForMember(dest => dest.ReportID, opt => opt.Ignore())
             .ForMember(dest => dest.UserID, opt => opt.Ignore())
+            .ForMember(dest => dest.Responser, opt => opt.Ignore())
             .ForMember(dest => dest.ResponseVN, opt => opt.Ignore())
             .ForMember(dest => dest.ResponseEN, opt => opt.Ignore());
 
@@ -19,6 +20,8 @@ public class ReportMappingProfile : Profile
             .ForMember(dest => dest.ReportID, opt => opt.Ignore())
             .ForMember(dest => dest.ReferenceID, opt => opt.Ignore())
             .ForMember(dest => dest.UserID, opt => opt.Ignore())
+            .ForMember(dest => dest.ReportType, opt => opt.Ignore())
+            .ForMember(dest => dest.Responser, opt => opt.Ignore())
             .ForMember(dest => dest.ResponseVN, opt => opt.Ignore())
             .ForMember(dest => dest.ResponseEN, opt => opt.Ignore());
 
@@ -26,7 +29,10 @@ public class ReportMappingProfile : Profile
             .ForMember(dest => dest.ReportID, opt => opt.Ignore())
             .ForMember(dest => dest.ReferenceID, opt => opt.Ignore())
             .ForMember(dest => dest.UserID, opt => opt.Ignore())
-            .ForMember(dest => dest.Content, opt => opt.Ignore());
+            .ForMember(dest => dest.ReportType, opt => opt.Ignore())
+            .ForMember(dest => dest.Responser, opt => opt.Ignore())
+            .ForMember(dest => dest.ContentVN, opt => opt.Ignore())
+            .ForMember(dest => dest.ContentEN, opt => opt.Ignore());
 
         CreateMap<Report, ReportResponseDTO>();
     }
