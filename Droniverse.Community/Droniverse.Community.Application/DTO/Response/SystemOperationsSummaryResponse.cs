@@ -10,7 +10,8 @@
         public int MemberCount { get; set; }
         public int ClubOwnerCount { get; set; }
 
-        public int TotalCourseEnrollments { get; set; }
-        public double CourseCompletionRate { get; set; }
+        // Swagger-only example: available timeline options shown in Community API docs
+        public IEnumerable<IdentityTimelineOptionDto>? FilterTimeLines { get; set; }
+
     }
 }

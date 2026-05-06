@@ -331,7 +331,6 @@ namespace Droniverse.Community.Application.Services
             // Expanded KPIs
             var totalOrdersCount = allSystemOrdersList.Count;
             var successRate = totalOrdersCount > 0 ? (double)allOrdersList.Count / totalOrdersCount * 100 : 0;
-            var pendingRefunds = allSystemOrdersList.Count(o => o.Status == OrderStatus.PENDING_REFUND);
 
             var revenueToday = allOrdersList
                 .Where(o => o.Payment != null && o.Payment.TransactionDate.Date == today)
@@ -376,7 +375,6 @@ namespace Droniverse.Community.Application.Services
                 TransactionsThisMonth = transactionsThisMonth,
 
                 SuccessRate = successRate,
-                PendingRefunds = pendingRefunds,
 
                 RevenueToday = revenueToday,
                 RevenueYesterday = revenueYesterday,
@@ -1029,7 +1027,15 @@ namespace Droniverse.Community.Application.Services
 
         // ===================== System Operations Management =====================
 
-        public async Task<SystemTransactionLogsResponse> GetSystemTransactionLogs(int page = 1, int limit = 10)
+        public async Task<SystemTransactionLogsResponse> GetSystemTransactionLogs(
+            int page = 1,
+            int limit = 10,
+            OrderStatus? status = null,
+            string? productName = null,
+            decimal? minAmount = null,
+            decimal? maxAmount = null,
+            DateTime? createdAtFrom = null,
+            DateTime? createdAtTo = null)
         {
             if (page < 1) page = 1;
             if (limit <= 0) limit = 10;
@@ -1037,12 +1043,48 @@ namespace Droniverse.Community.Application.Services
             var allOrders = await _orderRepository.GetAllOrders();
             if (allOrders == null) allOrders = [];
 
-            var totalRecords = allOrders.Count();
+            var filteredOrders = allOrders.AsEnumerable();
+
+            if (status.HasValue)
+            {
+                filteredOrders = filteredOrders.Where(o => o.Status == status.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(productName))
+            {
+                filteredOrders = filteredOrders.Where(o =>
+                    !string.IsNullOrWhiteSpace(o.Item?.ProductNameVN) &&
+                    o.Item!.ProductNameVN.Contains(productName, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (minAmount.HasValue)
+            {
+                filteredOrders = filteredOrders.Where(o => o.TotalAmount >= minAmount.Value);
+            }
+
+            if (maxAmount.HasValue)
+            {
+                filteredOrders = filteredOrders.Where(o => o.TotalAmount <= maxAmount.Value);
+            }
+
+            if (createdAtFrom.HasValue)
+            {
+                var from = createdAtFrom.Value.Date;
+                filteredOrders = filteredOrders.Where(o => o.CreateAt >= from);
+            }
+
+            if (createdAtTo.HasValue)
+            {
+                var toExclusive = createdAtTo.Value.Date.AddDays(1);
+                filteredOrders = filteredOrders.Where(o => o.CreateAt < toExclusive);
+            }
+
+            var orderedOrders = filteredOrders.OrderByDescending(o => o.CreateAt).ToList();
+            var totalRecords = orderedOrders.Count;
             var totalPages = (int)Math.Ceiling(totalRecords / (double)limit);
 
             // Lọc và sắp xếp theo ngày tạo mới nhất, phân trang
-            var pagedOrders = allOrders
-                .OrderByDescending(o => o.CreateAt)
+            var pagedOrders = orderedOrders
                 .Skip((page - 1) * limit)
                 .Take(limit)
                 .ToList();
@@ -1067,29 +1109,47 @@ namespace Droniverse.Community.Application.Services
             };
         }
 
-        public async Task<SystemOperationsSummaryResponse> GetSystemOperationsSummary()
+        public async Task<SystemOperationsSummaryResponse> GetSystemOperationsSummary(string identityFilterTimeLine = "month")
         {
             // 1. Pending Club Approvals
             var clubRequests = await _unitOfWork.ClubCreationRequests.GetAll();
             var pendingClubApprovals = clubRequests?.Count(r => r.Status == Domain.Enums.ClubCreationRequestStatus.PENDING) ?? 0;
 
-            // 2. Users (Lấy từ Identity service)
-            var users = await _identityMicroserviceClient.GetAllUsers();
-            var totalUsers = users?.Count ?? 0;
+            // 2. Call Identity service summary API and filter-time-lines
+            IdentityUserSummaryResponse? identitySummary = null;
+            var timelineOptions = await GetSystemFilterTimeLines();
+            try
+            {
+                identitySummary = await _identityMicroserviceClient.GetUserSummaryAsync(identityFilterTimeLine);
+            }
+            catch (Exception ex)
+            {
+                // If Identity service fails, fall back to older approach
+                _ = ex; // swallow, we'll fallback below
+            }
 
-            var now = _clock.Now;
-            var startThisMonth = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-            var newUsersThisMonth = users?.Count() ?? 0; // Temporarily omitted due to UserResponse schema
+            var totalUsers = identitySummary?.TotalUser ?? await _identityMicroserviceClient.GetTotalUserCount();
+            var newUsersThisMonth = identitySummary?.NewUsers ?? 0;
+            var memberCount = identitySummary?.MemberCount ?? 0;
+            var clubOwnerCount = identitySummary?.ClubOwnerCount ?? 0;
 
-            var memberCount = users?.Count(u => u.RoleName == Droniverse.Shared.Constants.Roles.ClubMember) ?? 0;
-            var clubOwnerCount = users?.Count(u => u.RoleName == Droniverse.Shared.Constants.Roles.ClubManager) ?? 0;
-
-            // 3. Course stats (Lấy từ hệ thống order)
-            var allOrders = await _orderRepository.GetAllSuccessfulOrders();
-            var totalCourseEnrollments = allOrders?.Count(o => o.OrderType == Domain.Enums.OrderType.USER_PURCHASE) ?? 0;
-
-            // Tạm thời set tỷ lệ là 0 (cần update từ AcademyService)
-            double completionRate = 0;
+            // If Identity summary didn't provide breakdowns, fallback to fetching users and counting roles
+            if (identitySummary == null)
+            {
+                try
+                {
+                    var users = await _identityMicroserviceClient.GetAllUsers();
+                    if (users != null && users.Count > 0)
+                    {
+                        memberCount = users.Count(u => u.RoleName == Droniverse.Shared.Constants.Roles.ClubMember);
+                        clubOwnerCount = users.Count(u => u.RoleName == Droniverse.Shared.Constants.Roles.ClubManager);
+                    }
+                }
+                catch (Exception)
+                {
+                    // ignore, keep previous values
+                }
+            }
 
             return new SystemOperationsSummaryResponse
             {
@@ -1098,17 +1158,53 @@ namespace Droniverse.Community.Application.Services
                 NewUsersThisMonth = newUsersThisMonth,
                 MemberCount = memberCount,
                 ClubOwnerCount = clubOwnerCount,
-                TotalCourseEnrollments = totalCourseEnrollments,
-                CourseCompletionRate = completionRate
+                FilterTimeLines = timelineOptions
             };
+        }
+
+        public async Task<IEnumerable<IdentityTimelineOptionDto>> GetSystemFilterTimeLines()
+        {
+            try
+            {
+                var optionsFromIdentity = await _identityMicroserviceClient.GetFilterTimeLinesAsync();
+                if (optionsFromIdentity != null && optionsFromIdentity.Any())
+                {
+                    return optionsFromIdentity;
+                }
+            }
+            catch
+            {
+                // fallback to static options below
+            }
+
+            return
+            [
+                new IdentityTimelineOptionDto("day", "Hom nay"),
+                new IdentityTimelineOptionDto("week", "Tuan nay"),
+                new IdentityTimelineOptionDto("last_week", "Tuan truoc"),
+                new IdentityTimelineOptionDto("month", "Thang nay"),
+                new IdentityTimelineOptionDto("last_month", "Thang truoc"),
+                new IdentityTimelineOptionDto("month:2026-03", "Thang 3/2026"),
+                new IdentityTimelineOptionDto("month:2026-04", "Thang 4/2026"),
+                new IdentityTimelineOptionDto("year", "Nam nay")
+            ];
         }
 
         public async Task<UserGrowthTrendResponse> GetUserGrowthTrend(int months = 12)
         {
             if (months <= 0) months = 12;
 
-            var users = await _identityMicroserviceClient.GetAllUsers();
-            if (users == null) users = new List<Droniverse.Shared.DTOs.Response.UserResponse>();
+            var users = new List<Droniverse.Shared.DTOs.Response.UserResponse>();
+            try
+            {
+                var fetchedUsers = await _identityMicroserviceClient.GetAllUsers();
+                if (fetchedUsers != null)
+                    users = fetchedUsers;
+            }
+            catch (Exception ex)
+            {
+                // Failed to fetch users for growth trend calculation
+            }
 
             var now = _clock.Now;
             var startCurrentMonth = new DateTime(now.Year, now.Month, 1);

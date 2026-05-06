@@ -8,13 +8,10 @@ public record OrderOverviewDto(
     int PendingOrders,
     int SuccessOrders,
     int FailedOrders,
-    int CancelledOrders,
-    int ReceivedOrders,
-    int PendingRefundOrders,
-    int RefundedOrders
+    int CancelledOrders
 )
 {
-    public OrderOverviewDto() : this(0, 0, 0, 0, 0, 0, 0, 0)
+    public OrderOverviewDto() : this(0, 0, 0, 0, 0)
     {
     }
 }

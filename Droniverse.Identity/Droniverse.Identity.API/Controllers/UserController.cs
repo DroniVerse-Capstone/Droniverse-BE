@@ -33,6 +33,34 @@ namespace Droniverse.Identity.API.Controllers
             _cloudinaryService = cloudinaryService;
         }
 
+        //[HttpGet("totalMemberCount")]
+        //public async Task<IActionResult> GetMembersCount()
+        //{
+        //    var summary = await _userService.GetUserDashboardSummary();
+        //    return Ok(summary.MemberCount);
+        //}
+
+        [HttpGet("summary")]
+        public async Task<IActionResult> GetUserSummary([FromQuery] string filterTimeLine = "month")
+        {
+            var result = await _userService.GetUserDashboardSummary(filterTimeLine);
+            return Ok(result);
+        }
+
+        [HttpGet("filter-time-lines")]
+        public async Task<IActionResult> GetFilterTimeLineOptions()
+        {
+            var options = await _userService.GetFilterTimeLineOptions();
+            return Ok(options);
+        }
+
+        [HttpGet("new-users")]
+        public async Task<IActionResult> GetNewUsers([FromQuery] string filterTimeLine = "month")
+        {
+            var result = await _userService.GetNewUsersByTimeline(filterTimeLine);
+            return Ok(result);
+        }
+
         [HttpGet("test")]
         public IActionResult Test()
         {

@@ -140,14 +140,37 @@ app.Use(async (context, next) =>
     }
 });
 
-app.MapGet("/healthz", () => Results.Ok("OK"));
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.Equals("/healthz", StringComparison.OrdinalIgnoreCase))
+    {
+        context.Response.StatusCode = StatusCodes.Status200OK;
+        context.Response.ContentType = "text/plain";
+
+        if (!HttpMethods.IsHead(context.Request.Method))
+        {
+            await context.Response.WriteAsync("OK");
+        }
+
+        return;
+    }
+
+    if (HttpMethods.IsHead(context.Request.Method) &&
+        context.Request.Path.Equals("/swagger/index.html", StringComparison.OrdinalIgnoreCase))
+    {
+        context.Response.StatusCode = StatusCodes.Status200OK;
+        context.Response.ContentType = "text/html;charset=utf-8";
+        return;
+    }
+
+    await next();
+});
 
 app.UseSwaggerForOcelotUI(opt =>
 {
     opt.PathToSwaggerGenerator = "/swagger/docs";
     opt.ReConfigureUpstreamSwaggerJson = AlterUpstreamSwaggerJson;
 });
-app.UseHttpsRedirection();
 app.UseCors();
 
 app.UseRouting();

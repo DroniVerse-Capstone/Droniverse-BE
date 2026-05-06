@@ -4,9 +4,6 @@ public enum OrderStatus
     PENDING,
     SUCCESS,
     FAILED,
-    CANCELLED,
-    RECEIVED,
-    PENDING_REFUND,
-    REFUNDED
+    CANCELLED
 }
 
