@@ -28,6 +28,7 @@ public class CodeService : ICodeService
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<CodeService> _logger;
+    private readonly IMapper _mapper;
     private readonly CommunityMicroserviceClient _communityMicroserviceClient;
     private readonly IdentityMicroserviceClient _identityMicroserviceClient;
     private readonly IEmailService _emailService;
@@ -38,6 +39,7 @@ public class CodeService : ICodeService
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUserService,
         ILogger<CodeService> logger,
+        IMapper mapper,
         CommunityMicroserviceClient communityMicroserviceClient,
         IdentityMicroserviceClient identityMicroserviceClient,
         IEmailService emailService,
@@ -47,6 +49,7 @@ public class CodeService : ICodeService
         _unitOfWork = unitOfWork;
         _currentUserService = currentUserService;
         _logger = logger;
+        _mapper = mapper;
         _communityMicroserviceClient = communityMicroserviceClient;
         _identityMicroserviceClient = identityMicroserviceClient;
         _emailService = emailService;
@@ -875,6 +878,12 @@ public class CodeService : ICodeService
             .Distinct()
             .ToList();
 
+        var courseIds = codeList
+            .Select(code => code.CourseID)
+            .Where(courseId => courseId != Guid.Empty)
+            .Distinct()
+            .ToList();
+
         Task<IEnumerable<SimpleClubResponse>> clubsTask = clubIds.Count > 0
             ? _communityMicroserviceClient.GetClubInfoBulkAsync(clubIds)
             : Task.FromResult<IEnumerable<SimpleClubResponse>>(Array.Empty<SimpleClubResponse>());
@@ -887,7 +896,14 @@ public class CodeService : ICodeService
             ? _identityMicroserviceClient.GetUsersBulk(usedByUserIds)
             : Task.FromResult<IEnumerable<UserResponse>>(Array.Empty<UserResponse>());
 
-        await Task.WhenAll(clubsTask, ownerUsersTask, usedByUsersTask);
+        Task<PaginationResult<IEnumerable<Course>>> coursesTask = courseIds.Count > 0
+            ? _unitOfWork.Courses.GetAllWithAllVersionsAsync(
+                c => courseIds.Contains(c.CourseID),
+                pageIndex: 1,
+                pageSize: courseIds.Count)
+            : Task.FromResult(new PaginationResult<IEnumerable<Course>>([], 0, 1, 0));
+
+        await Task.WhenAll(clubsTask, ownerUsersTask, usedByUsersTask, coursesTask);
 
         var clubsById = (await clubsTask)
             .Where(club => club != null && club.ClubId != Guid.Empty)
@@ -904,10 +920,44 @@ public class CodeService : ICodeService
             .GroupBy(user => user.UserId)
             .ToDictionary(group => group.Key, group => group.First());
 
+        var coursesById = (await coursesTask).Data
+            .ToList()
+            .GroupBy(course => course.CourseID)
+            .ToDictionary(group => group.Key, group => group.First());
+
+        var courseCreatorIds = coursesById.Values
+            .Select(course => course.CreateBy)
+            .Where(userId => userId != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        var courseUpdaterIds = coursesById.Values
+            .SelectMany(course =>
+                new[] { course.CurrentVersion?.UpdateBy }
+                    .Concat(course.CourseVersions?.Select(version => version.UpdateBy) ?? []))
+            .Where(userId => userId.HasValue && userId.Value != Guid.Empty)
+            .Select(userId => userId!.Value)
+            .Distinct()
+            .ToList();
+
+        var courseUserIds = courseCreatorIds
+            .Concat(courseUpdaterIds)
+            .Distinct()
+            .ToList();
+
+        var courseUsers = courseUserIds.Count > 0
+            ? await _identityMicroserviceClient.GetUsersBulk(courseUserIds)
+            : [];
+
+        var courseUsersById = courseUsers
+            .ToDictionary(user => user.UserId, user => user);
+
         return codeList.Select(code => new CodeResponseDTO
         {
             CodeID = code.CodeID,
-            CourseID = code.CourseID.ToString(),
+            Course = coursesById.TryGetValue(code.CourseID, out var course)
+                ? MapCourseDetail(course, courseUsersById)
+                : null,
             Club = clubsById.TryGetValue(code.ClubID, out var club)
                 ? club
                 : null,
@@ -921,6 +971,60 @@ public class CodeService : ICodeService
             ExpireDate = code.ExpireDate,
             Status = code.Status
         }).ToList();
+    }
+
+    private CourseDetailResponseDTO MapCourseDetail(
+        Course course,
+        IReadOnlyDictionary<Guid, UserResponse> usersById)
+    {
+        var courseDetail = _mapper.Map<CourseDetailResponseDTO>(course);
+
+        if (usersById.TryGetValue(course.CreateBy, out var creator))
+        {
+            courseDetail.Creator = new SimpleUserReponse
+            {
+                UserId = creator.UserId,
+                FullName = AppHelper.GetFullName(creator) ?? creator.Username,
+                Email = creator.Email,
+                AvatarUrl = creator.ImageUrl
+            };
+        }
+
+        if (courseDetail.CurrentVersion != null && course.CurrentVersion?.UpdateBy is Guid currentUpdaterId &&
+            usersById.TryGetValue(currentUpdaterId, out var currentUpdater))
+        {
+            courseDetail.CurrentVersion.Updater = new SimpleUserReponse
+            {
+                UserId = currentUpdater.UserId,
+                FullName = AppHelper.GetFullName(currentUpdater) ?? currentUpdater.Username,
+                Email = currentUpdater.Email,
+                AvatarUrl = currentUpdater.ImageUrl
+            };
+        }
+
+        if (courseDetail.CourseVersions.Count > 0 && course.CourseVersions != null)
+        {
+            var versionEntitiesById = course.CourseVersions.ToDictionary(version => version.CourseVersionID);
+
+            foreach (var versionDto in courseDetail.CourseVersions)
+            {
+                if (!versionEntitiesById.TryGetValue(versionDto.CourseVersionID, out var versionEntity))
+                    continue;
+
+                if (versionEntity.UpdateBy is Guid updaterId && usersById.TryGetValue(updaterId, out var updater))
+                {
+                    versionDto.Updater = new SimpleUserReponse
+                    {
+                        UserId = updater.UserId,
+                        FullName = AppHelper.GetFullName(updater) ?? updater.Username,
+                        Email = updater.Email,
+                        AvatarUrl = updater.ImageUrl
+                    };
+                }
+            }
+        }
+
+        return courseDetail;
     }
 }
 
