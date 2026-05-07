@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.ComponentModel.DataAnnotations;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
@@ -142,6 +143,34 @@ public class AcademyMicroserviceClient
         }
 
         return successResponse?.Data?.FirstOrDefault();
+    }
+
+    public async Task LimitUserAccessAsync(Guid userId)
+    {
+        if (userId == Guid.Empty)
+            throw new ValidationException("UserId không hợp lệ.");
+
+        var serviceToken = await GetValidServiceTokenAsync();
+
+        var requestMessage = new HttpRequestMessage(
+            HttpMethod.Patch,
+            BuildAcademyPath($"user/enrollments/users/{userId}/limit-access"));
+
+        requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", serviceToken);
+
+        var response = await _httpClient.SendAsync(requestMessage);
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogError(
+                "Academy limit-access failed for user {UserId}. StatusCode: {StatusCode}",
+                userId,
+                response.StatusCode);
+
+            throw new HttpRequestException(
+                $"Academy limit-access failed: {response.StatusCode}",
+                null,
+                response.StatusCode);
+        }
     }
 
     public async Task<IEnumerable<DroneResponseDto>> GetDronesBulk(IEnumerable<Guid> droneIds)

@@ -255,6 +255,8 @@ internal class ClubService : IClubService
         if (participation == null)
             throw new KeyNotFoundException("Bạn không phải là thành viên đang hoạt động của câu lạc bộ này.");
 
+        await _academyMicroserviceClient.LimitUserAccessAsync(currentUserId);
+
         participation.Leave("Người dùng chủ động rời khỏi câu lạc bộ.", _clock.Now);
 
         await _unitOfWork.Participations.Update(participation);
@@ -283,6 +285,8 @@ internal class ClubService : IClubService
 
         if (participation == null)
             throw new KeyNotFoundException("Người dùng này không phải là thành viên đang hoạt động của câu lạc bộ.");
+
+        await _academyMicroserviceClient.LimitUserAccessAsync(userId);
 
         participation.Ban(null, _clock.Now);
 
