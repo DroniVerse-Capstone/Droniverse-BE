@@ -11,6 +11,18 @@ public class CourseMappingProfile : Profile
     {
         CreateMap<ProductMiniResponseDTO, ProductMiniResponseDTO>();
         CreateMap<Level, LevelMiniResponse>();
+        CreateMap<CourseVersion, CourseVersionMiniResponseDTO>();
+
+        CreateMap<Course, CourseMiniResponse>()
+            .ForMember(dest => dest.Level,
+                opt => opt.MapFrom(src => src.Level != null ? src.Level : null))
+            .ForMember(dest => dest.Drone,
+                opt => opt.MapFrom(src => src.Drone != null ? src.Drone : null))
+            .ForMember(dest => dest.CourseVersions,
+                opt => opt.MapFrom(src =>
+                    (src.CourseVersions ?? Enumerable.Empty<CourseVersion>())
+                        .OrderByDescending(cv => cv.Version)
+                        .ToList()));
 
 
 
@@ -33,7 +45,7 @@ public class CourseMappingProfile : Profile
             .ForMember(dest => dest.Level,
                 opt => opt.MapFrom(src => src.Level != null ? src.Level : null))
             .ForMember(dest => dest.Drone,
-                opt => opt.MapFrom(src => src.Drone != null ? src.Drone : null)); ;
+                opt => opt.MapFrom(src => src.Drone != null ? src.Drone : null));
     }
 }
 

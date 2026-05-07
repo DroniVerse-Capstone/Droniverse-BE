@@ -7,7 +7,7 @@ namespace Droniverse.Academy.Application.DTO.Response;
 public class CodeResponseDTO
 {
     public string CodeID { get; set; }
-    public CourseDetailResponseDTO? Course { get; set; }
+    public CourseMiniResponse? Course { get; set; }
     public SimpleClubResponse? Club { get; set; }
     public UserResponse? OwnerUser { get; set; }
     public UserResponse? UsedByUser { get; set; }

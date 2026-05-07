@@ -925,38 +925,11 @@ public class CodeService : ICodeService
             .GroupBy(course => course.CourseID)
             .ToDictionary(group => group.Key, group => group.First());
 
-        var courseCreatorIds = coursesById.Values
-            .Select(course => course.CreateBy)
-            .Where(userId => userId != Guid.Empty)
-            .Distinct()
-            .ToList();
-
-        var courseUpdaterIds = coursesById.Values
-            .SelectMany(course =>
-                new[] { course.CurrentVersion?.UpdateBy }
-                    .Concat(course.CourseVersions?.Select(version => version.UpdateBy) ?? []))
-            .Where(userId => userId.HasValue && userId.Value != Guid.Empty)
-            .Select(userId => userId!.Value)
-            .Distinct()
-            .ToList();
-
-        var courseUserIds = courseCreatorIds
-            .Concat(courseUpdaterIds)
-            .Distinct()
-            .ToList();
-
-        var courseUsers = courseUserIds.Count > 0
-            ? await _identityMicroserviceClient.GetUsersBulk(courseUserIds)
-            : [];
-
-        var courseUsersById = courseUsers
-            .ToDictionary(user => user.UserId, user => user);
-
         return codeList.Select(code => new CodeResponseDTO
         {
             CodeID = code.CodeID,
             Course = coursesById.TryGetValue(code.CourseID, out var course)
-                ? MapCourseDetail(course, courseUsersById)
+                ? MapActiveCourseMiniResponse(course)
                 : null,
             Club = clubsById.TryGetValue(code.ClubID, out var club)
                 ? club
@@ -973,58 +946,19 @@ public class CodeService : ICodeService
         }).ToList();
     }
 
-    private CourseDetailResponseDTO MapCourseDetail(
-        Course course,
-        IReadOnlyDictionary<Guid, UserResponse> usersById)
+    private CourseMiniResponse MapActiveCourseMiniResponse(Course course)
     {
-        var courseDetail = _mapper.Map<CourseDetailResponseDTO>(course);
+        var courseMiniResponse = _mapper.Map<CourseMiniResponse>(course);
 
-        if (usersById.TryGetValue(course.CreateBy, out var creator))
-        {
-            courseDetail.Creator = new SimpleUserReponse
-            {
-                UserId = creator.UserId,
-                FullName = AppHelper.GetFullName(creator) ?? creator.Username,
-                Email = creator.Email,
-                AvatarUrl = creator.ImageUrl
-            };
-        }
+        courseMiniResponse.CourseVersions = courseMiniResponse.CourseVersions
+            .Where(version => course.CourseVersions != null &&
+                course.CourseVersions.Any(entity =>
+                    entity.CourseVersionID == version.CourseVersionID &&
+                    entity.Status == CourseVersionStatus.ACTIVE))
+            .OrderByDescending(version => version.Version)
+            .ToList();
 
-        if (courseDetail.CurrentVersion != null && course.CurrentVersion?.UpdateBy is Guid currentUpdaterId &&
-            usersById.TryGetValue(currentUpdaterId, out var currentUpdater))
-        {
-            courseDetail.CurrentVersion.Updater = new SimpleUserReponse
-            {
-                UserId = currentUpdater.UserId,
-                FullName = AppHelper.GetFullName(currentUpdater) ?? currentUpdater.Username,
-                Email = currentUpdater.Email,
-                AvatarUrl = currentUpdater.ImageUrl
-            };
-        }
-
-        if (courseDetail.CourseVersions.Count > 0 && course.CourseVersions != null)
-        {
-            var versionEntitiesById = course.CourseVersions.ToDictionary(version => version.CourseVersionID);
-
-            foreach (var versionDto in courseDetail.CourseVersions)
-            {
-                if (!versionEntitiesById.TryGetValue(versionDto.CourseVersionID, out var versionEntity))
-                    continue;
-
-                if (versionEntity.UpdateBy is Guid updaterId && usersById.TryGetValue(updaterId, out var updater))
-                {
-                    versionDto.Updater = new SimpleUserReponse
-                    {
-                        UserId = updater.UserId,
-                        FullName = AppHelper.GetFullName(updater) ?? updater.Username,
-                        Email = updater.Email,
-                        AvatarUrl = updater.ImageUrl
-                    };
-                }
-            }
-        }
-
-        return courseDetail;
+        return courseMiniResponse;
     }
 }
 
