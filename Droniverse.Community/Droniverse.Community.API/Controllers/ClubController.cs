@@ -206,7 +206,6 @@ namespace Droniverse.Community.API.Controllers
         /// </summary>
         /// <param name="clubId">ID của câu lạc bộ</param>
         /// <param name="userId">ID của thành viên cần kick</param>
-        /// <param name="request">Lý do kick</param>
         /// <returns>200 OK - Kick thành viên thành công</returns>
         [HttpPost("{clubId:guid}/participants/{userId:guid}/kick")]
         [ProducesResponseType(typeof(SuccessResponse<string>), StatusCodes.Status200OK)]
@@ -216,10 +215,9 @@ namespace Droniverse.Community.API.Controllers
         [Authorize(Roles = Roles.AdminOrManagerRoles)]
         public async Task<ApiResponse> KickMemberFromClub(
             Guid clubId,
-            Guid userId,
-            [FromBody] ClubKickMemberRequest request)
+            Guid userId)
         {
-            await _clubService.KickMemberFromClub(clubId, userId, request);
+            await _clubService.KickMemberFromClub(clubId, userId, new ClubKickMemberRequest());
 
             return SuccessResponse<string>.Create(
                 null,
@@ -244,7 +242,7 @@ namespace Droniverse.Community.API.Controllers
         [ProducesResponseType(typeof(SuccessResponse<ClubResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [SwaggerRequestExample(typeof(ClubUpdateDto), typeof(ClubUpdateExample))]
-        [Authorize(Roles = Roles.ClubManager)]
+        [Authorize(Roles = Roles.SystemRoles)]
         public async Task<ApiResponse> UpdateClub(Guid clubId, [FromBody] ClubUpdateDto clubRequest)
         {
             ClubResponseDto updatedClub = await _clubService.UpdateClub(clubId, clubRequest);

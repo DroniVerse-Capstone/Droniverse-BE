@@ -28,6 +28,7 @@ public class OrderMappingProfile : Profile
                 return paymentDto;
             }))
             .ForMember(dest => dest.User, opt => opt.Ignore())
+            .ForMember(dest => dest.Club, opt => opt.Ignore())
             ;
 
         CreateMap<OrderItem, OrderItemDto>()

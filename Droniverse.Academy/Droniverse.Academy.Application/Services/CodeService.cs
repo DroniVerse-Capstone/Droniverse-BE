@@ -28,6 +28,7 @@ public class CodeService : ICodeService
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<CodeService> _logger;
+    private readonly IMapper _mapper;
     private readonly CommunityMicroserviceClient _communityMicroserviceClient;
     private readonly IdentityMicroserviceClient _identityMicroserviceClient;
     private readonly IEmailService _emailService;
@@ -38,6 +39,7 @@ public class CodeService : ICodeService
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUserService,
         ILogger<CodeService> logger,
+        IMapper mapper,
         CommunityMicroserviceClient communityMicroserviceClient,
         IdentityMicroserviceClient identityMicroserviceClient,
         IEmailService emailService,
@@ -47,6 +49,7 @@ public class CodeService : ICodeService
         _unitOfWork = unitOfWork;
         _currentUserService = currentUserService;
         _logger = logger;
+        _mapper = mapper;
         _communityMicroserviceClient = communityMicroserviceClient;
         _identityMicroserviceClient = identityMicroserviceClient;
         _emailService = emailService;
@@ -160,14 +163,12 @@ public class CodeService : ICodeService
 
         var mappedCodes = await MapCodeResponsesAsync(codes.Data);
 
-        // Calculate overview
-        var allCodes = codes.Data.ToList();
-        var totalCodes = codes.TotalRecords;
-        var availableCodes = allCodes.Count(c => c.Status == CodeStatus.AVAILABLE);
-        var usedCodes = allCodes.Count(c => c.Status == CodeStatus.USED);
-        var expiredCodes = allCodes.Count(c => c.Status == CodeStatus.EXPIRED);
-
-        var overview = new CodeOverviewDto(totalCodes, availableCodes, usedCodes, expiredCodes);
+        var overviewCounts = await _unitOfWork.Codes.GetCodeOverviewAsync();
+        var overview = new CodeOverviewDto(
+            overviewCounts.TotalCodes,
+            overviewCounts.AvailableCodes,
+            overviewCounts.UsedCodes,
+            overviewCounts.ExpiredCodes);
 
         var paginationResult = new PaginationResult<IEnumerable<CodeResponseDTO>>(
             mappedCodes,
@@ -877,6 +878,12 @@ public class CodeService : ICodeService
             .Distinct()
             .ToList();
 
+        var courseIds = codeList
+            .Select(code => code.CourseID)
+            .Where(courseId => courseId != Guid.Empty)
+            .Distinct()
+            .ToList();
+
         Task<IEnumerable<SimpleClubResponse>> clubsTask = clubIds.Count > 0
             ? _communityMicroserviceClient.GetClubInfoBulkAsync(clubIds)
             : Task.FromResult<IEnumerable<SimpleClubResponse>>(Array.Empty<SimpleClubResponse>());
@@ -889,7 +896,14 @@ public class CodeService : ICodeService
             ? _identityMicroserviceClient.GetUsersBulk(usedByUserIds)
             : Task.FromResult<IEnumerable<UserResponse>>(Array.Empty<UserResponse>());
 
-        await Task.WhenAll(clubsTask, ownerUsersTask, usedByUsersTask);
+        Task<PaginationResult<IEnumerable<Course>>> coursesTask = courseIds.Count > 0
+            ? _unitOfWork.Courses.GetAllWithAllVersionsAsync(
+                c => courseIds.Contains(c.CourseID),
+                pageIndex: 1,
+                pageSize: courseIds.Count)
+            : Task.FromResult(new PaginationResult<IEnumerable<Course>>([], 0, 1, 0));
+
+        await Task.WhenAll(clubsTask, ownerUsersTask, usedByUsersTask, coursesTask);
 
         var clubsById = (await clubsTask)
             .Where(club => club != null && club.ClubId != Guid.Empty)
@@ -906,10 +920,17 @@ public class CodeService : ICodeService
             .GroupBy(user => user.UserId)
             .ToDictionary(group => group.Key, group => group.First());
 
+        var coursesById = (await coursesTask).Data
+            .ToList()
+            .GroupBy(course => course.CourseID)
+            .ToDictionary(group => group.Key, group => group.First());
+
         return codeList.Select(code => new CodeResponseDTO
         {
             CodeID = code.CodeID,
-            CourseID = code.CourseID.ToString(),
+            Course = coursesById.TryGetValue(code.CourseID, out var course)
+                ? MapActiveCourseMiniResponse(course)
+                : null,
             Club = clubsById.TryGetValue(code.ClubID, out var club)
                 ? club
                 : null,
@@ -923,6 +944,21 @@ public class CodeService : ICodeService
             ExpireDate = code.ExpireDate,
             Status = code.Status
         }).ToList();
+    }
+
+    private CourseMiniResponse MapActiveCourseMiniResponse(Course course)
+    {
+        var courseMiniResponse = _mapper.Map<CourseMiniResponse>(course);
+
+        courseMiniResponse.CourseVersions = courseMiniResponse.CourseVersions
+            .Where(version => course.CourseVersions != null &&
+                course.CourseVersions.Any(entity =>
+                    entity.CourseVersionID == version.CourseVersionID &&
+                    entity.Status == CourseVersionStatus.ACTIVE))
+            .OrderByDescending(version => version.Version)
+            .ToList();
+
+        return courseMiniResponse;
     }
 }
 

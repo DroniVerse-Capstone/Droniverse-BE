@@ -199,7 +199,7 @@ namespace Droniverse.Community.Application.Services
                 await EnrichTransactionResponseAsync(entity, dto);
                 if (dto.Club == null)
                 {
-                    dto.Club = new ClubMiniResponse { ClubID = clubID, NameVN = string.Empty, NameEN = string.Empty, ImageUrl = string.Empty };
+                    dto.Club = new DTO.Response.ClubMiniResponse { ClubID = clubID, NameVN = string.Empty, NameEN = string.Empty, ImageUrl = string.Empty };
                 }
                 else
                 {

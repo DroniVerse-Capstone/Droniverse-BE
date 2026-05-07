@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Droniverse.Community.Application.DTO.Extensions;
 using Droniverse.Community.Application.DTO.Request.Mongo;
+using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.DTO.Response.Mongo;
 using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService.Mongo;
@@ -258,6 +259,7 @@ internal class OrderService : IOrderService
             return [];
 
         var userMap = await GetUsersByIdsMapAsync(orderList.Select(order => order.UserID));
+        var clubMap = await GetClubsByIdsMapAsync(orderList.Select(order => order.ClubID));
 
         return orderList.Select(order =>
         {
@@ -265,7 +267,11 @@ internal class OrderService : IOrderService
             if (orderDto == null)
                 return null;
 
-            return orderDto with { User = GetUserForOrder(order, userMap) };
+            return orderDto with 
+            { 
+                User = GetUserForOrder(order, userMap),
+                Club = GetClubForOrder(order, clubMap)
+            };
         });
     }
 
@@ -276,7 +282,13 @@ internal class OrderService : IOrderService
             return null;
 
         var user = await GetUserByIdOrFallbackAsync(order);
-        return orderDto with { User = user };
+        var club = await GetClubByIdOrFallbackAsync(order);
+        
+        return orderDto with 
+        { 
+            User = user,
+            Club = club
+        };
     }
 
     private async Task<PaginationResult<IEnumerable<OrderResponseDto?>>> BuildOrderResponsePaginationWithUsersAsync(PaginationResult<IEnumerable<Order>> orders)
@@ -286,6 +298,7 @@ internal class OrderService : IOrderService
             return new PaginationResult<IEnumerable<OrderResponseDto?>>(Enumerable.Empty<OrderResponseDto?>(), orders.TotalRecords, orders.PageIndex, orders.PageSize);
 
         var userMap = await GetUsersByIdsMapAsync(orderList.Select(order => order.UserID));
+        var clubMap = await GetClubsByIdsMapAsync(orderList.Select(order => order.ClubID));
 
         var responseOrders = orderList.Select(order =>
         {
@@ -293,7 +306,11 @@ internal class OrderService : IOrderService
             if (orderDto == null)
                 return null;
 
-            return orderDto with { User = GetUserForOrder(order, userMap) };
+            return orderDto with 
+            { 
+                User = GetUserForOrder(order, userMap),
+                Club = GetClubForOrder(order, clubMap)
+            };
         }).ToList();
 
         return new PaginationResult<IEnumerable<OrderResponseDto?>>(responseOrders, orders.TotalRecords, orders.PageIndex, orders.PageSize);
@@ -360,6 +377,81 @@ internal class OrderService : IOrderService
             null,
             [],
             []);
+    }
+
+    private async Task<Dictionary<Guid, ClubMiniResponse>> GetClubsByIdsMapAsync(IEnumerable<Guid> clubIds)
+    {
+        var ids = clubIds
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        if (ids.Count == 0)
+            return [];
+
+        try
+        {
+            var clubs = await _unitOfWork.Clubs.GetManyByConditionAsQueryable(
+                c => ids.Contains(c.ClubID),
+                q => q.AsNoTracking())
+                .ToListAsync();
+
+            return clubs.ToDictionary(
+                club => club.ClubID,
+                club => new ClubMiniResponse
+                {
+                    ClubID = club.ClubID,
+                    NameVN = club.NameVN,
+                    NameEN = club.NameEN,
+                    ImageUrl = club.ImageUrl ?? string.Empty
+                });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to load clubs for order response enrichment.");
+            return [];
+        }
+    }
+
+    private async Task<ClubMiniResponse?> GetClubByIdOrFallbackAsync(Order order)
+    {
+        if (order.ClubID == Guid.Empty)
+            return null;
+
+        try
+        {
+            var club = await _unitOfWork.Clubs.GetByCondition(
+                c => c.ClubID == order.ClubID,
+                q => q.AsNoTracking());
+
+            if (club != null)
+            {
+                return new ClubMiniResponse
+                {
+                    ClubID = club.ClubID,
+                    NameVN = club.NameVN,
+                    NameEN = club.NameEN,
+                    ImageUrl = club.ImageUrl ?? string.Empty
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to load club for order response enrichment.");
+        }
+
+        return null;
+    }
+
+    private ClubMiniResponse? GetClubForOrder(Order order, IReadOnlyDictionary<Guid, ClubMiniResponse> clubMap)
+    {
+        if (order.ClubID == Guid.Empty)
+            return null;
+
+        if (clubMap.TryGetValue(order.ClubID, out var club))
+            return club;
+
+        return null;
     }
 
     private decimal CalculateTotal(decimal price, int quantity)

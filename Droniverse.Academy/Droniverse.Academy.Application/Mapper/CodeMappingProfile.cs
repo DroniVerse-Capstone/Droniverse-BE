@@ -11,7 +11,7 @@ public class CodeMappingProfile : Profile
     {
         CreateMap<Code, CodeResponseDTO>()
             .ForMember(dest => dest.CodeID, opt => opt.MapFrom(src => src.CodeID))
-            .ForMember(dest => dest.CourseID, opt => opt.MapFrom(src => src.CourseID))
+            .ForMember(dest => dest.Course, opt => opt.Ignore())
             .ForMember(dest => dest.Club, opt => opt.Ignore())
             .ForMember(dest => dest.OwnerUser, opt => opt.Ignore())
             .ForMember(dest => dest.UsedByUser, opt => opt.Ignore())

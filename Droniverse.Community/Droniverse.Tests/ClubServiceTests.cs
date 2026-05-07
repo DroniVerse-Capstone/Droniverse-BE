@@ -337,7 +337,7 @@ public class ClubServiceTests
         var targetUserId = Guid.NewGuid();
         var club = CreateTestClub(clubId, createdBy: currentUserId);
         var participation = new Participation(targetUserId, clubId, null, _clockMock.Object.Now);
-        var request = new ClubKickMemberRequest { Reason = "Vi phạm nội quy" };
+        var request = new ClubKickMemberRequest();
 
         _currentUserServiceMock.Setup(s => s.UserID).Returns(currentUserId.ToString());
         _currentUserServiceMock.Setup(s => s.Roles).Returns(new List<string> { Droniverse.Shared.Constants.Roles.ClubManager });

@@ -35,11 +35,25 @@ internal class CodeRepository : MySqlRepository<Code>, ICodeRepository
 
         // Phân trang
         var codes = await query
+            .OrderByDescending(c => c.CreatedAt)
+            .ThenBy(c => c.CodeID)
             .Skip((pageIndex - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
 
         return new PaginationResult<IEnumerable<Code>>(codes, totalRecords, pageIndex, pageSize);
+    }
+
+    public async Task<(int TotalCodes, int AvailableCodes, int UsedCodes, int ExpiredCodes)> GetCodeOverviewAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var query = _dbSet.AsNoTracking();
+
+        return (
+            await query.CountAsync(cancellationToken),
+            await query.CountAsync(c => c.Status == CodeStatus.AVAILABLE, cancellationToken),
+            await query.CountAsync(c => c.Status == CodeStatus.USED, cancellationToken),
+            await query.CountAsync(c => c.Status == CodeStatus.EXPIRED, cancellationToken));
     }
 
     public async Task<PaginationResult<IEnumerable<Code>>> GetCodesByClubAsync(
