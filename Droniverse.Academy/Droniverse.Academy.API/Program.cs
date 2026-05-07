@@ -1,8 +1,10 @@
 ﻿using DotNetEnv;
 using Droniverse.Academy.Application;
+using Droniverse.Academy.Application.Services;
 using Droniverse.Academy.Infrastructure;
 using Droniverse.Academy.Infrastructure.Persistence.MySql;
 using Droniverse.Academy.API.Swagger;
+using Droniverse.Academy.API.Jobs;
 using Droniverse.Shared;
 using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Settings;
@@ -221,6 +223,9 @@ builder.Services.AddHangfireServer(config =>
     config.CancellationCheckInterval = TimeSpan.FromSeconds(15);
 });
 
+// Background job services
+builder.Services.AddScoped<CodeExpirationService>();
+
 // ======================
 // BUILD APP
 // ======================
@@ -285,5 +290,19 @@ app.UseHangfireDashboard("/hangfire", new DashboardOptions
     Authorization = new IDashboardAuthorizationFilter[] { }
 });
 app.MapControllers();
+
+// ======================
+// RECURRING JOBS
+// ======================
+
+// Schedule code expiration job to run daily at 2 AM (off-peak hours)
+RecurringJob.AddOrUpdate<CodeExpirationJob>(
+    "code-expiration-job",
+    job => job.ExecuteAsync(),
+    "0 2 * * *",  // 2 AM daily
+    new RecurringJobOptions
+    {
+        TimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")
+    });
 
 app.Run();

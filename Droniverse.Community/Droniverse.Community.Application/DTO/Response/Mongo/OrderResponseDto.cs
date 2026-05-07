@@ -11,10 +11,11 @@ public record OrderResponseDto(
     DateTime CreateAt,
     OrderItemDto Item,
     PaymentResponseDto? Payment,
-    UserResponse User
+    UserResponse User,
+    ClubMiniResponse? Club
 )
 {
-    public OrderResponseDto() : this(Guid.Empty, default, 0, OrderStatus.PENDING, DateTime.MinValue, default, default, default)
+    public OrderResponseDto() : this(Guid.Empty, default, 0, OrderStatus.PENDING, DateTime.MinValue, default, default, default, default)
     {
     }
 }

@@ -15,19 +15,16 @@ public record ClubUpdateDto
     [StringLength(200, ErrorMessage = "Tên tiếng Anh tối đa 200 ký tự")]
     public string NameEN { get; init; } = string.Empty;
 
-    [StringLength(1000, ErrorMessage = "Mô tả tiếng Việt tối đa 1000 ký tự")]
-    public string? DescriptionVN { get; init; }
-
-    [StringLength(1000, ErrorMessage = "Mô tả tiếng Anh tối đa 1000 ký tự")]
-    public string? DescriptionEN { get; init; }
-
     public string? ImageUrl { get; init; }
 
     [Range(1, 10000, ErrorMessage = "Số lượng thành viên phải từ 1 đến 10000")]
     public int LimitParticipation { get; init; }
 
-    [Range(1, 100, ErrorMessage = "Số lượng quản lý phải từ 1 đến 100")]
-    public int LimitClubManagers { get; init; }
+    [StringLength(5000, ErrorMessage = "Nội quy tiếng Việt tối đa 5000 ký tự")]
+    public string? ClubPolicyVN { get; init; }
+
+    [StringLength(5000, ErrorMessage = "Nội quy tiếng Anh tối đa 5000 ký tự")]
+    public string? ClubPolicyEN { get; init; }
 
     [StringLength(2000, ErrorMessage = "Yêu cầu tham gia tối đa 2000 ký tự")]
     public string? ClubRequirement { get; init; }

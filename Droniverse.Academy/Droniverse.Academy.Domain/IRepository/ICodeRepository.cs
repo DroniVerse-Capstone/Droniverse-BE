@@ -10,6 +10,9 @@ public interface ICodeRepository : IRepository<Code>
         int pageIndex, 
         int pageSize);
 
+    Task<(int TotalCodes, int AvailableCodes, int UsedCodes, int ExpiredCodes)> GetCodeOverviewAsync(
+        CancellationToken cancellationToken = default);
+
     Task<PaginationResult<IEnumerable<Code>>> GetCodesByClubAsync(
         Guid clubId,
         Guid courseId,

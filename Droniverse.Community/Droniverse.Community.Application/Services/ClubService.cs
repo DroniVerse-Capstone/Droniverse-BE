@@ -268,13 +268,6 @@ internal class ClubService : IClubService
         if (userId == Guid.Empty)
             throw new ArgumentException("UserId không hợp lệ.");
 
-        if (request == null)
-            throw new ArgumentNullException(nameof(request), "Thông tin kick thành viên không được để trống.");
-
-        var reason = request.Reason?.Trim();
-        if (string.IsNullOrWhiteSpace(reason))
-            throw new ArgumentException("Lý do kick không được để trống.");
-
         var club = await _unitOfWork.Clubs.GetByCondition(c => c.ClubID == clubId);
         if (club == null)
             throw new KeyNotFoundException($"Club with ID {clubId} not found.");
@@ -291,7 +284,7 @@ internal class ClubService : IClubService
         if (participation == null)
             throw new KeyNotFoundException("Người dùng này không phải là thành viên đang hoạt động của câu lạc bộ.");
 
-        participation.Ban(reason, _clock.Now);
+        participation.Ban(null, _clock.Now);
 
         await _unitOfWork.Participations.Update(participation);
         await _unitOfWork.SaveChangeAsync();

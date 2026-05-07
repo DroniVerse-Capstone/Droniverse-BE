@@ -160,14 +160,12 @@ public class CodeService : ICodeService
 
         var mappedCodes = await MapCodeResponsesAsync(codes.Data);
 
-        // Calculate overview
-        var allCodes = codes.Data.ToList();
-        var totalCodes = codes.TotalRecords;
-        var availableCodes = allCodes.Count(c => c.Status == CodeStatus.AVAILABLE);
-        var usedCodes = allCodes.Count(c => c.Status == CodeStatus.USED);
-        var expiredCodes = allCodes.Count(c => c.Status == CodeStatus.EXPIRED);
-
-        var overview = new CodeOverviewDto(totalCodes, availableCodes, usedCodes, expiredCodes);
+        var overviewCounts = await _unitOfWork.Codes.GetCodeOverviewAsync();
+        var overview = new CodeOverviewDto(
+            overviewCounts.TotalCodes,
+            overviewCounts.AvailableCodes,
+            overviewCounts.UsedCodes,
+            overviewCounts.ExpiredCodes);
 
         var paginationResult = new PaginationResult<IEnumerable<CodeResponseDTO>>(
             mappedCodes,
