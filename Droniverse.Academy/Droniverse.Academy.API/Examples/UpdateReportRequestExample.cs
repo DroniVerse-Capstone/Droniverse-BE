@@ -11,7 +11,7 @@ public class UpdateReportRequestExample : IMultipleExamplesProvider<UpdateReport
             "Ví dụ cập nhật report",
             new UpdateReportRequestDTO
             {
-                Content = "Cập nhật: lỗi xảy ra khi bay qua waypoint cuối cùng."
+                ContentVN = "Cập nhật: lỗi xảy ra khi bay qua waypoint cuối cùng."
             }
         );
     }

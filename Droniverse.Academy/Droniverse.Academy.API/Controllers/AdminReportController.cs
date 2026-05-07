@@ -2,6 +2,8 @@
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.API.Enums;
+using Droniverse.Academy.Domain.Enums;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
@@ -34,17 +36,19 @@ public class AdminReportController : ControllerBase
     /// <param name="pageSize">Số bản ghi trên mỗi trang.</param>
     /// <param name="referenceId">Lọc theo reference.</param>
     /// <param name="userId">Lọc theo người gửi report.</param>
+    /// <param name="reportType">Lọc theo loại report.</param>
     [HttpGet]
     public async Task<IActionResult> GetReports(
         [FromQuery] int pageIndex = 1,
         [FromQuery] int pageSize = 10,
         [FromQuery] Guid? referenceId = null,
-        [FromQuery] Guid? userId = null)
+        [FromQuery] Guid? userId = null,
+        [FromQuery] ReportTypeFilter reportType = ReportTypeFilter.All)
     {
         try
         {
-            var reports = await _service.GetReportsAsync(pageIndex, pageSize, referenceId, userId);
-            return Ok(SuccessResponse<object>.Create(reports, "Lấy danh sách report thành công."));
+            var reports = await _service.GetReportsAsync(pageIndex, pageSize, referenceId, userId, MapToReportType(reportType));
+            return Ok(SuccessResponse<PaginationResult<IEnumerable<ReportResponseDTO>>>.Create(reports, "Lấy danh sách report thành công."));
         }
         catch (Exception ex)
         {
@@ -93,22 +97,16 @@ public class AdminReportController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Xóa report.
-    /// </summary>
-    /// <param name="reportId">Mã report.</param>
-    [HttpDelete("{reportId:guid}")]
-    public async Task<IActionResult> DeleteReport(Guid reportId)
+    private static ReportType? MapToReportType(ReportTypeFilter filter)
     {
-        try
+        return filter switch
         {
-            await _service.DeleteReportAsync(reportId);
-            return Ok(SuccessResponse<object>.Create(null!, "Xóa report thành công."));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Xóa report thất bại.");
-            throw;
-        }
+            ReportTypeFilter.All => null,
+            ReportTypeFilter.CourseVersion => ReportType.CourseVersion,
+            ReportTypeFilter.Club => ReportType.Club,
+            ReportTypeFilter.User => ReportType.User,
+            _ => null
+        };
     }
+
 }

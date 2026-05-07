@@ -2,5 +2,6 @@
 
 public class UpdateReportRequestDTO
 {
-    public string Content { get; set; } = string.Empty;
+    public string? ContentVN { get; set; }
+    public string? ContentEN { get; set; }
 }
