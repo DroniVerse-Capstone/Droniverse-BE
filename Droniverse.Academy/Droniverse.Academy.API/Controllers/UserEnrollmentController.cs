@@ -78,6 +78,26 @@ public class UserEnrollmentController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Chuyển tất cả enrollment của user sang LIMITED_ACCESS và khóa các user lesson.
+    /// </summary>
+    /// <param name="userId">ID của user.</param>
+    [HttpPatch("users/{userId:guid}/limit-access")]
+    [Authorize(Roles = Roles.AllRoles)]
+    public async Task<IActionResult> LimitUserAccess(Guid userId)
+    {
+        try
+        {
+            var result = await _service.LimitUserAccessAsync(userId);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Cập nhật enrollment và user lesson thất bại.");
+            throw;
+        }
+    }
+
     private static EnrollStatus? MapEnrollmentStatus(EnrollmentStatusFilter status)
     {
         return status switch

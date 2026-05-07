@@ -277,6 +277,78 @@ public class EnrollmentService : IEnrollmentService
             result.PageSize);
     }
 
+    public async Task<EnrollmentAccessUpdateResponseDTO> LimitUserAccessAsync(Guid userId)
+    {
+        ValidateUserId(userId);
+
+        var response = new EnrollmentAccessUpdateResponseDTO
+        {
+            UserId = userId
+        };
+
+        await _unitOfWork.ExecuteInTransactionAsync(async () =>
+        {
+            await LimitEnrollmentsAsync(userId, response);
+            await LockUserLessonsAsync(userId, response);
+
+            await _unitOfWork.SaveChangesAsync();
+        });
+
+        return response;
+    }
+
+    private static void ValidateUserId(Guid userId)
+    {
+        if (userId == Guid.Empty)
+            throw new ValidationException("UserId không hợp lệ.");
+    }
+
+    private async Task LimitEnrollmentsAsync(Guid userId, EnrollmentAccessUpdateResponseDTO response)
+    {
+        var enrollmentsResult = await _unitOfWork.Enrollments.GetAllAsync(
+            filter: x => x.UserID == userId,
+            pageIndex: 1,
+            pageSize: int.MaxValue);
+
+        foreach (var enrollment in enrollmentsResult.Data)
+        {
+            if (enrollment.Status == EnrollStatus.DROPPED)
+            {
+                response.SkippedDroppedEnrollments++;
+                continue;
+            }
+
+            if (enrollment.Status != EnrollStatus.LIMITED_ACCESS)
+            {
+                enrollment.LimitAccess();
+                response.UpdatedEnrollments++;
+            }
+        }
+    }
+
+    private async Task LockUserLessonsAsync(Guid userId, EnrollmentAccessUpdateResponseDTO response)
+    {
+        var userLessonsResult = await _unitOfWork.UserLessons.GetAllAsync(
+            filter: x => x.UserID == userId,
+            pageIndex: 1,
+            pageSize: int.MaxValue);
+
+        foreach (var userLesson in userLessonsResult.Data)
+        {
+            if (userLesson.Status == UserLessonStatus.COMPLETED)
+            {
+                response.SkippedCompletedLessons++;
+                continue;
+            }
+
+            if (userLesson.Status != UserLessonStatus.LOCKED)
+            {
+                userLesson.TransitionTo(UserLessonStatus.LOCKED);
+                response.UpdatedUserLessons++;
+            }
+        }
+    }
+
     private async Task<Enrollment> GetMyEnrollmentEntityOrThrowAsync(Guid enrollmentId)
     {
         var userId = _currentUser.UserId;

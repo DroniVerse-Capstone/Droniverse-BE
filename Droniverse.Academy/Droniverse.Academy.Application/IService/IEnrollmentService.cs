@@ -15,5 +15,6 @@ public interface IEnrollmentService
     Task<EnrollmentResponseDTO> UpdateMyEnrollmentAsync(Guid enrollmentId, UpdateEnrollmentRequestDTO request);
     Task<PaginationResult<IEnumerable<CoursesEnrollmentResponse>>> GetCoursesOfUser(Guid clubId, UserEnrollmentSearchRequest request);
     Task<PaginationResult<IEnumerable<CoursesEnrollmentResponse>>> GetEnrollmentsByClubAsync(Guid clubId, int pageIndex, int pageSize, Guid? courseId = null, Guid? userId = null);
+    Task<EnrollmentAccessUpdateResponseDTO> LimitUserAccessAsync(Guid userId);
     Task DeleteMyEnrollmentAsync(Guid enrollmentId);
 }
