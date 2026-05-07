@@ -3,5 +3,6 @@ namespace Droniverse.Academy.Domain.Enums;
 public enum WebSimulatorType
 {
     PHYSIC,
-    LAB_PHYSIC
+    LAB_PHYSIC,
+    REAL_PHYSIC
 }

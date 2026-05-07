@@ -309,7 +309,7 @@ public class WebSimulatorService : IWebSimulatorService
 
         var duplicated = await _unitOfWork.WebSimulators.GetByConditionAsync(ws =>
             (!excludeWebSimulatorId.HasValue || ws.WebSimulatorID != excludeWebSimulatorId.Value)
-            && (ws.Type == WebSimulatorType.PHYSIC || ws.Type == WebSimulatorType.LAB_PHYSIC)
+            && (ws.Type == WebSimulatorType.PHYSIC || ws.Type == WebSimulatorType.LAB_PHYSIC || ws.Type == WebSimulatorType.REAL_PHYSIC)
             && (ws.TitleVN == normalizedVn
                 || ws.TitleEN == normalizedVn
                 || ws.TitleVN == normalizedEn
@@ -336,6 +336,7 @@ public class WebSimulatorService : IWebSimulatorService
         {
             WebSimulatorType.PHYSIC => LessonType.PHYSIC,
             WebSimulatorType.LAB_PHYSIC => LessonType.LAB_PHYSIC,
+            WebSimulatorType.REAL_PHYSIC => LessonType.PHYSIC,
             _ => throw new ValidationException("Loại web simulator không hợp lệ.")
         };
     }
