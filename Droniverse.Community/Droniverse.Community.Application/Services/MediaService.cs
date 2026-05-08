@@ -81,7 +81,7 @@ public class MediaService : IMediaService
         }
     }
 
-    public async Task<MediaResponseDto> UploadTempMedia(FileUploadMediaDto dto, ICloudinaryService cloudinaryService)
+    public async Task<MediaResponseDto> UploadTempMedia(FileUploadMediaDto dto)
     {
         if (dto == null)
             throw new ArgumentNullException(nameof(dto), "Upload request data cannot be null.");
@@ -100,7 +100,7 @@ public class MediaService : IMediaService
             throw new KeyNotFoundException($"MediaType with TypeNameVN '{mediaTypeStr}' not found in database.");
 
         // Upload file to Cloudinary
-        string imageUrl = await cloudinaryService.UploadMediaAsync(dto.File, mediaTypeStr, "droniverse/temporary");
+        string imageUrl = await _cloudinaryService.UploadMediaAsync(dto.File, mediaTypeStr, "droniverse/temporary");
 
         // Create Media entity
         var mediaId = Guid.NewGuid();
@@ -148,44 +148,42 @@ public class MediaService : IMediaService
                     throw new KeyNotFoundException("Media not found.");
             }
 
-            // Get media type and appropriate extension
             var mediaTypeStr = media.MediaType?.TypeNameVN ?? "IMAGE";
-            var extension = GetFileExtensionFromMediaType(mediaTypeStr);
 
             // Measure upload time for diagnostics
             var sw = System.Diagnostics.Stopwatch.StartNew();
 
-            // Download current media from Cloudinary using stream (not buffering entire file)
+            // Download current media from Cloudinary
             using var http = new System.Net.Http.HttpClient();
-            var resp = await http.GetAsync(media.Url, System.Net.Http.HttpCompletionOption.ResponseHeadersRead);
+            var resp = await http.GetAsync(media.Url);
             resp.EnsureSuccessStatusCode();
-            
-            // Stream download to memory (kept for FormFile creation)
-            var stream = new MemoryStream(await resp.Content.ReadAsByteArrayAsync());
-            
-            // Create FormFile object with proper filename including extension
-            var fileName = $"{media.MediaID}{extension}";
+            var fileBytes = await resp.Content.ReadAsByteArrayAsync();
+
+            // Extract filename from URL
+            var urlPath = new Uri(media.Url).AbsolutePath;
+            var urlFileName = Path.GetFileName(urlPath);
+
+            // Create FormFile object
+            using var stream = new MemoryStream(fileBytes);
             var formFile = new Microsoft.AspNetCore.Http.FormFile(
-                stream, 
-                0, 
-                stream.Length, 
-                "file", 
-                fileName);
-            
+                stream,
+                0,
+                stream.Length,
+                "file",
+                urlFileName);
+
             // Upload to new folder using UploadMediaAsync
             var newUrl = await _cloudinaryService.UploadMediaAsync(formFile, mediaTypeStr, folder);
-            
+
             sw.Stop();
-            _logger.LogInformation("Cloudinary upload took {ms}ms for media {MediaId} to folder {Folder}", sw.ElapsedMilliseconds, media.MediaID, folder);
+            _logger.LogInformation("Media {MediaId} successfully moved to folder {Folder} in {ms}ms", media.MediaID, folder, sw.ElapsedMilliseconds);
 
             // Update media record
             media.Url = newUrl;
             media.UpdatedAt = _clock.Now;
 
-            // Fire-and-forget: Save to database in background without waiting
-            _ = SaveMediaToDatabase(media);
-            
-            _logger.LogInformation("Media {MediaId} successfully moved to folder {Folder}", media.MediaID, folder);
+            await _unitOfWork.Medias.Update(media);
+            await _unitOfWork.SaveChangeAsync();
         }
         catch (Exception ex)
         {
@@ -238,21 +236,6 @@ public class MediaService : IMediaService
             _logger.LogError(ex, $"Error occurred while get media data");
             return Enumerable.Empty<MediaMiniResponse>();
         }
-    }
-
-    private string GetFileExtensionFromMediaType(string? typeNameVN)
-    {
-        if (string.IsNullOrWhiteSpace(typeNameVN))
-            return ".jpg"; // Default
-
-        return typeNameVN.ToUpper() switch
-        {
-            "IMAGE" => ".jpg",
-            "VIDEO" => ".mp4",
-            "GIF" => ".gif",
-            "AUDIO" => ".mp3",
-            _ => ".jpg"
-        };
     }
 
     public async Task DeleteMedia(Media media)

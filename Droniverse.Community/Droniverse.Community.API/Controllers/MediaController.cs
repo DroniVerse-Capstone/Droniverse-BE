@@ -95,7 +95,7 @@ namespace Droniverse.Community.API.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ApiResponse> UploadTempMedia([FromForm] FileUploadMediaDto dto)
         {
-            var mediaResponse = await _mediaService.UploadTempMedia(dto, _cloudinaryService);
+            var mediaResponse = await _mediaService.UploadTempMedia(dto);
             return SuccessResponse<MediaResponseDto>.Create(mediaResponse, "Tải lên tệp media tạm thành công! (Lưu database background)");
         }
 
