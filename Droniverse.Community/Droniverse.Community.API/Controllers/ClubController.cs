@@ -475,16 +475,19 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
-        /// Lấy thông tin rút gọn của một câu lạc bộ theo ID.
+        /// Lấy thông tin rút gọn của nhiều câu lạc bộ theo danh sách ID.
         /// </summary>
-        /// <param name="clubId">ID của câu lạc bộ</param>
-        /// <returns>Thông tin rút gọn của câu lạc bộ.</returns>
-        [HttpGet("{clubId:guid}/mini")]
-        [ProducesResponseType(typeof(ClubMiniResponseDto), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<ClubMiniResponseDto>> GetClubMiniById(Guid clubId)
+        /// <param name="request">Danh sách ID câu lạc bộ.</param>
+        /// <returns>Danh sách thông tin rút gọn của câu lạc bộ.</returns>
+        [HttpPost("mini/bulk")]
+        [ProducesResponseType(typeof(IEnumerable<ClubMiniResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<IEnumerable<ClubMiniResponseDto>>> GetClubMiniBulk([FromBody] GetClubSimpleInfoRequest request)
         {
-            var result = await _clubService.GetClubMiniById(clubId);
+            if (request.ClubIds == null || request.ClubIds.Count == 0)
+                throw new ArgumentException("Danh sách ID câu lạc bộ không được để trống.");
+
+            var result = await _clubService.GetClubMiniBulk(request);
             return Ok(result);
         }
 

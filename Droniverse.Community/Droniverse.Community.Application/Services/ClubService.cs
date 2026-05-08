@@ -358,11 +358,30 @@ internal class ClubService : IClubService
 
     public async Task<ClubMiniResponseDto> GetClubMiniById(Guid clubId)
     {
-        if (clubId == Guid.Empty)
-            throw new ArgumentException("ClubId không hợp lệ.");
+        var result = await GetClubMiniBulk(new GetClubSimpleInfoRequest { ClubIds = [clubId] });
+        var club = result.FirstOrDefault();
 
-        var club = await _unitOfWork.Clubs
-            .GetManyByConditionAsQueryable(c => c.ClubID == clubId, q => q.AsNoTracking())
+        if (club == null)
+            throw new KeyNotFoundException("Không tìm thấy câu lạc bộ");
+
+        return club;
+    }
+
+    public async Task<IEnumerable<ClubMiniResponseDto>> GetClubMiniBulk(GetClubSimpleInfoRequest request)
+    {
+        if (request?.ClubIds == null || request.ClubIds.Count == 0)
+            return [];
+
+        var distinctIds = request.ClubIds
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        if (distinctIds.Count == 0)
+            return [];
+
+        var clubs = await _unitOfWork.Clubs
+            .GetManyByConditionAsQueryable(c => distinctIds.Contains(c.ClubID), q => q.AsNoTracking())
             .Select(c => new ClubMiniResponseDto
             {
                 ClubID = c.ClubID,
@@ -370,12 +389,14 @@ internal class ClubService : IClubService
                 NameEN = c.NameEN,
                 ImageUrl = c.ImageUrl
             })
-            .FirstOrDefaultAsync();
+            .ToListAsync();
 
-        if (club == null)
-            throw new KeyNotFoundException("Không tìm thấy câu lạc bộ");
+        var clubById = clubs.ToDictionary(c => c.ClubID, c => c);
 
-        return club;
+        return distinctIds
+            .Where(clubById.ContainsKey)
+            .Select(id => clubById[id])
+            .ToList();
     }
 
     public async Task<PaginationResult<IEnumerable<GetParticipantsResponse>>> GetClubParcitipations(Guid clubID, ParticipationSearchRequest searchRequest)

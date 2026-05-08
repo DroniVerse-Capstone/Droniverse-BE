@@ -2,6 +2,7 @@
 using Droniverse.Academy.Application.Common.Extensions;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
+using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
@@ -19,13 +20,20 @@ public class ReportService : IReportService
     private readonly IMapper _mapper;
     private readonly ICurrentUserService _currentUser;
     private readonly IUserLookupService _userLookupService;
+    private readonly CommunityMicroserviceClient _communityMicroserviceClient;
 
-    public ReportService(IUnitOfWork unitOfWork, IMapper mapper, ICurrentUserService currentUser, IUserLookupService userLookupService)
+    public ReportService(
+        IUnitOfWork unitOfWork,
+        IMapper mapper,
+        ICurrentUserService currentUser,
+        IUserLookupService userLookupService,
+        CommunityMicroserviceClient communityMicroserviceClient)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _currentUser = currentUser;
         _userLookupService = userLookupService;
+        _communityMicroserviceClient = communityMicroserviceClient;
     }
 
     public async Task<ReportResponseDTO> CreateReportAsync(CreateReportRequestDTO request)
@@ -67,6 +75,7 @@ public class ReportService : IReportService
         var reports = result.Data.ToList();
         var mapped = _mapper.Map<List<ReportResponseDTO>>(reports);
         await PopulateUsersAsync(reports, mapped);
+        await PopulateReportedDataAsync(reports, mapped);
         return new PaginationResult<IEnumerable<ReportResponseDTO>>(mapped, result.TotalRecords, result.PageIndex, result.PageSize);
     }
 
@@ -84,6 +93,7 @@ public class ReportService : IReportService
         var reports = result.Data.ToList();
         var mapped = _mapper.Map<List<ReportResponseDTO>>(reports);
         await PopulateUsersAsync(reports, mapped);
+        await PopulateReportedDataAsync(reports, mapped);
         return new PaginationResult<IEnumerable<ReportResponseDTO>>(mapped, result.TotalRecords, result.PageIndex, result.PageSize);
     }
 
@@ -98,6 +108,7 @@ public class ReportService : IReportService
 
         var response = _mapper.Map<ReportResponseDTO>(report);
         await PopulateUsersAsync(report, response);
+        await PopulateReportedDataAsync(report, response);
         return response;
     }
 
@@ -123,6 +134,7 @@ public class ReportService : IReportService
 
         var response = _mapper.Map<ReportResponseDTO>(report);
         await PopulateUsersAsync(report, response);
+        await PopulateReportedDataAsync(report, response);
         return response;
     }
 
@@ -206,5 +218,119 @@ public class ReportService : IReportService
                 response.ResponserUser = responser;
             }
         }
+    }
+
+    private async Task PopulateReportedDataAsync(Report report, ReportResponseDTO response)
+    {
+        response.ReportedUser = null;
+        response.ReportedCourseVersion = null;
+        response.ReportedClub = null;
+
+        switch (report.ReportType)
+        {
+            case ReportType.User:
+            {
+                var userLookup = await _userLookupService.BuildUserLookupAsync(new[] { report.ReferenceID });
+                if (userLookup.TryGetValue(report.ReferenceID, out var reportedUser))
+                {
+                    response.ReportedUser = reportedUser;
+                }
+
+                break;
+            }
+
+            case ReportType.CourseVersion:
+            {
+                var courseVersion = await _unitOfWork.CourseVersions.GetByIdAsync(report.ReferenceID);
+                if (courseVersion != null)
+                {
+                    response.ReportedCourseVersion = _mapper.Map<CourseVersionMiniResponseDTO>(courseVersion);
+                }
+
+                break;
+            }
+
+            case ReportType.Club:
+            {
+                var clubs = await _communityMicroserviceClient.GetClubMiniBulkAsync([report.ReferenceID]);
+                response.ReportedClub = clubs.FirstOrDefault();
+                break;
+            }
+        }
+    }
+
+    private async Task PopulateReportedDataAsync(IReadOnlyList<Report> reports, IList<ReportResponseDTO> responses)
+    {
+        var reportMap = reports.Zip(responses).ToList();
+
+        var userIds = reports
+            .Where(report => report.ReportType == ReportType.User)
+            .Select(report => report.ReferenceID)
+            .Distinct()
+            .ToList();
+
+        var courseVersionIds = reports
+            .Where(report => report.ReportType == ReportType.CourseVersion)
+            .Select(report => report.ReferenceID)
+            .Distinct()
+            .ToList();
+
+        var clubIds = reports
+            .Where(report => report.ReportType == ReportType.Club)
+            .Select(report => report.ReferenceID)
+            .Distinct()
+            .ToList();
+
+        var reportedUsersTask = _userLookupService.BuildUserLookupAsync(userIds);
+
+        var courseVersionsTask = BuildCourseVersionLookupAsync(courseVersionIds);
+
+        var clubsTask = clubIds.Count == 0
+            ? Task.FromResult<IEnumerable<ClubMiniResponseDto>>([])
+            : _communityMicroserviceClient.GetClubMiniBulkAsync(clubIds);
+
+        await Task.WhenAll(reportedUsersTask, courseVersionsTask, clubsTask);
+
+        var reportedUsers = await reportedUsersTask;
+        var courseVersions = await courseVersionsTask;
+        var clubs = (await clubsTask).ToDictionary(c => c.ClubID, c => c);
+
+        foreach (var (report, response) in reportMap)
+        {
+            response.ReportedUser = null;
+            response.ReportedCourseVersion = null;
+            response.ReportedClub = null;
+
+            switch (report.ReportType)
+            {
+                case ReportType.User:
+                    if (reportedUsers.TryGetValue(report.ReferenceID, out var reportedUser))
+                        response.ReportedUser = reportedUser;
+                    break;
+                case ReportType.CourseVersion:
+                    if (courseVersions.TryGetValue(report.ReferenceID, out var courseVersion))
+                        response.ReportedCourseVersion = courseVersion;
+                    break;
+                case ReportType.Club:
+                    if (clubs.TryGetValue(report.ReferenceID, out var club))
+                        response.ReportedClub = club;
+                    break;
+            }
+        }
+    }
+
+    private async Task<Dictionary<Guid, CourseVersionMiniResponseDTO>> BuildCourseVersionLookupAsync(IEnumerable<Guid> courseVersionIds)
+    {
+        var distinctIds = courseVersionIds.Distinct().ToList();
+        if (distinctIds.Count == 0)
+            return [];
+
+        var result = await _unitOfWork.CourseVersions.GetAllAsync(
+            filter: cv => distinctIds.Contains(cv.CourseVersionID),
+            pageIndex: 1,
+            pageSize: distinctIds.Count);
+
+        var mapped = _mapper.Map<List<CourseVersionMiniResponseDTO>>(result.Data.ToList());
+        return mapped.ToDictionary(cv => cv.CourseVersionID, cv => cv);
     }
 }

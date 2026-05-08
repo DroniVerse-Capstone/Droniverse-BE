@@ -300,30 +300,52 @@ internal sealed class ClubClient : CommunityBaseClient
         return droneId;
     }
 
-    public async Task<ClubMiniResponseDto?> GetClubMiniByIdAsync(
-        Guid clubId,
+    public async Task<IEnumerable<ClubMiniResponseDto>> GetClubMiniBulkAsync(
+        IEnumerable<Guid> clubIds,
         CancellationToken cancellationToken = default)
     {
-        if (clubId == Guid.Empty)
+        if (clubIds == null)
         {
-            return null;
+            return [];
         }
 
-        var url = BuildCommunityPath($"clubs/{clubId}/mini");
-        var response = await HttpClient.GetAsync(url, cancellationToken);
+        var distinctIds = clubIds
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        if (distinctIds.Count == 0)
+        {
+            return [];
+        }
+
+        var request = new GetClubSimpleInfoRequest
+        {
+            ClubIds = distinctIds
+        };
+
+        var response = await HttpClient.PostAsJsonAsync(
+            BuildCommunityPath("clubs/mini/bulk"),
+            request,
+            cancellationToken);
 
         if (!response.IsSuccessStatusCode)
         {
-            if (response.StatusCode == HttpStatusCode.NotFound)
+            if (response.StatusCode == HttpStatusCode.BadRequest)
             {
-                return null;
+                Logger.LogWarning("Bad request when getting mini clubs. Response: {Response}",
+                    await response.Content.ReadAsStringAsync(cancellationToken));
+
+                throw new HttpRequestException(
+                    "Bad request when calling Community API",
+                    null,
+                    HttpStatusCode.BadRequest);
             }
 
             if (response.StatusCode == HttpStatusCode.ServiceUnavailable)
             {
                 Logger.LogError(
-                    "Community service unavailable when getting mini club for club {ClubId}",
-                    clubId);
+                    "Community service unavailable when getting mini clubs");
 
                 throw new HttpRequestException(
                     "Community service unavailable",
@@ -332,8 +354,7 @@ internal sealed class ClubClient : CommunityBaseClient
             }
 
             Logger.LogError(
-                "Error when getting mini club for club {ClubId}. Status: {StatusCode}, Response: {Response}",
-                clubId,
+                "Error when getting mini clubs. Status: {StatusCode}, Response: {Response}",
                 response.StatusCode,
                 await response.Content.ReadAsStringAsync(cancellationToken));
 
@@ -343,7 +364,8 @@ internal sealed class ClubClient : CommunityBaseClient
                 response.StatusCode);
         }
 
-        return await response.Content.ReadFromJsonAsync<ClubMiniResponseDto>(JsonSerializerOptions, cancellationToken);
+        return await response.Content.ReadFromJsonAsync<List<ClubMiniResponseDto>>(JsonSerializerOptions, cancellationToken)
+               ?? [];
     }
 }
  
