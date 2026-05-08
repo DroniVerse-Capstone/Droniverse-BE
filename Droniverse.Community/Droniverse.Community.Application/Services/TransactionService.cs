@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.DTO.Response.Mongo;
@@ -83,6 +83,17 @@ namespace Droniverse.Community.Application.Services
             }
             
             return response;
+        }
+
+        public async Task<IEnumerable<TransactionResponseDto>> GetTransactionsByUserIdAsync(Guid userId)
+        {
+            Wallet? wallet = await _unitOfWork.Wallets.GetByCondition(w => w.OwnerID == userId);
+            if (wallet == null)
+            {
+                return [];
+            }
+
+            return await GetTransactionsByWalletIdAsync(wallet.WalletID);
         }
 
         public async Task<PaginationResult<IEnumerable<TransactionResponseDto>>> GetAllTransactionsAsync(TransactionSearchRequest request)

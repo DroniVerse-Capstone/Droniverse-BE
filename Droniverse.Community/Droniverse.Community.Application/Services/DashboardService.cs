@@ -1,4 +1,4 @@
-﻿using Droniverse.Community.Application.DTO.Response;
+using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
@@ -1063,6 +1063,43 @@ namespace Droniverse.Community.Application.Services
                 .ToList();
 
             return new PaginationResult<IEnumerable<DetailDashboardUserResponse>>(pagedUsers, totalRecords, page, pageSize);
+        }
+
+        public async Task<PaginationResult<IEnumerable<DetailDashboardClubManagerResponse>>> GetDetailDashboardClubManagers(int page = 1, int pageSize = 10)
+        {
+            if (page < 1)
+                page = 1;
+
+            if (pageSize <= 0)
+                pageSize = 10;
+
+            var users = await _identityMicroserviceClient.GetListUserByRole("CLUB_MANAGER");
+            if (users == null || !users.Any())
+                return new PaginationResult<IEnumerable<DetailDashboardClubManagerResponse>>([], 0, page, pageSize);
+
+            var userIds = users.Select(u => u.UserId).ToList();
+
+            var wallets = await _unitOfWork.Wallets.GetManyByCondition(w => userIds.Contains(w.OwnerID));
+            var walletDict = wallets.ToDictionary(w => w.OwnerID, w => w.Balance);
+
+            var detailUsers = users.Select(u => new DetailDashboardClubManagerResponse
+            {
+                UserId = u.UserId,
+                FullName = u.FullName ?? string.Empty,
+                Email = u.Email ?? string.Empty,
+                AvatarUrl = u.AvatarUrl,
+                WalletBalance = walletDict.TryGetValue(u.UserId, out var balance) ? balance : 0m
+            })
+            .OrderByDescending(u => u.WalletBalance)
+            .ToList();
+
+            var totalRecords = detailUsers.Count;
+            var pagedUsers = detailUsers
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            return new PaginationResult<IEnumerable<DetailDashboardClubManagerResponse>>(pagedUsers, totalRecords, page, pageSize);
         }
 
         private async Task<Dictionary<Guid, decimal>> BuildCourseSpendByUserIdAsync()

@@ -1,4 +1,4 @@
-﻿using Droniverse.Community.Application.DTO.Response;
+using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Domain.Enums;
 
@@ -55,6 +55,11 @@ namespace Droniverse.Community.Application.IService
         /// Lấy toàn bộ user trong hệ thống kèm tổng tiền đã dùng để mua khóa học.
         /// </summary>
         Task<PaginationResult<IEnumerable<DetailDashboardUserResponse>>> GetDetailDashboardUsers(int page = 1, int pageSize = 10);
+
+        /// <summary>
+        /// Lấy toàn bộ club manager trong hệ thống kèm số dư ví.
+        /// </summary>
+        Task<PaginationResult<IEnumerable<DetailDashboardClubManagerResponse>>> GetDetailDashboardClubManagers(int page = 1, int pageSize = 10);
 
         // System Operations Management
         Task<SystemTransactionLogsResponse> GetSystemTransactionLogs(
