@@ -9,7 +9,6 @@ namespace Droniverse.Identity.API.Controllers;
 
 [ApiController]
 [Route("identity/system-policies")]
-[Authorize]
 public class SysPolicyController : ControllerBase
 {
     private readonly ISysPolicyService _sysPolicyService;
@@ -20,7 +19,6 @@ public class SysPolicyController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = Roles.AllRoles)]
     public async Task<IActionResult> GetAll([FromQuery] SysPolicySearchRequest searchRequest)
     {
         searchRequest ??= new SysPolicySearchRequest();
