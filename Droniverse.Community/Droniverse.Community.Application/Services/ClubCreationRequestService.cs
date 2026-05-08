@@ -476,7 +476,7 @@ namespace Droniverse.Community.Application.Services
             if (request == null)
                 throw new KeyNotFoundException($"Club creation request with ID {id} not found.");
 
-            // Handle imageMedia: if provided, upload and update ImageUrl
+            // Handle imageMedia: if provided, upload and update ImageUrl; otherwise keep existing
             string imageUrl = request.ImageUrl; // Keep existing URL by default
             if (dto.ImageMedia.HasValue)
             {
@@ -493,6 +493,7 @@ namespace Droniverse.Community.Application.Services
                 // Set imageUrl from media (UploadMedia updates media.Url)
                 imageUrl = imageMedia.Url;
             }
+            // else: imageMedia is null, keep existing imageUrl
 
             // Update basic information using domain method
             request.UpdateInfo(

@@ -195,14 +195,15 @@ internal class ClubService : IClubService
             if (media == null)
                 throw new KeyNotFoundException($"Media with ID {clubUpdateDto.ImageMedia.Value} not found.");
 
-            var clubFolder = $"droniverse/Club/{club.NameEN}";
+            var clubFolder = $"droniverse/Club/{club.ClubID}"; // Use ClubID instead of NameEN
             await _mediaService.UploadMedia(media, clubFolder);
 
             // set ImageUrl from media (UploadMedia cập nhật media.Url)
             club.ImageUrl = media.Url;
         }
+        // else: imageMedia is null, keep existing ImageUrl
 
-        // Map/update other fields from DTO (avoid overwriting ImageUrl)
+        // Map/update other fields from DTO (avoid overwriting ImageUrl if imageMedia not provided)
         club.NameVN = clubUpdateDto.NameVN;
         club.NameEN = clubUpdateDto.NameEN;
         club.LimitParticipation = clubUpdateDto.LimitParticipation;
