@@ -1,8 +1,9 @@
-using Droniverse.Identity.Application.DTO.Request;
+﻿using Droniverse.Identity.Application.DTO.Request;
 using Droniverse.Identity.Application.IService;
 using Droniverse.Identity.Application.DTO.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Droniverse.Shared.Constants;
 
 namespace Droniverse.Identity.API.Controllers;
 
@@ -19,6 +20,7 @@ public class SysPolicyController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = Roles.AllRoles)]
     public async Task<IActionResult> GetAll([FromQuery] SysPolicySearchRequest searchRequest)
     {
         searchRequest ??= new SysPolicySearchRequest();
@@ -27,6 +29,7 @@ public class SysPolicyController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [Authorize(Roles = Roles.AllRoles)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var policy = await _sysPolicyService.GetSysPolicyById(id);
@@ -34,6 +37,7 @@ public class SysPolicyController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> Create(SysPolicyCreateDto dto)
     {
         var created = await _sysPolicyService.AddSysPolicy(dto);
@@ -41,6 +45,7 @@ public class SysPolicyController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> Update(Guid id, SysPolicyUpdateDto dto)
     {
         var updated = await _sysPolicyService.UpdateSysPolicy(id, dto);
@@ -48,6 +53,7 @@ public class SysPolicyController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = Roles.AdminOrSystemManager)]
     public async Task<IActionResult> Delete(Guid id)
     {
         var deleted = await _sysPolicyService.DeleteSysPolicy(id);

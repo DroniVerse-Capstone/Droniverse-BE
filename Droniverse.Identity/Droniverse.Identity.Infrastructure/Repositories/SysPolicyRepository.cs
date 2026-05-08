@@ -25,10 +25,10 @@ internal class SysPolicyRepository : Repository<SysPolicy>, ISysPolicyRepository
             query = query.Where(s => s.Type == spec.Type.Value);
         }
 
-        if (!string.IsNullOrWhiteSpace(spec?.Title))
+        if (!string.IsNullOrWhiteSpace(spec?.Keyword))
         {
-            var term = spec.Title.Trim();
-            query = query.Where(s => s.Title.Contains(term));
+            var term = spec.Keyword.Trim();
+            query = query.Where(s => s.TitleEN.Contains(term) || s.TitleVN.Contains(term));
         }
 
         query = query.OrderByDescending(s => s.EffectiveDate);
