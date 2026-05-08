@@ -6,6 +6,7 @@ using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Shared.DTOs.Response;
+using Droniverse.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -75,6 +76,49 @@ public class MediaService : IMediaService
         {
             _logger.LogError(ex, $"Error occurred while getting media by ID: {id}");
             return null;
+        }
+    }
+
+    public async Task<Media?> GetFullMedia(Guid id)
+    {
+        try
+        {
+            if (id == Guid.Empty)
+                throw new ArgumentException("Media ID cannot be empty.", nameof(id));
+
+            var media = await _unitOfWork.Medias.GetByCondition(
+                m => m.MediaID == id,
+                q => q.Include(m => m.MediaType));
+
+            return media;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error occurred while getting full media by ID: {id}");
+            return null;
+        }
+    }
+
+    public async Task<MediaResponseDto> GetMediaByUrl(string imageUrl)
+    {
+        if (string.IsNullOrWhiteSpace(imageUrl))
+            throw new ArgumentException("Image URL cannot be empty.", nameof(imageUrl));
+
+        try
+        {
+            var media = await _unitOfWork.Medias.GetByCondition(
+                m => m.Url == imageUrl,
+                q => q.Include(m => m.MediaType));
+
+            if (media == null)
+                throw new NotFoundException($"Không tìm thấy media với image url: {imageUrl}");
+
+            return _mapper.Map<MediaResponseDto>(media);
+        }
+        catch (Exception ex) when (ex is not NotFoundException && ex is not ArgumentException)
+        {
+            _logger.LogError(ex, $"Error occurred while getting media by image url: {imageUrl}");
+            throw;
         }
     }
 
