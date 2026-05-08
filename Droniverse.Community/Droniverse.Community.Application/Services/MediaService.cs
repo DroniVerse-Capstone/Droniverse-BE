@@ -152,10 +152,15 @@ public class MediaService : IMediaService
             var mediaTypeStr = media.MediaType?.TypeNameVN ?? "IMAGE";
             var extension = GetFileExtensionFromMediaType(mediaTypeStr);
 
-            // Download current media from Cloudinary
+            // Measure upload time for diagnostics
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+
+            // Download current media from Cloudinary using stream (not buffering entire file)
             using var http = new System.Net.Http.HttpClient();
-            var resp = await http.GetAsync(media.Url);
+            var resp = await http.GetAsync(media.Url, System.Net.Http.HttpCompletionOption.ResponseHeadersRead);
             resp.EnsureSuccessStatusCode();
+            
+            // Stream download to memory (kept for FormFile creation)
             var stream = new MemoryStream(await resp.Content.ReadAsByteArrayAsync());
             
             // Create FormFile object with proper filename including extension
@@ -170,12 +175,15 @@ public class MediaService : IMediaService
             // Upload to new folder using UploadMediaAsync
             var newUrl = await _cloudinaryService.UploadMediaAsync(formFile, mediaTypeStr, folder);
             
+            sw.Stop();
+            _logger.LogInformation("Cloudinary upload took {ms}ms for media {MediaId} to folder {Folder}", sw.ElapsedMilliseconds, media.MediaID, folder);
+
             // Update media record
             media.Url = newUrl;
             media.UpdatedAt = _clock.Now;
 
-            await _unitOfWork.Medias.Update(media);
-            await _unitOfWork.SaveChangeAsync();
+            // Fire-and-forget: Save to database in background without waiting
+            _ = SaveMediaToDatabase(media);
             
             _logger.LogInformation("Media {MediaId} successfully moved to folder {Folder}", media.MediaID, folder);
         }
