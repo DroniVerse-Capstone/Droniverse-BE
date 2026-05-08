@@ -194,6 +194,7 @@ public class LessonService : ILessonService
                 }
                 break;
             case LessonType.PHYSIC:
+            case LessonType.REAL_PHYSIC:
             case LessonType.LAB_PHYSIC:
                 var webSimulator = await _unitOfWork.WebSimulators.GetByIdAsync(lesson.ReferenceID);
                 if (webSimulator != null)
@@ -223,7 +224,7 @@ public class LessonService : ILessonService
         var theoryIds = GetReferenceIdsByType(lessons, LessonType.THEORY);
         var quizIds = GetReferenceIdsByType(lessons, LessonType.QUIZ);
         var labIds = GetReferenceIdsByType(lessons, LessonType.LAB);
-        var webSimulatorIds = GetReferenceIdsByTypes(lessons, LessonType.PHYSIC, LessonType.LAB_PHYSIC);
+        var webSimulatorIds = GetReferenceIdsByTypes(lessons, LessonType.PHYSIC, LessonType.REAL_PHYSIC, LessonType.LAB_PHYSIC);
         var vrSimulatorIds = GetReferenceIdsByType(lessons, LessonType.VR);
         var assignmentIds = GetReferenceIdsByType(lessons, LessonType.ASSIGNMENT);
 
@@ -319,6 +320,7 @@ public class LessonService : ILessonService
                 }
                 break;
             case LessonType.PHYSIC:
+            case LessonType.REAL_PHYSIC:
             case LessonType.LAB_PHYSIC:
                 if (lookups.WebSimulators.TryGetValue(lesson.ReferenceID, out var webSimulator))
                 {
@@ -526,6 +528,7 @@ public class LessonService : ILessonService
                     throw new ValidationException("Chỉ có thể thêm bài lab ở trạng thái Active vào lesson.");
                 break;
             case LessonType.PHYSIC:
+            case LessonType.REAL_PHYSIC:
             case LessonType.LAB_PHYSIC:
                 if (await _unitOfWork.WebSimulators.GetByIdAsync(referenceId) == null)
                     throw new ValidationException("Không tìm thấy tham chiếu web simulator.");

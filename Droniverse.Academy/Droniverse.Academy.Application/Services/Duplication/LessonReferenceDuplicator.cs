@@ -30,6 +30,7 @@ public class LessonReferenceDuplicator : ILessonReferenceDuplicator
             LessonType.QUIZ => await _quizDuplicator.DuplicateAsync(sourceLesson.ReferenceID, context),
             LessonType.LAB => sourceLesson.ReferenceID,
             LessonType.PHYSIC => sourceLesson.ReferenceID,
+            LessonType.REAL_PHYSIC => sourceLesson.ReferenceID,
             LessonType.LAB_PHYSIC => sourceLesson.ReferenceID,
             LessonType.VR => sourceLesson.ReferenceID,
             LessonType.ASSIGNMENT => sourceLesson.ReferenceID,

@@ -323,7 +323,7 @@ public class WebSimulatorService : IWebSimulatorService
     {
         var lessons = await _unitOfWork.Lessons.GetAllAsync(
             filter: l => l.ReferenceID == webSimulatorId
-                && (l.Type == LessonType.PHYSIC || l.Type == LessonType.LAB_PHYSIC),
+                && (l.Type == LessonType.PHYSIC || l.Type == LessonType.REAL_PHYSIC || l.Type == LessonType.LAB_PHYSIC),
             pageIndex: 1,
             pageSize: int.MaxValue);
 
@@ -336,7 +336,7 @@ public class WebSimulatorService : IWebSimulatorService
         {
             WebSimulatorType.PHYSIC => LessonType.PHYSIC,
             WebSimulatorType.LAB_PHYSIC => LessonType.LAB_PHYSIC,
-            WebSimulatorType.REAL_PHYSIC => LessonType.PHYSIC,
+            WebSimulatorType.REAL_PHYSIC => LessonType.REAL_PHYSIC,
             _ => throw new ValidationException("Loại web simulator không hợp lệ.")
         };
     }

@@ -364,7 +364,7 @@ public class LearningService : ILearningService
 
     private static void EnsureLessonCanBeCompletedInMode(Lesson lesson, CompletionMode mode)
     {
-        if (mode == CompletionMode.Direct && lesson.Type is not (LessonType.PHYSIC or LessonType.THEORY))
+        if (mode == CompletionMode.Direct && lesson.Type is not (LessonType.PHYSIC or LessonType.REAL_PHYSIC or LessonType.THEORY))
             throw new ForbiddenException("Chỉ lesson theory, physic mới có thể hoàn thành trực tiếp.");
 
         if (mode == CompletionMode.SimulatorSubmit && lesson.Type is not (LessonType.LAB_PHYSIC or LessonType.VR))
