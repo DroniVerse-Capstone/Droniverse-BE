@@ -31,6 +31,7 @@ namespace Droniverse.Academy.API.Controllers
         /// <returns>Thông tin khóa học vừa được tạo.</returns>
         // POST academy/courses
         [HttpPost]
+
         [ProducesResponseType(typeof(SuccessResponse<CourseDetailResponseDTO>), StatusCodes.Status201Created)]
         public async Task<IActionResult> CreateCourse([FromBody] CreateCourseRequest request)
         {
