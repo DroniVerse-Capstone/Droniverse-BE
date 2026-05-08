@@ -51,10 +51,10 @@ public class CloudinaryService : ICloudinaryService
         if (!allowedExtensions.Contains(fileExtension))
             throw new ArgumentException($"Invalid file type. Allowed: {string.Join(", ", allowedExtensions)}");
 
-        // Validate file size (10MB)
-        if (file.Length > 10 * 1024 * 1024)
+        // Validate file size (20MB)
+        if (file.Length > 20 * 1024 * 1024)
         {
-            throw new ArgumentException("File size exceeds 10MB limit");
+            throw new ArgumentException("File size exceeds 20MB limit");
         }
 
         await using var stream = file.OpenReadStream();
@@ -90,10 +90,10 @@ public class CloudinaryService : ICloudinaryService
         var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
 
         if (!allowedExtensions.Contains(fileExtension))
-            throw new ArgumentException($"Invalid file type. Allowed: {string.Join(", ", allowedExtensions)}");
+            throw new ArgumentException($"Invalid file type '{fileExtension}' for file '{file.FileName}'. Allowed: {string.Join(", ", allowedExtensions)}");
 
-        if (file.Length > 10 * 1024 * 1024)
-            throw new ArgumentException("File size exceeds 10MB limit");
+        if (file.Length > 20 * 1024 * 1024)
+            throw new ArgumentException("File size exceeds 20MB limit");
 
         await using var stream = file.OpenReadStream();
 
@@ -128,8 +128,8 @@ public class CloudinaryService : ICloudinaryService
         if (!allowedExtensions.Contains(fileExtension))
             throw new ArgumentException($"Invalid file type. Allowed: {string.Join(", ", allowedExtensions)}");
 
-        if (content.Length > 10 * 1024 * 1024)
-            throw new ArgumentException("File size exceeds 10MB limit");
+        if (content.Length > 20 * 1024 * 1024)
+            throw new ArgumentException("File size exceeds 20MB limit");
 
         await using var stream = new MemoryStream(content);
 
