@@ -8,6 +8,7 @@ using Droniverse.Community.Domain.Entities.Mongo;
 using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Community.Domain.IRepository.Mongo;
+using AutoMapper;
 using Droniverse.Shared.DTOs;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,6 +20,7 @@ namespace Droniverse.Community.Application.Services
         private readonly IOrderRepository _orderRepository;
         private readonly AcademyMicroserviceClient _academyMicroserviceClient;
         private readonly IdentityMicroserviceClient _identityMicroserviceClient;
+        private readonly IMapper _mapper;
         private readonly IClock _clock;
 
         public DashboardService(
@@ -26,12 +28,14 @@ namespace Droniverse.Community.Application.Services
             IOrderRepository orderRepository,
             AcademyMicroserviceClient academyMicroserviceClient,
             IdentityMicroserviceClient identityMicroserviceClient,
+            IMapper mapper,
             IClock clock)
         {
             _unitOfWork = unitOfWork;
             _orderRepository = orderRepository;
             _academyMicroserviceClient = academyMicroserviceClient;
             _identityMicroserviceClient = identityMicroserviceClient;
+            _mapper = mapper;
             _clock = clock;
         }
 
@@ -1023,6 +1027,56 @@ namespace Droniverse.Community.Application.Services
                 Buyers = buyers,
                 TotalSystemRevenue = totalSystemRevenue
             };
+        }
+
+        public async Task<PaginationResult<IEnumerable<DetailDashboardUserResponse>>> GetDetailDashboardUsers(int page = 1, int pageSize = 10)
+        {
+            if (page < 1)
+                page = 1;
+
+            if (pageSize <= 0)
+                pageSize = 10;
+
+            var users = await _identityMicroserviceClient.GetListUserByRole("CLUB_MEMBER");
+            if (users == null || !users.Any())
+                return new PaginationResult<IEnumerable<DetailDashboardUserResponse>>(Enumerable.Empty<DetailDashboardUserResponse>(), 0, page, pageSize);
+
+            var courseSpendByUserId = await BuildCourseSpendByUserIdAsync();
+
+            var detailUsers = _mapper.Map<List<DetailDashboardUserResponse>>(users);
+            foreach (var user in detailUsers)
+            {
+                user.TotalSpent = courseSpendByUserId.TryGetValue(user.UserId, out var totalSpent)
+                    ? totalSpent
+                    : 0m;
+            }
+
+            var orderedUsers = detailUsers
+                .OrderByDescending(user => user.TotalSpent)
+                .ThenBy(user => user.FullName)
+                .ToList();
+
+            var totalRecords = orderedUsers.Count;
+            var pagedUsers = orderedUsers
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            return new PaginationResult<IEnumerable<DetailDashboardUserResponse>>(pagedUsers, totalRecords, page, pageSize);
+        }
+
+        private async Task<Dictionary<Guid, decimal>> BuildCourseSpendByUserIdAsync()
+        {
+            var allOrders = await _orderRepository.GetAllSuccessfulOrders();
+            if (allOrders == null || !allOrders.Any())
+                return [];
+
+            return allOrders
+                .Where(order => order.OrderType == Domain.Enums.OrderType.USER_PURCHASE
+                    && order.Item != null
+                    && order.Item.Type == ProductType.COURSE)
+                .GroupBy(order => order.UserID)
+                .ToDictionary(group => group.Key, group => group.Sum(order => order.TotalAmount));
         }
 
         // ===================== System Operations Management =====================

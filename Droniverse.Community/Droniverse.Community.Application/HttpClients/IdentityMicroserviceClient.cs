@@ -403,6 +403,58 @@ public class IdentityMicroserviceClient
         }
     }
 
+    /// <summary>
+    /// Lấy danh sách user theo role từ Identity service - dùng cho giao tiếp nội bộ service
+    /// </summary>
+    /// <param name="roleName">Tên của role cần lọc (vd: ADMIN, CLUB_MANAGER, CLUB_MEMBER)</param>
+    /// <returns>Danh sách SimpleUserReponse chứa thông tin cơ bản của user</returns>
+    public async Task<IEnumerable<SimpleUserReponse>> GetListUserByRole(string roleName)
+    {
+        if (string.IsNullOrWhiteSpace(roleName))
+            throw new ArgumentException("Role name cannot be empty", nameof(roleName));
+
+        try
+        {
+            var query = $"users/by-role?roleName={Uri.EscapeDataString(roleName)}";
+            var response = await _httpClient.GetAsync(BuildIdentityPath(query));
+
+            if (!response.IsSuccessStatusCode)
+            {
+                if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                {
+                    _logger.LogError("Identity service unavailable (get users by role).");
+                    throw new HttpRequestException(
+                        "Identity service unavailable",
+                        null,
+                        System.Net.HttpStatusCode.ServiceUnavailable);
+                }
+
+                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    _logger.LogWarning($"Bad request when calling get users by role [{roleName}]");
+                    throw new HttpRequestException(
+                        "Bad request when calling Identity get users by role API",
+                        null,
+                        System.Net.HttpStatusCode.BadRequest);
+                }
+
+                _logger.LogWarning("Failed to get users by role [{RoleName}], status: {StatusCode}", roleName, response.StatusCode);
+                return [];
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<IEnumerable<SimpleUserReponse>>(JsonOptions);
+            return result ?? [];
+        }
+        catch (HttpRequestException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting users by role [{RoleName}] from Identity service", roleName);
+            return [];
+        }
+    }
     private string BuildIdentityPath(string relativePath)
     {
         return $"{GetEndpoint().TrimEnd('/')}/{relativePath.TrimStart('/')}";

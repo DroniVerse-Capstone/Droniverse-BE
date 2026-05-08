@@ -385,4 +385,44 @@ internal class UserService : IUserService
             Items = users
         };
     }
+
+    public async Task<IEnumerable<SimpleUserReponse>> GetUsersByRole(string roleName)
+    {
+        if (string.IsNullOrWhiteSpace(roleName))
+            throw new ArgumentException("Role name cannot be empty", nameof(roleName));
+
+        // Query accounts by role name
+        IEnumerable<Account> accounts = await _unitOfWork.Accounts
+            .GetManyByCondition(a => a.Role.RoleName == roleName);
+
+        if (!accounts.Any())
+            return [];
+
+        // Get all user IDs to batch fetch user info
+        var userIds = accounts.Select(a => a.UserID).ToList();
+        var userInfos = await _unitOfWork.UserInfos
+            .GetManyByCondition(u => userIds.Contains(u.UserID));
+
+        // Build a dictionary for quick lookup
+        var userInfoDict = userInfos.ToDictionary(u => u.UserID);
+
+        // Map to SimpleUserReponse
+        var simpleUsers = accounts.Select(account =>
+        {
+            userInfoDict.TryGetValue(account.UserID, out var userInfo);
+
+            return new SimpleUserReponse
+            {
+                UserId = account.UserID,
+                FullName = string.IsNullOrWhiteSpace(userInfo?.FirstName) && string.IsNullOrWhiteSpace(userInfo?.LastName)
+                    ? account.Username
+                    : $"{userInfo?.FirstName} {userInfo?.LastName}".Trim(),
+                Email = account.Email,
+                AvatarUrl = userInfo?.ImageUrl
+            };
+        }).ToList();
+
+        return simpleUsers;
+    }
 }
+

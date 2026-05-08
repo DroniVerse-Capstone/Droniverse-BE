@@ -25,5 +25,6 @@ public interface IUserService
     Task<IEnumerable<UserResponse>> GetUsersByIds(IEnumerable<Guid> userIds);
     Task<IEnumerable<Guid>> GetUsersByUserInfo(UserInfoSearchRequest request);
     Task<SearchUsersWithPaginationResponse> SearchUsersWithPagination(SearchUsersWithPaginationRequest request);
+    Task<IEnumerable<SimpleUserReponse>> GetUsersByRole(string roleName);
 }
 

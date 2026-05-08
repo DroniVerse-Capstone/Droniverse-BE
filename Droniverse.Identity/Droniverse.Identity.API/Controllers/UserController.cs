@@ -194,5 +194,17 @@ namespace Droniverse.Identity.API.Controllers
             var result = await _userService.SearchUsersWithPagination(request);
             return Ok(result);
         }
+
+        /// <summary>
+        /// Dùng cho giao tiếp giữa các service - Lấy danh sách user theo role
+        /// </summary>
+        /// <param name="roleName">Tên của role cần lọc (vd: ADMIN, CLUB_MANAGER, CLUB_MEMBER)</param>
+        /// <returns>Danh sách SimpleUserReponse chứa thông tin cơ bản của user</returns>
+        [HttpGet("by-role")]
+        public async Task<IActionResult> GetUsersByRole([FromQuery] string roleName)
+        {
+            var users = await _userService.GetUsersByRole(roleName);
+            return Ok(users);
+        }
     }
 }
