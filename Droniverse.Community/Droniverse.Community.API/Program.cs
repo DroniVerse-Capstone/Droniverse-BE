@@ -5,6 +5,7 @@ using Droniverse.Community.Infrastructure;
 using Droniverse.Shared;
 using Droniverse.Shared.Settings;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -46,6 +47,12 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
         options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.Never;
     });
+
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MemoryBufferThreshold = 5 * 1024 * 1024;
+    options.MultipartBodyLengthLimit = 20 * 1024 * 1024;
+});
 
 // Cho phép serialize Guid dưới dạng string trong MongoDB
 BsonSerializer.RegisterSerializer(new GuidSerializer(BsonType.String));
