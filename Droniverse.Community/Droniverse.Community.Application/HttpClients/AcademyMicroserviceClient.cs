@@ -148,7 +148,7 @@ public class AcademyMicroserviceClient
     public async Task LimitUserAccessAsync(Guid userId)
     {
         if (userId == Guid.Empty)
-            throw new ValidationException("UserId không hợp lệ.");
+            throw new Droniverse.Shared.Exceptions.ValidationException("UserId không hợp lệ.");
 
         var serviceToken = await GetValidServiceTokenAsync();
 

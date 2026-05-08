@@ -475,6 +475,20 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
+        /// Lấy thông tin rút gọn của một câu lạc bộ theo ID.
+        /// </summary>
+        /// <param name="clubId">ID của câu lạc bộ</param>
+        /// <returns>Thông tin rút gọn của câu lạc bộ.</returns>
+        [HttpGet("{clubId:guid}/mini")]
+        [ProducesResponseType(typeof(ClubMiniResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<ClubMiniResponseDto>> GetClubMiniById(Guid clubId)
+        {
+            var result = await _clubService.GetClubMiniById(clubId);
+            return Ok(result);
+        }
+
+        /// <summary>
         /// API để call chéo service 
         /// </summary>
         /// <param name="clubId">ID của câu lạc bộ</param>

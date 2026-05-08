@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace Droniverse.Academy.Application.DTO.Response;
 
@@ -11,4 +11,6 @@ public class CourseVersionMiniResponseDTO
     public string TitleEN { get; set; } = string.Empty;
 
     public int Version { get; set; }
+
+    public string? ImageUrl { get; set; }
 }

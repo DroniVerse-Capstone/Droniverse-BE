@@ -355,6 +355,28 @@ internal class ClubService : IClubService
             .ToList();
     }
 
+    public async Task<ClubMiniResponseDto> GetClubMiniById(Guid clubId)
+    {
+        if (clubId == Guid.Empty)
+            throw new ArgumentException("ClubId không hợp lệ.");
+
+        var club = await _unitOfWork.Clubs
+            .GetManyByConditionAsQueryable(c => c.ClubID == clubId, q => q.AsNoTracking())
+            .Select(c => new ClubMiniResponseDto
+            {
+                ClubID = c.ClubID,
+                NameVN = c.NameVN,
+                NameEN = c.NameEN,
+                ImageUrl = c.ImageUrl
+            })
+            .FirstOrDefaultAsync();
+
+        if (club == null)
+            throw new KeyNotFoundException("Không tìm thấy câu lạc bộ");
+
+        return club;
+    }
+
     public async Task<PaginationResult<IEnumerable<GetParticipantsResponse>>> GetClubParcitipations(Guid clubID, ParticipationSearchRequest searchRequest)
     {
         searchRequest ??= new ParticipationSearchRequest();
