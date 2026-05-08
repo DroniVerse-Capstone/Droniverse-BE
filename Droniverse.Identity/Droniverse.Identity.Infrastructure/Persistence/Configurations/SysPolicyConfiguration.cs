@@ -25,10 +25,16 @@ public class SysPolicyConfiguration : IEntityTypeConfiguration<SysPolicy>
             .HasMaxLength(20)
             .IsRequired()
             .HasConversion<string>();
-        builder.Property(sp => sp.Title)
+        builder.Property(sp => sp.TitleEN)
             .HasMaxLength(255)
             .IsRequired();
-        builder.Property(sp => sp.Content)
+        builder.Property(sp => sp.TitleVN)
+            .HasMaxLength(255)
+            .IsRequired();
+        builder.Property(sp => sp.ContentEN)
+            .HasColumnType("text")
+            .IsRequired();
+        builder.Property(sp => sp.ContentVN)
             .HasColumnType("text")
             .IsRequired();
         builder.Property(sp => sp.EffectiveDate)

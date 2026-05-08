@@ -33,8 +33,10 @@ internal class SysPolicyService : ISysPolicyService
         var mapped = paged.Data.Select(p => new SysPolicyResponse(
             p.SysPolicyID,
             p.Type,
-            p.Title,
-            p.Content,
+            p.TitleEN,
+            p.TitleVN,
+            p.ContentEN,
+            p.ContentVN,
             p.EffectiveDate,
             p.CreatedAt,
             p.CreatedBy
@@ -52,8 +54,10 @@ internal class SysPolicyService : ISysPolicyService
         return new SysPolicyResponse(
             policy.SysPolicyID,
             policy.Type,
-            policy.Title,
-            policy.Content,
+            policy.TitleEN,
+            policy.TitleVN,
+            policy.ContentEN,
+            policy.ContentVN,
             policy.EffectiveDate,
             policy.CreatedAt,
             policy.CreatedBy
@@ -69,8 +73,10 @@ internal class SysPolicyService : ISysPolicyService
         {
             SysPolicyID = Guid.NewGuid(),
             Type = dto.Type,
-            Title = dto.Title,
-            Content = dto.Content,
+            TitleEN = dto.TitleEN,
+            TitleVN = dto.TitleVN,
+            ContentEN = dto.ContentEN,
+            ContentVN = dto.ContentVN,
             EffectiveDate = dto.EffectiveDate,
             CreatedAt = now,
             CreatedBy = userId,
@@ -84,8 +90,10 @@ internal class SysPolicyService : ISysPolicyService
         return new SysPolicyResponse(
             entity.SysPolicyID,
             entity.Type,
-            entity.Title,
-            entity.Content,
+            entity.TitleEN,
+            entity.TitleVN,
+            entity.ContentEN,
+            entity.ContentVN,
             entity.EffectiveDate,
             entity.CreatedAt,
             entity.CreatedBy
@@ -99,8 +107,10 @@ internal class SysPolicyService : ISysPolicyService
             throw new Exception("SysPolicy not found.");
 
         existing.Type = dto.Type;
-        existing.Title = dto.Title;
-        existing.Content = dto.Content;
+        existing.TitleEN = dto.TitleEN;
+        existing.TitleVN = dto.TitleVN;
+        existing.ContentEN = dto.ContentEN;
+        existing.ContentVN = dto.ContentVN;
         existing.EffectiveDate = dto.EffectiveDate;
         existing.UpdatedAt = _clock.Now;
         existing.UpdatedBy = _currentUserService.UserId;
@@ -111,8 +121,10 @@ internal class SysPolicyService : ISysPolicyService
         return new SysPolicyResponse(
             existing.SysPolicyID,
             existing.Type,
-            existing.Title,
-            existing.Content,
+            existing.TitleEN,
+            existing.TitleVN,
+            existing.ContentEN,
+            existing.ContentVN,
             existing.EffectiveDate,
             existing.CreatedAt,
             existing.CreatedBy

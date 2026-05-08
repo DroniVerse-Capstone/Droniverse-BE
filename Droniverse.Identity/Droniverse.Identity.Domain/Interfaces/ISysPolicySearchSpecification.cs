@@ -5,5 +5,5 @@ namespace Droniverse.Identity.Domain.Interfaces;
 public interface ISysPolicySearchSpecification
 {
     SysPolicyType? Type { get; }
-    string? Title { get; }
+    string? Keyword { get; }
 }

@@ -6,8 +6,10 @@ namespace Droniverse.Identity.Application.DTO.Response;
 public record SysPolicyResponse(
     Guid SysPolicyID,
     SysPolicyType Type,
-    string Title,
-    string Content,
+    string TitleEN,
+    string TitleVN,
+    string ContentEN,
+    string ContentVN,
     DateTime EffectiveDate,
     DateTime CreatedAt,
     Guid CreatedBy

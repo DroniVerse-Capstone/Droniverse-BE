@@ -8,5 +8,5 @@ namespace Droniverse.Identity.Application.DTO.Request;
 public class SysPolicySearchRequest : SearchRequest, ISysPolicySearchSpecification
 {
     public SysPolicyType? Type { get; set; }
-    public string? Title { get; set; }
+    public string? Keyword { get; set; }
 }
