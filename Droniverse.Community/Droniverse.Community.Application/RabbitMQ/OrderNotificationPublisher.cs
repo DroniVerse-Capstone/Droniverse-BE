@@ -57,6 +57,12 @@ internal class OrderNotificationPublisher : IOrderNotificationPublisher, IDispos
                 Port = port
             };
             _connection = factory.CreateConnection();
+            _connection.ConnectionBlocked += (_, args) =>
+                _logger.LogWarning("RabbitMQ connection blocked: {Reason}", args.Reason);
+            _connection.ConnectionUnblocked += (_, _) =>
+                _logger.LogInformation("RabbitMQ connection unblocked");
+            _connection.CallbackException += (_, args) =>
+                _logger.LogError(args.Exception, "RabbitMQ connection callback exception");
             _channel = _connection.CreateModel();
         }
         catch (Exception ex)
@@ -96,6 +102,7 @@ internal class OrderNotificationPublisher : IOrderNotificationPublisher, IDispos
         catch (Exception ex)
         {
             _logger.LogError(ex, "Publish failed");
+            throw;
         }
     }
 
