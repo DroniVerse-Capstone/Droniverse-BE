@@ -1,6 +1,7 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Domain.Entities;
+using Droniverse.Shared.DTOs;
 using System.Linq;
 
 namespace Droniverse.Academy.Application.Mapper;
@@ -11,7 +12,8 @@ public class CourseMappingProfile : Profile
     {
         CreateMap<ProductMiniResponseDTO, ProductMiniResponseDTO>();
         CreateMap<Level, LevelMiniResponse>();
-        CreateMap<CourseVersion, CourseVersionMiniResponseDTO>();
+        // Shared DTO (dùng cho service-to-service contract, bulk endpoint)
+        CreateMap<CourseVersion, Droniverse.Shared.DTOs.CourseVersionMiniResponseDTO>();
 
         CreateMap<Course, CourseMiniResponse>()
             .ForMember(dest => dest.Level,

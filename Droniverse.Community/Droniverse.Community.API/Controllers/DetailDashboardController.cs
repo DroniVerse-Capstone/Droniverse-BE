@@ -1,6 +1,8 @@
 ﻿using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
+using Droniverse.Community.Application.IService.Mongo;
+using Droniverse.Community.Application.DTO.Response.Mongo;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
@@ -18,11 +20,13 @@ public class DetailDashboardController : ControllerBase
 {
     private readonly IDashboardService _dashboardService;
     private readonly IdentityMicroserviceClient _client;
+    private readonly IOrderService _orderService;
 
-    public DetailDashboardController(IDashboardService dashboardService, IdentityMicroserviceClient client)
+    public DetailDashboardController(IDashboardService dashboardService, IdentityMicroserviceClient client, IOrderService orderService)
     {
         _dashboardService = dashboardService;
         _client = client;
+        _orderService = orderService;
     }
 
     /// <summary>
@@ -45,6 +49,18 @@ public class DetailDashboardController : ControllerBase
     {
         var data = await _dashboardService.GetDetailDashboardUsers(page, pageSize);
         return SuccessResponse<PaginationResult<IEnumerable<DetailDashboardUserResponse>>>.Create(data, "Lấy danh sách user chi tiêu khóa học thành công!");
+    }
+
+    /// <summary>
+    /// Lấy chi tiết đơn hàng của một user (dành cho dashboard chi tiết).
+    /// </summary>
+    /// <param name="userId">ID user cần lấy chi tiết đơn hàng.</param>
+    [HttpGet("users/{userId:guid}/orders")]
+    [ProducesResponseType(typeof(SuccessResponse<IEnumerable<UserOrderDetailResponseDto>>), StatusCodes.Status200OK)]
+    public async Task<ApiResponse> GetUserOrderDetails(Guid userId)
+    {
+        var details = await _orderService.GetOrdersDetailByUserId(userId);
+        return SuccessResponse<IEnumerable<UserOrderDetailResponseDto>>.Create(details, "Lấy chi tiết đơn hàng user thành công.");
     }
 
 }

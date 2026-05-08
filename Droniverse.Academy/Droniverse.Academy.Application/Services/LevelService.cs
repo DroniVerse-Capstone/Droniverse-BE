@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.IService;
@@ -69,7 +69,7 @@ namespace Droniverse.Academy.Application.Services
                     {
                         CourseID = course!.CourseID,
                         Level = course.Level == null ? null : _mapper.Map<LevelMiniResponse>(course.Level),
-                        CurrentVersion = course.CurrentVersion == null ? null : new CourseVersionMiniResponseDTO
+                        CurrentVersion = course.CurrentVersion == null ? null : new Droniverse.Shared.DTOs.CourseVersionMiniResponseDTO
                         {
                             CourseVersionID = course.CurrentVersion.CourseVersionID,
                             TitleVN = course.CurrentVersion.TitleVN,

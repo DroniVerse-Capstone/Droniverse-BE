@@ -1,4 +1,4 @@
-﻿using Droniverse.Academy.Application.DTO.Request;
+using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Shared.DTOs.Response;
@@ -22,4 +22,13 @@ public interface ICourseVersionService
     Task ActivateCourseVersionAsync(Guid courseId, Guid versionId);
 
     Task DeactivateCourseVersionAsync(Guid courseId, Guid versionId);
+
+    /// <summary>
+    /// Lấy danh sách thông tin rút gọn phiên bản khóa học theo nhiều ID.
+    /// Dùng cho service-to-service (Community → Academy).
+    /// Trả về <see cref="Droniverse.Shared.DTOs.CourseVersionMiniResponseDTO"/> để dùng chung giữa các service.
+    /// </summary>
+    Task<IEnumerable<Droniverse.Shared.DTOs.CourseVersionMiniResponseDTO>> GetCourseVersionsBulkAsync(
+        IEnumerable<Guid>? courseIds,
+        CancellationToken cancellationToken = default);
 }

@@ -1,4 +1,4 @@
-﻿using Droniverse.Academy.Application.DTO.Request;
+using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.API.Examples;
 using Droniverse.Academy.API.Enums;
@@ -225,5 +225,24 @@ public class CourseVersionController : ControllerBase
             _logger.LogError(ex, "Vô hiệu hóa phiên bản khóa học thất bại.");
             throw;
         }
+    }
+
+    /// <summary>
+    /// Lấy danh sách thông tin rút gọn phiên bản khóa học theo nhiều ID.
+    /// Dùng cho service-to-service (Community → Academy).
+    /// </summary>
+    /// <param name="courseIds">Danh sách ID khóa học cần lấy version hiện tại.</param>
+    /// <param name="cancellationToken">Token hủy request.</param>
+    /// <returns>Danh sách CourseVersionMiniResponseDTO tương ứng với các khóa học.</returns>
+    // POST /academy/course-versions/bulk
+    [HttpPost("/academy/course-versions/bulk")]
+    [Authorize(Roles = Roles.AllRoles)]
+    [ProducesResponseType(typeof(IEnumerable<Droniverse.Shared.DTOs.CourseVersionMiniResponseDTO>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCourseVersionsBulk(
+        [FromBody] IEnumerable<Guid>? courseIds,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _service.GetCourseVersionsBulkAsync(courseIds, cancellationToken);
+        return Ok(result);
     }
 }

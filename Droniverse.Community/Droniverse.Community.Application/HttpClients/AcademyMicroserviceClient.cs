@@ -1,4 +1,4 @@
-﻿using Droniverse.Community.Application.DTO.Response;
+using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.DTOs.Response;
@@ -1135,6 +1135,63 @@ public class AcademyMicroserviceClient
         {
             _logger.LogError(ex, "Error fetching user level ids for user {UserId}", userId);
             return Enumerable.Empty<Guid>();
+        }
+    }
+
+    /// <summary>
+    /// Lấy danh sách thông tin rút gọn phiên bản khóa học theo nhiều ID từ Academy Microservice.
+    /// </summary>
+    /// <param name="courseIds">Danh sách ID phiên bản khóa học cần lấy.</param>
+    /// <param name="cancellationToken">Token hủy request.</param>
+    /// <returns>Danh sách <see cref="Droniverse.Shared.DTOs.CourseVersionMiniResponseDTO"/> tương ứng.</returns>
+    public async Task<IEnumerable<Droniverse.Shared.DTOs.CourseVersionMiniResponseDTO>> GetCourseVersionsBulkAsync(
+        IEnumerable<Guid>? courseIds,
+        CancellationToken cancellationToken = default)
+    {
+        if (courseIds == null)
+            return [];
+
+        var distinctIds = courseIds
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        if (!distinctIds.Any())
+            return [];
+
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync(
+                BuildAcademyPath("course-versions/bulk"),
+                distinctIds,
+                cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError(
+                    "Academy course-versions/bulk API thất bại. StatusCode: {StatusCode}, Count: {Count}",
+                    response.StatusCode,
+                    distinctIds.Count);
+
+                return [];
+            }
+
+            var courseVersions = await response.Content.ReadFromJsonAsync<IEnumerable<Droniverse.Shared.DTOs.CourseVersionMiniResponseDTO>>(_jsonOptions, cancellationToken);
+
+            return courseVersions ?? [];
+        }
+        catch (TaskCanceledException)
+        {
+            _logger.LogError("Academy course-versions/bulk API timeout. Count: {Count}", distinctIds.Count);
+            return [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Lỗi khi gọi Academy course-versions/bulk API. Count: {Count}",
+                distinctIds.Count);
+
+            return [];
         }
     }
 

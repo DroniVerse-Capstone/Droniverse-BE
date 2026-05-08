@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Droniverse.Academy.Application.Common.Extensions;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
@@ -8,6 +8,7 @@ using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
 using Droniverse.Shared.Constants;
+using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Exceptions;
 using Droniverse.Shared.Services.IServices;
