@@ -112,10 +112,12 @@ public class MediaService : IMediaService
             UpdatedAt = _clock.Now
         };
 
-        // Fire-and-forget: Save to database in background without waiting
-        _ = SaveMediaToDatabase(media);
+        // Save to database synchronously (not fire-and-forget)
+        // This ensures data is persisted before returning response
+        await _unitOfWork.Medias.Add(media);
+        await _unitOfWork.SaveChangeAsync();
 
-        // Return response immediately after Cloudinary upload succeeds
+        // Return response after both Cloudinary upload AND DB save succeeds
         return new MediaResponseDto
         {
             MediaID = media.MediaID,

@@ -188,9 +188,19 @@ jobs:
         if: env.DEPLOY_GATEWAY == 'true'
         run: kubectl -n "$K8S_NAMESPACE" set image deployment/$GATEWAY_DEPLOYMENT $GATEWAY_CONTAINER=$GW
 
+      - name: Set Gateway rollout strategy
+        if: env.DEPLOY_GATEWAY == 'true'
+        run: |
+          kubectl -n "$K8S_NAMESPACE" patch deployment/$GATEWAY_DEPLOYMENT --type merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxUnavailable":1,"maxSurge":0}}}}'
+
       - name: Rollout Academy
         if: env.DEPLOY_ACADEMY == 'true'
         run: kubectl -n "$K8S_NAMESPACE" set image deployment/$ACADEMY_DEPLOYMENT $ACADEMY_CONTAINER=$ACA
+
+      - name: Set Academy rollout strategy
+        if: env.DEPLOY_ACADEMY == 'true'
+        run: |
+          kubectl -n "$K8S_NAMESPACE" patch deployment/$ACADEMY_DEPLOYMENT --type merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxUnavailable":1,"maxSurge":0}}}}'
 
       - name: Set Academy internal service endpoints
         if: env.DEPLOY_ACADEMY == 'true'
@@ -218,6 +228,11 @@ jobs:
             AcademyMicroserviceName=gateway-service \
             AcademyMicroservicePort=80
 
+      - name: Set Community rollout strategy
+        if: env.DEPLOY_COMMUNITY == 'true'
+        run: |
+          kubectl -n "$K8S_NAMESPACE" patch deployment/$COMMUNITY_DEPLOYMENT --type merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxUnavailable":1,"maxSurge":0}}}}'
+
       - name: Set Community environment to Production
         if: env.DEPLOY_COMMUNITY == 'true'
         run: kubectl -n "$K8S_NAMESPACE" set env deployment/$COMMUNITY_DEPLOYMENT ASPNETCORE_ENVIRONMENT=Production
@@ -229,6 +244,11 @@ jobs:
       - name: Rollout Identity
         if: env.DEPLOY_IDENTITY == 'true'
         run: kubectl -n "$K8S_NAMESPACE" set image deployment/$IDENTITY_DEPLOYMENT $IDENTITY_CONTAINER=$IDN
+
+      - name: Set Identity rollout strategy
+        if: env.DEPLOY_IDENTITY == 'true'
+        run: |
+          kubectl -n "$K8S_NAMESPACE" patch deployment/$IDENTITY_DEPLOYMENT --type merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxUnavailable":1,"maxSurge":0}}}}'
 
       - name: Wait for gateway rollout
         if: env.DEPLOY_GATEWAY == 'true'

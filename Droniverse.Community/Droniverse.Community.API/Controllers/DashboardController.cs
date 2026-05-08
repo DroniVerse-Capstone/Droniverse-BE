@@ -46,6 +46,7 @@ namespace Droniverse.Community.API.Controllers
         {
             var data = await _dashboardService.GetRevenueOverviewByClub(clubId);
             return SuccessResponse<RevenueOverviewResponse>.Create(data, "Lấy tổng quan doanh thu câu lạc bộ thành công!");
+        
         }
 
         /// <summary>

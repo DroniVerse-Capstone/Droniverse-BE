@@ -50,8 +50,8 @@ builder.Services.AddControllers()
 
 builder.Services.Configure<FormOptions>(options =>
 {
-    options.MemoryBufferThreshold = 5 * 1024 * 1024;
-    options.MultipartBodyLengthLimit = 20 * 1024 * 1024;
+    options.MemoryBufferThreshold = 100 * 1024 * 1024;  // 100MB - giữ file trong RAM
+    options.MultipartBodyLengthLimit = 500 * 1024 * 1024;  // 500MB - max upload
 });
 
 // Cho phép serialize Guid dưới dạng string trong MongoDB
