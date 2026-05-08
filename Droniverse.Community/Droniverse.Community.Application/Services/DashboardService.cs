@@ -46,20 +46,28 @@ namespace Droniverse.Community.Application.Services
             var startNextMonth = startThisMonth.AddMonths(1);
             var startLastMonth = startThisMonth.AddMonths(-1);
 
-            var aggregate = await _orderRepository.GetRevenueOverviewOrderAggregateByClubId(
-                clubId,
-                startLastMonth,
-                startThisMonth,
-                startNextMonth);
+            var revenueTransactions = await _unitOfWork.Transactions.GetManyByCondition(
+                t => t.ClubID.HasValue
+                    && t.ClubID.Value == clubId
+                    && t.Type == TransactionType.COMMISSION,
+                include: q => q.AsNoTracking());
+
+            var totalRevenue = revenueTransactions.Sum(t => (decimal)t.Amount);
+            var revenueThisMonth = revenueTransactions
+                .Where(t => t.CreatedAt >= startThisMonth && t.CreatedAt < startNextMonth)
+                .Sum(t => (decimal)t.Amount);
+            var revenueLastMonth = revenueTransactions
+                .Where(t => t.CreatedAt >= startLastMonth && t.CreatedAt < startThisMonth)
+                .Sum(t => (decimal)t.Amount);
 
             return new RevenueOverviewResponse
             {
-                TotalExpense = aggregate.TotalExpense,
-                ExpenseThisMonth = aggregate.ExpenseThisMonth,
-                ExpenseLastMonth = aggregate.ExpenseLastMonth,
+                TotalRevenue = totalRevenue,
+                RevenueThisMonth = revenueThisMonth,
+                RevenueLastMonth = revenueLastMonth,
 
-                TotalTransactions = aggregate.TotalTransactions,
-                TransactionsThisMonth = aggregate.TransactionsThisMonth
+                TotalTransactions = revenueTransactions.Count(),
+                TransactionsThisMonth = revenueTransactions.Count(t => t.CreatedAt >= startThisMonth && t.CreatedAt < startNextMonth)
             };
         }
 
