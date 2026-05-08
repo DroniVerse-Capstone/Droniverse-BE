@@ -1,4 +1,5 @@
 using System;
+using Droniverse.Shared.DTOs;
 
 namespace Droniverse.Academy.Application.DTO.Response;
 

@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Droniverse.Community.Application.DTO.Extensions;
 using Droniverse.Community.Application.DTO.Request.Mongo;
 using Droniverse.Community.Application.DTO.Response;
@@ -551,6 +551,79 @@ internal class OrderService : IOrderService
         return await GetOrdersByConditionWithPagination(filter, currentPage, pageSize);
     }
 
+    public async Task<IEnumerable<UserOrderDetailResponseDto>> GetOrdersDetailByUserId(Guid userId)
+    {
+        if (userId == Guid.Empty)
+            throw new ValidationException("UserId không hợp lệ.");
+
+        var orders = await _orderRepository.GetOrdersByCondition(Builders<Order>.Filter.Eq(o => o.UserID, userId));
+        var orderList = orders
+            .Where(order => order != null)
+            .Cast<Order>()
+            .OrderByDescending(order => order.CreateAt)
+            .ToList();
+
+        if (orderList.Count == 0)
+            return [];
+
+        var productIds = orderList
+            .Where(order => order.Item != null && order.Item.ProductID != Guid.Empty)
+            .Select(order => order.Item.ProductID)
+            .Distinct()
+            .ToList();
+
+        var products = productIds.Count == 0
+            ? []
+            : await _unitOfWork.Products.GetManyByCondition(product => productIds.Contains(product.ProductID));
+
+        var courseIds = products
+            .Where(product => product.ReferenceID != Guid.Empty)
+            .Select(product => product.ReferenceID)
+            .Distinct()
+            .ToList();
+
+        var clubIds = orderList
+            .Select(order => order.ClubID)
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        var courseVersionLookup = await BuildCourseVersionLookupAsync(courseIds);
+
+        var clubs = clubIds.Count == 0
+            ? []
+            : await _unitOfWork.Clubs.GetManyByCondition(club => clubIds.Contains(club.ClubID));
+
+        var clubLookup = clubs.ToDictionary(club => club.ClubID);
+
+        var productLookup = products.ToDictionary(product => product.ProductID);
+        var result = new List<UserOrderDetailResponseDto>(orderList.Count);
+
+        for (var index = 0; index < orderList.Count; index++)
+        {
+            var order = orderList[index];
+            productLookup.TryGetValue(order.Item.ProductID, out var product);
+
+            var courseId = product?.ReferenceID ?? Guid.Empty;
+            courseVersionLookup.TryGetValue(courseId, out var courseVersion);
+            clubLookup.TryGetValue(order.ClubID, out var club);
+
+            result.Add(new UserOrderDetailResponseDto
+            {
+                CourseVersion = courseVersion ?? new Droniverse.Shared.DTOs.CourseVersionMiniResponseDTO
+                {
+                    CourseID = courseId
+                },
+                Club = club == null ? null : _mapper.Map<ClubMiniResponse>(club),
+                Time = order.CreateAt,
+                Amount = order.TotalAmount,
+                Status = order.Status
+            });
+        }
+
+        return result;
+    }
+
     public async Task<bool> CancelOrder(Guid orderId)
     {
         try
@@ -585,6 +658,24 @@ internal class OrderService : IOrderService
             _logger.LogError(ex, $"Lỗi khi NHẬN đơn hàng với mã đơn hàng #{orderId}");
             return false;
         }
+    }
+
+    private async Task<Dictionary<Guid, Droniverse.Shared.DTOs.CourseVersionMiniResponseDTO>> BuildCourseVersionLookupAsync(
+        IEnumerable<Guid> courseIds)
+    {
+        var distinctCourseIds = courseIds
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        if (distinctCourseIds.Count == 0)
+            return new Dictionary<Guid, Droniverse.Shared.DTOs.CourseVersionMiniResponseDTO>();
+
+        var courseVersions = await _academyMicroserviceClient.GetCourseVersionsBulkAsync(distinctCourseIds);
+        return courseVersions
+            .Where(version => version != null && version.CourseID != Guid.Empty)
+            .GroupBy(version => version.CourseID)
+            .ToDictionary(group => group.Key, group => group.First());
     }
 }
 

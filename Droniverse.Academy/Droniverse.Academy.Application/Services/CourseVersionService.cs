@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Droniverse.Academy.Application.Common.Extensions;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
@@ -321,6 +321,35 @@ public class CourseVersionService : ICourseVersionService
         }
 
         return dtos;
+    }
+
+    /// <inheritdoc/>
+    public async Task<IEnumerable<Droniverse.Shared.DTOs.CourseVersionMiniResponseDTO>> GetCourseVersionsBulkAsync(
+        IEnumerable<Guid>? courseIds,
+        CancellationToken cancellationToken = default)
+    {
+        if (courseIds == null)
+            return [];
+
+        var distinctIds = courseIds
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        if (distinctIds.Count == 0)
+            return [];
+
+        var courses = await _unitOfWork.Courses.GetAllWithCurrentVersionNoPagingAsync(
+            filter: c => distinctIds.Contains(c.CourseID),
+            orderBy: null,
+            cancellationToken: cancellationToken);
+
+        var currentVersions = courses
+            .Where(c => c.CurrentVersion != null)
+            .Select(c => c.CurrentVersion!)
+            .ToList();
+
+        return _mapper.Map<IEnumerable<Droniverse.Shared.DTOs.CourseVersionMiniResponseDTO>>(currentVersions);
     }
 
 }
