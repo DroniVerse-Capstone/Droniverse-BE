@@ -8,10 +8,11 @@ public record OrderOverviewDto(
     int PendingOrders,
     int SuccessOrders,
     int FailedOrders,
-    int CancelledOrders
+    int CancelledOrders,
+    decimal TotalAmount
 )
 {
-    public OrderOverviewDto() : this(0, 0, 0, 0, 0)
+    public OrderOverviewDto() : this(0, 0, 0, 0, 0, 0m)
     {
     }
 }
