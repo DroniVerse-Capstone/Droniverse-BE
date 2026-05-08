@@ -13,7 +13,7 @@ public static class DependencyInjection
         services.AddDistributedMemoryCache();
 
         services.Configure<CloudinarySettings>(configuration.GetSection("Cloudinary"));
-        services.AddScoped<ICloudinaryService, CloudinaryService>();
+        services.AddSingleton<ICloudinaryService, CloudinaryService>();
 
         services.Configure<JwtSettings>(
             configuration.GetSection(JwtSettings.SectionName)
