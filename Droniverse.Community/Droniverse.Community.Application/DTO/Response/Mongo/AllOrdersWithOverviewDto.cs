@@ -3,4 +3,6 @@
 public record AllOrdersWithOverviewDto(
     OrderOverviewDto Overview,
     PaginationResult<IEnumerable<OrderResponseDto?>> Orders
-);
+)
+{
+}

@@ -8,6 +8,7 @@ public class OrderSearchRequest : SearchRequest
 {
     public Guid? ClubId { get; set; }
     public Guid? BuyerId { get; set; }
+    public Guid? CourseId { get; set; }
     public DateTime? CreateAt { get; set; }
     public DateTime? ReceiveDate { get; set; }
     [BsonRepresentation(BsonType.String)]
