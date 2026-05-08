@@ -5,4 +5,5 @@ public enum SysPolicyType
     REFUND,
     PAYMENT,
     PRIVACY,
+    DRONE_SAFETY
 }
