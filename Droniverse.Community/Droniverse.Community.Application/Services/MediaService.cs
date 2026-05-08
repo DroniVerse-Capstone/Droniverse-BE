@@ -6,9 +6,6 @@ using Droniverse.Community.Application.IService;
 using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Shared.DTOs.Response;
-using Droniverse.Shared.Exceptions;
-using Droniverse.Shared.Services.IServices;
-using Microsoft.AspNetCore.Components.Sections;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -100,7 +97,9 @@ public class MediaService : IMediaService
             throw new KeyNotFoundException($"MediaType with TypeNameVN '{mediaTypeStr}' not found in database.");
 
         // Upload file to Cloudinary
-        string imageUrl = await _cloudinaryService.UploadMediaAsync(dto.File, mediaTypeStr, "droniverse/temporary");
+        string imageUrl = mediaTypeStr == "IMAGE"
+            ? await _cloudinaryService.UploadTempImageAsync(dto.File, "droniverse/temporary")
+            : await _cloudinaryService.UploadMediaAsync(dto.File, mediaTypeStr, "droniverse/temporary");
 
         // Create Media entity
         var mediaId = Guid.NewGuid();

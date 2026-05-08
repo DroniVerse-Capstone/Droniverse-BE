@@ -81,6 +81,39 @@ public class CloudinaryService : ICloudinaryService
         return uploadResult.SecureUrl.ToString();
     }
 
+    public async Task<string> UploadTempImageAsync(IFormFile file, string folder = "droniverse")
+    {
+        if (file == null || file.Length == 0)
+            throw new ArgumentException("File is null or empty.", nameof(file));
+
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".ico" };
+        var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+
+        if (!allowedExtensions.Contains(fileExtension))
+            throw new ArgumentException($"Invalid file type. Allowed: {string.Join(", ", allowedExtensions)}");
+
+        if (file.Length > 10 * 1024 * 1024)
+            throw new ArgumentException("File size exceeds 10MB limit");
+
+        await using var stream = file.OpenReadStream();
+
+        var uploadParams = new ImageUploadParams
+        {
+            File = new FileDescription(file.FileName, stream),
+            Folder = folder,
+            UseFilename = true,
+            UniqueFilename = true,
+            Overwrite = false
+        };
+
+        var uploadResult = await _cloudinary.UploadAsync(uploadParams);
+
+        if (uploadResult.Error != null)
+            throw new Exception($"Cloudinary upload failed: {uploadResult.Error.Message}");
+
+        return uploadResult.SecureUrl.ToString();
+    }
+
     public async Task<string> UploadImageAsync(byte[] content, string fileName, string contentType, string folder = "droniverse")
     {
         if (content == null || content.Length == 0)

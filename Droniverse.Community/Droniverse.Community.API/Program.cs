@@ -252,11 +252,6 @@ app.UseSwaggerUI(c =>
 });
 
 // Enable request body buffering for webhook signature verification BEFORE any middleware reads the body
-app.Use(async (context, next) =>
-{
-    context.Request.EnableBuffering();
-    await next();
-});
 
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 app.UseStaticFiles();
