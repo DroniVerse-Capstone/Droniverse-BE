@@ -18,7 +18,7 @@ namespace Droniverse.Community.API.Examples
                 NameEN = "Vietnam Drone Club (Updated)",
                 Description = "Câu lạc bộ dành cho những người yêu thích drone và công nghệ bay không người lái. Cập nhật thông tin mới.",
                 LimitParticipant = 150,
-                Image = "https://images7.alphacoders.com/125/1250171.jpg"
+                ImageMedia = Guid.Parse("6bd9137a-b021-48bb-a457-ade283c4349a"),
             };
         }
     }

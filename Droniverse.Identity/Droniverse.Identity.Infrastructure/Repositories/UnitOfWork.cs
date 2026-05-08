@@ -12,6 +12,7 @@ internal class UnitOfWork : IUnitOfWork
     private IPermissionRepository _permission;
     private ISysConfigRepository _sysConfig;
     private INotificationRepository _notification;
+    private ISysPolicyRepository _sysPolicy;
 
 
     public UnitOfWork(IdentityDbContext context)
@@ -28,6 +29,7 @@ internal class UnitOfWork : IUnitOfWork
     public IPermissionRepository Permissions => _permission ??= new PermissionRepository(_context);
     public ISysConfigRepository SysConfigs => _sysConfig ??= new SysConfigRepository(_context);
     public INotificationRepository Notifications => _notification ??= new NotificationRepository(_context);
+    public ISysPolicyRepository SysPolicies => _sysPolicy ??= new SysPolicyRepository(_context);
 
     public void Dispose() // dùng để đóng kết nối với DbContext
     {

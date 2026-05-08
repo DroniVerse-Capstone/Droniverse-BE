@@ -37,7 +37,6 @@ namespace Droniverse.Community.Application.DTO.Request
         [Range(1, 100000)]
         public int LimitParticipant { get; set; }
 
-        [Required]
-        public string Image { get; set; }
+        public Guid? ImageMedia { get; set; }
     }
 }

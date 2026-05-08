@@ -476,6 +476,24 @@ namespace Droniverse.Community.Application.Services
             if (request == null)
                 throw new KeyNotFoundException($"Club creation request with ID {id} not found.");
 
+            // Handle imageMedia: if provided, upload and update ImageUrl
+            string imageUrl = request.ImageUrl; // Keep existing URL by default
+            if (dto.ImageMedia.HasValue)
+            {
+                var imageMedia = await _unitOfWork.Medias.GetByCondition(
+                    m => m.MediaID == dto.ImageMedia.Value,
+                    q => q.Include(m => m.MediaType));
+
+                if (imageMedia == null)
+                    throw new KeyNotFoundException($"Media with ID {dto.ImageMedia.Value} not found.");
+
+                var clubCreationRequestFolder = $"droniverse/ClubCreationRequest/{requesterId}";
+                await _mediaService.UploadMedia(imageMedia, clubCreationRequestFolder);
+
+                // Set imageUrl from media (UploadMedia updates media.Url)
+                imageUrl = imageMedia.Url;
+            }
+
             // Update basic information using domain method
             request.UpdateInfo(
                 dto.NameVN,
@@ -483,7 +501,7 @@ namespace Droniverse.Community.Application.Services
                 dto.Description,
                 dto.LimitParticipant,
                 1,
-                dto.Image,
+                imageUrl,
                 requesterId,
                 dto.DroneID,
                 dto.ClubPolicyVN,
