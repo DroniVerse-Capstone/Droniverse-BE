@@ -7,14 +7,14 @@ using System.Threading.Tasks;
 namespace Droniverse.Community.Application.DTO.Response
 {
     /// <summary>
-    /// Response cho Club overview - chứa doanh thu và KPI giao dịch
+    /// Response cho Club overview - chỉ chứa Chi phí và KPI giao dịch
     /// </summary>
     public record RevenueOverviewResponse
     {
-        // ===== REVENUE =====
-        public decimal TotalRevenue { get; set; }
-        public decimal RevenueThisMonth { get; set; }
-        public decimal RevenueLastMonth { get; set; }
+        // ===== EXPENSE =====
+        public decimal TotalExpense { get; set; }
+        public decimal ExpenseThisMonth { get; set; }
+        public decimal ExpenseLastMonth { get; set; }
 
         // ===== KPI =====
         public int TotalTransactions { get; set; }

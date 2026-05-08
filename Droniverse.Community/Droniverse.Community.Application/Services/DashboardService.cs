@@ -62,9 +62,9 @@ namespace Droniverse.Community.Application.Services
 
             return new RevenueOverviewResponse
             {
-                TotalRevenue = totalRevenue,
-                RevenueThisMonth = revenueThisMonth,
-                RevenueLastMonth = revenueLastMonth,
+                TotalExpense = totalRevenue,
+                ExpenseThisMonth = revenueThisMonth,
+                ExpenseLastMonth = revenueLastMonth,
 
                 TotalTransactions = revenueTransactions.Count(),
                 TransactionsThisMonth = revenueTransactions.Count(t => t.CreatedAt >= startThisMonth && t.CreatedAt < startNextMonth)
@@ -81,25 +81,21 @@ namespace Droniverse.Community.Application.Services
                 throw new KeyNotFoundException($"Không tìm thấy câu lạc bộ với ID [{clubId}].");
 
             var now = _clock.Now;
-            var startCurrentMonth = new DateTime(now.Year, now.Month, 1);
+            var startCurrentMonth = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
             var fromMonth = startCurrentMonth.AddMonths(-(months - 1));
             var toExclusive = startCurrentMonth.AddMonths(1);
 
-            var allOrders = await _orderRepository.GetAllSuccessfulOrders();
-            if (allOrders == null)
-                allOrders = [];
+            var revenueTransactions = await _unitOfWork.Transactions.GetManyByCondition(
+                t => t.ClubID.HasValue
+                    && t.ClubID.Value == clubId
+                    && t.Type == TransactionType.COMMISSION
+                    && t.CreatedAt >= fromMonth
+                    && t.CreatedAt < toExclusive,
+                include: q => q.AsNoTracking());
 
-            // Filter for CLUB_IMPORT orders for this club (club's spending/expense)
-            var clubImportOrders = allOrders
-                .Where(o => o.ClubID == clubId 
-                    && o.OrderType == Domain.Enums.OrderType.CLUB_IMPORT
-                    && o.Payment?.TransactionDate >= fromMonth
-                    && o.Payment?.TransactionDate < toExclusive)
-                .ToList();
-
-            var valueByMonth = clubImportOrders
-                .GroupBy(x => new DateTime(x.Payment.TransactionDate.Year, x.Payment.TransactionDate.Month, 1))
-                .ToDictionary(g => g.Key, g => g.Sum(x => x.TotalAmount));
+            var valueByMonth = revenueTransactions
+                .GroupBy(x => new DateTime(x.CreatedAt.Year, x.CreatedAt.Month, 1, 0, 0, 0, DateTimeKind.Utc))
+                .ToDictionary(g => g.Key, g => g.Sum(x => (decimal)x.Amount));
 
             var growth = Enumerable.Range(0, months)
                 .Select(i => fromMonth.AddMonths(i))
@@ -136,23 +132,19 @@ namespace Droniverse.Community.Application.Services
             var from = fromDate.Date;
             var to = toDate.Date.AddDays(1); // Inclusive of toDate
 
-            var allOrders = await _orderRepository.GetAllSuccessfulOrders();
-            if (allOrders == null)
-                allOrders = [];
-
-            // Filter for CLUB_IMPORT orders for this club (club's spending/expense) by date range
-            var clubImportOrders = allOrders
-                .Where(o => o.ClubID == clubId 
-                    && o.OrderType == Domain.Enums.OrderType.CLUB_IMPORT
-                    && o.Payment?.TransactionDate >= from
-                    && o.Payment?.TransactionDate < to)
-                .ToList();
+            var revenueTransactions = await _unitOfWork.Transactions.GetManyByCondition(
+                t => t.ClubID.HasValue
+                    && t.ClubID.Value == clubId
+                    && t.Type == TransactionType.COMMISSION
+                    && t.CreatedAt >= from
+                    && t.CreatedAt < to,
+                include: q => q.AsNoTracking());
 
             // Group by date
-            var valueByDate = clubImportOrders
-                .GroupBy(x => x.Payment.TransactionDate.Date)
+            var valueByDate = revenueTransactions
+                .GroupBy(x => x.CreatedAt.Date)
                 .OrderBy(g => g.Key)
-                .ToDictionary(g => g.Key, g => g.Sum(x => x.TotalAmount));
+                .ToDictionary(g => g.Key, g => g.Sum(x => (decimal)x.Amount));
 
             // Generate daily stats for the entire date range
             var dailyStats = new List<MonthlyStat>();
