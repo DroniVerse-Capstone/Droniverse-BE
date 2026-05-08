@@ -18,7 +18,7 @@ namespace Droniverse.Community.API.Examples
                 NameEN = "Vietnam Drone Club",
                 Description = "Câu lạc bộ dành cho những người yêu thích drone và công nghệ bay không người lái.",
                 LimitParticipant = 200,
-                Image = "https://res.cloudinary.com/ds9f2jnnj/image/upload/v1775040967/droniverse/temp/Anh_dai_dien_fd6e47c316_d3vidp.jpg"
+                Image = Guid.Parse("27447695-ba40-438f-8afa-d74c08a901f8")
 
             };
         }

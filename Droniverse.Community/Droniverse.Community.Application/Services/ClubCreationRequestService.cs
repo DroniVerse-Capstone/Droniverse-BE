@@ -31,6 +31,7 @@ namespace Droniverse.Community.Application.Services
         private readonly ICurrentUserService _currentUserService;
         private readonly IClock _clock;
         private readonly IMapper _mapper;
+        private readonly IMediaService _mediaService;
 
         public ClubCreationRequestService(
             IUnitOfWork unitOfWork,
@@ -38,7 +39,8 @@ namespace Droniverse.Community.Application.Services
             IdentityMicroserviceClient identityMicroserviceClient,
             AcademyMicroserviceClient academyMicroserviceClient,
             ICurrentUserService currentUserService,
-            IClock clock)
+            IClock clock,
+            IMediaService mediaService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -46,6 +48,7 @@ namespace Droniverse.Community.Application.Services
             _academyMicroserviceClient = academyMicroserviceClient;
             _currentUserService = currentUserService;
             _clock = clock;
+            _mediaService = mediaService;
         }
 
         public async Task<ClubCreationRequestCreateResponseDto> CreateRequestToCreateClub(ClubCreationRequestCreateDto dto)
@@ -58,15 +61,22 @@ namespace Droniverse.Community.Application.Services
 
             var media = await _unitOfWork.Medias.GetByCondition(m => m.MediaID == dto.Media);
             if (media == null)
-                throw new NotFoundException($"Media (hình ảnh/video) không tồn tại trong hệ thống temp.");
+                throw new NotFoundException($"Media (hình ảnh/video) không tồn tại trong hệ thống temporary.");
+            string clubCreationRequestFolder = $"droniverse/ClubCreationRequest/{requesterID}";
+            //upload media vào folder droniverse/ClubCreationRequest
+            await _mediaService.UploadMedia(media, clubCreationRequestFolder);
 
+            var imageMedia = await _unitOfWork.Medias.GetByCondition(m => m.MediaID == dto.Image);
+            if (imageMedia == null)
+                throw new NotFoundException($"Media (hình ảnh/video) không tồn tại trong hệ thống temporary.");
+            await _mediaService.UploadMedia(imageMedia, clubCreationRequestFolder);
             var request = new ClubCreationRequest(
                 dto.NameVN,
                 dto.NameEN,
                 dto.Description,
                 dto.LimitParticipant,
                 1, //limit club manager mặc định là 1
-                dto.Image,
+                imageMedia.Url,
                 requesterID,
                 dto.DroneID,
                 dto.Media,
@@ -281,8 +291,8 @@ namespace Droniverse.Community.Application.Services
                 userIds.Add(request.ApproverID.Value);
 
             // Get drones
-            var droneIds = request.DroneID != Guid.Empty 
-                ? new List<Guid> { request.DroneID } 
+            var droneIds = request.DroneID != Guid.Empty
+                ? new List<Guid> { request.DroneID }
                 : new List<Guid>();
 
             IEnumerable<DroneResponseDto> drones = [];
@@ -351,7 +361,7 @@ namespace Droniverse.Community.Application.Services
             var roles = _currentUserService.Roles.ToList();
 
             // Get the request from database
-            var request = await _unitOfWork.ClubCreationRequests.GetByCondition(r => r.ClubCreationRequestID == id,
+            ClubCreationRequest? request = await _unitOfWork.ClubCreationRequests.GetByCondition(r => r.ClubCreationRequestID == id,
                     query => query
                 );
 
@@ -386,6 +396,21 @@ namespace Droniverse.Community.Application.Services
                     );
 
                     await _unitOfWork.Clubs.Add(newClub);
+                    await _unitOfWork.SaveChangeAsync();
+
+                    //Lấy ra media từ request.ImageUrl
+                    var imageMedia = await _unitOfWork.Medias.GetByCondition(
+                        m => m.Url == request.ImageUrl,
+                        q => q.Include(m => m.MediaType));
+
+                    if (imageMedia == null)
+                        throw new NotFoundException("Không tìm thấy media tương ứng với ImageUrl của request.");
+                    // gọi hàm UploadMedia của media service để upload media đó lên folder club: Droniverse/Club/{clubId}
+                    var clubFolder = $"droniverse/Club/{newClub.NameEN}";
+                    await _mediaService.UploadMedia(imageMedia, clubFolder);
+
+                    newClub.ImageUrl = imageMedia.Url;
+                    await _unitOfWork.Clubs.Update(newClub);
                     await _unitOfWork.SaveChangeAsync();
 
                     // Approve request with the created club's ID

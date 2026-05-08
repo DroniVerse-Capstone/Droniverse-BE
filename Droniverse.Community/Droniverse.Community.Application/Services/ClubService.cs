@@ -25,6 +25,7 @@ internal class ClubService : IClubService
     private readonly AcademyMicroserviceClient _academyMicroserviceClient;
     private readonly ICurrentUserService _currentUserService;
     private readonly IClock _clock;
+    private readonly IMediaService _mediaService;
 
     public ClubService(
         IUnitOfWork unitOfWork,
@@ -32,7 +33,8 @@ internal class ClubService : IClubService
         IdentityMicroserviceClient identityMicroserviceClient,
         AcademyMicroserviceClient academyMicroserviceClient,
         ICurrentUserService currentUserService,
-        IClock clock
+        IClock clock,
+        IMediaService mediaService
         )
     {
         _unitOfWork = unitOfWork;
@@ -41,6 +43,7 @@ internal class ClubService : IClubService
         _academyMicroserviceClient = academyMicroserviceClient;
         _currentUserService = currentUserService;
         _clock = clock;
+        _mediaService = mediaService;
     }
 
     public async Task<ClubResponseDto> CreateClub(ClubCreateDto clubRequestDto)
@@ -181,7 +184,32 @@ internal class ClubService : IClubService
         {
             throw new KeyNotFoundException($"Club with ID {id} not found.");
         }
-        _mapper.Map(clubUpdateDto, club);
+
+        // Nếu client gửi ImageMedia (Guid), xử lý trước: chuyển media vào folder club và cập nhật ImageUrl
+        if (clubUpdateDto.ImageMedia.HasValue)
+        {
+            var media = await _unitOfWork.Medias.GetByCondition(
+                m => m.MediaID == clubUpdateDto.ImageMedia.Value,
+                q => q.Include(m => m.MediaType));
+
+            if (media == null)
+                throw new KeyNotFoundException($"Media with ID {clubUpdateDto.ImageMedia.Value} not found.");
+
+            var clubFolder = $"droniverse/Club/{club.NameEN}";
+            await _mediaService.UploadMedia(media, clubFolder);
+
+            // set ImageUrl from media (UploadMedia cập nhật media.Url)
+            club.ImageUrl = media.Url;
+        }
+
+        // Map/update other fields from DTO (avoid overwriting ImageUrl)
+        club.NameVN = clubUpdateDto.NameVN;
+        club.NameEN = clubUpdateDto.NameEN;
+        club.LimitParticipation = clubUpdateDto.LimitParticipation;
+        club.ClubPolicyVN = clubUpdateDto.ClubPolicyVN;
+        club.ClubPolicyEN = clubUpdateDto.ClubPolicyEN;
+        club.ClubRequirement = clubUpdateDto.ClubRequirement;
+
         await _unitOfWork.Clubs.Update(club);
         await _unitOfWork.SaveChangeAsync();
 

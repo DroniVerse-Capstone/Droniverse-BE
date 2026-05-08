@@ -81,11 +81,16 @@ public class OrderNotificationConsumer : IDisposable
                 durable: true);
 
             _logger.LogInformation("📌 Declaring queue: {QueueName}", queueName);
+            var queueArguments = new Dictionary<string, object>
+            {
+                { "x-message-ttl", 7200000 } // 2 hours in milliseconds
+            };
             _channel.QueueDeclare(
                 queue: queueName,
                 durable: true,
                 exclusive: false,
-                autoDelete: false);
+                autoDelete: false,
+                arguments: queueArguments);
 
             _logger.LogInformation("📌 Binding queue to exchange with routing key: order.created");
             _channel.QueueBind(
