@@ -19,6 +19,7 @@ using Microsoft.OpenApi.Models;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
+using OfficeOpenXml;
 using Swashbuckle.AspNetCore.Filters;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using System.IO;
@@ -32,6 +33,8 @@ using System.Transactions;
 Env.Load("../../.env");
 
 var builder = WebApplication.CreateBuilder(args);
+
+ExcelPackage.License.SetNonCommercialOrganization("Droniverse");
 
 builder.Configuration.AddEnvironmentVariables();
 
