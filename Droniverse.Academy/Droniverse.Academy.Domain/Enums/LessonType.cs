@@ -5,6 +5,7 @@ public enum LessonType
     QUIZ,
     LAB,
     PHYSIC,
+    REAL_PHYSIC,
     LAB_PHYSIC,
     VR,
     ASSIGNMENT

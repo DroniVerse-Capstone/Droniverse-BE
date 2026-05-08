@@ -299,5 +299,51 @@ internal sealed class ClubClient : CommunityBaseClient
         var droneId = await response.Content.ReadFromJsonAsync<Guid>(JsonSerializerOptions, cancellationToken);
         return droneId;
     }
+
+    public async Task<ClubMiniResponseDto?> GetClubMiniByIdAsync(
+        Guid clubId,
+        CancellationToken cancellationToken = default)
+    {
+        if (clubId == Guid.Empty)
+        {
+            return null;
+        }
+
+        var url = BuildCommunityPath($"clubs/{clubId}/mini");
+        var response = await HttpClient.GetAsync(url, cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                return null;
+            }
+
+            if (response.StatusCode == HttpStatusCode.ServiceUnavailable)
+            {
+                Logger.LogError(
+                    "Community service unavailable when getting mini club for club {ClubId}",
+                    clubId);
+
+                throw new HttpRequestException(
+                    "Community service unavailable",
+                    null,
+                    HttpStatusCode.ServiceUnavailable);
+            }
+
+            Logger.LogError(
+                "Error when getting mini club for club {ClubId}. Status: {StatusCode}, Response: {Response}",
+                clubId,
+                response.StatusCode,
+                await response.Content.ReadAsStringAsync(cancellationToken));
+
+            throw new HttpRequestException(
+                $"Community API error: {response.StatusCode}",
+                null,
+                response.StatusCode);
+        }
+
+        return await response.Content.ReadFromJsonAsync<ClubMiniResponseDto>(JsonSerializerOptions, cancellationToken);
+    }
 }
  

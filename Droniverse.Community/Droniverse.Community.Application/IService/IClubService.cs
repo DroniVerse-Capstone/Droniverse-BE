@@ -25,6 +25,7 @@ public interface IClubService
     //Task<PaginationResult<IEnumerable<CourseBulkResponseDTO>>> GetHotCoursesByClub(Guid clubId, HotCoursesSearchRequest searchRequest);
     Task<IEnumerable<ClubResponseDto>> GetClubsByCurrentUsersID(ClubStatus? status = null);
     Task<IEnumerable<SimpleClubResponse>> GetClubInfoBulk(GetClubSimpleInfoRequest request);
+    Task<ClubMiniResponseDto> GetClubMiniById(Guid clubId);
     Task<ClubResponseDto> UpdateClubStatus(Guid clubId, ClubUpdateStatusDto dto);
     Task<GetClubParticipantsResponse> GetClubParticipantIds(Guid clubId, GetClubParticipantIdsRequest request);
     Task<bool> CheckParticipant(Guid clubId, Guid userId, ParticipationStatus status = ParticipationStatus.ACTIVE);

@@ -82,7 +82,7 @@ public class WebSimulatorConfiguration : IEntityTypeConfiguration<WebSimulator>
         builder.ToTable(t =>
             t.HasCheckConstraint(
                 "CK_WebSimulator_Type",
-                "`Type` IN ('PHYSIC', 'LAB_PHYSIC')"
+                "`Type` IN ('PHYSIC', 'LAB_PHYSIC', 'REAL_PHYSIC')"
             ));
     }
 }

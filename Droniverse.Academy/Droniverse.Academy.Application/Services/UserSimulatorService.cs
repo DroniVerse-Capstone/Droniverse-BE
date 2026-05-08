@@ -44,6 +44,7 @@ namespace Droniverse.Academy.Application.Services
             switch (lesson.Type)
             {
                 case LessonType.PHYSIC:
+                case LessonType.REAL_PHYSIC:
                 case LessonType.LAB_PHYSIC:
                     state.WebSimulator = await MapWebSimulatorAsync(lesson);
                     break;

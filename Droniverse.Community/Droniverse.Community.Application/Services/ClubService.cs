@@ -283,6 +283,8 @@ internal class ClubService : IClubService
         if (participation == null)
             throw new KeyNotFoundException("Bạn không phải là thành viên đang hoạt động của câu lạc bộ này.");
 
+        await _academyMicroserviceClient.LimitUserAccessAsync(currentUserId);
+
         participation.Leave("Người dùng chủ động rời khỏi câu lạc bộ.", _clock.Now);
 
         await _unitOfWork.Participations.Update(participation);
@@ -311,6 +313,8 @@ internal class ClubService : IClubService
 
         if (participation == null)
             throw new KeyNotFoundException("Người dùng này không phải là thành viên đang hoạt động của câu lạc bộ.");
+
+        await _academyMicroserviceClient.LimitUserAccessAsync(userId);
 
         participation.Ban(null, _clock.Now);
 
@@ -349,6 +353,28 @@ internal class ClubService : IClubService
             .Where(clubById.ContainsKey)
             .Select(id => clubById[id])
             .ToList();
+    }
+
+    public async Task<ClubMiniResponseDto> GetClubMiniById(Guid clubId)
+    {
+        if (clubId == Guid.Empty)
+            throw new ArgumentException("ClubId không hợp lệ.");
+
+        var club = await _unitOfWork.Clubs
+            .GetManyByConditionAsQueryable(c => c.ClubID == clubId, q => q.AsNoTracking())
+            .Select(c => new ClubMiniResponseDto
+            {
+                ClubID = c.ClubID,
+                NameVN = c.NameVN,
+                NameEN = c.NameEN,
+                ImageUrl = c.ImageUrl
+            })
+            .FirstOrDefaultAsync();
+
+        if (club == null)
+            throw new KeyNotFoundException("Không tìm thấy câu lạc bộ");
+
+        return club;
     }
 
     public async Task<PaginationResult<IEnumerable<GetParticipantsResponse>>> GetClubParcitipations(Guid clubID, ParticipationSearchRequest searchRequest)

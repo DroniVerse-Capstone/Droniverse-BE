@@ -2,6 +2,7 @@
 using Droniverse.Academy.Application.Common.Extensions;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
+using Droniverse.Academy.Application.HttpClients;
 using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Domain.Entities;
 using Droniverse.Academy.Domain.Enums;
@@ -18,13 +19,20 @@ public class AdminReportService : IAdminReportService
     private readonly IMapper _mapper;
     private readonly ICurrentUserService _currentUser;
     private readonly IUserLookupService _userLookupService;
+    private readonly CommunityMicroserviceClient _communityMicroserviceClient;
 
-    public AdminReportService(IUnitOfWork unitOfWork, IMapper mapper, ICurrentUserService currentUser, IUserLookupService userLookupService)
+    public AdminReportService(
+        IUnitOfWork unitOfWork,
+        IMapper mapper,
+        ICurrentUserService currentUser,
+        IUserLookupService userLookupService,
+        CommunityMicroserviceClient communityMicroserviceClient)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _currentUser = currentUser;
         _userLookupService = userLookupService;
+        _communityMicroserviceClient = communityMicroserviceClient;
     }
 
     public async Task<PaginationResult<IEnumerable<ReportResponseDTO>>> GetReportsAsync(int pageIndex = 1, int pageSize = 10, Guid? referenceId = null, Guid? userId = null, ReportType? reportType = null)
@@ -51,6 +59,7 @@ public class AdminReportService : IAdminReportService
 
         var response = _mapper.Map<ReportResponseDTO>(report);
         await PopulateUsersAsync(report, response);
+        await PopulateReportedDataAsync(report, response);
         return response;
     }
 
@@ -100,6 +109,44 @@ public class AdminReportService : IAdminReportService
         if (report.Responser.HasValue && userLookup.TryGetValue(report.Responser.Value, out var responser))
         {
             response.ResponserUser = responser;
+        }
+    }
+
+    private async Task PopulateReportedDataAsync(Report report, ReportResponseDTO response)
+    {
+        response.ReportedUser = null;
+        response.ReportedCourseVersion = null;
+        response.ReportedClub = null;
+
+        switch (report.ReportType)
+        {
+            case ReportType.User:
+            {
+                var userLookup = await _userLookupService.BuildUserLookupAsync(new[] { report.ReferenceID });
+                if (userLookup.TryGetValue(report.ReferenceID, out var reportedUser))
+                {
+                    response.ReportedUser = reportedUser;
+                }
+
+                break;
+            }
+
+            case ReportType.CourseVersion:
+            {
+                var courseVersion = await _unitOfWork.CourseVersions.GetByIdAsync(report.ReferenceID);
+                if (courseVersion != null)
+                {
+                    response.ReportedCourseVersion = _mapper.Map<CourseVersionMiniResponseDTO>(courseVersion);
+                }
+
+                break;
+            }
+
+            case ReportType.Club:
+            {
+                response.ReportedClub = await _communityMicroserviceClient.GetClubMiniByIdAsync(report.ReferenceID);
+                break;
+            }
         }
     }
 

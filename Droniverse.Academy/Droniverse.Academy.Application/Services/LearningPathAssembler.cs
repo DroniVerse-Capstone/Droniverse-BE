@@ -183,7 +183,7 @@ public sealed class LearningPathAssembler
             .ToHashSet();
 
         var webSimulatorIds = lessons
-            .Where(x => x.Type == LessonType.PHYSIC || x.Type == LessonType.LAB_PHYSIC)
+            .Where(x => x.Type == LessonType.PHYSIC || x.Type == LessonType.REAL_PHYSIC || x.Type == LessonType.LAB_PHYSIC)
             .Select(x => x.ReferenceID)
             .ToHashSet();
 
@@ -213,6 +213,7 @@ public sealed class LearningPathAssembler
                 LessonType.QUIZ => quizLookup.GetValueOrDefault(lesson.ReferenceID),
                 LessonType.LAB => labLookup.GetValueOrDefault(lesson.ReferenceID),
                 LessonType.PHYSIC => webSimulatorLookup.GetValueOrDefault(lesson.ReferenceID),
+                LessonType.REAL_PHYSIC => webSimulatorLookup.GetValueOrDefault(lesson.ReferenceID),
                 LessonType.LAB_PHYSIC => webSimulatorLookup.GetValueOrDefault(lesson.ReferenceID),
                 LessonType.VR => vrSimulatorLookup.GetValueOrDefault(lesson.ReferenceID),
                 LessonType.ASSIGNMENT => assignmentLookup.GetValueOrDefault(lesson.ReferenceID),
