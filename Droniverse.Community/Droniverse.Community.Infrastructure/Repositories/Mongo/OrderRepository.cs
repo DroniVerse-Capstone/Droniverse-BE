@@ -34,6 +34,12 @@ internal class OrderRepository : IOrderRepository
             filters.Add(Builders<Order>.Filter.Eq(o => o.UserID, searchRequest.BuyerId.Value));
         }
 
+        // Lọc theo CourseId
+        if (searchRequest.CourseId.HasValue && searchRequest.CourseId != Guid.Empty)
+        {
+            filters.Add(Builders<Order>.Filter.Eq(o => o.Item.ProductID, searchRequest.CourseId.Value));
+        }
+
         // Lọc theo CreateAt (ngày tạo)
         if (searchRequest.CreateAt.HasValue)
         {
@@ -81,6 +87,7 @@ internal class OrderRepository : IOrderRepository
         // Lấy data với phân trang (skip & take)
         var orders = await _orders
             .Find(combinedFilter)
+            .SortByDescending(o => o.CreateAt)
             .Skip(skip)
             .Limit(searchRequest.PageSize)
             .ToListAsync();
