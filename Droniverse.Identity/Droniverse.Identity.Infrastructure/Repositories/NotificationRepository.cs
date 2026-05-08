@@ -1,6 +1,9 @@
 using Droniverse.Identity.Domain.Entities;
+using Droniverse.Identity.Domain.Enums;
 using Droniverse.Identity.Domain.Interfaces;
 using Droniverse.Identity.Infrastructure.Persistence;
+using Droniverse.Shared.DTOs;
+using Droniverse.Shared.DTOs.Response;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
@@ -19,6 +22,55 @@ public class NotificationRepository : Repository<Notification>, INotificationRep
             .Where(n => n.UserID == userId)
             .OrderByDescending(n => n.CreatedAt)
             .ToListAsync();
+    }
+
+    public async Task<PaginationResult<IEnumerable<NotificationResponse>>> GetNotificationsByUserPagedAsync(
+        Guid userId,
+        NotificationStatus? status,
+        DateTime? sentAt,
+        int pageIndex,
+        int pageSize)
+    {
+        IQueryable<Notification> query = _dbSet
+            .AsNoTracking()
+            .Where(n => n.UserID == userId);
+
+        if (status.HasValue)
+        {
+            query = query.Where(n => n.Status == status.Value);
+        }
+
+        if (sentAt.HasValue)
+        {
+            var startDate = sentAt.Value.Date;
+            var endDate = startDate.AddDays(1);
+            query = query.Where(n => n.SentAt.HasValue && n.SentAt.Value >= startDate && n.SentAt.Value < endDate);
+        }
+
+        query = query.OrderByDescending(n => n.CreatedAt);
+
+        var totalRecords = await query.CountAsync();
+        var notifications = await query
+            .Skip((pageIndex - 1) * pageSize)
+            .Take(pageSize)
+            .Select(n => new NotificationResponse
+            {
+                NotificationID = n.NotificationID,
+                Title = n.Title,
+                Message = n.Message,
+                Type = n.Type.ToString(),
+                Status = n.Status.ToString(),
+                CreatedAt = n.CreatedAt,
+                SentAt = n.SentAt,
+                ErrorMessage = n.ErrorMessage
+            })
+            .ToListAsync();
+
+        return new PaginationResult<IEnumerable<NotificationResponse>>(
+            notifications,
+            totalRecords,
+            pageIndex,
+            pageSize);
     }
 
     public async Task<IEnumerable<Notification>> GetUnsentNotificationsAsync()

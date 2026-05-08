@@ -1,7 +1,10 @@
 ﻿using Droniverse.Identity.Application.IService;
+using Droniverse.Identity.Application.DTO.Request;
 using Droniverse.Identity.Domain.Entities;
 using Droniverse.Identity.Domain.Enums;
 using Droniverse.Identity.Domain.Interfaces;
+using Droniverse.Shared.DTOs;
+using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Services.IServices;
 using Microsoft.Extensions.Logging;
 
@@ -58,6 +61,21 @@ internal class NotificationService : INotificationService
     public async Task<IEnumerable<Notification>> GetNotificationsByUserAsync(Guid userId)
     {
         return await _unitOfWork.Notifications.GetNotificationsByUserAsync(userId);
+    }
+
+    public async Task<PaginationResult<IEnumerable<NotificationResponse>>> GetMyNotificationsAsync(Guid userId, NotificationSearchRequest request)
+    {
+        request ??= new NotificationSearchRequest();
+
+        var pageIndex = request.CurrentPage < 1 ? 1 : request.CurrentPage;
+        var pageSize = request.PageSize < 1 ? 5 : request.PageSize;
+
+        return await _unitOfWork.Notifications.GetNotificationsByUserPagedAsync(
+            userId,
+            request.Status,
+            request.SentAt,
+            pageIndex,
+            pageSize);
     }
 
     public async Task<IEnumerable<Notification>> GetPendingNotificationsByUserAsync(Guid userId)
