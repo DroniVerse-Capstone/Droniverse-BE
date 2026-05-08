@@ -1,5 +1,6 @@
 ﻿using Droniverse.Community.Application.DTO.Request;
 using Droniverse.Community.Application.DTO.Response;
+using Droniverse.Community.Domain.Entities;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Services.IServices;
 
@@ -10,6 +11,7 @@ public interface IMediaService
     Task<IEnumerable<MediaResponseDto>> GetAllMedia();
     Task<MediaResponseDto?> GetMediaById(Guid id);
     Task<MediaResponseDto> UploadTempMedia(FileUploadMediaDto dto, ICloudinaryService cloudinaryService);
+    Task UploadMedia(Media media, string folder);
     Task<IEnumerable<MediaMiniResponse>> GetMiniResponse(IEnumerable<Guid>? mediaIds);
 }
 

@@ -23,6 +23,7 @@ public class MediaService : IMediaService
     private readonly ILogger<MediaService> _logger;
     private readonly IClock _clock;
     private readonly IServiceScopeFactory _serviceScopeFactory;
+    private readonly Droniverse.Shared.Services.IServices.ICloudinaryService _cloudinaryService;
     private const string MediaCacheKeyPrefix = "media";
 
     public MediaService(
@@ -31,7 +32,8 @@ public class MediaService : IMediaService
         ICacheService cacheService,
         ILogger<MediaService> logger,
         IClock clock,
-        IServiceScopeFactory serviceScopeFactory)
+        IServiceScopeFactory serviceScopeFactory,
+        Droniverse.Shared.Services.IServices.ICloudinaryService cloudinaryService)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
@@ -39,6 +41,7 @@ public class MediaService : IMediaService
         _logger = logger;
         _clock = clock;
         _serviceScopeFactory = serviceScopeFactory;
+        _cloudinaryService = cloudinaryService;
     }
 
     public async Task<IEnumerable<MediaResponseDto>> GetAllMedia()
@@ -51,7 +54,7 @@ public class MediaService : IMediaService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error occurred while getting all media");
-            return [];
+            return Enumerable.Empty<MediaResponseDto>();
         }
     }
 
@@ -97,7 +100,7 @@ public class MediaService : IMediaService
             throw new KeyNotFoundException($"MediaType with TypeNameVN '{mediaTypeStr}' not found in database.");
 
         // Upload file to Cloudinary
-        string imageUrl = await cloudinaryService.UploadMediaAsync(dto.File, mediaTypeStr, "droniverse/temp");
+        string imageUrl = await cloudinaryService.UploadMediaAsync(dto.File, mediaTypeStr, "droniverse/temporary");
 
         // Create Media entity
         var mediaId = Guid.NewGuid();
@@ -122,6 +125,65 @@ public class MediaService : IMediaService
             Url = media.Url,
             CreatedAt = media.CreatedAt
         };
+    }
+
+    public async Task UploadMedia(Media media, string folder)
+    {
+        if (media == null)
+            throw new ArgumentNullException(nameof(media));
+
+        if (string.IsNullOrWhiteSpace(media.Url))
+            throw new ArgumentException("Media.Url is empty.", nameof(media));
+
+        try
+        {
+            // Load MediaType if not already loaded
+            if (media.MediaType == null)
+            {
+                media = await _unitOfWork.Medias.GetByCondition(
+                    m => m.MediaID == media.MediaID,
+                    q => q.Include(m => m.MediaType));
+                
+                if (media == null)
+                    throw new KeyNotFoundException("Media not found.");
+            }
+
+            // Get media type and appropriate extension
+            var mediaTypeStr = media.MediaType?.TypeNameVN ?? "IMAGE";
+            var extension = GetFileExtensionFromMediaType(mediaTypeStr);
+
+            // Download current media from Cloudinary
+            using var http = new System.Net.Http.HttpClient();
+            var resp = await http.GetAsync(media.Url);
+            resp.EnsureSuccessStatusCode();
+            var stream = new MemoryStream(await resp.Content.ReadAsByteArrayAsync());
+            
+            // Create FormFile object with proper filename including extension
+            var fileName = $"{media.MediaID}{extension}";
+            var formFile = new Microsoft.AspNetCore.Http.FormFile(
+                stream, 
+                0, 
+                stream.Length, 
+                "file", 
+                fileName);
+            
+            // Upload to new folder using UploadMediaAsync
+            var newUrl = await _cloudinaryService.UploadMediaAsync(formFile, mediaTypeStr, folder);
+            
+            // Update media record
+            media.Url = newUrl;
+            media.UpdatedAt = _clock.Now;
+
+            await _unitOfWork.Medias.Update(media);
+            await _unitOfWork.SaveChangeAsync();
+            
+            _logger.LogInformation("Media {MediaId} successfully moved to folder {Folder}", media.MediaID, folder);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while uploading/moving media {MediaId} to folder {Folder}", media.MediaID, folder);
+            throw;
+        }
     }
 
     /// <summary>
@@ -158,7 +220,7 @@ public class MediaService : IMediaService
                 .ToList();
 
             if (filteredMediaIds.Count == 0)
-                return [];
+                return Enumerable.Empty<MediaMiniResponse>();
 
             var medias = await _unitOfWork.Medias.GetManyByCondition(m => filteredMediaIds.Contains(m.MediaID));
             return _mapper.Map<IEnumerable<MediaMiniResponse>>(medias);
@@ -166,7 +228,106 @@ public class MediaService : IMediaService
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Error occurred while get media data");
-            return [];
+            return Enumerable.Empty<MediaMiniResponse>();
+        }
+    }
+
+    private string GetFileExtensionFromMediaType(string? typeNameVN)
+    {
+        if (string.IsNullOrWhiteSpace(typeNameVN))
+            return ".jpg"; // Default
+
+        return typeNameVN.ToUpper() switch
+        {
+            "IMAGE" => ".jpg",
+            "VIDEO" => ".mp4",
+            "GIF" => ".gif",
+            "AUDIO" => ".mp3",
+            _ => ".jpg"
+        };
+    }
+
+    public async Task DeleteMedia(Media media)
+    {
+        if (media == null)
+            throw new ArgumentNullException(nameof(media));
+
+        try
+        {
+            // Extract public_id from Cloudinary URL
+            // URL format: https://res.cloudinary.com/{cloud_name}/image/upload/v{version}/{folder}/{public_id}.{extension}
+            var publicId = ExtractPublicIdFromUrl(media.Url);
+            
+            if (!string.IsNullOrWhiteSpace(publicId))
+            {
+                // Delete from Cloudinary
+                var deleteResult = await _cloudinaryService.DeleteImageAsync(publicId);
+                
+                if (!deleteResult)
+                {
+                    _logger.LogWarning("Failed to delete image from Cloudinary: {PublicId}", publicId);
+                }
+                else
+                {
+                    _logger.LogInformation("Successfully deleted image from Cloudinary: {PublicId}", publicId);
+                }
+            }
+
+            // Delete from database
+            await _unitOfWork.Medias.Delete(media);
+            await _unitOfWork.SaveChangeAsync();
+            
+            _logger.LogInformation("Media {MediaId} successfully deleted from database", media.MediaID);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while deleting media {MediaId}", media.MediaID);
+            throw;
+        }
+    }
+
+    private string ExtractPublicIdFromUrl(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+            return string.Empty;
+
+        try
+        {
+            // Cloudinary URL format: https://res.cloudinary.com/{cloud}/image/upload/v{version}/{folder}/{public_id}.{ext}
+            var uri = new Uri(url);
+            var path = uri.AbsolutePath; // /image/upload/v1234567890/folder/public_id.jpg
+            
+            // Get the last part and remove extension
+            var lastPart = path.Split('/').LastOrDefault();
+            if (string.IsNullOrEmpty(lastPart))
+                return string.Empty;
+
+            // Remove extension
+            var publicId = System.IO.Path.GetFileNameWithoutExtension(lastPart);
+            
+            // Get full path: folder/public_id
+            var segments = path.Split('/', System.StringSplitOptions.RemoveEmptyEntries);
+            if (segments.Length >= 2)
+            {
+                var folderStart = System.Array.IndexOf(segments, "upload");
+                if (folderStart >= 0 && folderStart + 2 < segments.Length)
+                {
+                    // Reconstruct: everything after version is folder/public_id
+                    var parts = segments.Skip(folderStart + 2).ToArray();
+                    if (parts.Length > 0)
+                    {
+                        parts[parts.Length - 1] = System.IO.Path.GetFileNameWithoutExtension(parts[parts.Length - 1]);
+                        return string.Join("/", parts);
+                    }
+                }
+            }
+
+            return publicId;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error extracting public_id from URL: {Url}", url);
+            return string.Empty;
         }
     }
 }

@@ -19,6 +19,7 @@ public class OrderNotificationConsumer : IDisposable
     private readonly IConfiguration _configuration;
     private IModel? _channel;
     private IConnection? _connection;
+    private EventingBasicConsumer? _consumer;
 
     public OrderNotificationConsumer(
         IServiceProvider serviceProvider,
@@ -80,11 +81,16 @@ public class OrderNotificationConsumer : IDisposable
                 durable: true);
 
             _logger.LogInformation("📌 Declaring queue: {QueueName}", queueName);
+            var queueArguments = new Dictionary<string, object>
+            {
+                { "x-message-ttl", 7200000 } // 2 hours in milliseconds
+            };
             _channel.QueueDeclare(
                 queue: queueName,
                 durable: true,
                 exclusive: false,
-                autoDelete: false);
+                autoDelete: false,
+                arguments: queueArguments);
 
             _logger.LogInformation("📌 Binding queue to exchange with routing key: order.created");
             _channel.QueueBind(
@@ -99,9 +105,9 @@ public class OrderNotificationConsumer : IDisposable
                 routingKey: "payment.successful");
 
             _logger.LogInformation("📌 Creating EventingBasicConsumer (synchronous)...");
-            EventingBasicConsumer consumer = new EventingBasicConsumer(_channel);
+            _consumer = new EventingBasicConsumer(_channel);
 
-            consumer.Received += async (sender, args) =>
+            _consumer.Received += async (sender, args) =>
             {
                 byte[] body = args.Body.ToArray();
                 string message = Encoding.UTF8.GetString(body);
@@ -166,7 +172,8 @@ public class OrderNotificationConsumer : IDisposable
             };
 
             _logger.LogInformation("Starting BasicConsume on queue: {QueueName}", queueName);
-            _channel.BasicConsume(queue: queueName, consumer: consumer, autoAck: true);
+            string consumerTag = _channel.BasicConsume(queue: queueName, consumer: _consumer, autoAck: true);
+            _logger.LogInformation("BasicConsume started with consumerTag: {ConsumerTag}", consumerTag);
             _logger.LogInformation("Order notification consumer started successfully - waiting for messages...");
         }
         catch (Exception ex)

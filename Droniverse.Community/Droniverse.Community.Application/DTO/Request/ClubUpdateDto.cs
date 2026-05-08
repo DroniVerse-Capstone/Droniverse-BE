@@ -15,7 +15,7 @@ public record ClubUpdateDto
     [StringLength(200, ErrorMessage = "Tên tiếng Anh tối đa 200 ký tự")]
     public string NameEN { get; init; } = string.Empty;
 
-    public string? ImageUrl { get; init; }
+    public Guid? ImageMedia { get; init; }
 
     [Range(1, 10000, ErrorMessage = "Số lượng thành viên phải từ 1 đến 10000")]
     public int LimitParticipation { get; init; }

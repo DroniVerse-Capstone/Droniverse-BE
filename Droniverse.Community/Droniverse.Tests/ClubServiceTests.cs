@@ -12,6 +12,7 @@ using Droniverse.Community.Domain.Enums;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.Enums;
 using Droniverse.Shared.DTOs.Request;
+using Droniverse.Community.Application.IService;
 
 namespace Droniverse.Tests;
 
@@ -23,6 +24,7 @@ public class ClubServiceTests
     private readonly Mock<AcademyMicroserviceClient> _academyClientMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly Mock<IClock> _clockMock;
+    private readonly Mock<IMediaService> _mediaServiceMock;
     private readonly ClubService _clubService;
 
     public ClubServiceTests()
@@ -47,7 +49,8 @@ public class ClubServiceTests
             _identityClientMock.Object,
             _academyClientMock.Object,
             _currentUserServiceMock.Object,
-            _clockMock.Object
+            _clockMock.Object,
+            _mediaServiceMock.Object
         );
     }
 

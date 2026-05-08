@@ -45,6 +45,6 @@ public class ClubCreationRequestCreateDto
     public int LimitParticipant { get; set; }
 
     [Required]
-    public string Image { get; set; }
+    public Guid Image { get; set; }
 }
 

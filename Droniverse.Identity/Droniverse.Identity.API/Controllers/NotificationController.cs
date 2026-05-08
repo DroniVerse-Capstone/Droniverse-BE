@@ -1,4 +1,6 @@
 ﻿using Droniverse.Identity.Application.IService;
+using Droniverse.Identity.Application.DTO.Request;
+using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Response;
 using Droniverse.Shared.Services.IServices;
 using Microsoft.AspNetCore.Authorization;
@@ -29,7 +31,7 @@ public class NotificationController : ControllerBase
     /// Lấy tất cả notification của user hiện tại
     /// </summary>
     [HttpGet("me")]
-    public async Task<IActionResult> GetMyNotifications()
+    public async Task<IActionResult> GetMyNotifications([FromQuery] NotificationSearchRequest request)
     {
         try
         {
@@ -37,13 +39,9 @@ public class NotificationController : ControllerBase
             if (userId == Guid.Empty)
                 return Unauthorized("User not authenticated");
 
-            var notifications = await _notificationService.GetNotificationsByUserAsync(userId);
-            return Ok(new
-            {
-                success = true,
-                data = notifications,
-                message = "Get notifications successfully"
-            });
+            request ??= new NotificationSearchRequest();
+            var notifications = await _notificationService.GetMyNotificationsAsync(userId, request);
+            return Ok(SuccessResponse<PaginationResult<IEnumerable<NotificationResponse>>>.Create(notifications, "Get notifications successfully"));
         }
         catch (Exception ex)
         {
