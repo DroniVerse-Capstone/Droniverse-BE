@@ -142,5 +142,12 @@ namespace Droniverse.Academy.Application.HttpClients
             return await _clubClient.GetClubMiniBulkAsync(clubIds, cancellationToken);
         }
 
+        public async Task<MediaMiniResponse?> GetMediaMiniResponsesAsync(
+            string url,
+            CancellationToken cancellationToken = default)
+        {
+            return await _mediaClient.GetMediaByUrl(url, cancellationToken);
+
+        }
     }
 }

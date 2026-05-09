@@ -70,6 +70,28 @@ namespace Droniverse.Community.API.Controllers
         }
 
         /// <summary>
+        /// Lấy thông tin chi tiết của một tệp media theo image URL
+        /// </summary>
+        /// <param name="imageUrl">URL đầy đủ của tệp media</param>
+        /// <remarks>
+        /// API tìm media theo đúng giá trị URL đã lưu trong database.
+        /// Nếu không tìm thấy media tương ứng, API sẽ trả về 404.
+        /// </remarks>
+        /// <returns>
+        /// 200 OK - Trả về thông tin chi tiết MediaResponseDto
+        /// 404 NotFound - Nếu không tồn tại media
+        /// </returns>
+        [HttpGet("by-url")]
+        [ProducesResponseType(typeof(SuccessResponse<MediaResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [AllowAnonymous]
+        public async Task<ApiResponse> GetMediaByUrl([FromQuery] string imageUrl)
+        {
+            var media = await _mediaService.GetMediaByUrl(imageUrl);
+            return SuccessResponse<MediaResponseDto>.Create(media, "Lấy thông tin media theo image url thành công!");
+        }
+
+        /// <summary>
         /// Upload tệp media tạm (hình ảnh hoặc video)
         /// </summary>
         /// <param name="dto">Tệp media và loại media (IMAGE hoặc VIDEO)</param>
@@ -105,6 +127,82 @@ namespace Droniverse.Community.API.Controllers
         {
             var media = await _mediaService.GetMiniResponse(mediaIds);
             return Ok(media);
+        }
+
+        /// <summary>
+        /// Di chuyển tệp media từ thư mục tạm sang thư mục cuối cùng
+        /// </summary>
+        /// <param name="request">Chứa MediaId và thư mục đích</param>
+        /// <remarks>
+        /// API này di chuyển một tệp media từ thư mục Cloudinary hiện tại sang thư mục khác.
+        /// Thường dùng để di chuyển media từ "droniverse/temporary" sang "droniverse/Club/{clubId}".
+        /// 
+        /// Quá trình:
+        /// 1. Tải media từ database theo ID
+        /// 2. Tải file từ Cloudinary URL hiện tại
+        /// 3. Upload lên Cloudinary với thư mục mới
+        /// 4. Cập nhật URL trong database
+        /// 
+        /// </remarks>
+        /// <returns>
+        /// 200 OK - Media đã được di chuyển thành công
+        /// 400 BadRequest - Nếu dữ liệu đầu vào không hợp lệ
+        /// 404 NotFound - Nếu không tìm thấy media
+        /// 500 InternalServerError - Nếu lỗi khi tải/upload file từ Cloudinary
+        /// </returns>
+        [HttpPost("move-to-folder")]
+        [Authorize(Roles = Roles.AllRoles)]
+        [ProducesResponseType(typeof(SuccessResponse<MediaResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ApiResponse> MoveMediaToFolder([FromBody] MoveMediaFolderRequest request)
+        {
+            try
+            {
+                // Validate request
+                if (request == null)
+                    throw new ArgumentNullException(nameof(request), "Request cannot be null.");
+
+                if (request.MediaId == Guid.Empty)
+                    throw new ArgumentException("MediaId cannot be empty.", nameof(request.MediaId));
+
+                if (string.IsNullOrWhiteSpace(request.Folder))
+                    throw new ArgumentException("Folder cannot be empty or whitespace.", nameof(request.Folder));
+
+                // Get media from database
+                var media = await _mediaService.GetMediaById(request.MediaId);
+                if (media == null)
+                    return SuccessResponse<MediaResponseDto>.Create(null, "Không tìm thấy media với ID: " + request.MediaId);
+
+                // Get full media entity with relationships
+                var mediaEntity = await _mediaService.GetFullMedia(request.MediaId);
+                if (mediaEntity == null)
+                    throw new KeyNotFoundException($"Media entity not found for ID: {request.MediaId}");
+
+                // Move media to new folder
+                await _mediaService.UploadMedia(mediaEntity, request.Folder);
+
+                // Get updated media info
+                var updatedMedia = await _mediaService.GetMediaById(request.MediaId);
+                return SuccessResponse<MediaResponseDto>.Create(updatedMedia, "Di chuyển tệp media thành công!");
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid argument in MoveMediaToFolder: {Message}", ex.Message);
+                return SuccessResponse<MediaResponseDto>.Create(null, ex.Message);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                _logger.LogWarning(ex, "Media not found in MoveMediaToFolder");
+                return SuccessResponse<MediaResponseDto>.Create(null, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while moving media to folder: {MediaId} to {Folder}", 
+                    request?.MediaId, request?.Folder);
+                throw;
+            }
         }
     }
 }

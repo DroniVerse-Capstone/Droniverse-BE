@@ -66,4 +66,36 @@ internal sealed class MediaClient : CommunityBaseClient
             throw;
         }
     }
+
+    public async Task<MediaMiniResponse?> GetMediaByUrl(string url, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var response = await HttpClient.GetAsync(
+                BuildCommunityPath($"media/by-url?imageUrl={Uri.EscapeDataString(url)}"),
+                cancellationToken);
+
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                return null;
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new HttpRequestException(
+                    $"Community media mini API error: {response.StatusCode}",
+                    null,
+                    response.StatusCode);
+            }
+
+            var json = await response.Content.ReadAsStringAsync(cancellationToken);
+            var mediaResponse = JsonSerializer.Deserialize<SuccessResponse<MediaMiniResponse>>(json, JsonSerializerOptions);
+            return mediaResponse?.Data;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error calling Community media mini API");
+            throw;
+        }
+    }
 }

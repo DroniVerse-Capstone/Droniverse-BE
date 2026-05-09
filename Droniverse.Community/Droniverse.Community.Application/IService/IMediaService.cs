@@ -10,6 +10,8 @@ public interface IMediaService
 {
     Task<IEnumerable<MediaResponseDto>> GetAllMedia();
     Task<MediaResponseDto?> GetMediaById(Guid id);
+    Task<Media?> GetFullMedia(Guid id);
+    Task<MediaResponseDto> GetMediaByUrl(string imageUrl);
     Task<MediaResponseDto> UploadTempMedia(FileUploadMediaDto dto);
     Task UploadMedia(Media media, string folder);
     Task<IEnumerable<MediaMiniResponse>> GetMiniResponse(IEnumerable<Guid>? mediaIds);
