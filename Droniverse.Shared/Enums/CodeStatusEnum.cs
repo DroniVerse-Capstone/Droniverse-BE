@@ -1,5 +1,9 @@
-﻿namespace Droniverse.Shared.Enums
+﻿using System.Text.Json.Serialization;
+using Droniverse.Shared.JsonConverters;
+
+namespace Droniverse.Shared.Enums
 {
+    [JsonConverter(typeof(CodeStatusEnumJsonConverter))]
     public enum CodeStatusEnum
     {
         Active = 1,   // code hợp lệ, chưa dùng
