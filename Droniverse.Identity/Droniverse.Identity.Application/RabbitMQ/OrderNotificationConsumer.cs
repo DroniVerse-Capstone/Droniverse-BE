@@ -8,6 +8,7 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Droniverse.Identity.Application.RabbitMQ;
 
@@ -18,7 +19,7 @@ public class OrderNotificationConsumer : IDisposable
     private readonly IConfiguration _configuration;
     private IModel? _channel;
     private IConnection? _connection;
-    private IBasicConsumer? _consumer;
+    private EventingBasicConsumer? _consumer;
 
     public OrderNotificationConsumer(
         IServiceProvider serviceProvider,
@@ -69,7 +70,6 @@ public class OrderNotificationConsumer : IDisposable
 
             _connection = factory.CreateConnection();
             _channel = _connection.CreateModel();
-            _channel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
 
             string exchangeName = "order.notification.exchange";
             string queueName = "identity.notification.queue";
@@ -104,10 +104,10 @@ public class OrderNotificationConsumer : IDisposable
                 exchange: exchangeName,
                 routingKey: "payment.successful");
 
-            _logger.LogInformation("📌 Creating AsyncEventingBasicConsumer with manual ack...");
-            var asyncConsumer = new AsyncEventingBasicConsumer(_channel);
+            _logger.LogInformation("📌 Creating EventingBasicConsumer (synchronous)...");
+            _consumer = new EventingBasicConsumer(_channel);
 
-            asyncConsumer.Received += async (sender, args) =>
+            _consumer.Received += async (sender, args) =>
             {
                 byte[] body = args.Body.ToArray();
                 string message = Encoding.UTF8.GetString(body);
@@ -164,27 +164,15 @@ public class OrderNotificationConsumer : IDisposable
                     {
                         _logger.LogWarning("Unknown routing key: {RoutingKey}", routingKey);
                     }
-
-                    _channel?.BasicAck(deliveryTag: args.DeliveryTag, multiple: false);
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error processing message with routing key {RoutingKey}", routingKey);
-
-                    try
-                    {
-                        _channel?.BasicNack(deliveryTag: args.DeliveryTag, multiple: false, requeue: false);
-                    }
-                    catch (Exception nackEx)
-                    {
-                        _logger.LogError(nackEx, "Failed to nack message with routing key {RoutingKey}", routingKey);
-                    }
                 }
             };
 
             _logger.LogInformation("Starting BasicConsume on queue: {QueueName}", queueName);
-            string consumerTag = _channel.BasicConsume(queue: queueName, autoAck: false, consumer: asyncConsumer);
-            _consumer = asyncConsumer;
+            string consumerTag = _channel.BasicConsume(queue: queueName, consumer: _consumer, autoAck: true);
             _logger.LogInformation("BasicConsume started with consumerTag: {ConsumerTag}", consumerTag);
             _logger.LogInformation("Order notification consumer started successfully - waiting for messages...");
         }
