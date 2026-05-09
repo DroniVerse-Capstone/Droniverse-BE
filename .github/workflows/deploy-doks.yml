@@ -142,33 +142,57 @@ jobs:
 
       - name: Build and push Gateway
         if: env.DEPLOY_GATEWAY == 'true'
+        env:
+          DOCKER_BUILDKIT: 1
         run: |
           GW="$REGISTRY/$REGISTRY_NAME/gateway:$TAG"
-          docker build --no-cache --pull -t "$GW" -f Droniverse.Gateway/Droniverse.Gateway/Dockerfile .
+          for attempt in {1..3}; do
+            echo "Build attempt $attempt/3..."
+            docker build --no-cache --pull -t "$GW" -f Droniverse.Gateway/Droniverse.Gateway/Dockerfile . && break
+            if [ $attempt -lt 3 ]; then sleep 30; fi
+          done
           docker push "$GW"
           echo "GW=$GW" >> "$GITHUB_ENV"
 
       - name: Build and push Academy
         if: env.DEPLOY_ACADEMY == 'true'
+        env:
+          DOCKER_BUILDKIT: 1
         run: |
           ACA="$REGISTRY/$REGISTRY_NAME/academy:$TAG"
-          docker build --no-cache --pull -t "$ACA" -f Droniverse.Academy/Droniverse.Academy.API/Dockerfile .
+          for attempt in {1..3}; do
+            echo "Build attempt $attempt/3..."
+            docker build --no-cache --pull -t "$ACA" -f Droniverse.Academy/Droniverse.Academy.API/Dockerfile . && break
+            if [ $attempt -lt 3 ]; then sleep 30; fi
+          done
           docker push "$ACA"
           echo "ACA=$ACA" >> "$GITHUB_ENV"
 
       - name: Build and push Community
         if: env.DEPLOY_COMMUNITY == 'true'
+        env:
+          DOCKER_BUILDKIT: 1
         run: |
           COM="$REGISTRY/$REGISTRY_NAME/community:$TAG"
-          docker build --no-cache --pull -t "$COM" -f Droniverse.Community/Droniverse.Community.API/Dockerfile .
+          for attempt in {1..3}; do
+            echo "Build attempt $attempt/3..."
+            docker build --no-cache --pull -t "$COM" -f Droniverse.Community/Droniverse.Community.API/Dockerfile . && break
+            if [ $attempt -lt 3 ]; then sleep 30; fi
+          done
           docker push "$COM"
           echo "COM=$COM" >> "$GITHUB_ENV"
 
       - name: Build and push Identity
         if: env.DEPLOY_IDENTITY == 'true'
+        env:
+          DOCKER_BUILDKIT: 1
         run: |
           IDN="$REGISTRY/$REGISTRY_NAME/identity:$TAG"
-          docker build --no-cache --pull -t "$IDN" -f Droniverse.Identity/Droniverse.Identity.API/Dockerfile .
+          for attempt in {1..3}; do
+            echo "Build attempt $attempt/3..."
+            docker build --no-cache --pull -t "$IDN" -f Droniverse.Identity/Droniverse.Identity.API/Dockerfile . && break
+            if [ $attempt -lt 3 ]; then sleep 30; fi
+          done
           docker push "$IDN"
           echo "IDN=$IDN" >> "$GITHUB_ENV"
 
