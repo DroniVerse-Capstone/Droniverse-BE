@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using Droniverse.Academy.Application.Common.Extensions;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
@@ -141,7 +141,7 @@ public class CourseService : ICourseService
             .GetAllWithCurrentVersionAsync(
                 filter,
                 query => query.OrderBy(c => c.Level!.LevelNumber)
-                              .ThenByDescending(c => c.CreateAt),
+                              .ThenBy(c => c.CreateAt),
                 pageIndex,
                 pageSize);
 
