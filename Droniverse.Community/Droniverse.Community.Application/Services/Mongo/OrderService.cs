@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using Droniverse.Community.Application.DTO.Extensions;
 using Droniverse.Community.Application.DTO.Request.Mongo;
 using Droniverse.Community.Application.DTO.Response;
@@ -556,11 +556,7 @@ internal class OrderService : IOrderService
         if (userId == Guid.Empty)
             throw new ValidationException("UserId không hợp lệ.");
 
-        var filter = Builders<Order>.Filter.And(
-            Builders<Order>.Filter.Eq(o => o.UserID, userId),
-            Builders<Order>.Filter.Eq(o => o.Status, OrderStatus.SUCCESS)
-        );
-        var orders = await _orderRepository.GetOrdersByCondition(filter);
+        var orders = await _orderRepository.GetOrdersByCondition(Builders<Order>.Filter.Eq(o => o.UserID, userId));
         var orderList = orders
             .Where(order => order != null)
             .Cast<Order>()

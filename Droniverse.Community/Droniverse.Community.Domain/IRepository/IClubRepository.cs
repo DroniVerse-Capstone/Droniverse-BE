@@ -1,4 +1,4 @@
-﻿using Droniverse.Community.Domain.Entities;
+using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.Enums;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Response;
@@ -22,6 +22,7 @@ public interface IClubRepository : IRepository<Club>
     Task<Dictionary<Guid, int>> GetMemberCountsByClubIds(IEnumerable<Guid> clubIds);
     Task<Dictionary<Guid, int>> GetCourseCountsByClubIds(IEnumerable<Guid> clubIds);
     Task<SimpleClubResponse?> GetSimpleClubInfoById(Guid clubId);
+    Task<Dictionary<Guid, Club>> GetClubsByCreatorIds(IEnumerable<Guid> creatorIds);
     
 }
 

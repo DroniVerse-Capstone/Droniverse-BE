@@ -1,4 +1,4 @@
-using Droniverse.Community.Application.DTO.Response;
+﻿using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.DTO.Response.Mongo;
 using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
@@ -94,13 +94,22 @@ namespace Droniverse.Community.Application.Services
             var wallets = await _unitOfWork.Wallets.GetManyByCondition(w => userIds.Contains(w.OwnerID));
             var walletDict = wallets.ToDictionary(w => w.OwnerID, w => w.Balance);
 
-            var detailUsers = users.Select(u => new DetailDashboardClubManagerResponse
+            // Lấy thông tin club mà mỗi manager đang quản lý (so sánh qua CreatedBy)
+            var clubByManager = await _unitOfWork.Clubs.GetClubsByCreatorIds(userIds);
+
+            var detailUsers = users.Select(u =>
             {
-                UserId = u.UserId,
-                FullName = u.FullName ?? string.Empty,
-                Email = u.Email ?? string.Empty,
-                AvatarUrl = u.AvatarUrl,
-                WalletBalance = walletDict.TryGetValue(u.UserId, out var balance) ? balance : 0m
+                clubByManager.TryGetValue(u.UserId, out var club);
+                return new DetailDashboardClubManagerResponse
+                {
+                    UserId = u.UserId,
+                    FullName = u.FullName ?? string.Empty,
+                    Email = u.Email ?? string.Empty,
+                    AvatarUrl = u.AvatarUrl,
+                    WalletBalance = walletDict.TryGetValue(u.UserId, out var balance) ? balance : 0m,
+                    ClubNameVN = club?.NameVN,
+                    ClubNameEN = club?.NameEN
+                };
             })
             .OrderByDescending(u => u.WalletBalance)
             .ToList();

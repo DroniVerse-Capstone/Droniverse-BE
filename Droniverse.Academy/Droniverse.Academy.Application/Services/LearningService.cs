@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.Helpers;
 using Droniverse.Academy.Application.IService;
@@ -348,6 +348,10 @@ public class LearningService : ILearningService
                 context.UserLessons,
                 context.UserModules,
                 now);
+
+            // Phải SaveChanges trước để enrollment.Status = COMPLETED được flush xuống DB,
+            // vì CanUserUpgradeAsync query DB để check completed enrollments.
+            await _unitOfWork.SaveChangesAsync();
 
             await TryUpgradeUserLevelAsync(context.Enrollment, userId);
 
