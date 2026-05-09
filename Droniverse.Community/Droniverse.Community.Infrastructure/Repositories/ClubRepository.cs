@@ -1,4 +1,4 @@
-﻿using Droniverse.Community.Domain.Entities;
+using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Community.Infrastructure.Persistence.MySql;
@@ -148,6 +148,20 @@ internal class ClubRepository : MySqlRepository<Club>, IClubRepository
                 ClubStatus = c.Status
             })
             .FirstOrDefaultAsync();
+    }
+
+    public async Task<Dictionary<Guid, Club>> GetClubsByCreatorIds(IEnumerable<Guid> creatorIds)
+    {
+        var ids = creatorIds.Distinct().ToList();
+        if (!ids.Any())
+            return new Dictionary<Guid, Club>();
+
+        return await _context.Set<Club>()
+            .AsNoTracking()
+            .Where(c => ids.Contains(c.CreatedBy))
+            .GroupBy(c => c.CreatedBy)
+            .Select(g => g.OrderByDescending(c => c.CreatedAt).First())
+            .ToDictionaryAsync(c => c.CreatedBy, c => c);
     }
 
     public async Task<bool> IsClubExist(Guid clubId)
