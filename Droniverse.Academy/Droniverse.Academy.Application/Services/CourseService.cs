@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Droniverse.Academy.Application.Common.Extensions;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
@@ -965,6 +965,7 @@ public class CourseService : ICourseService
                 TitleVN = c.CurrentVersion?.TitleVN ?? string.Empty,
                 TitleEN = c.CurrentVersion?.TitleEN ?? string.Empty,
                 ImageUrl = c.CurrentVersion?.ImageUrl,
+                IsPublished = c.Status == CourseStatus.PUBLISH,
                 TotalLearners = participants,
                 AverageRating = rating
             };

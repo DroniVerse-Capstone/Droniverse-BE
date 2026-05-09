@@ -9,9 +9,12 @@ namespace Droniverse.Community.Application.IService
     {
         Task<PaginationResult<IEnumerable<DetailDashboardUserResponse>>> GetClubMembersWithCourseSpend(int page = 1, int pageSize = 10);
         Task<PaginationResult<IEnumerable<DetailDashboardClubManagerResponse>>> GetClubManagersWithWalletBalance(int page = 1, int pageSize = 10);
-        Task<IEnumerable<UserOrderDetailResponseDto>> GetUserOrderDetails(Guid userId);
-        Task<IEnumerable<TransactionResponseDto>> GetUserTransactions(Guid userId);
+        Task<PaginationResult<IEnumerable<UserOrderDetailResponseDto>>> GetUserOrderDetails(Guid userId, int page = 1, int pageSize = 10);
+        Task<PaginationResult<IEnumerable<TransactionResponseDto>>> GetUserTransactions(Guid userId, int page = 1, int pageSize = 10);
         Task<IEnumerable<CourseStatisticInterServiceDto>> GetCourseDashboard();
-        Task<IEnumerable<CourseDetailDashboardResponseDto>> GetCourseRevenueDashboard();
+        Task<PaginationResult<IEnumerable<CourseDetailDashboardResponseDto>>> GetCourseRevenueDashboard(int page = 1, int pageSize = 10);
+        Task<PaginationResult<IEnumerable<CourseRevenueByClubResponseDto>>> GetCourseRevenueByClub(Guid courseId, int page = 1, int pageSize = 10);
+        Task<PaginationResult<IEnumerable<ClubDashboardResponseDto>>> GetClubDashboardAsync(int page = 1, int pageSize = 10);
+        Task<PaginationResult<IEnumerable<ClubMemberTransactionResponseDto>>> GetClubMemberTransactionsAsync(Guid clubId, Guid? courseId, int page = 1, int pageSize = 10);
     }
 }

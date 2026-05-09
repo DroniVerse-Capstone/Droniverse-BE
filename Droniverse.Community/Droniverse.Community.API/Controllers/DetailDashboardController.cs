@@ -74,11 +74,11 @@ public class DetailDashboardController : ControllerBase
     /// </summary>
     /// <param name="userId">ID user cần lấy chi tiết đơn hàng.</param>
     [HttpGet("users/{userId:guid}/orders")]
-    [ProducesResponseType(typeof(SuccessResponse<IEnumerable<UserOrderDetailResponseDto>>), StatusCodes.Status200OK)]
-    public async Task<ApiResponse> GetUserOrderDetails(Guid userId)
+    [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<UserOrderDetailResponseDto>>>), StatusCodes.Status200OK)]
+    public async Task<ApiResponse> GetUserOrderDetails(Guid userId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
-        var details = await _detailDashboardService.GetUserOrderDetails(userId);
-        return SuccessResponse<IEnumerable<UserOrderDetailResponseDto>>.Create(details, "Lấy chi tiết đơn hàng user thành công.");
+        var details = await _detailDashboardService.GetUserOrderDetails(userId, page, pageSize);
+        return SuccessResponse<PaginationResult<IEnumerable<UserOrderDetailResponseDto>>>.Create(details, "Lấy chi tiết đơn hàng user thành công.");
     }
 
     /// <summary>
@@ -87,18 +87,66 @@ public class DetailDashboardController : ControllerBase
     /// <param name="userId">ID user cần lấy lịch sử giao dịch.</param>
     /// <returns>Danh sách giao dịch (nạp/rút tiền) của user.</returns>
     [HttpGet("users/{userId:guid}/transactions")]
-    [ProducesResponseType(typeof(SuccessResponse<IEnumerable<TransactionResponseDto>>), StatusCodes.Status200OK)]
-    public async Task<ApiResponse> GetUserTransactions(Guid userId)
+    [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<TransactionResponseDto>>>), StatusCodes.Status200OK)]
+    public async Task<ApiResponse> GetUserTransactions(Guid userId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
-        var transactions = await _detailDashboardService.GetUserTransactions(userId);
-        return SuccessResponse<IEnumerable<TransactionResponseDto>>.Create(transactions, "Lấy lịch sử giao dịch thành công.");
+        var transactions = await _detailDashboardService.GetUserTransactions(userId, page, pageSize);
+        return SuccessResponse<PaginationResult<IEnumerable<TransactionResponseDto>>>.Create(transactions, "Lấy lịch sử giao dịch thành công.");
     }
 
+    /// <summary>
+    /// Lấy thống kê doanh thu khóa học kèm số người học và đánh giá trung bình.
+    /// </summary>
+    /// <remarks>
+    /// - Kết hợp dữ liệu từ Academy Service (thông tin khóa học) và Order DB (doanh thu).
+    /// - <b>TotalRevenue</b>: Tổng doanh thu (đã trừ hoàn tiền) từ các đơn hàng khóa học.
+    /// - <b>TotalLearners</b>: Tổng số học viên (không tính học viên hủy/hoàn).
+    /// - <b>AverageRating</b>: Điểm đánh giá trung bình của khóa học.
+    /// - <b>ImageUrl</b>: Ảnh đại diện của khóa học.
+    /// </remarks>
+    /// <returns>
+    /// 200 OK - Trả về danh sách khóa học với thống kê doanh thu.
+    /// </returns>
     [HttpGet("courses")]
-    [ProducesResponseType(typeof(SuccessResponse<IEnumerable<CourseDetailDashboardResponseDto>>), StatusCodes.Status200OK)]
-    public async Task<ApiResponse> GetCourseRevenueDashboard()
+    [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<CourseDetailDashboardResponseDto>>>), StatusCodes.Status200OK)]
+    public async Task<ApiResponse> GetCourseRevenueDashboard([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
-        var data = await _detailDashboardService.GetCourseRevenueDashboard();
-        return SuccessResponse<IEnumerable<CourseDetailDashboardResponseDto>>.Create(data, "Lấy thống kê khóa học kèm doanh thu thành công.");
+        var data = await _detailDashboardService.GetCourseRevenueDashboard(page, pageSize);
+        return SuccessResponse<PaginationResult<IEnumerable<CourseDetailDashboardResponseDto>>>.Create(data, "Lấy thống kê khóa học kèm doanh thu thành công.");
+    }
+
+    /// <summary>
+    /// Lấy chi tiết doanh thu và số lượng học viên của một khóa học theo từng câu lạc bộ.
+    /// </summary>
+    /// <param name="courseId">ID của khóa học.</param>
+    /// <returns>Danh sách các câu lạc bộ có mua khóa học, sắp xếp theo doanh thu giảm dần.</returns>
+    [HttpGet("courses/{courseId:guid}/clubs")]
+    [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<CourseRevenueByClubResponseDto>>>), StatusCodes.Status200OK)]
+    public async Task<ApiResponse> GetCourseRevenueByClub(Guid courseId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    {
+        var data = await _detailDashboardService.GetCourseRevenueByClub(courseId, page, pageSize);
+        return SuccessResponse<PaginationResult<IEnumerable<CourseRevenueByClubResponseDto>>>.Create(data, "Lấy chi tiết doanh thu khóa học theo club thành công.");
+    }
+
+    /// <summary>
+    /// Lấy danh sách tổng quan tất cả các câu lạc bộ (Tên, thành viên, doanh thu, trạng thái).
+    /// </summary>
+    [HttpGet("clubs")]
+    [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<ClubDashboardResponseDto>>>), StatusCodes.Status200OK)]
+    public async Task<ApiResponse> GetClubDashboardAsync([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    {
+        var data = await _detailDashboardService.GetClubDashboardAsync(page, pageSize);
+        return SuccessResponse<PaginationResult<IEnumerable<ClubDashboardResponseDto>>>.Create(data, "Lấy thống kê câu lạc bộ thành công.");
+    }
+
+    /// <summary>
+    /// Lấy danh sách giao dịch mua khóa học của các thành viên trong một câu lạc bộ.
+    /// </summary>
+    [HttpGet("clubs/{clubId:guid}/transactions")]
+    [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<ClubMemberTransactionResponseDto>>>), StatusCodes.Status200OK)]
+    public async Task<ApiResponse> GetClubMemberTransactionsAsync(Guid clubId, [FromQuery] Guid? courseId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    {
+        var data = await _detailDashboardService.GetClubMemberTransactionsAsync(clubId, courseId, page, pageSize);
+        return SuccessResponse<PaginationResult<IEnumerable<ClubMemberTransactionResponseDto>>>.Create(data, "Lấy danh sách giao dịch câu lạc bộ thành công.");
     }
 }
