@@ -74,11 +74,11 @@ public class DetailDashboardController : ControllerBase
     /// </summary>
     /// <param name="userId">ID user cần lấy chi tiết đơn hàng.</param>
     [HttpGet("users/{userId:guid}/orders")]
-    [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<UserOrderDetailResponseDto>>>), StatusCodes.Status200OK)]
-    public async Task<ApiResponse> GetUserOrderDetails(Guid userId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    [ProducesResponseType(typeof(SuccessResponse<IEnumerable<UserOrderDetailResponseDto>>), StatusCodes.Status200OK)]
+    public async Task<ApiResponse> GetUserOrderDetails(Guid userId)
     {
-        var details = await _detailDashboardService.GetUserOrderDetails(userId, page, pageSize);
-        return SuccessResponse<PaginationResult<IEnumerable<UserOrderDetailResponseDto>>>.Create(details, "Lấy chi tiết đơn hàng user thành công.");
+        var details = await _detailDashboardService.GetUserOrderDetails(userId);
+        return SuccessResponse<IEnumerable<UserOrderDetailResponseDto>>.Create(details, "Lấy chi tiết đơn hàng user thành công.");
     }
 
     /// <summary>
@@ -87,11 +87,11 @@ public class DetailDashboardController : ControllerBase
     /// <param name="userId">ID user cần lấy lịch sử giao dịch.</param>
     /// <returns>Danh sách giao dịch (nạp/rút tiền) của user.</returns>
     [HttpGet("users/{userId:guid}/transactions")]
-    [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<TransactionResponseDto>>>), StatusCodes.Status200OK)]
-    public async Task<ApiResponse> GetUserTransactions(Guid userId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    [ProducesResponseType(typeof(SuccessResponse<IEnumerable<TransactionResponseDto>>), StatusCodes.Status200OK)]
+    public async Task<ApiResponse> GetUserTransactions(Guid userId)
     {
-        var transactions = await _detailDashboardService.GetUserTransactions(userId, page, pageSize);
-        return SuccessResponse<PaginationResult<IEnumerable<TransactionResponseDto>>>.Create(transactions, "Lấy lịch sử giao dịch thành công.");
+        var transactions = await _detailDashboardService.GetUserTransactions(userId);
+        return SuccessResponse<IEnumerable<TransactionResponseDto>>.Create(transactions, "Lấy lịch sử giao dịch thành công.");
     }
 
     /// <summary>

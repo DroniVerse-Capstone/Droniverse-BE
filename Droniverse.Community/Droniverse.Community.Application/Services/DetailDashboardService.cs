@@ -1,4 +1,4 @@
-﻿using Droniverse.Community.Application.DTO.Response;
+using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Community.Application.DTO.Response.Mongo;
 using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
@@ -128,22 +128,14 @@ namespace Droniverse.Community.Application.Services
                 .ToDictionary(group => group.Key, group => group.Sum(order => order.TotalAmount));
         }
 
-        public async Task<PaginationResult<IEnumerable<UserOrderDetailResponseDto>>> GetUserOrderDetails(Guid userId, int page = 1, int pageSize = 10)
+        public async Task<IEnumerable<UserOrderDetailResponseDto>> GetUserOrderDetails(Guid userId)
         {
-            var all = await _orderService.GetOrdersDetailByUserId(userId);
-            var list = all.ToList();
-            var totalRecords = list.Count;
-            var paged = list.Skip((page - 1) * pageSize).Take(pageSize).ToList();
-            return new PaginationResult<IEnumerable<UserOrderDetailResponseDto>>(paged, totalRecords, page, pageSize);
+            return await _orderService.GetOrdersDetailByUserId(userId);
         }
 
-        public async Task<PaginationResult<IEnumerable<TransactionResponseDto>>> GetUserTransactions(Guid userId, int page = 1, int pageSize = 10)
+        public async Task<IEnumerable<TransactionResponseDto>> GetUserTransactions(Guid userId)
         {
-            var all = await _transactionService.GetTransactionsByUserIdAsync(userId);
-            var list = all.ToList();
-            var totalRecords = list.Count;
-            var paged = list.Skip((page - 1) * pageSize).Take(pageSize).ToList();
-            return new PaginationResult<IEnumerable<TransactionResponseDto>>(paged, totalRecords, page, pageSize);
+            return await _transactionService.GetTransactionsByUserIdAsync(userId);
         }
 
         public async Task<IEnumerable<CourseStatisticInterServiceDto>> GetCourseDashboard()
