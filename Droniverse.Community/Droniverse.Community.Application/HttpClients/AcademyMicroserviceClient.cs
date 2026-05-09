@@ -1,4 +1,4 @@
-using Droniverse.Community.Application.DTO.Response;
+﻿using Droniverse.Community.Application.DTO.Response;
 using Droniverse.Shared.DTOs;
 using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.DTOs.Response;
@@ -1242,6 +1242,27 @@ public class AcademyMicroserviceClient
         {
             _logger.LogError(ex, "Lỗi khi gọi Academy API codes/admin/stats");
             return new CodeStatsOverviewResponse();
+        }
+    }
+    public async Task<IEnumerable<CourseStatisticInterServiceDto>> GetCourseDashboard()
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync(BuildAcademyPath("courses/inter-service/system-stats"));
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Academy service lỗi khi gọi courses/inter-service/system-stats: {StatusCode}", response.StatusCode);
+                return new List<CourseStatisticInterServiceDto>();
+            }
+
+            var codeStats = await response.Content.ReadFromJsonAsync<IEnumerable<CourseStatisticInterServiceDto>>(_jsonOptions);
+            return codeStats ?? new List<CourseStatisticInterServiceDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi gọi Academy API courses/inter-service/system-stats");
+            return new List<CourseStatisticInterServiceDto>();
         }
     }
 

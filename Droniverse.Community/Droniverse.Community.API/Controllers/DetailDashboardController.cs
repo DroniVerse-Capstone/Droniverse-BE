@@ -1,10 +1,11 @@
 using Droniverse.Community.Application.DTO.Response;
+using Droniverse.Community.Application.DTO.Response.Mongo;
 using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
 using Droniverse.Community.Application.IService.Mongo;
-using Droniverse.Community.Application.DTO.Response.Mongo;
 using Droniverse.Shared.Constants;
 using Droniverse.Shared.DTOs;
+using Droniverse.Shared.DTOs.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,17 +19,11 @@ namespace Droniverse.Community.API.Controllers;
 [Authorize(Roles = Roles.AdminOrSystemManager)]
 public class DetailDashboardController : ControllerBase
 {
-    private readonly IDashboardService _dashboardService;
-    private readonly IdentityMicroserviceClient _client;
-    private readonly IOrderService _orderService;
-    private readonly ITransactionService _transactionService;
+    private readonly IDetailDashboardService _detailDashboardService;
 
-    public DetailDashboardController(IDashboardService dashboardService, IdentityMicroserviceClient client, IOrderService orderService, ITransactionService transactionService)
+    public DetailDashboardController(IDetailDashboardService detailDashboardService)
     {
-        _dashboardService = dashboardService;
-        _client = client;
-        _orderService = orderService;
-        _transactionService = transactionService;
+        _detailDashboardService = detailDashboardService;
     }
 
     /// <summary>
@@ -49,7 +44,7 @@ public class DetailDashboardController : ControllerBase
     [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<DetailDashboardUserResponse>>>), StatusCodes.Status200OK)]
     public async Task<ApiResponse> GetClubMembersWithCourseSpend([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
-        var data = await _dashboardService.GetDetailDashboardUsers(page, pageSize);
+        var data = await _detailDashboardService.GetClubMembersWithCourseSpend(page, pageSize);
         return SuccessResponse<PaginationResult<IEnumerable<DetailDashboardUserResponse>>>.Create(data, "Lấy danh sách user chi tiêu khóa học thành công!");
     }
 
@@ -70,7 +65,7 @@ public class DetailDashboardController : ControllerBase
     [ProducesResponseType(typeof(SuccessResponse<PaginationResult<IEnumerable<DetailDashboardClubManagerResponse>>>), StatusCodes.Status200OK)]
     public async Task<ApiResponse> GetClubManagersWithWalletBalance([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
-        var data = await _dashboardService.GetDetailDashboardClubManagers(page, pageSize);
+        var data = await _detailDashboardService.GetClubManagersWithWalletBalance(page, pageSize);
         return SuccessResponse<PaginationResult<IEnumerable<DetailDashboardClubManagerResponse>>>.Create(data, "Lấy danh sách club manager thành công!");
     }
 
@@ -82,7 +77,7 @@ public class DetailDashboardController : ControllerBase
     [ProducesResponseType(typeof(SuccessResponse<IEnumerable<UserOrderDetailResponseDto>>), StatusCodes.Status200OK)]
     public async Task<ApiResponse> GetUserOrderDetails(Guid userId)
     {
-        var details = await _orderService.GetOrdersDetailByUserId(userId);
+        var details = await _detailDashboardService.GetUserOrderDetails(userId);
         return SuccessResponse<IEnumerable<UserOrderDetailResponseDto>>.Create(details, "Lấy chi tiết đơn hàng user thành công.");
     }
 
@@ -95,8 +90,15 @@ public class DetailDashboardController : ControllerBase
     [ProducesResponseType(typeof(SuccessResponse<IEnumerable<TransactionResponseDto>>), StatusCodes.Status200OK)]
     public async Task<ApiResponse> GetUserTransactions(Guid userId)
     {
-        var transactions = await _transactionService.GetTransactionsByUserIdAsync(userId);
+        var transactions = await _detailDashboardService.GetUserTransactions(userId);
         return SuccessResponse<IEnumerable<TransactionResponseDto>>.Create(transactions, "Lấy lịch sử giao dịch thành công.");
     }
 
+    [HttpGet("courses")]
+    [ProducesResponseType(typeof(SuccessResponse<IEnumerable<CourseDetailDashboardResponseDto>>), StatusCodes.Status200OK)]
+    public async Task<ApiResponse> GetCourseRevenueDashboard()
+    {
+        var data = await _detailDashboardService.GetCourseRevenueDashboard();
+        return SuccessResponse<IEnumerable<CourseDetailDashboardResponseDto>>.Create(data, "Lấy thống kê khóa học kèm doanh thu thành công.");
+    }
 }

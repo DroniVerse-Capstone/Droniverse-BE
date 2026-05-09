@@ -929,4 +929,45 @@ public class CourseService : ICourseService
             return query.ThenBy(c => c.CourseID);
         };
     }
+
+    public async Task<IEnumerable<CourseStatisticInterServiceDto>> GetAllCoursesWithStatisticsAsync()
+    {
+        var courses = await _unitOfWork.Courses.GetAllWithCurrentVersionNoPagingAsync(c => true);
+        var coursesList = courses.ToList();
+
+        if (coursesList.Count == 0)
+        {
+            return [];
+        }
+
+        var versionIds = coursesList
+            .Where(c => c.CurrentVersion != null)
+            .Select(c => c.CurrentVersion!.CourseVersionID)
+            .Distinct()
+            .ToList();
+
+        var participantByVersionId = await _unitOfWork.Enrollments
+            .GetActiveOrCompletedParticipantCountsByCourseVersionIdsAsync(versionIds);
+
+        var ratingByVersionId = await _unitOfWork.Feedbacks
+            .GetAverageRatingsByCourseVersionIdsAsync(versionIds);
+
+        return coursesList.Select(c =>
+        {
+            var currentVersionId = c.CurrentVersion?.CourseVersionID;
+            participantByVersionId.TryGetValue(currentVersionId ?? Guid.Empty, out var participants);
+            ratingByVersionId.TryGetValue(currentVersionId ?? Guid.Empty, out var rating);
+
+            return new CourseStatisticInterServiceDto
+            {
+                CourseId = c.CourseID,
+                CurrentVersionId = currentVersionId,
+                TitleVN = c.CurrentVersion?.TitleVN ?? string.Empty,
+                TitleEN = c.CurrentVersion?.TitleEN ?? string.Empty,
+                ImageUrl = c.CurrentVersion?.ImageUrl,
+                TotalLearners = participants,
+                AverageRating = rating
+            };
+        });
+    }
 }

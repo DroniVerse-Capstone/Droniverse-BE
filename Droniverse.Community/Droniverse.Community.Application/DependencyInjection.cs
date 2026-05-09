@@ -1,4 +1,4 @@
-﻿using Droniverse.Community.Application.Delegate;
+using Droniverse.Community.Application.Delegate;
 using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
 using Droniverse.Community.Application.IService.Mongo;
@@ -22,6 +22,7 @@ public static class DependencyInjection
         services.AddAutoMapper(typeof(ClubRequestMappingProfile).Assembly); services.AddAutoMapper(typeof(TransactionMappingProfile).Assembly); services.AddScoped<INotificationService, EmailNotificationService>();
         services.AddScoped<IClubService, ClubService>();
         services.AddScoped<IDashboardService, DashboardService>();
+        services.AddScoped<IDetailDashboardService, DetailDashboardService>();
         services.AddScoped<IClubAttemptRequestService, ClubAttemptRequestService>();
         services.AddScoped<IClubCreationRequestService, ClubCreationRequestService>();
         services.AddScoped<IOrderService, OrderService>();

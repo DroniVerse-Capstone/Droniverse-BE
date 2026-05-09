@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.Application.HttpClients;
@@ -70,6 +70,58 @@ public class FeedbackService : IFeedbackService
             pageIndex: 1,
             pageSize: int.MaxValue,
             includeProperties: string.Empty);
+        var feedbackEntities = feedbacks.Data.ToList();
+        var mapped = _mapper.Map<List<FeedbackClientViewDTO>>(feedbackEntities);
+
+        var userIds = feedbackEntities
+            .Select(x => x.UserID)
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        var users = await _identityMicroserviceClient.GetUsersBulk(userIds);
+        var usersLookup = users
+            .ToDictionary(
+                x => x.UserId,
+                x => new SimpleUserReponse
+                {
+                    UserId = x.UserId,
+                    Email = x.Email,
+                    FullName = AppHelper.GetFullName(x) ?? string.Empty,
+                    AvatarUrl = x.ImageUrl
+                });
+
+        foreach (var (entity, dto) in feedbackEntities.Zip(mapped))
+        {
+            if (usersLookup.TryGetValue(entity.UserID, out var user))
+            {
+                dto.User = user;
+            }
+        }
+
+        return mapped;
+    }
+
+    public async Task<IEnumerable<FeedbackClientViewDTO>> GetFeedbacksByCourseAsync(Guid courseId)
+    {
+        var courseVersions = await _unitOfWork.CourseVersions.GetAllAsync(
+            filter: cv => cv.CourseID == courseId,
+            pageIndex: 1,
+            pageSize: int.MaxValue,
+            includeProperties: string.Empty);
+            
+        var versionIds = courseVersions.Data.Select(cv => cv.CourseVersionID).ToList();
+
+        if (!versionIds.Any())
+            return Enumerable.Empty<FeedbackClientViewDTO>();
+
+        var feedbacks = await _unitOfWork.Feedbacks.GetAllAsync(
+            filter: f => versionIds.Contains(f.CourseVersionID),
+            orderBy: q => q.OrderByDescending(x => x.CreatedAt),
+            pageIndex: 1,
+            pageSize: int.MaxValue,
+            includeProperties: string.Empty);
+            
         var feedbackEntities = feedbacks.Data.ToList();
         var mapped = _mapper.Map<List<FeedbackClientViewDTO>>(feedbackEntities);
 

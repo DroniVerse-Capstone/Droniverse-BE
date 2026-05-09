@@ -23,6 +23,6 @@ public class Order // Document trong NoSql ~~ Table trong SequenceSql
     [BsonRepresentation(BsonType.DateTime)]
     public DateTime ReceivedAt { get; set; }
     public OrderItem Item { get; set; }
-    public Payment Payment { get; set; }
+    public Payment  Payment { get; set; }
 
 }

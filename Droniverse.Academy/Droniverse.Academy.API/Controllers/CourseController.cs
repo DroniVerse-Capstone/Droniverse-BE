@@ -1,4 +1,4 @@
-﻿using Droniverse.Academy.Application.IService;
+using Droniverse.Academy.Application.IService;
 using Droniverse.Academy.Application.DTO.Request;
 using Droniverse.Academy.Application.DTO.Response;
 using Droniverse.Academy.API.Enums;
@@ -124,6 +124,26 @@ namespace Droniverse.Academy.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lấy danh sách khóa học đơn giản theo ID thất bại.");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Lấy danh sách tất cả khóa học kèm thống kê hệ thống (Inter-Service).
+        /// </summary>
+        /// <returns>Danh sách khóa học kèm phiên bản hiện tại, số người học và đánh giá.</returns>
+        [HttpGet("inter-service/system-stats")]
+        [ProducesResponseType(typeof(IEnumerable<CourseStatisticInterServiceDto>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetAllCoursesWithStatistics()
+        {
+            try
+            {
+                var result = await _courseService.GetAllCoursesWithStatisticsAsync();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lấy danh sách khóa học kèm thống kê thất bại.");
                 throw;
             }
         }
