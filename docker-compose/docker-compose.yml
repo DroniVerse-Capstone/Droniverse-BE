@@ -34,9 +34,11 @@ services:
       - ASPNETCORE_HTTP_PORTS=8080
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
-      - IdentityMicroserviceName=droniverse-gateway
+      # - IdentityMicroserviceName=droniverse-gateway
+      - IdentityMicroserviceName=identity-microservice
       - IdentityMicroservicePort=8080
-      - CommunityMicroserviceName=droniverse-gateway
+      # - CommunityMicroserviceName=droniverse-gateway
+      - CommunityMicroserviceName=community-microservice
       - CommunityMicroservicePort=8080
     ports:
       - "7000:8080"
@@ -59,9 +61,11 @@ services:
       - ASPNETCORE_HTTP_PORTS=8080
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
-      - IdentityMicroserviceName=droniverse-gateway
+      # - IdentityMicroserviceName=droniverse-gateway
+      - IdentityMicroserviceName=identity-microservice
       - IdentityMicroservicePort=8080
-      - AcademyMicroserviceName=droniverse-gateway
+      # - AcademyMicroserviceName=droniverse-gateway
+      - AcademyMicroserviceName=academy-microservice
       - AcademyMicroservicePort=8080
     ports:
       - "5000:8080"
@@ -99,6 +103,15 @@ services:
      watch:
       - action: rebuild
         path: ../Droniverse.Identity
+    networks:
+      - droniverse-network
+
+  redis:
+    container_name: droniverse-redis
+    image: redis:7-alpine
+    command: redis-server --requirepass localRedisPassword
+    ports:
+      - "6379:6379"
     networks:
       - droniverse-network
 

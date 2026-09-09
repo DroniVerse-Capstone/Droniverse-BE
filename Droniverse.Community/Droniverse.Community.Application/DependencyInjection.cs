@@ -1,4 +1,4 @@
-using Droniverse.Community.Application.Delegate;
+﻿using Droniverse.Community.Application.Delegate;
 using Droniverse.Community.Application.HttpClients;
 using Droniverse.Community.Application.IService;
 using Droniverse.Community.Application.IService.Mongo;
@@ -6,6 +6,8 @@ using Droniverse.Community.Application.Mapper;
 using Droniverse.Community.Application.RabbitMQ;
 using Droniverse.Community.Application.Services;
 using Droniverse.Community.Application.Services.Mongo;
+using Droniverse.Community.Application.Services.Mongo.Factories;
+using Droniverse.Community.Application.Services.Mongo.PaymentProviders;
 using Droniverse.Community.Application.States.CompetitionState;
 using Droniverse.Community.Application.States.RoundState;
 using Droniverse.Shared.Messages.Notification;
@@ -60,6 +62,16 @@ public static class DependencyInjection
         services.AddScoped<IMediaService, MediaService>();
         services.AddScoped<IWalletService, WalletService>();
         services.AddScoped<ITransactionService, TransactionService>();
+
+        services.AddScoped<PayOSPayment>();
+        services.AddScoped<MomoPayment>();
+        services.AddScoped<VnPayPayment>();
+        services.AddScoped<CashPayment>();
+
+        services.AddScoped<PayOSFactory>();
+        services.AddScoped<MomoFactory>();
+        services.AddScoped<VnPayFactory>();
+        services.AddScoped<CashFactory>();
 
         //Đăng ký DelegatingHandler
         services.AddTransient<AuthorizationDelegatingHandler>();

@@ -3,6 +3,7 @@ public enum PaymentMethod
 {
     CASH,
     VNPAY,
-    MOMO
+    MOMO,
+    PAYOS
 }
 

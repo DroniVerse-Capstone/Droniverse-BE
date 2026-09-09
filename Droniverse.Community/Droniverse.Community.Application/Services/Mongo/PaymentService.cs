@@ -1,33 +1,37 @@
 ﻿using Droniverse.Community.Application.DTO.Request.Mongo;
 using Droniverse.Community.Application.DTO.Response.Mongo;
-using Droniverse.Community.Application.IService.Mongo;
 using Droniverse.Community.Application.HttpClients;
+using Droniverse.Community.Application.IService.Mongo;
+using Droniverse.Community.Application.Services.Mongo.Abstractions;
+using Droniverse.Community.Application.Services.Mongo.Factories;
+using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.Entities.Mongo;
 using Droniverse.Community.Domain.Enums;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Community.Domain.IRepository.Mongo;
 using Droniverse.Shared.DTOs.Response;
-using Droniverse.Shared.Services;
-using Droniverse.Shared.Services.IServices;
 using Droniverse.Shared.Messages.Notification;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using PayOS;
 using PayOS.Exceptions;
 using PayOS.Models.V2.PaymentRequests;
-using System.Security.Cryptography;
+using System.Net;
 using System.Text;
 using System.Text.Json;
-using Droniverse.Shared.Helpers;
-using Droniverse.Community.Domain.Entities;
-using Microsoft.EntityFrameworkCore;
-using Droniverse.Shared.Enums;
 
 namespace Droniverse.Community.Application.Services.Mongo;
 
 internal class PaymentService : IPaymentService
 {
+
+    private readonly MomoFactory _momoFactory;
+    private readonly VnPayFactory _vnPayFactory;
+    private readonly PayOSFactory _payOSFactory;
+    private readonly CashFactory _cashFactory;
+
     private readonly IOrderRepository _orderRepository;
     private readonly PayOSClient _payOSClient;
     private readonly IConfiguration _configuration;
@@ -42,6 +46,10 @@ internal class PaymentService : IPaymentService
     private readonly string _checksumKey;
     private readonly IClock _clock;
     public PaymentService(
+        MomoFactory momoFactory,
+        VnPayFactory vnPayFactory,
+        CashFactory cashFactory,
+        PayOSFactory payOSFactory,
         IConfiguration configuration,
         ILogger<PaymentService> logger,
         IUnitOfWork unitOfWork,
@@ -54,6 +62,11 @@ internal class PaymentService : IPaymentService
         IOrderNotificationPublisher orderNotificationPublisher,
         IClock clock)
     {
+        _momoFactory = momoFactory;
+        _vnPayFactory = vnPayFactory;
+        _payOSFactory = payOSFactory;
+        _cashFactory = cashFactory;
+
         _orderRepository = orderRepository;
         _configuration = configuration;
         _logger = logger;
@@ -139,48 +152,22 @@ internal class PaymentService : IPaymentService
                 return new PaymentResponseDto(order._id, order.Payment.TransactionID, order.Payment.PaymentUrl, order.Payment.PaymentMethod, order.Payment.PaymentStatus, order.Payment.TransactionDate);
             }
 
-            string? returnUrl = _configuration["PAYOS_RETURN_URL"] ?? "trang thanh toán thành công";
-            string? cancelUrl = _configuration["PAYOS_CANCEL_URL"] ?? "trang thanh toán thất bại";
-            _logger.LogInformation("URLs - Return: {ReturnUrl}, Cancel: {CancelUrl}", returnUrl, cancelUrl);
-
-            // Sử dụng Unix timestamp thay vì Guid bytes (match FStreak-BE)
-            long orderCode = DateTimeOffset.Now.ToUnixTimeSeconds();
-            string fullDescription = $"Order {orderCode}";
-            // Cắt ngắn description tối đa 25 ký tự (requirement của PayOS)
-            string description = fullDescription.Length > 25
-                ? fullDescription.Substring(0, 25)
-                : fullDescription;
-
-            _logger.LogInformation(
-            "Creating PayOS Payment Link - OrderId: {OrderId}, OrderCode: {OrderCode}, Amount: {Amount}, ReturnUrl: {ReturnUrl}",
-            orderId, orderCode, paymentCreateDto.TotalAmount, returnUrl);
-
-
-            CreatePaymentLinkRequest? request = new CreatePaymentLinkRequest
+            // Use factory resolver to get the appropriate payment
+            PaymentFactory factory = paymentCreateDto.PaymentMethod switch
             {
-                OrderCode = (int)orderCode,  // Cast to int (PayOS requirement)
-                Amount = (long)paymentCreateDto.TotalAmount,
-                CancelUrl = cancelUrl,
-                ReturnUrl = returnUrl,
-                Description = description, // Cắt ngắn tối đa 25 ký tự
+                PaymentMethod.VNPAY => _vnPayFactory,
+                PaymentMethod.MOMO => _momoFactory,
+                PaymentMethod.PAYOS => _payOSFactory,
+                PaymentMethod.CASH => _cashFactory,
+                _ => throw new NotSupportedException($"Payment method '{paymentCreateDto.PaymentMethod}' is not supported")
             };
 
-            _logger.LogInformation("PayOS Request - OrderCode: {OrderCode}, Amount: {Amount}",
-             request.OrderCode, request.Amount);
+            // Gọi factory method để tạo payment
+            IPayment paymentProvider = factory.CreatePayment();
 
+            // Dùng payment để tạo payment link
+            var paymentResponse = await paymentProvider.CreatePaymentLinkAsync(orderId, paymentCreateDto, _configuration);
 
-            // Gọi PayOs Api
-            CreatePaymentLinkResponse? response = await _payOSClient.PaymentRequests.CreateAsync(request);
-
-            if (response is null || string.IsNullOrWhiteSpace(response.CheckoutUrl))
-            {
-                _logger.LogError("PayOs return null response.");
-                throw new Exception("PayOs không trả về kết quả.");
-            }
-
-            // Log đầy đủ response
-            var responseJson = JsonSerializer.Serialize(response);
-            _logger.LogInformation("PayOS CreatePaymentLink Response: {Response}", responseJson);
 
             //Tạo entity Payment
             Payment payment = new Payment
@@ -189,8 +176,8 @@ internal class PaymentService : IPaymentService
                 PaymentMethod = paymentCreateDto.PaymentMethod,
                 PaymentStatus = PaymentStatus.PENDING,
                 TransactionDate = _clock.Now, // +7 để dùng múi giờ VN
-                PaymentUrl = response.CheckoutUrl,
-                PaymentLinkID = orderCode.ToString()  // Dùng OrderCode để match webhook
+                PaymentUrl = paymentResponse.CheckoutUrl,
+                PaymentLinkID = paymentResponse.PaymentLinkId  // Dùng OrderCode để match webhook
             };
 
             //Thêm payment vào order
@@ -207,7 +194,7 @@ internal class PaymentService : IPaymentService
             return new PaymentResponseDto
             {
                 OrderId = orderId,
-                PaymentUrl = response.CheckoutUrl,
+                PaymentUrl = paymentResponse.CheckoutUrl,
                 Status = PaymentStatus.PENDING,
 
             };
@@ -317,7 +304,7 @@ internal class PaymentService : IPaymentService
             _logger.LogInformation("Signature data: {SignatureData}", signatureData.ToString());
 
             // Compute HMAC-SHA256
-            string? computedSignature = ComputeHmacSha256(signatureData.ToString(), _checksumKey);
+            string? computedSignature = PaymentUtils.ComputeHmacSha256(signatureData.ToString(), _checksumKey);
             bool isValid = computedSignature.Equals(signature, StringComparison.OrdinalIgnoreCase);
             _logger.LogInformation("Web hook signature verification : {Result}, Computed: {Computed}, Provided: {Provided}",
                 isValid ? "Valid" : "Invalid", computedSignature, signature);
@@ -593,21 +580,6 @@ internal class PaymentService : IPaymentService
 
     }
 
-
-
-    /// <summary>
-    /// Tính toán HMAC-SHA256 hash của chuỗi dữ liệu đầu vào sử dụng khóa bí mật đã cấu hình. Kết quả trả về là một chuỗi thập lục phân viết thường, có thể được so sánh với chữ ký được gửi trong webhook để xác minh tính hợp lệ của yêu cầu.
-    /// </summary>
-    /// <param name="data">The input string to be hashed.</param>
-    /// <param name="key">The secret key used to compute the HMAC-SHA256 hash. Cannot be null or empty.</param>
-    /// <returns>Chuỗi ký tự thập lục phân viết thường biểu diễn giá trị băm HMAC-SHA256.</returns>
-    private static string ComputeHmacSha256(string data, string key)
-    {
-        using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(key));
-        var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(data));
-        return BitConverter.ToString(hash).Replace("-", "").ToLower();
-    }
-
     public async Task<IEnumerable<PaymentResponseDto>> GetPaymentsByUserId(Guid userId)
     {
         try
@@ -694,6 +666,28 @@ internal class PaymentService : IPaymentService
             _logger.LogError(ex, "Error fetching user email from Identity service for UserId: {UserId}", userId);
             return null;
         }
+    }
+
+}
+public static class VnPayExtensions
+{
+    public static string ToQueryString(this SortedList<string, string> data)
+    {
+        var query = new StringBuilder();
+        foreach (var kv in data)
+        {
+            if (!string.IsNullOrEmpty(kv.Value))
+            {
+                query.Append(WebUtility.UrlEncode(kv.Key) + "=" + WebUtility.UrlEncode(kv.Value) + "&");
+            }
+        }
+
+        if (query.Length > 0)
+        {
+            query.Remove(query.Length - 1, 1);
+        }
+
+        return query.ToString();
     }
 }
 

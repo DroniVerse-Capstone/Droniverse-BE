@@ -21,5 +21,8 @@
 	  <ProjectReference Include="..\..\Droniverse.Shared\Droniverse.Shared.csproj" />
 	  <ProjectReference Include="..\Droniverse.Community.Domain\Droniverse.Community.Domain.csproj" />
 	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="Gateway\" />
+	</ItemGroup>
 
 </Project>
