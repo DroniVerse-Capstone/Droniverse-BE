@@ -4,23 +4,32 @@ using Droniverse.Identity.Application.DTO.Response;
 using Droniverse.Identity.Application.IService;
 using Droniverse.Identity.Domain.Entities;
 using Droniverse.Identity.Domain.Interfaces;
+using Droniverse.Shared.DTOs.Response;
 
 namespace Droniverse.Identity.Application.Services;
+
 internal class PermissionService : IPermissionService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
+
     public PermissionService(IUnitOfWork unitOfWork, IMapper mapper)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
     }
 
-    public async Task<IEnumerable<PermissionResponse>> GetAllPermissions()
+    public async Task<PaginationResult<IEnumerable<PermissionResponse>>> GetAllPermissions(
+        PermissionSearchRequest permissionSearchRequest,
+        int pageIndex,
+        int pageSize)
     {
-        IEnumerable<Permission> permissions = await _unitOfWork.Permissions.GetAll();
-        IEnumerable<PermissionResponse> response = _mapper.Map<IEnumerable<PermissionResponse>>(permissions);
-        return response;
+        permissionSearchRequest ??= new PermissionSearchRequest();
+        
+        return await _unitOfWork.Permissions.GetAllPermissionsAsync(
+            permissionSearchRequest,
+            permissionSearchRequest.CurrentPage,
+            permissionSearchRequest.PageSize);
     }
 
     public async Task<PermissionResponse> GetPermissionById(Guid id)

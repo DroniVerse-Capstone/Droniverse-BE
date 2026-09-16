@@ -6,23 +6,30 @@ namespace Droniverse.Identity.Infrastructure.Repositories;
 internal class UnitOfWork : IUnitOfWork
 {
     private readonly IdentityDbContext _context;
-    private IRepository<Role> _role;
-    private IRepository<Account> _account;
-    private IRepository<UserInfo> _userInfo;
-    private IRepository<Permission> _permission;
+    private IRoleRepository _role;
+    private IUserRepository _account;
+    private IUserInfoRepository _userInfo;
+    private IPermissionRepository _permission;
+    private ISysConfigRepository _sysConfig;
+    private INotificationRepository _notification;
+    private ISysPolicyRepository _sysPolicy;
+
 
     public UnitOfWork(IdentityDbContext context)
     {
         _context = context;
     }
 
-    public IRepository<Role> Roles => _role ??= new RoleRepository(_context);
+    public IRoleRepository Roles => _role ??= new RoleRepository(_context);
 
-    public IRepository<Account> Accounts => _account ??= new UserRepository(_context);
+    public IUserRepository Accounts => _account ??= new UserRepository(_context);
 
-    public IRepository<UserInfo> UserInfos => _userInfo ??= new Repository<UserInfo>(_context);
+    public IUserInfoRepository UserInfos => _userInfo ??= new UserInfoRepository(_context);
 
-    public IRepository<Permission> Permissions => _permission ??= new PermissionRepository(_context);
+    public IPermissionRepository Permissions => _permission ??= new PermissionRepository(_context);
+    public ISysConfigRepository SysConfigs => _sysConfig ??= new SysConfigRepository(_context);
+    public INotificationRepository Notifications => _notification ??= new NotificationRepository(_context);
+    public ISysPolicyRepository SysPolicies => _sysPolicy ??= new SysPolicyRepository(_context);
 
     public void Dispose() // dùng để đóng kết nối với DbContext
     {

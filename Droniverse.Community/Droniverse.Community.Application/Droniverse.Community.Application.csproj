@@ -1,20 +1,28 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net8.0</TargetFramework>
+		<TargetFramework>net9.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 	</PropertyGroup>
 	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNet.Mvc" Version="5.3.0" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.1" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.1" />
 		<PackageReference Include="AutoMapper" Version="14.0.0" />
 		<PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.1" />
 		<PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.23" />
+		<PackageReference Include="payOS" Version="2.0.1" />
+		<PackageReference Include="RabbitMQ.Client" Version="6.8.1" />
 	</ItemGroup>
 	<ItemGroup>
+	  <InternalsVisibleTo Include="Droniverse.Tests" />
 	  <ProjectReference Include="..\..\Droniverse.Shared\Droniverse.Shared.csproj" />
 	  <ProjectReference Include="..\Droniverse.Community.Domain\Droniverse.Community.Domain.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="Gateway\" />
 	</ItemGroup>
 
 </Project>

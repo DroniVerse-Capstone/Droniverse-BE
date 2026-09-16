@@ -15,6 +15,7 @@ WORKDIR /src
 COPY ["Droniverse.Community/Droniverse.Community.API/Droniverse.Community.API.csproj", "Droniverse.Community/Droniverse.Community.API/"]
 COPY ["Droniverse.Community/Droniverse.Community.Application/Droniverse.Community.Application.csproj", "Droniverse.Community/Droniverse.Community.Application/"]
 COPY ["Droniverse.Community/Droniverse.Community.Domain/Droniverse.Community.Domain.csproj", "Droniverse.Community/Droniverse.Community.Domain/"]
+COPY ["Droniverse.Shared/Droniverse.Shared.csproj", "Droniverse.Shared/"]
 COPY ["Droniverse.Community/Droniverse.Community.Infrastructure/Droniverse.Community.Infrastructure.csproj", "Droniverse.Community/Droniverse.Community.Infrastructure/"]
 RUN dotnet restore "./Droniverse.Community/Droniverse.Community.API/Droniverse.Community.API.csproj"
 COPY . .
@@ -32,8 +33,8 @@ WORKDIR /app
 COPY --from=publish /app/publish .
 
 ENV IdentityMicroserviceName=identity-microservice
-ENV IdentityMicroservicePort=8080
+ENV IdentityMicroservicePort=5002
 ENV AcademyMicroserviceName=academy-microservice
-ENV AcademyMicroservicePort=8080
+ENV AcademyMicroservicePort=5000
 
 ENTRYPOINT ["dotnet", "Droniverse.Community.API.dll"]

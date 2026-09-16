@@ -40,9 +40,24 @@ public class Repository<T> : IRepository<T> where T : class
         return await _dbSet.ToListAsync();
     }
 
+    public async Task<int> CountAsync()
+    {
+        return await _dbSet.CountAsync();
+    }
+
+    public async Task<int> CountByCondition(Expression<Func<T, bool>> expression)
+    {
+        return await _dbSet.CountAsync(expression);
+    }
+
     public async Task<T?> GetByCondition(Expression<Func<T, bool>> expression)
     {
         return await _dbSet.Where(expression).FirstOrDefaultAsync();
+    }
+
+    public async Task<IEnumerable<T>> GetManyByCondition(Expression<Func<T, bool>> expression)
+    {
+        return await _dbSet.Where(expression).ToListAsync();
     }
 
     public async Task<T?> Update(T entity)

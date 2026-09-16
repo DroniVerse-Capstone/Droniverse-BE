@@ -12,6 +12,5 @@ public class UserLab
     public float Length { get; set; }
     public string FeedbackVN { get; set; }
     public string FeedbackEN { get; set; }
-    public int Rating { get; set; }
     public decimal Point { get; set; }
 }

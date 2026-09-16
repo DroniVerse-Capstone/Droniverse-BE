@@ -11,14 +11,13 @@ public class ReportConfiguration : IEntityTypeConfiguration<Report>
 
         builder.HasKey(r => r.ReportID);
 
-        builder.HasOne(r => r.Lab)
-               .WithMany(l => l.Reports)
-               .HasForeignKey(r => r.LabID)
-               .OnDelete(DeleteBehavior.Restrict);
         builder.Property(r => r.ReportID).HasColumnType("char(36)");
-        builder.Property(r => r.LabID).HasColumnType("char(36)").IsRequired();
+        builder.Property(r => r.ReportType).HasColumnType("char(20)").HasConversion<string>().IsRequired();
+        builder.Property(r => r.ReferenceID).HasColumnType("char(36)").IsRequired();
         builder.Property(r => r.UserID).HasColumnType("char(36)").IsRequired();
-        builder.Property(r => r.Content).HasColumnType("text").IsRequired();
+        builder.Property(r => r.Responser).HasColumnType("char(36)");
+        builder.Property(r => r.ContentVN).HasColumnType("text");
+        builder.Property(r => r.ContentEN).HasColumnType("text");
         builder.Property(r => r.ResponseVN).HasColumnType("text");
         builder.Property(r => r.ResponseEN).HasColumnType("text");
     }

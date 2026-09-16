@@ -11,7 +11,6 @@ public class ProductCategoryConfiguration : IEntityTypeConfiguration<ProductCate
 
         builder.HasKey(c => c.CategoryID);
         builder.Property(c => c.CategoryID).HasColumnType("char(36)");
-        builder.HasMany(c => c.Products).WithOne(p => p.ProductCategory);
 
         builder.Property(c => c.Code).HasMaxLength(50).IsRequired();
         builder.Property(c => c.CategoryNameVN).HasMaxLength(255).IsRequired();

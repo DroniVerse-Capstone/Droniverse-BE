@@ -9,7 +9,10 @@ namespace Droniverse.Identity.Domain.Interfaces;
 public interface IRepository<T> where T : class
 {
     public Task<T?> GetByCondition(Expression<Func<T, bool>> expression);
+    public Task<IEnumerable<T>> GetManyByCondition(Expression<Func<T, bool>> expression);
     public Task<IEnumerable<T>> GetAll();
+    public Task<int> CountAsync();
+    public Task<int> CountByCondition(Expression<Func<T, bool>> expression);
     public Task<T> Add (T entity);
     public Task<T?> Update (T entity);
     public Task<bool> Delete (T entity);

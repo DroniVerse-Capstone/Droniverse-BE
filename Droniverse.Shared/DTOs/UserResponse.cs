@@ -1,4 +1,6 @@
-﻿namespace Droniverse.Shared.DTOs.Response;
+﻿using Droniverse.Identity.Domain.Enums;
+
+namespace Droniverse.Shared.DTOs.Response;
 public record UserResponse(
     Guid UserId,
     string Username,
@@ -6,10 +8,15 @@ public record UserResponse(
     string LastName,
     string Email,
     DateTime? DateOfBirth,
-    string RoleName
+    string RoleName,
+    string? ImageUrl,
+    GenderOptions Gender,
+    string? Phone,
+    IEnumerable<UserLevelResponseDto>? UserLevelMax,
+    IEnumerable<UserLevelResponseDto>? UserLevel
     )
 {
-    public UserResponse() : this(default, default, default, default, default, default, default)
+    public UserResponse() : this(Guid.Empty, string.Empty, string.Empty, string.Empty, string.Empty, null, string.Empty, string.Empty, default, default, default, default)
     {
     }
 }

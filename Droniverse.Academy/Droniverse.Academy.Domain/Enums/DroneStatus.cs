@@ -1,7 +1,7 @@
 ﻿namespace Droniverse.Academy.Domain.Enums;
 public enum DroneStatus
 {
-    DRAFT = 1,
-    AVAILABLE = 2,
-    MAINTENANCE = 3
+    ACTIVE = 1,
+    INACTIVE = 2,
+    DEPRECATED = 3
 }

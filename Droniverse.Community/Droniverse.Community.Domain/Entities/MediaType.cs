@@ -7,7 +7,7 @@ public class MediaType
     public string TypeNameEN { get; set; }
     public string DescriptionEN { get; set; } //text
     public string DescriptionVN { get; set; }
-    public DateTime CreateAt { get; set; }
-    public DateTime UpdateAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
 }
 

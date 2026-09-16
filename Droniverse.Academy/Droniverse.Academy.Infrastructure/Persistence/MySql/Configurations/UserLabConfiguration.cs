@@ -26,7 +26,6 @@ public class UserLabConfiguration : IEntityTypeConfiguration<UserLab>
         builder.Property(um => um.Length).HasColumnType("float").IsRequired();
         builder.Property(um => um.FeedbackVN).HasColumnType("text");
         builder.Property(um => um.FeedbackEN).HasColumnType("text");
-        builder.Property(um => um.Rating).HasColumnType("int");
         builder.Property(um => um.Point).HasColumnType("decimal(10,2)").IsRequired();
 
     }

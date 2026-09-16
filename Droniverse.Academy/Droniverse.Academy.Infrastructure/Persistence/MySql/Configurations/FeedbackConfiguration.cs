@@ -22,7 +22,9 @@ public class FeedbackConfiguration : IEntityTypeConfiguration<Feedback>
         builder.Property(f => f.Content).HasColumnType("text");
         builder.Property(f => f.CreatedAt).HasColumnType("datetime").ValueGeneratedOnAdd();
         builder.Property(f => f.Rating).HasColumnType("tinyint").HasConversion<byte>();
-        builder.ToTable(t => t.HasCheckConstraint("CK_Feedback_Rating", "`Rating` IN (1, 5)"));
-
+        builder.ToTable(t =>
+        {
+            t.HasCheckConstraint("CK_Feedback_Rating", "`Rating` BETWEEN 1 AND 5");
+        });
     }
 }

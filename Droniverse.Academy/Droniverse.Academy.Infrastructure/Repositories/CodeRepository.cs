@@ -1,6 +1,11 @@
-﻿using Droniverse.Academy.Domain.Entities;
+﻿using Droniverse.Academy.Application.DTO.Request;
+using Droniverse.Academy.Domain.Entities;
+using Droniverse.Academy.Domain.Enums;
 using Droniverse.Academy.Domain.IRepository;
+using Droniverse.Academy.Domain.IRepository.SearchSpec;
 using Droniverse.Academy.Infrastructure.Persistence.MySql;
+using Droniverse.Shared.DTOs.Request;
+using Microsoft.EntityFrameworkCore;
 
 namespace Droniverse.Academy.Infrastructure.Repositories;
 
@@ -8,6 +13,174 @@ internal class CodeRepository : MySqlRepository<Code>, ICodeRepository
 {
     public CodeRepository(MySqlDbContext context) : base(context)
     {
+    }
+
+    public async Task<PaginationResult<IEnumerable<Code>>> GetAllCodesAsync(
+        ICodeSearchSpec requestDTO,
+        int pageIndex, int pageSize)
+    {
+        IQueryable<Code> query = _dbSet
+            .AsNoTracking();
+
+        // Lọc theo Status
+        if (requestDTO.Status != null)
+        {
+            var status = requestDTO.Status.Value;
+            query = query.Where(c => c.Status == status);
+        }
+
+
+        // Đếm tổng số records trước khi phân trang
+        int totalRecords = await query.CountAsync();
+
+        // Phân trang
+        var codes = await query
+            .OrderByDescending(c => c.CreatedAt)
+            .ThenBy(c => c.CodeID)
+            .Skip((pageIndex - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return new PaginationResult<IEnumerable<Code>>(codes, totalRecords, pageIndex, pageSize);
+    }
+
+    public async Task<(int TotalCodes, int AvailableCodes, int UsedCodes, int ExpiredCodes)> GetCodeOverviewAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var query = _dbSet.AsNoTracking();
+
+        return (
+            await query.CountAsync(cancellationToken),
+            await query.CountAsync(c => c.Status == CodeStatus.AVAILABLE, cancellationToken),
+            await query.CountAsync(c => c.Status == CodeStatus.USED, cancellationToken),
+            await query.CountAsync(c => c.Status == CodeStatus.EXPIRED, cancellationToken));
+    }
+
+    public async Task<PaginationResult<IEnumerable<Code>>> GetCodesByClubAsync(
+        Guid clubId,
+        Guid courseId,
+        GetAllCodesByClubSearchRequest request,
+        int pageIndex,
+        int pageSize)
+    {
+        IQueryable<Code> query = _dbSet
+            .AsNoTracking()
+            .Where(c => c.ClubID == clubId && c.CourseID == courseId);
+
+        if (request.CodeUseState == CodeState.Used)
+        {
+            query = query.Where(c =>
+                c.UsedByUserID.HasValue &&
+                c.UsedByUserID != Guid.Empty);
+        }
+        else if (request.CodeUseState == CodeState.UnUse)
+        {
+            query = query.Where(c =>
+                !c.UsedByUserID.HasValue ||
+                c.UsedByUserID == Guid.Empty);
+        }
+
+        var totalRecords = await query.CountAsync();
+
+        var items = await query
+            .OrderBy(c => c.ExpireDate)
+            .ThenBy(c => c.CodeID)
+            .Skip((pageIndex - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return new PaginationResult<IEnumerable<Code>>(items, totalRecords, pageIndex, pageSize);
+    }
+
+    public async Task<PaginationResult<IEnumerable<Code>>> GetCodesByUserAsync(
+        Guid userId,
+        int pageIndex,
+        int pageSize,
+        bool? isUsed = null)
+    {
+        IQueryable<Code> query = _dbSet
+            .AsNoTracking()
+            .Where(c => c.UsedByUserID == userId);
+
+        if (isUsed.HasValue)
+        {
+            query = isUsed.Value
+                ? query.Where(c => c.Status == CodeStatus.USED || c.UsedByUserID != null)
+                : query.Where(c => c.UsedByUserID == null && c.Status == CodeStatus.AVAILABLE);
+        }
+
+        var totalRecords = await query.CountAsync();
+
+        var items = await query
+            .OrderByDescending(c => c.CreatedAt)
+            .ThenBy(c => c.CodeID)
+            .Skip((pageIndex - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return new PaginationResult<IEnumerable<Code>>(items, totalRecords, pageIndex, pageSize);
+    }
+
+    public async Task<IEnumerable<Code>> GetByCodeIdsAsync(IEnumerable<string> codeIds)
+    {
+        var ids = codeIds?
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList() ?? [];
+
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        return await _dbSet
+            .Where(c => ids.Contains(c.CodeID))
+            .ToListAsync();
+    }
+
+    public async Task<List<Guid>> GetOwnedUserIdsByClubAndCourseAsync(
+        Guid clubId,
+        Guid courseId,
+        CancellationToken cancellationToken = default)
+    {
+        if (clubId == Guid.Empty || courseId == Guid.Empty)
+        {
+            return [];
+        }
+
+        return await _dbSet
+            .AsNoTracking()
+            .Where(c => c.ClubID == clubId
+                        && c.CourseID == courseId
+                        && c.UsedByUserID.HasValue
+                        && c.UsedByUserID.Value != Guid.Empty)
+            .Select(c => c.UsedByUserID!.Value)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<bool> HasActiveUnusedOwnedCodeAsync(
+        Guid clubId,
+        Guid courseId,
+        Guid userId,
+        DateTime now,
+        CancellationToken cancellationToken = default)
+    {
+        if (clubId == Guid.Empty || courseId == Guid.Empty || userId == Guid.Empty)
+        {
+            return false;
+        }
+
+        return await _dbSet
+            .AsNoTracking()
+            .AnyAsync(c =>
+                c.ClubID == clubId &&
+                c.CourseID == courseId &&
+                c.UsedByUserID == userId &&
+                c.Status == CodeStatus.AVAILABLE &&
+                c.ExpireDate >= now,
+                cancellationToken);
     }
 }
 

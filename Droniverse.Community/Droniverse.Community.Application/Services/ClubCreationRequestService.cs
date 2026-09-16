@@ -1,0 +1,556 @@
+﻿using AutoMapper;
+using Droniverse.Community.Application.DTO.Extensions;
+using Droniverse.Community.Application.DTO.Request;
+using Droniverse.Community.Application.DTO.Response;
+using Droniverse.Community.Application.HttpClients;
+using Droniverse.Community.Application.IService;
+using Droniverse.Community.Domain.Entities;
+using Droniverse.Community.Domain.Enums;
+using Droniverse.Community.Domain.IRepository;
+using Droniverse.Shared.Constants;
+using Droniverse.Shared.DTOs;
+using Droniverse.Shared.DTOs.Response;
+using Droniverse.Shared.Exceptions;
+using Droniverse.Shared.Helpers;
+using Droniverse.Shared.Services;
+using Microsoft.EntityFrameworkCore;
+using Org.BouncyCastle.Asn1.Ocsp;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Droniverse.Community.Application.Services
+{
+    public class ClubCreationRequestService : IClubCreationRequestService
+    {
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IdentityMicroserviceClient _identityMicroserviceClient;
+        private readonly AcademyMicroserviceClient _academyMicroserviceClient;
+        private readonly ICurrentUserService _currentUserService;
+        private readonly IClock _clock;
+        private readonly IMapper _mapper;
+        private readonly IMediaService _mediaService;
+
+        public ClubCreationRequestService(
+            IUnitOfWork unitOfWork,
+            IMapper mapper,
+            IdentityMicroserviceClient identityMicroserviceClient,
+            AcademyMicroserviceClient academyMicroserviceClient,
+            ICurrentUserService currentUserService,
+            IClock clock,
+            IMediaService mediaService)
+        {
+            _unitOfWork = unitOfWork;
+            _mapper = mapper;
+            _identityMicroserviceClient = identityMicroserviceClient;
+            _academyMicroserviceClient = academyMicroserviceClient;
+            _currentUserService = currentUserService;
+            _clock = clock;
+            _mediaService = mediaService;
+        }
+
+        public async Task<ClubCreationRequestCreateResponseDto> CreateRequestToCreateClub(ClubCreationRequestCreateDto dto)
+        {
+            var requesterID = Guid.Parse(_currentUserService.UserID ?? throw new UnauthorizedAccessException("Người dùng chưa được xác thực."));
+
+            var isUserExisted = await _unitOfWork.ClubCreationRequests.IsUserHavingOtherRequest(requesterID);
+            if (isUserExisted)
+                throw new InvalidOperationException("Người dùng hiện đang có một yêu cầu khác chưa xử lí xong. Không thể tạo mới được");
+
+            var media = await _unitOfWork.Medias.GetByCondition(m => m.MediaID == dto.Media);
+            if (media == null)
+                throw new NotFoundException($"Media (hình ảnh/video) không tồn tại trong hệ thống temporary.");
+            string clubCreationRequestFolder = $"droniverse/ClubCreationRequest/{requesterID}";
+            //upload media vào folder droniverse/ClubCreationRequest
+            await _mediaService.UploadMedia(media, clubCreationRequestFolder);
+
+            var imageMedia = await _unitOfWork.Medias.GetByCondition(m => m.MediaID == dto.Image);
+            if (imageMedia == null)
+                throw new NotFoundException($"Media (hình ảnh/video) không tồn tại trong hệ thống temporary.");
+            await _mediaService.UploadMedia(imageMedia, clubCreationRequestFolder);
+            var request = new ClubCreationRequest(
+                dto.NameVN,
+                dto.NameEN,
+                dto.Description,
+                dto.LimitParticipant,
+                1, //limit club manager mặc định là 1
+                imageMedia.Url,
+                requesterID,
+                dto.DroneID,
+                dto.Media,
+                dto.ClubPolicyVN,
+                dto.ClubPolicyEN,
+                dto.ClubRequirement,
+                _clock.Now
+            );
+
+            await _unitOfWork.ClubCreationRequests.Add(request);
+
+            await _unitOfWork.SaveChangeAsync();
+
+            return new ClubCreationRequestCreateResponseDto
+            {
+                ClubCreationRequestID = request.ClubCreationRequestID,
+                NameEN = request.NameEN,
+                NameVN = request.NameVN
+            };
+        }
+
+        public async Task<PaginationResult<IEnumerable<ClubCreationRequestResponseDto>>> GetAllClubCreationRequest(ClubCreationRequestSearchRequest searchRequest)
+        {
+            var requests = await _unitOfWork.ClubCreationRequests.GetManyByCondition(
+                                        x => !searchRequest.status.HasValue || x.Status == searchRequest.status.Value,
+                                        q => q.Include(x => x.Media).ThenInclude(m => m.MediaType).AsNoTracking().OrderByDescending(c => c.CreatedAt)
+                                    );
+
+            if (requests == null || !requests.Any())
+                return Enumerable.Empty<ClubCreationRequestResponseDto>().ToPaginationResult(searchRequest);
+
+            var userIds = requests
+                .Select(x => x.RequesterID)
+                .Union(requests.Select(x => x.ApproverID).OfType<Guid>())
+                .Distinct()
+                .ToList();
+
+            IEnumerable<UserResponse> users = Enumerable.Empty<UserResponse>();
+            if (userIds.Count != 0)
+            {
+                try
+                {
+                    users = await _identityMicroserviceClient.GetUsersBulk(userIds);
+                }
+                catch
+                {
+                    Console.WriteLine("Không lấy được thông tin user từ identity service.");
+                }
+            }
+
+            var droneIds = requests
+                .Select(x => x.DroneID)
+                .Where(id => id != Guid.Empty)
+                .Distinct()
+                .ToList();
+            IEnumerable<DroneResponseDto> drones = Enumerable.Empty<DroneResponseDto>();
+            if (droneIds.Count != 0)
+            {
+                try
+                {
+                    drones = await _academyMicroserviceClient.GetDronesBulk(droneIds);
+                }
+                catch
+                {
+                    Console.WriteLine("Không lấy được thông tin drone từ academy service.");
+                }
+            }
+
+            var userDict = users.ToDictionary(u => u.UserId, u => u);
+            var droneDict = drones.ToDictionary(d => d.DroneID, d => d);
+
+            var tasks = requests.Select(async x =>
+            {
+                userDict.TryGetValue(x.RequesterID, out var requester);
+                droneDict.TryGetValue(x.DroneID, out var drone);
+                var approver = x.ApproverID.HasValue && userDict.TryGetValue(x.ApproverID.Value, out var a) ? a : null;
+
+                return new ClubCreationRequestResponseDto
+                {
+                    ClubCreationRequestID = x.ClubCreationRequestID,
+                    NameVN = x.NameVN,
+                    NameEN = x.NameEN,
+                    Description = x.Description,
+                    LimitParticipant = x.LimitParticipant,
+                    LimitClubManager = x.LimitClubManager,
+                    ImageUrl = x.ImageUrl,
+                    CreatedAt = x.CreatedAt,
+                    UpdatedAt = x.UpdatedAt,
+                    ApprovedAt = x.ApprovedAt,
+                    RejectReason = x.RejectReason,
+                    ClubID = x.ClubID,
+                    RequesterID = x.RequesterID,
+                    ApproverID = x.ApproverID,
+                    RequesterName = AppHelper.GetFullName(requester),
+                    RequesterEmail = requester?.Email,
+                    ApproverName = AppHelper.GetFullName(approver),
+                    ApproverEmail = approver?.Email,
+                    ClubPolicyVN = x.ClubPolicyVN,
+                    ClubPolicyEN = x.ClubPolicyEN,
+                    ClubRequirement = x.ClubRequirement,
+                    Status = x.Status,
+                    Media = _mapper.Map<MediaResponseDto>(x.Media),
+                    Drone = drone,
+                };
+            });
+
+            var result = await Task.WhenAll(tasks);
+            return result.ToPaginationResult(searchRequest);
+        }
+
+        public async Task<IEnumerable<ClubCreationRequestResponseDto>> GetMyClubCreationRequest(ClubCreationRequestStatus? status = null)
+        {
+            var managerId = Guid.Parse(_currentUserService.UserID ?? throw new UnauthorizedAccessException("Người dùng chưa được xác thực."));
+
+            var requests = await _unitOfWork.ClubCreationRequests.GetManyByCondition(
+                                        x => x.RequesterID == managerId && (!status.HasValue || x.Status == status.Value),
+                                        q => q.Include(x => x.Media).ThenInclude(m => m.MediaType).OrderByDescending(c => c.CreatedAt)
+                                    );
+
+            if (requests == null || !requests.Any())
+                return [];
+
+            var userIds = requests
+                .Select(x => x.RequesterID)
+                .Union(requests.Select(x => x.ApproverID).OfType<Guid>())
+                .Distinct()
+                .ToList();
+
+            IEnumerable<UserResponse> users = [];
+            if (userIds.Any())
+            {
+                try
+                {
+                    users = await _identityMicroserviceClient.GetUsersBulk(userIds);
+                }
+                catch
+                {
+                    Console.WriteLine("Không lấy được thông tin user từ identity service.");
+                }
+            }
+
+            var userDict = users.ToDictionary(u => u.UserId, u => u);
+
+            var droneIds = requests
+                .Select(x => x.DroneID)
+                .Where(id => id != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            IEnumerable<DroneResponseDto> drones = [];
+            if (droneIds.Any())
+            {
+                try
+                {
+                    drones = await _academyMicroserviceClient.GetDronesBulk(droneIds);
+                }
+                catch
+                {
+                    Console.WriteLine("Không lấy được thông tin drone từ academy service.");
+                }
+            }
+
+            var droneDict = drones.ToDictionary(d => d.DroneID, d => d);
+            var tasks = requests.Select(async x =>
+            {
+                userDict.TryGetValue(x.RequesterID, out var requester);
+                var approver = x.ApproverID.HasValue && userDict.TryGetValue(x.ApproverID.Value, out var a) ? a : null;
+                droneDict.TryGetValue(x.DroneID, out var drone);
+                return new ClubCreationRequestResponseDto
+                {
+                    ClubCreationRequestID = x.ClubCreationRequestID,
+                    NameVN = x.NameVN,
+                    NameEN = x.NameEN,
+                    Description = x.Description,
+                    LimitParticipant = x.LimitParticipant,
+                    LimitClubManager = x.LimitClubManager,
+                    ImageUrl = x.ImageUrl,
+                    CreatedAt = x.CreatedAt,
+                    UpdatedAt = x.UpdatedAt,
+                    ApprovedAt = x.ApprovedAt,
+                    RejectReason = x.RejectReason,
+                    ClubID = x.ClubID,
+                    RequesterID = x.RequesterID,
+                    ApproverID = x.ApproverID,
+                    RequesterName = AppHelper.GetFullName(requester),
+                    RequesterEmail = requester?.Email,
+                    ApproverName = AppHelper.GetFullName(approver),
+                    ApproverEmail = approver?.Email,
+                    ClubPolicyVN = x.ClubPolicyVN,
+                    ClubPolicyEN = x.ClubPolicyEN,
+                    ClubRequirement = x.ClubRequirement,
+                    Status = x.Status,
+                    Media = _mapper.Map<MediaResponseDto>(x.Media),
+                    Drone = drone,
+                };
+            });
+
+            return await Task.WhenAll(tasks);
+        }
+
+        public async Task<ClubCreationRequestResponseDto> GetClubCreationRequestById(Guid id)
+        {
+            var request = await _unitOfWork.ClubCreationRequests.GetByCondition(
+                                x => x.ClubCreationRequestID == id,
+                                q => q.Include(x => x.Media).ThenInclude(m => m.MediaType));
+
+            if (request == null)
+                throw new KeyNotFoundException($"Club creation request with ID [{id}] not found.");
+
+            var userIds = new List<Guid> { request.RequesterID };
+            if (request.ApproverID.HasValue)
+                userIds.Add(request.ApproverID.Value);
+
+            // Get drones
+            var droneIds = request.DroneID != Guid.Empty
+                ? new List<Guid> { request.DroneID }
+                : new List<Guid>();
+
+            IEnumerable<DroneResponseDto> drones = [];
+            if (droneIds.Any())
+            {
+                try
+                {
+                    drones = await _academyMicroserviceClient.GetDronesBulk(droneIds);
+                }
+                catch
+                {
+                    Console.WriteLine("Không lấy được thông tin drone từ academy service.");
+                }
+            }
+
+            var droneDict = drones.ToDictionary(d => d.DroneID, d => d);
+            droneDict.TryGetValue(request.DroneID, out var drone);
+
+            // Get users
+            IEnumerable<UserResponse> users = [];
+            try
+            {
+                users = await _identityMicroserviceClient.GetUsersBulk(userIds.Distinct());
+            }
+            catch
+            {
+                Console.WriteLine("Không lấy được thông tin user từ identity service.");
+            }
+
+            var userDict = users.ToDictionary(u => u.UserId, u => u);
+            userDict.TryGetValue(request.RequesterID, out var requester);
+            var approver = request.ApproverID.HasValue && userDict.TryGetValue(request.ApproverID.Value, out var a) ? a : null;
+
+            return new ClubCreationRequestResponseDto
+            {
+                ClubCreationRequestID = request.ClubCreationRequestID,
+                NameVN = request.NameVN,
+                NameEN = request.NameEN,
+                Description = request.Description,
+                LimitParticipant = request.LimitParticipant,
+                LimitClubManager = request.LimitClubManager,
+                ImageUrl = request.ImageUrl,
+                CreatedAt = request.CreatedAt,
+                UpdatedAt = request.UpdatedAt,
+                ApprovedAt = request.ApprovedAt,
+                RejectReason = request.RejectReason,
+                ClubID = request.ClubID,
+                RequesterID = request.RequesterID,
+                ApproverID = request.ApproverID,
+                RequesterName = AppHelper.GetFullName(requester),
+                RequesterEmail = requester?.Email,
+                ApproverName = AppHelper.GetFullName(approver),
+                ApproverEmail = approver?.Email,
+                ClubPolicyVN = request.ClubPolicyVN,
+                ClubPolicyEN = request.ClubPolicyEN,
+                ClubRequirement = request.ClubRequirement,
+                Status = request.Status,
+                Media = _mapper.Map<MediaResponseDto>(request.Media),
+                Drone = drone,
+            };
+        }
+
+        public async Task<ClubCreationRequestUpdateStatusResponseDto> UpdateRequestStatus(Guid id, ClubCreationRequestUpdateStatusDto dto)
+        {
+            var approverId = Guid.Parse(_currentUserService.UserID ?? throw new UnauthorizedAccessException("Người dùng chưa được xác thực."));
+            var roles = _currentUserService.Roles.ToList();
+
+            // Get the request from database
+            ClubCreationRequest? request = await _unitOfWork.ClubCreationRequests.GetByCondition(r => r.ClubCreationRequestID == id,
+                    query => query
+                );
+
+            if (request == null)
+                throw new InvalidOperationException($"Club creation request with ID {id} not found.");
+
+            bool isAdmin = roles.Contains(Roles.Admin);
+            bool isSystemManager = roles.Contains(Roles.SystemManager);
+            bool isRequester = request.RequesterID == approverId;
+
+            switch (dto.Status)
+            {
+                case ClubCreationRequestStatus.APPROVED:
+                    if (!isAdmin && !isSystemManager)
+                        throw new ForbiddenException("Chỉ SYSTEM_MANAGER hoặc ADMIN mới có quyền approve.");
+
+                    var newClub = new Club(
+                        request.NameVN,
+                        request.NameEN,
+                        request.Description,
+                        GenerateClubCode(),
+                        request.LimitParticipant,
+                        request.LimitClubManager,
+                        request.RequesterID,
+                        _clock.Now,
+                        request.ImageUrl,
+                        managerID: request.RequesterID,
+                        droneID: request.DroneID,
+                        clubPolicyVN: request.ClubPolicyVN,
+                        clubPolicyEN: request.ClubPolicyEN,
+                        clubRequirement: request.ClubRequirement
+                    );
+
+                    await _unitOfWork.Clubs.Add(newClub);
+                    await _unitOfWork.SaveChangeAsync();
+
+                    //Lấy ra media từ request.ImageUrl
+                    var imageMedia = await _unitOfWork.Medias.GetByCondition(
+                        m => m.Url == request.ImageUrl,
+                        q => q.Include(m => m.MediaType));
+
+                    if (imageMedia == null)
+                        throw new NotFoundException("Không tìm thấy media tương ứng với ImageUrl của request.");
+                    // gọi hàm UploadMedia của media service để upload media đó lên folder club: Droniverse/Club/{clubId}
+                    var clubFolder = $"droniverse/Club/{newClub.NameEN}";
+                    await _mediaService.UploadMedia(imageMedia, clubFolder);
+
+                    newClub.ImageUrl = imageMedia.Url;
+                    await _unitOfWork.Clubs.Update(newClub);
+                    await _unitOfWork.SaveChangeAsync();
+
+                    // Approve request with the created club's ID
+                    request.Approve(approverId, newClub.ClubID, _clock.Now);
+                    break;
+
+                case ClubCreationRequestStatus.REJECTED:
+                    if (!isAdmin && !isSystemManager)
+                        throw new ForbiddenException("Chỉ SYSTEM_MANAGER hoặc ADMIN mới có quyền reject.");
+
+                    if (string.IsNullOrWhiteSpace(dto.RejectReason))
+                        throw new ArgumentException("Reject reason is required for rejection.");
+                    request.Reject(approverId, dto.RejectReason, _clock.Now);
+                    break;
+
+                case ClubCreationRequestStatus.CANCEL:
+                    if (!isRequester)
+                        throw new ForbiddenException("Chỉ người tạo request mới được cancel.");
+
+                    request.Cancel(request.RequesterID, _clock.Now);
+                    break;
+
+                default:
+                    throw new InvalidOperationException($"Cannot update to status {dto.Status}.");
+            }
+
+            // Save changes
+            await _unitOfWork.ClubCreationRequests.Update(request);
+            await _unitOfWork.SaveChangeAsync();
+
+            // Return response
+            var response = new ClubCreationRequestUpdateStatusResponseDto
+            {
+                ClubCreationRequestID = request.ClubCreationRequestID,
+                NameVN = request.NameVN,
+                NameEN = request.NameEN,
+                Status = request.Status,
+                UpdatedAt = request.UpdatedAt ?? _clock.Now,
+                RejectReason = request.RejectReason,
+                ClubID = request.ClubID
+            };
+
+            return response;
+        }
+
+        public async Task<ClubCreationRequestUpdateInfoResponseDto> UpdateRequestInfo(Guid id, ClubCreationRequestUpdateInfoDto dto)
+        {
+            var requesterId = Guid.Parse(_currentUserService.UserID ?? throw new UnauthorizedAccessException("Người dùng chưa được xác thực."));
+
+            //Check drone sau
+            //var drone = await _unitOfWork.Drones.GetByCondition(d => d.DroneID == dto.DroneID);
+
+            Media? media = await _unitOfWork.Medias.GetByCondition(m => m.MediaID == dto.Media);
+            if (media == null)
+                throw new NotFoundException($"Media (hình ảnh/video) không tồn tại trong hệ thống temp.");
+
+            // Get the request from database with categories
+            var request = await _unitOfWork.ClubCreationRequests.GetByCondition(
+                r => r.ClubCreationRequestID == id,
+                query => query
+            );
+
+            if (request == null)
+                throw new KeyNotFoundException($"Club creation request with ID {id} not found.");
+
+            // Handle imageMedia: if provided, upload and update ImageUrl; otherwise keep existing
+            string imageUrl = request.ImageUrl; // Keep existing URL by default
+            if (dto.ImageMedia.HasValue)
+            {
+                var imageMedia = await _unitOfWork.Medias.GetByCondition(
+                    m => m.MediaID == dto.ImageMedia.Value,
+                    q => q.Include(m => m.MediaType));
+
+                if (imageMedia == null)
+                    throw new KeyNotFoundException($"Media with ID {dto.ImageMedia.Value} not found.");
+
+                var clubCreationRequestFolder = $"droniverse/ClubCreationRequest/{requesterId}";
+                await _mediaService.UploadMedia(imageMedia, clubCreationRequestFolder);
+
+                // Set imageUrl from media (UploadMedia updates media.Url)
+                imageUrl = imageMedia.Url;
+            }
+            // else: imageMedia is null, keep existing imageUrl
+
+            // Update basic information using domain method
+            request.UpdateInfo(
+                dto.NameVN,
+                dto.NameEN,
+                dto.Description,
+                dto.LimitParticipant,
+                1,
+                imageUrl,
+                requesterId,
+                dto.DroneID,
+                dto.ClubPolicyVN,
+                dto.ClubPolicyEN,
+                dto.Media,
+                dto.ClubRequirement,
+                _clock.Now
+            );
+
+            // Save changes
+            await _unitOfWork.ClubCreationRequests.Update(request);
+            await _unitOfWork.SaveChangeAsync();
+
+            // Reload to get updated categories
+            var updatedRequest = await _unitOfWork.ClubCreationRequests.GetByCondition(
+                r => r.ClubCreationRequestID == id,
+                query => query.Include(x => x.Media).ThenInclude(m => m.MediaType)
+            ) ?? throw new KeyNotFoundException($"Club creation request with ID {id} not found.");
+
+            // Return response
+            return new ClubCreationRequestUpdateInfoResponseDto
+            {
+                ClubCreationRequestID = updatedRequest.ClubCreationRequestID,
+                NameVN = updatedRequest.NameVN,
+                NameEN = updatedRequest.NameEN,
+                Description = updatedRequest.Description,
+                LimitParticipant = updatedRequest.LimitParticipant,
+                LimitClubManager = updatedRequest.LimitClubManager,
+                ImageUrl = updatedRequest.ImageUrl,
+                UpdatedAt = updatedRequest.UpdatedAt,
+                Status = updatedRequest.Status,
+                DroneID = updatedRequest.DroneID,
+                ClubPolicyVN = updatedRequest.ClubPolicyVN,
+                ClubPolicyEN = updatedRequest.ClubPolicyEN,
+                ClubRequirement = updatedRequest.ClubRequirement,
+                Media = _mapper.Map<MediaResponseDto>(updatedRequest.Media)
+
+            };
+        }
+
+        /// <summary>
+        /// Generate a unique 6-character club code
+        /// </summary>
+        private string GenerateClubCode()
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            var random = new Random();
+            return new string([.. Enumerable.Range(0, 6).Select(_ => chars[random.Next(chars.Length)])]);
+        }
+    }
+}

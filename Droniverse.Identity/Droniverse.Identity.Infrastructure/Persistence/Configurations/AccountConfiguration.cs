@@ -49,6 +49,12 @@ public class AccountConfiguration : IEntityTypeConfiguration<Account>
             .IsRequired()
             .HasDefaultValue(false);
 
+        builder.Property(a => a.RefreshToken)
+            .HasMaxLength(1000).IsRequired(false);
+
+        builder.Property(a => a.RefreshTokenExpiryTime)
+            .HasColumnType("datetime").IsRequired(false);
+
         builder.Property(a => a.CreateAt)
             .HasColumnType("datetime")
             .IsRequired()
@@ -58,6 +64,9 @@ public class AccountConfiguration : IEntityTypeConfiguration<Account>
             .HasColumnType("datetime")
             .IsRequired(false)
             .ValueGeneratedOnUpdate();
+
+        builder.Property(a => a.VerificationToken).IsRequired(false);
+        builder.Property(a => a.VerificationTokenExpiryTime).HasColumnType("datetime").IsRequired(false);
 
         builder.Property(a => a.Status)
             .HasColumnType("tinyint")

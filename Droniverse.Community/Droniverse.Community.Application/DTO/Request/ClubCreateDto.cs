@@ -1,17 +1,32 @@
-﻿using Droniverse.Community.Domain.Enums;
+﻿using System.ComponentModel.DataAnnotations;
+using Droniverse.Community.Domain.Enums;
 
-namespace Droniverse.Community.Application.DTO.Request;
+public record ClubCreateDto
+{
+    [Required(ErrorMessage = "Tên tiếng Việt không được để trống")]
+    [StringLength(200, ErrorMessage = "Tên tiếng Việt tối đa 200 ký tự")]
+    public string NameVN { get; init; } = string.Empty;
 
-public record ClubCreateDto(
-    string NameVN,
-    string NameEN,
-    string DescriptionVN,
-    string DescriptionEN,
-    ClubStatus Status,
-    bool IsPublic,
-    int LimitParticipation,
-    int LimitClubManagers,
-    Guid CreatedBy,
-    Guid FeedbackId
-    )
-{}
+    [Required(ErrorMessage = "Tên tiếng Anh không được để trống")]
+    [StringLength(200, ErrorMessage = "Tên tiếng Anh tối đa 200 ký tự")]
+    public string NameEN { get; init; } = string.Empty;
+
+    [StringLength(1000, ErrorMessage = "Mô tả tiếng Việt tối đa 1000 ký tự")]
+    public string? DescriptionVN { get; init; }
+
+    [StringLength(1000, ErrorMessage = "Mô tả tiếng Anh tối đa 1000 ký tự")]
+    public string? DescriptionEN { get; init; }
+
+    [Required(ErrorMessage = "Trạng thái không được để trống")]
+    public ClubStatus Status { get; init; }
+    public string? ImageUrl { get; init; }
+
+    [Range(1, 10000, ErrorMessage = "Số lượng thành viên phải từ 1 đến 10000")]
+    public int LimitParticipation { get; init; }
+
+    [Range(1, 100, ErrorMessage = "Số lượng quản lý phải từ 1 đến 100")]
+    public int LimitClubManagers { get; init; }
+
+    [StringLength(2000, ErrorMessage = "Yêu cầu tham gia tối đa 2000 ký tự")]
+    public string? ClubRequirement { get; init; }
+}

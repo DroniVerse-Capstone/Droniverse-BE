@@ -1,0 +1,324 @@
+name: Deploy to DOKS
+
+on:
+  push:
+    branches: [main, production ]
+  pull_request:
+    branches: [main, production]
+    types: [closed]
+  workflow_dispatch:
+
+permissions:
+  pull-requests: read
+  contents: read
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: true
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      gateway: ${{ steps.filter.outputs.gateway }}
+      academy: ${{ steps.filter.outputs.academy }}
+      community: ${{ steps.filter.outputs.community }}
+      identity: ${{ steps.filter.outputs.identity }}
+      shared: ${{ steps.filter.outputs.shared }}
+      infra: ${{ steps.filter.outputs.infra }}
+    steps:
+      - name: Checkout (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Lấy toàn bộ commit history
+
+      - name: Detect changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          base: ${{ github.event.pull_request.base.ref || github.event.before || 'HEAD~1' }}
+          ref: ${{ github.event.pull_request.head.ref || github.ref }}
+          list-files: 'csv'  # In danh sách files thay đổi
+          filters: |
+            gateway:
+              - 'Droniverse.Gateway/**'
+            academy:
+              - 'Droniverse.Academy/**'
+            community:
+              - 'Droniverse.Community/**'
+            identity:
+              - 'Droniverse.Identity/**'
+            shared:
+              - 'Droniverse.Shared/**'
+            infra:
+              - 'docker-compose/**'
+              - '.github/workflows/**'
+
+      - name: Debug - Show detected changes
+        run: |
+          echo "=== Changed Files ==="
+          echo "Gateway: ${{ steps.filter.outputs.gateway }}"
+          echo "Academy: ${{ steps.filter.outputs.academy }}"
+          echo "Community: ${{ steps.filter.outputs.community }}"
+          echo "Identity: ${{ steps.filter.outputs.identity }}"
+          echo "Shared: ${{ steps.filter.outputs.shared }}"
+          echo "Infra: ${{ steps.filter.outputs.infra }}"
+          echo ""
+          echo "=== Files Changed ==="
+          echo "${{ steps.filter.outputs.gateway_files }}"
+          echo "${{ steps.filter.outputs.academy_files }}"
+          echo "${{ steps.filter.outputs.community_files }}"
+          echo "${{ steps.filter.outputs.identity_files }}"
+
+  build-push-rollout:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    environment: DIGITAL OCEAN
+    # Chỉ chạy khi push thẳng lên branch, HOẶC khi PR được merged (không phải chỉ closed)
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
+
+    env:
+      REGISTRY: registry.digitalocean.com
+      REGISTRY_NAME: ${{ secrets.DOCR_REGISTRY_NAME }}
+      DOKS_CLUSTER_NAME: ${{ secrets.DOKS_CLUSTER_NAME }}
+      K8S_NAMESPACE: droniverse-hostname
+
+      GATEWAY_DEPLOYMENT: gateway
+      ACADEMY_DEPLOYMENT: academy
+      COMMUNITY_DEPLOYMENT: community
+      IDENTITY_DEPLOYMENT: identity
+
+      GATEWAY_CONTAINER: gateway
+      ACADEMY_CONTAINER: academy
+      COMMUNITY_CONTAINER: community
+      IDENTITY_CONTAINER: identity
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Authenticate doctl
+        run: doctl auth init -t "${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}"
+
+      - name: Login to DigitalOcean Container Registry
+        run: doctl registry login --expiry-seconds 1200
+
+      - name: Set image tag
+        shell: bash
+        run: |
+          echo "TAG=$(date +%Y%m%d%H%M%S)-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+
+      - name: Calculate deploy flags
+        shell: bash
+        run: |
+          GW="${{ needs.detect-changes.outputs.gateway }}"
+          ACA="${{ needs.detect-changes.outputs.academy }}"
+          COM="${{ needs.detect-changes.outputs.community }}"
+          IDN="${{ needs.detect-changes.outputs.identity }}"
+          SHARED="${{ needs.detect-changes.outputs.shared }}"
+          INFRA="${{ needs.detect-changes.outputs.infra }}"
+
+          if [[ "$SHARED" == "true" || "$INFRA" == "true" ]]; then
+            GW=true
+            ACA=true
+            COM=true
+            IDN=true
+          fi
+
+          echo "DEPLOY_GATEWAY=$GW" >> "$GITHUB_ENV"
+          echo "DEPLOY_ACADEMY=$ACA" >> "$GITHUB_ENV"
+          echo "DEPLOY_COMMUNITY=$COM" >> "$GITHUB_ENV"
+          echo "DEPLOY_IDENTITY=$IDN" >> "$GITHUB_ENV"
+
+          echo "Plan: gateway=$GW academy=$ACA community=$COM identity=$IDN"
+
+      - name: Build and push Gateway
+        if: env.DEPLOY_GATEWAY == 'true'
+        env:
+          DOCKER_BUILDKIT: 1
+        run: |
+          GW="$REGISTRY/$REGISTRY_NAME/gateway:$TAG"
+          for attempt in {1..3}; do
+            echo "Build attempt $attempt/3..."
+            docker build --no-cache --pull -t "$GW" -f Droniverse.Gateway/Droniverse.Gateway/Dockerfile . && break
+            if [ $attempt -lt 3 ]; then sleep 30; fi
+          done
+          docker push "$GW"
+          echo "GW=$GW" >> "$GITHUB_ENV"
+
+      - name: Build and push Academy
+        if: env.DEPLOY_ACADEMY == 'true'
+        env:
+          DOCKER_BUILDKIT: 1
+        run: |
+          ACA="$REGISTRY/$REGISTRY_NAME/academy:$TAG"
+          for attempt in {1..3}; do
+            echo "Build attempt $attempt/3..."
+            docker build --no-cache --pull -t "$ACA" -f Droniverse.Academy/Droniverse.Academy.API/Dockerfile . && break
+            if [ $attempt -lt 3 ]; then sleep 30; fi
+          done
+          docker push "$ACA"
+          echo "ACA=$ACA" >> "$GITHUB_ENV"
+
+      - name: Build and push Community
+        if: env.DEPLOY_COMMUNITY == 'true'
+        env:
+          DOCKER_BUILDKIT: 1
+        run: |
+          COM="$REGISTRY/$REGISTRY_NAME/community:$TAG"
+          for attempt in {1..3}; do
+            echo "Build attempt $attempt/3..."
+            docker build --no-cache --pull -t "$COM" -f Droniverse.Community/Droniverse.Community.API/Dockerfile . && break
+            if [ $attempt -lt 3 ]; then sleep 30; fi
+          done
+          docker push "$COM"
+          echo "COM=$COM" >> "$GITHUB_ENV"
+
+      - name: Build and push Identity
+        if: env.DEPLOY_IDENTITY == 'true'
+        env:
+          DOCKER_BUILDKIT: 1
+        run: |
+          IDN="$REGISTRY/$REGISTRY_NAME/identity:$TAG"
+          for attempt in {1..3}; do
+            echo "Build attempt $attempt/3..."
+            docker build --no-cache --pull -t "$IDN" -f Droniverse.Identity/Droniverse.Identity.API/Dockerfile . && break
+            if [ $attempt -lt 3 ]; then sleep 30; fi
+          done
+          docker push "$IDN"
+          echo "IDN=$IDN" >> "$GITHUB_ENV"
+
+      - name: Set up kubectl
+        if: env.DEPLOY_GATEWAY == 'true' || env.DEPLOY_ACADEMY == 'true' || env.DEPLOY_COMMUNITY == 'true' || env.DEPLOY_IDENTITY == 'true'
+        uses: azure/setup-kubectl@v4
+
+      - name: Fetch kubeconfig for DOKS cluster
+        if: env.DEPLOY_GATEWAY == 'true' || env.DEPLOY_ACADEMY == 'true' || env.DEPLOY_COMMUNITY == 'true' || env.DEPLOY_IDENTITY == 'true'
+        run: doctl kubernetes cluster kubeconfig save "$DOKS_CLUSTER_NAME"
+
+      - name: Verify rollout targets exist
+        if: env.DEPLOY_GATEWAY == 'true' || env.DEPLOY_ACADEMY == 'true' || env.DEPLOY_COMMUNITY == 'true' || env.DEPLOY_IDENTITY == 'true'
+        run: kubectl -n "$K8S_NAMESPACE" get deployment "$GATEWAY_DEPLOYMENT" "$ACADEMY_DEPLOYMENT" "$COMMUNITY_DEPLOYMENT" "$IDENTITY_DEPLOYMENT"
+
+      - name: Rollout Gateway
+        if: env.DEPLOY_GATEWAY == 'true'
+        run: kubectl -n "$K8S_NAMESPACE" set image deployment/$GATEWAY_DEPLOYMENT $GATEWAY_CONTAINER=$GW
+
+      - name: Set Gateway rollout strategy
+        if: env.DEPLOY_GATEWAY == 'true'
+        run: |
+          kubectl -n "$K8S_NAMESPACE" patch deployment/$GATEWAY_DEPLOYMENT --type merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxUnavailable":1,"maxSurge":0}}}}'
+
+      - name: Rollout Academy
+        if: env.DEPLOY_ACADEMY == 'true'
+        run: kubectl -n "$K8S_NAMESPACE" set image deployment/$ACADEMY_DEPLOYMENT $ACADEMY_CONTAINER=$ACA
+
+      - name: Set Academy rollout strategy
+        if: env.DEPLOY_ACADEMY == 'true'
+        run: |
+          kubectl -n "$K8S_NAMESPACE" patch deployment/$ACADEMY_DEPLOYMENT --type merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxUnavailable":1,"maxSurge":0}}}}'
+
+      - name: Set Academy internal service endpoints
+        if: env.DEPLOY_ACADEMY == 'true'
+        run: |
+          kubectl -n "$K8S_NAMESPACE" set env deployment/$ACADEMY_DEPLOYMENT \
+            IdentityMicroserviceName=gateway-service \
+            IdentityMicroservicePort=80 \
+            CommunityMicroserviceName=gateway-service \
+            CommunityMicroservicePort=80
+
+      - name: Set Academy environment to Production
+        if: env.DEPLOY_ACADEMY == 'true'
+        run: kubectl -n "$K8S_NAMESPACE" set env deployment/$ACADEMY_DEPLOYMENT ASPNETCORE_ENVIRONMENT=Production
+
+      - name: Rollout Community
+        if: env.DEPLOY_COMMUNITY == 'true'
+        run: kubectl -n "$K8S_NAMESPACE" set image deployment/$COMMUNITY_DEPLOYMENT $COMMUNITY_CONTAINER=$COM
+
+      - name: Set Community internal service endpoints
+        if: env.DEPLOY_COMMUNITY == 'true'
+        run: |
+          kubectl -n "$K8S_NAMESPACE" set env deployment/$COMMUNITY_DEPLOYMENT \
+            IdentityMicroserviceName=gateway-service \
+            IdentityMicroservicePort=80 \
+            AcademyMicroserviceName=gateway-service \
+            AcademyMicroservicePort=80
+
+      - name: Set Community rollout strategy
+        if: env.DEPLOY_COMMUNITY == 'true'
+        run: |
+          kubectl -n "$K8S_NAMESPACE" patch deployment/$COMMUNITY_DEPLOYMENT --type merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxUnavailable":1,"maxSurge":0}}}}'
+
+      - name: Set Community environment to Production
+        if: env.DEPLOY_COMMUNITY == 'true'
+        run: kubectl -n "$K8S_NAMESPACE" set env deployment/$COMMUNITY_DEPLOYMENT ASPNETCORE_ENVIRONMENT=Production
+
+      - name: Set Identity environment to Production
+        if: env.DEPLOY_IDENTITY == 'true'
+        run: kubectl -n "$K8S_NAMESPACE" set env deployment/$IDENTITY_DEPLOYMENT ASPNETCORE_ENVIRONMENT=Production
+
+      - name: Rollout Identity
+        if: env.DEPLOY_IDENTITY == 'true'
+        run: kubectl -n "$K8S_NAMESPACE" set image deployment/$IDENTITY_DEPLOYMENT $IDENTITY_CONTAINER=$IDN
+
+      - name: Set Identity rollout strategy
+        if: env.DEPLOY_IDENTITY == 'true'
+        run: |
+          kubectl -n "$K8S_NAMESPACE" patch deployment/$IDENTITY_DEPLOYMENT --type merge -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxUnavailable":1,"maxSurge":0}}}}'
+
+      - name: Wait for gateway rollout
+        if: env.DEPLOY_GATEWAY == 'true'
+        run: kubectl -n "$K8S_NAMESPACE" rollout status deployment/$GATEWAY_DEPLOYMENT
+
+      - name: Wait for academy rollout
+        if: env.DEPLOY_ACADEMY == 'true'
+        run: kubectl -n "$K8S_NAMESPACE" rollout status deployment/$ACADEMY_DEPLOYMENT
+
+      - name: Wait for community rollout
+        if: env.DEPLOY_COMMUNITY == 'true'
+        run: kubectl -n "$K8S_NAMESPACE" rollout status deployment/$COMMUNITY_DEPLOYMENT
+
+      - name: Wait for identity rollout
+        if: env.DEPLOY_IDENTITY == 'true'
+        run: kubectl -n "$K8S_NAMESPACE" rollout status deployment/$IDENTITY_DEPLOYMENT
+
+      - name: Verify gateway config
+        if: env.DEPLOY_GATEWAY == 'true'
+        run: |
+          kubectl -n "$K8S_NAMESPACE" exec deploy/$GATEWAY_DEPLOYMENT -- sh -c "
+            echo 'Checking ocelot.json...'
+      
+            if [ ! -f /app/ocelot.json ]; then
+              echo 'ocelot.json not found'
+              exit 1
+            fi
+      
+            if ! grep -q 'academy-service\|academy-microservice' /app/ocelot.json; then
+              echo 'Academy route missing'
+              exit 1
+            fi
+      
+            if ! grep -q 'community-service\|community-microservice' /app/ocelot.json; then
+              echo 'Community route missing'
+              exit 1
+            fi
+      
+            if ! grep -q 'identity-service\|identity-microservice' /app/ocelot.json; then
+              echo 'Identity route missing'
+              exit 1
+            fi
+      
+            echo 'Gateway config OK'
+          "
+
+      - name: No deployment required
+        if: env.DEPLOY_GATEWAY != 'true' && env.DEPLOY_ACADEMY != 'true' && env.DEPLOY_COMMUNITY != 'true' && env.DEPLOY_IDENTITY != 'true'
+        run: echo "No service path changed. Skipping build and deploy."

@@ -3,10 +3,12 @@
 namespace Droniverse.Identity.Domain.Interfaces;
 public interface IUnitOfWork : IDisposable
 {
-    IRepository<Role> Roles { get; }
-    IRepository<Account> Accounts { get; }
-    IRepository<UserInfo> UserInfos { get; }
-    IRepository<Permission> Permissions { get; }
-
+    IRoleRepository Roles { get; }
+    IUserRepository Accounts { get; }
+    IUserInfoRepository UserInfos { get; }
+    IPermissionRepository Permissions { get; }
+    ISysConfigRepository SysConfigs { get; }
+    ISysPolicyRepository SysPolicies { get; }
+    INotificationRepository Notifications { get; }
     Task<int> SaveChangeAsync();
 }

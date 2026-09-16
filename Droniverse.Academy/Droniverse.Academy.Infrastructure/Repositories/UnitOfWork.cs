@@ -7,78 +7,101 @@ namespace Droniverse.Academy.Infrastructure.Repositories;
 internal class UnitOfWork : IUnitOfWork
 {
     private readonly MySqlDbContext _mySqlContext;
-    private IRepository<Certificate> _certificate;
-    private IRepository<Code> _code;
-    private IRepository<CodeUsage> _codeUsage;
-    private IRepository<Course> _course;
-    private IRepository<CourseVersion> _courseVersion;
-    private IRepository<CourseVersionCategory> _courseVersionCategory;
-    private IRepository<Drone> _drone;
-    private IRepository<DroneType> _droneType;
-    private IRepository<Enrollment> _enrollment;
-    private IRepository<Feedback> _feedback;
-    private IRepository<Lab> _lab;
-    private IRepository<Lesson> _lesson;
-    private IRepository<Module> _module;
-    private IRepository<Quiz> _quiz;
-    private IRepository<QuizAnswer> _quizAnswer;
-    private IRepository<QuizQuestion> _quizQuestion;
-    private IRepository<Report> _report;
-    private IRepository<RequiredDrone> _requiredDrone;
-    private IRepository<Theory> _theory;
-    private IRepository<UserAttempt> _userAttempt;
-    private IRepository<UserCertificate> _userCertificate;
-    private IRepository<UserLab> _userLab;
-    private IRepository<UserModule> _userModule;
+    private IAssignmentRepository _assignment;
+    private ICertificateRepository _certificate;
+    private ICodeRepository _code;
+    private ICourseRepository _course;
+    private ICourseVersionRepository _courseVersion;
+    private IDroneRepository _drone;
+    private IDroneTypeRepository _droneType;
+    private IEnrollmentRepository _enrollment;
+    private IFeedbackRepository _feedback;
+    private IVRSimulatorRepository _vrSimulator;
+    private ILabRepository _lab;
+    private ILessonRepository _lesson;
+    private IModuleRepository _module;
+    private IQuizRepository _quiz;
+    private IQuizAttemptRepository _quizAttempt;
+    private IQuizQuestionAttemptRepository _quizQuestionAttempt;
+    private IQuizQuestionRepository _quizQuestion;
+    private IReportRepository _report;
+    private IWebSimulatorRepository _webSimulator;
+    private IUserSimulatorRepository _userSimulator;
+    private ITheoryRepository _theory;
+    private IUserCertificateRepository _userCertificate;
+    private IUserLabRepository _userLab;
+    private IUserLessonRepository _userLesson;
+    private IUserLevelRepository _userLevel;
+    private IUserModuleRepository _userModule;
+    private IUserAssignmentRepository _userAssignment;
+    private ILevelRepository _level;
+    private ILevelCourseRequirementRepository _levelCourseRequirement;
+    private IPrerequisiteCourseRepository _prerequisiteCourse;
 
     public UnitOfWork(MySqlDbContext mySqlContext)
     {
         _mySqlContext = mySqlContext;
     }
-    public IRepository<Certificate> Certificates => _certificate ??= new CertificateRepository(_mySqlContext);
 
-    public IRepository<Code> Codes => _code ??= new CodeRepository(_mySqlContext);
+    public IAssignmentRepository Assignments => _assignment ??= new AssignmentRepository(_mySqlContext);
 
-    public IRepository<CodeUsage> CodeUsages => _codeUsage ??= new CodeUsageRepository(_mySqlContext);
+    public ICertificateRepository Certificates => _certificate ??= new CertificateRepository(_mySqlContext);
 
-    public IRepository<Course> Courses => _course ??= new CourseRepository(_mySqlContext);
+    public ICodeRepository Codes => _code ??= new CodeRepository(_mySqlContext);
 
-    public IRepository<CourseVersion> CourseVersions => _courseVersion ??= new CourseVersionRepository(_mySqlContext);
+    public ICourseRepository Courses => _course ??= new CourseRepository(_mySqlContext);
 
-    public IRepository<CourseVersionCategory> CourseVersionCategories => _courseVersionCategory ??= new CourseVersionCategoryRepository(_mySqlContext);
+    public ICourseVersionRepository CourseVersions => _courseVersion ??= new CourseVersionRepository(_mySqlContext);
 
-    public IRepository<Drone> Drones => _drone ??= new DroneRepository(_mySqlContext);
+    public IDroneRepository Drones => _drone ??= new DroneRepository(_mySqlContext);
 
-    public IRepository<DroneType> DroneTypes => _droneType ??= new DroneTypeRepository(_mySqlContext);
+    public IDroneTypeRepository DroneTypes => _droneType ??= new DroneTypeRepository(_mySqlContext);
 
-    public IRepository<Enrollment> Enrollments => _enrollment ??= new EnrollmentRepository(_mySqlContext);
+    public IEnrollmentRepository Enrollments => _enrollment ??= new EnrollmentRepository(_mySqlContext);
 
-    public IRepository<Feedback> Feedbacks => _feedback ??= new FeedbackRepository(_mySqlContext);
+    public IFeedbackRepository Feedbacks => _feedback ??= new FeedbackRepository(_mySqlContext);
 
-    public IRepository<Lab> Labs => _lab ??= new LabRepository(_mySqlContext);
+    public IVRSimulatorRepository VRSimulators => _vrSimulator ??= new VRSimulatorRepository(_mySqlContext);
 
-    public IRepository<Lesson> Lessons => _lesson ??= new LessonRepository(_mySqlContext);
+    public ILabRepository Labs => _lab ??= new LabRepository(_mySqlContext);
 
-    public IRepository<Module> Modules => _module ??= new ModuleRepository(_mySqlContext);
+    public ILessonRepository Lessons => _lesson ??= new LessonRepository(_mySqlContext);
 
-    public IRepository<Quiz> Quizs => _quiz ??= new QuizRepository(_mySqlContext);
+    public IModuleRepository Modules => _module ??= new ModuleRepository(_mySqlContext);
 
-    public IRepository<QuizAnswer> QuizAnswers => _quizAnswer ??= new QuizAnswerRepository(_mySqlContext);
-    public IRepository<QuizQuestion> QuizQuestions => _quizQuestion ??= new QuizQuestionRepository(_mySqlContext);
+    public IQuizRepository Quizs => _quiz ??= new QuizRepository(_mySqlContext);
 
-    public IRepository<Report> Reports => _report ??= new ReportRepository(_mySqlContext);
+    public IQuizAttemptRepository QuizAttempts => _quizAttempt ??= new QuizAttemptRepository(_mySqlContext);
 
-    public IRepository<RequiredDrone> RequiredDrones => _requiredDrone ??= new RequiredDroneRepository(_mySqlContext);
+    public IQuizQuestionAttemptRepository QuizQuestionAttempts => _quizQuestionAttempt ??= new QuizQuestionAttemptRepository(_mySqlContext);
 
-    public IRepository<Theory> Theories => _theory ??= new TheoryRepository(_mySqlContext);
+    public IQuizQuestionRepository QuizQuestions => _quizQuestion ??= new QuizQuestionRepository(_mySqlContext);
 
-    public IRepository<UserAttempt> UserAttempts => _userAttempt ??= new UserAttemptRepository(_mySqlContext);
+    public IReportRepository Reports => _report ??= new ReportRepository(_mySqlContext);
 
-    public IRepository<UserCertificate> UserCertificates => _userCertificate ??= new UserCertificateRepository(_mySqlContext);
+    public IWebSimulatorRepository WebSimulators => _webSimulator ??= new WebSimulatorRepository(_mySqlContext);
 
-    public IRepository<UserLab> UserLabs => _userLab ??= new UserLabRepository(_mySqlContext);
+    public IUserSimulatorRepository UserSimulators => _userSimulator ??= new UserSimulatorRepository(_mySqlContext);
 
-    public IRepository<UserModule> UserModules => _userModule ??= new UserModuleRepository(_mySqlContext);
+    public ITheoryRepository Theories => _theory ??= new TheoryRepository(_mySqlContext);
+
+    public IUserCertificateRepository UserCertificates => _userCertificate ??= new UserCertificateRepository(_mySqlContext);
+
+    public IUserLabRepository UserLabs => _userLab ??= new UserLabRepository(_mySqlContext);
+
+    public IUserLessonRepository UserLessons => _userLesson ??= new UserLessonRepository(_mySqlContext);
+
+    public IUserLevelRepository UserLevels => _userLevel ??= new UserLevelRepository(_mySqlContext);
+
+    public IUserModuleRepository UserModules => _userModule ??= new UserModuleRepository(_mySqlContext);
+
+    public IUserAssignmentRepository UserAssignments => _userAssignment ??= new UserAssignmentRepository(_mySqlContext);
+
+    public ILevelRepository Levels => _level ??= new LevelRepository(_mySqlContext);
+
+    public ILevelCourseRequirementRepository LevelCourseRequirements => _levelCourseRequirement ??= new LevelCourseRequirementRepository(_mySqlContext);
+
+    public IPrerequisiteCourseRepository PrerequisiteCourses => _prerequisiteCourse ??= new PrerequisiteCourseRepository(_mySqlContext);
 
     public void Dispose()
     {
@@ -89,6 +112,37 @@ internal class UnitOfWork : IUnitOfWork
     public async Task<int> SaveChangesAsync()
     {
         return await _mySqlContext.SaveChangesAsync();
+    }
+
+    public async Task ExecuteInTransactionAsync(Func<Task> action)
+    {
+        await using var transaction = await _mySqlContext.Database.BeginTransactionAsync();
+        try
+        {
+            await action();
+            await transaction.CommitAsync();
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
+
+    public async Task<T> ExecuteInTransactionAsync<T>(Func<Task<T>> action)
+    {
+        await using var transaction = await _mySqlContext.Database.BeginTransactionAsync();
+        try
+        {
+            var result = await action();
+            await transaction.CommitAsync();
+            return result;
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
     }
 }
 

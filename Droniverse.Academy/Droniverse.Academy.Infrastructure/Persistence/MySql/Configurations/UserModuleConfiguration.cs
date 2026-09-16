@@ -9,13 +9,15 @@ public class UserModuleConfiguration : IEntityTypeConfiguration<UserModule>
     {
         builder.ToTable("UserModule");
 
-        builder.HasKey(um => new { um.ModuleID, um.UserID});
+        builder.HasKey(um => um.UserModuleID);
+        builder.HasIndex(um => new { um.ModuleID, um.UserID });
 
         builder.HasOne(um => um.Module)
             .WithMany(m => m.UserModules)
             .HasForeignKey(um => um.ModuleID)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.Property(um => um.UserModuleID).HasColumnType("char(36)");
         builder.Property(um => um.UserID).HasColumnType("char(36)");
         builder.Property(um => um.ModuleID).HasColumnType("char(36)");
         builder.Property(um => um.EnrollDate).HasColumnType("datetime");
@@ -23,7 +25,7 @@ public class UserModuleConfiguration : IEntityTypeConfiguration<UserModule>
         builder.Property(um => um.Progress).HasColumnType("float");
         builder.Property(um => um.IsCompleted).HasColumnType("tinyint(1)").IsRequired();
         
-        builder.ToTable(t => t.HasCheckConstraint("CK_UserModule_Progress", "`Progress` IN (0, 100)"));
+        builder.ToTable(t => t.HasCheckConstraint("CK_UserModule_Progress", "`Progress` >= 0 AND `Progress` <= 100"));
 
     }
 }

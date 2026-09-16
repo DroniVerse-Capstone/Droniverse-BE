@@ -1,7 +1,7 @@
 ﻿using AutoMapper;
 using Droniverse.Identity.Application.DTO.Request;
-using Droniverse.Identity.Application.DTO.Response;
 using Droniverse.Identity.Domain.Entities;
+using Droniverse.Shared.DTOs.Response;
 
 namespace Droniverse.Identity.Application.Mapper;
 public class RoleMappingProfile : Profile

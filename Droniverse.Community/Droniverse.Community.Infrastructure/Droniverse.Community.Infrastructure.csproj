@@ -1,16 +1,21 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net8.0</TargetFramework>
+		<TargetFramework>net9.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\Droniverse.Community.Application\Droniverse.Community.Application.csproj" />
+		<ProjectReference Include="..\Droniverse.Community.Domain\Droniverse.Community.Domain.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
+		
+		<PackageReference Include="Hangfire" Version="1.8.23" />
+		
+		<PackageReference Include="Hangfire.MySqlStorage" Version="2.0.3" />
 		
 		<PackageReference Include="MySql.Data" Version="9.5.0" />
 

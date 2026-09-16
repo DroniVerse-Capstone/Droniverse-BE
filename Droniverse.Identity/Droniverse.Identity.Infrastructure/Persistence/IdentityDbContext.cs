@@ -21,6 +21,8 @@ public class IdentityDbContext : DbContext
     public DbSet<RolePermission> RolePermission { get; set; }
     public DbSet<UserConfig> UserConfig { get; set; }
     public DbSet<SysConfig> SysConfig { get; set; }
+    public DbSet<Notification> Notification { get; set; }
+    public DbSet<SysPolicy> SysPolicy { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -31,6 +33,8 @@ public class IdentityDbContext : DbContext
         modelBuilder.ApplyConfiguration(new UserInfoConfiguration());
         modelBuilder.ApplyConfiguration(new UserConfigConfiguration());
         modelBuilder.ApplyConfiguration(new SysConfigConfiguration());
+        modelBuilder.ApplyConfiguration(new NotificationConfiguration());
+        modelBuilder.ApplyConfiguration(new SysPolicyConfiguration());
         base.OnModelCreating(modelBuilder);
     }
 }

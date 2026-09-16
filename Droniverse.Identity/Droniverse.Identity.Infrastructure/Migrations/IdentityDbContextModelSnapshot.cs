@@ -47,6 +47,13 @@ namespace Droniverse.Identity.Infrastructure.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
 
+                    b.Property<string>("RefreshToken")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<DateTime?>("RefreshTokenExpiryTime")
+                        .HasColumnType("datetime");
+
                     b.Property<Guid>("RoleID")
                         .HasColumnType("char(36)");
 
@@ -62,6 +69,12 @@ namespace Droniverse.Identity.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
 
+                    b.Property<string>("VerificationToken")
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime?>("VerificationTokenExpiryTime")
+                        .HasColumnType("datetime");
+
                     b.HasKey("UserID");
 
                     b.HasIndex("Email")
@@ -76,6 +89,70 @@ namespace Droniverse.Identity.Infrastructure.Migrations
                         {
                             t.HasCheckConstraint("CK_Account_Status", "`Status` IN (0, 1, 2, 3)");
                         });
+                });
+
+            modelBuilder.Entity("Droniverse.Identity.Domain.Entities.Notification", b =>
+                {
+                    b.Property<Guid>("NotificationID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<string>("RelatedEntityID")
+                        .HasMaxLength(36)
+                        .HasColumnType("varchar(36)");
+
+                    b.Property<int>("RetryCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<DateTime?>("SentAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<Guid>("UserID")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("NotificationID");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("idx_created");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("idx_status");
+
+                    b.HasIndex("UserID")
+                        .HasDatabaseName("idx_user");
+
+                    b.HasIndex("Status", "CreatedAt")
+                        .HasDatabaseName("idx_status_created");
+
+                    b.ToTable("Notifications", (string)null);
                 });
 
             modelBuilder.Entity("Droniverse.Identity.Domain.Entities.Permission", b =>
@@ -140,6 +217,10 @@ namespace Droniverse.Identity.Infrastructure.Migrations
                     b.Property<int>("BufferEstimatedDuration")
                         .HasColumnType("int");
 
+                    b.Property<string>("CertificateTemplateUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -165,6 +246,59 @@ namespace Droniverse.Identity.Infrastructure.Migrations
                     b.HasKey("SysConfigID");
 
                     b.ToTable("SysConfig", (string)null);
+                });
+
+            modelBuilder.Entity("Droniverse.Identity.Domain.Entities.SysPolicy", b =>
+                {
+                    b.Property<Guid>("SysPolicyID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("ContentEN")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ContentVN")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("EffectiveDate")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("TitleEN")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("TitleVN")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("SysPolicyID");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("UpdatedBy");
+
+                    b.ToTable("SysPolicy", (string)null);
                 });
 
             modelBuilder.Entity("Droniverse.Identity.Domain.Entities.UserConfig", b =>
@@ -231,6 +365,17 @@ namespace Droniverse.Identity.Infrastructure.Migrations
                     b.Navigation("Role");
                 });
 
+            modelBuilder.Entity("Droniverse.Identity.Domain.Entities.Notification", b =>
+                {
+                    b.HasOne("Droniverse.Identity.Domain.Entities.Account", "Account")
+                        .WithMany()
+                        .HasForeignKey("UserID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Account");
+                });
+
             modelBuilder.Entity("Droniverse.Identity.Domain.Entities.RolePermission", b =>
                 {
                     b.HasOne("Droniverse.Identity.Domain.Entities.Permission", "Permission")
@@ -248,6 +393,25 @@ namespace Droniverse.Identity.Infrastructure.Migrations
                     b.Navigation("Permission");
 
                     b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("Droniverse.Identity.Domain.Entities.SysPolicy", b =>
+                {
+                    b.HasOne("Droniverse.Identity.Domain.Entities.Account", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Droniverse.Identity.Domain.Entities.Account", "UpdatedByUser")
+                        .WithMany()
+                        .HasForeignKey("UpdatedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("UpdatedByUser");
                 });
 
             modelBuilder.Entity("Droniverse.Identity.Domain.Entities.UserConfig", b =>

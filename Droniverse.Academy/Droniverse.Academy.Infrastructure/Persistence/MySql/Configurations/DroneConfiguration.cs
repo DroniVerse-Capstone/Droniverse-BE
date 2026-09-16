@@ -10,9 +10,6 @@ public class DroneConfiguration : IEntityTypeConfiguration<Drone>
         builder.ToTable("Drone");
 
         builder.HasKey(c => c.DroneID);
-
-        builder.HasMany(d => d.RequiredDrones)
-               .WithOne(rd => rd.Drone);
         builder.HasOne(d => d.DroneType)
                .WithMany(dt => dt.Drones)
                .HasForeignKey(d => d.DroneTypeID)
@@ -28,7 +25,9 @@ public class DroneConfiguration : IEntityTypeConfiguration<Drone>
         builder.Property(d => d.Height).HasColumnType("float");
         builder.Property(d => d.Weight).HasColumnType("float");
         builder.Property(d => d.Status).HasColumnType("tinyint");
-        builder.Property(d => d.Model3DLink).HasColumnType("text");
+        builder.Property(d => d.ImgURL)
+            .HasColumnName("ImgURL")
+            .HasColumnType("char(255)");
 
         builder.ToTable(t => t.HasCheckConstraint("CK_Drone_Status", "`Status` IN (1,2,3)"));
       

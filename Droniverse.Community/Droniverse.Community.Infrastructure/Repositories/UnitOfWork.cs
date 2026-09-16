@@ -1,54 +1,93 @@
 ﻿using Droniverse.Community.Domain.Entities;
 using Droniverse.Community.Domain.IRepository;
 using Droniverse.Community.Infrastructure.Persistence.MySql;
+using Droniverse.Shared.Services.IServices;
 
 namespace Droniverse.Community.Infrastructure.Repositories;
 internal class UnitOfWork : IUnitOfWork
 {
     private readonly MySqlDbContext _context;
+    private readonly IClock _clock;
 
-    private IRepository<Category> _category;
-    private IRepository<Club> _club;
-    private IRepository<ClubRequest> _clubRequest;
-    private IRepository<Competition> _competiton;
-    private IRepository<Media> _media;
-    private IRepository<MediaType> _mediaType;
-    private IRepository<Participation> _participation;
-    private IRepository<Product> _product;
-    private IRepository<ProductCategory> _productCategory;
-    private IRepository<Round> _round;
-    public UnitOfWork(MySqlDbContext context)
+    private IClubRepository _club;
+    private IClubAttemptRequestRepository _clubAttemptRequest;
+    private ICompetitionRepository _competition;
+    private IMediaRepository _media;
+    private IMediaTypeRepository _mediaType;
+    private IParticipationRepository _participation;
+    private IProductRepository _product;
+    private IProductCategoryRepository _productCategory;
+    private IRoundRepository _round;
+    private IClubCreationRequestRepository _clubCreationRequest;
+    private ICompetitionPrizeRepository _competitionPrize;
+    private ITransactionRepository _transaction;
+    private IUserPrizeRepository _userPrize;
+    private IUserCompetitionRepository _userCompetition;
+    private IUserRoundRepository _userRound;
+    private IWalletRepository _wallet;
+    private IWithdrawRequestRepository _withdrawRequest;
+    public UnitOfWork(MySqlDbContext context, IClock clock)
     {
         _context = context;
+        _clock = clock;
     }
-    public IRepository<Category> Categories => _category ??= new CategoryRepository(_context);
 
-    public IRepository<Club> Clubs => _club ??= new ClubRepository(_context);
+    public IClubRepository Clubs
+        => _club ??= new ClubRepository(_context);
 
-    public IRepository<ClubRequest> ClubRequests => _clubRequest ??= new ClubRequestRepository(_context);
+    public ICompetitionRepository Competitions
+        => _competition ??= new CompetitionRepository(_context);
 
-    public IRepository<Competition> Competitions => _competiton ??= new CompetitionRepository(_context);
-    public IRepository<Media> Medias => _media ??= new MediaRepository(_context);
+    public IMediaRepository Medias
+        => _media ??= new MediaRepository(_context);
 
-    public IRepository<MediaType> MediaTypes => _mediaType ??= new MediaTypeRepository(_context);
+    public IMediaTypeRepository MediaTypes
+        => _mediaType ??= new MediaTypeRepository(_context);
 
-    public IRepository<Participation> Participations => _participation ??= new ParticipationRepository(_context);
+    public IParticipationRepository Participations
+        => _participation ??= new ParticipationRepository(_context);
 
-    public IRepository<ProductCategory> ProductCategories => _productCategory ??= new ProductCategoryRepository(_context);
+    public IProductCategoryRepository ProductCategories
+        => _productCategory ??= new ProductCategoryRepository(_context);
 
-    public IRepository<Product> Products => _product ??= new ProductRepository(_context);
+    public IProductRepository Products
+        => _product ??= new ProductRepository(_context);
 
-    public IRepository<Round> Rounds => _round ??= new RoundRepository(_context);
+    public IRoundRepository Rounds
+        => _round ??= new RoundRepository(_context, _clock);
 
-    public void Dispose() // dùng để đóng kết nối với DbContext
-    {
-        _context.Dispose();
-        GC.SuppressFinalize(this);
-    }
+    public IClubCreationRequestRepository ClubCreationRequests => _clubCreationRequest ??= new ClubCreationRequestRepository(_context);
+
+    public IClubAttemptRequestRepository ClubAttemptRequests => _clubAttemptRequest ??= new ClubAttemptRequestRepository(_context);
+
+    public ICompetitionPrizeRepository CompetitionPrizes => _competitionPrize ??= new CompetitionPrizeRepository(_context);
+
+    public IUserPrizeRepository UserPrizes => _userPrize ??= new UserPrizeRepository(_context);
+    public IUserCompetitionRepository UserCompetitions => _userCompetition ??= new UserCompetitionRepository(_context);
+    public IUserRoundRepository UserRounds => _userRound ??= new UserRoundRepository(_context);
+
+    public IWalletRepository Wallets => _wallet ??= new WalletRepository(_context);
+
+    public IWithdrawRequestRepository WithdrawRequests => _withdrawRequest ??= new WithdrawRequestRepository(_context);
+
+    public ITransactionRepository Transactions => _transaction ??= new TransactionRepository(_context);
 
     public async Task<int> SaveChangeAsync()
     {
+        //var entries = _context.ChangeTracker.Entries();
+
+        //foreach (var e in entries)
+        //{
+        //    Console.WriteLine($"{e.Entity.GetType().Name} - {e.State}");
+        //}
+
         return await _context.SaveChangesAsync();
+    }
+
+    public void Dispose()
+    {
+        _context.Dispose();
+        GC.SuppressFinalize(this);
     }
 }
 

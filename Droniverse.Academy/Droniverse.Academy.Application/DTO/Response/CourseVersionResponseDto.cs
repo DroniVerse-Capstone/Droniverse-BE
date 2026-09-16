@@ -1,21 +1,23 @@
 ﻿using Droniverse.Academy.Domain.Enums;
+using Droniverse.Shared.DTOs;
 
 namespace Droniverse.Academy.Application.DTO.Response;
 
-public record CourseVersionResponseDto(
-    Guid CourseVersionID,
-    string TitleVN,
-    string TitleEN,
-    string DescriptionVN,
-    string DescriptionEN,
-    CourseStatus Status,
-    int Version,
-    string ImageUrl,
-    CourseLevel Level,
-    int EstimatedDuration,
-    Guid UpdateBy,
-    DateTime UpdateAt,
-    CourseResponseDto Course
-    )
-{}
-
+public class CourseVersionResponseDTO
+{
+    public Guid CourseVersionID { get; set; }
+    public string TitleVN { get; set; } = null!;
+    public string TitleEN { get; set; } = null!;
+    public string? DescriptionVN { get; set; }
+    public string? DescriptionEN { get; set; }
+    public CourseVersionStatus Status { get; set; }
+    public int Version { get; set; }
+    public string? ImageUrl { get; set; }
+    public int? EstimatedDuration { get; set; }
+    public string? ChangeLog { get; set; }
+    public SimpleUserReponse? Updater { get; set; }
+    public DateTime? UpdateAt { get; set; }
+    public string? ContextVN { get; set; }
+    public string? ContextEN { get; set; }
+    public CertificateVersionResponseDTO? Certificate { get; set; }
+}

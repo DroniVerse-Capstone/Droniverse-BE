@@ -1,10 +1,13 @@
 ﻿using Droniverse.Academy.Domain.IRepository;
+using Droniverse.Academy.Domain.IRepository.Mongo;
 using Droniverse.Academy.Infrastructure.Persistence.MySql;
 using Droniverse.Academy.Infrastructure.Repositories;
+using Droniverse.Academy.Infrastructure.Repositories.Mongo;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
+using System.Security.Authentication;
 
 namespace Droniverse.Academy.Infrastructure
 {
@@ -21,7 +24,11 @@ namespace Droniverse.Academy.Infrastructure
             //mongodb
             var connectionString = configuration["MongoDbSettings:ConnectionString"];
             var databaseName = configuration["MongoDbSettings:DatabaseName"];
-            services.AddSingleton<IMongoClient>(_ => new MongoClient(connectionString));
+            services.AddSingleton<IMongoClient>(_ =>
+            {
+                var settings = MongoClientSettings.FromConnectionString(connectionString);
+                return new MongoClient(settings);
+            });
             services.AddScoped<IMongoDatabase>(provider =>
             {
                 var client = provider.GetRequiredService<IMongoClient>();
@@ -29,6 +36,7 @@ namespace Droniverse.Academy.Infrastructure
             });
 
             services.AddScoped<IUnitOfWork, UnitOfWork>();
+            services.AddScoped<ILabContentRepository, LabContentRepository>();
             return services;
         }
     }

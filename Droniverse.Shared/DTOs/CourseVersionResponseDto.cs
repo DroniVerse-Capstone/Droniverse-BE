@@ -10,7 +10,6 @@ public record CourseVersionResponseDto(
     CourseStatus Status,
     int Version,
     string ImageUrl,
-    CourseLevel Level,
     int EstimatedDuration,
     Guid UpdateBy,
     DateTime UpdateAt,

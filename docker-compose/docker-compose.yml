@@ -7,6 +7,8 @@ services:
       dockerfile: Droniverse.Gateway/Droniverse.Gateway/Dockerfile
     ports:
     - "8888:8080"
+    env_file:
+      - ../.env
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
@@ -26,12 +28,24 @@ services:
     build:
       context: ..
       dockerfile: Droniverse.Academy/Droniverse.Academy.API/Dockerfile
+    env_file:
+      - ../.env
     environment:
       - ASPNETCORE_HTTP_PORTS=8080
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
+      # - IdentityMicroserviceName=droniverse-gateway
+      - IdentityMicroserviceName=identity-microservice
+      - IdentityMicroservicePort=8080
+      # - CommunityMicroserviceName=droniverse-gateway
+      - CommunityMicroserviceName=community-microservice
+      - CommunityMicroservicePort=8080
     ports:
       - "7000:8080"
+    develop:
+     watch:
+      - action: rebuild
+        path: ../Droniverse.Academy
     networks:
       - droniverse-network
 
@@ -41,16 +55,24 @@ services:
     build:
       context: ..
       dockerfile: Droniverse.Community/Droniverse.Community.API/Dockerfile
+    env_file:
+      - ../.env
     environment:
       - ASPNETCORE_HTTP_PORTS=8080
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
-      - IdentityMicroserviceName=droniverse.gateway
+      # - IdentityMicroserviceName=droniverse-gateway
+      - IdentityMicroserviceName=identity-microservice
       - IdentityMicroservicePort=8080
-      - AcademyMicroserviceName=droniverse.gateway
+      # - AcademyMicroserviceName=droniverse-gateway
+      - AcademyMicroserviceName=academy-microservice
       - AcademyMicroservicePort=8080
     ports:
       - "5000:8080"
+    develop:
+     watch:
+      - action: rebuild
+        path: ../Droniverse.Community
     networks:
       - droniverse-network
   
@@ -60,6 +82,8 @@ services:
     build:
       context: ..
       dockerfile: Droniverse.Identity/Droniverse.Identity.API/Dockerfile
+    env_file:
+      - ../.env
     environment:
       - ASPNETCORE_HTTP_PORTS=8080
       - ASPNETCORE_ENVIRONMENT=Development
@@ -69,8 +93,25 @@ services:
       - MYSQL_DATABASE=IdentityDB
       - MYSQL_USER=avnadmin
       - MYSQL_PASSWORD=AVNS_-X0xwlWefp-g6mMhVdK
+      - AcademyMicroserviceName=droniverse-gateway
+      - AcademyMicroservicePort=8080
+      - CommunityMicroserviceName=droniverse-gateway
+      - CommunityMicroservicePort=8080
     ports:
       - "4000:8080"
+    develop:
+     watch:
+      - action: rebuild
+        path: ../Droniverse.Identity
+    networks:
+      - droniverse-network
+
+  redis:
+    container_name: droniverse-redis
+    image: redis:7-alpine
+    command: redis-server --requirepass localRedisPassword
+    ports:
+      - "6379:6379"
     networks:
       - droniverse-network
 

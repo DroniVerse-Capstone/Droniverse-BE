@@ -1,8 +1,7 @@
 {
   "Routes": [
-    //----------------------------------ACADEMY-SERVICE--------------------------------------------
     {
-      "DownstreamPathTemplate": "/academy/feedbacks/{everything}",
+      "DownstreamPathTemplate": "/academy/codes/generate-assign",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
@@ -10,12 +9,13 @@
           "Port": 8080
         }
       ],
-      "UpstreamPathTemplate": "/api/feedbacks/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
-      "SwaggerKey": "academy"
+      "UpstreamPathTemplate": "/api/academy/codes/generate-assign",
+      "UpstreamHttpMethod": [
+        "POST"
+      ]
     },
     {
-      "DownstreamPathTemplate": "/academy/courses/{everything}",
+      "DownstreamPathTemplate": "/academy/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
@@ -23,14 +23,22 @@
           "Port": 8080
         }
       ],
-      "UpstreamPathTemplate": "/api/courses/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+      "UpstreamPathTemplate": "/api/academy/{everything}",
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "PUT",
+        "PATCH",
+        "DELETE",
+        "OPTIONS"
+      ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer"
+      },
       "SwaggerKey": "academy"
     },
-    //--------------------------------------------------------------------------------------------------
-    //----------------------------------COMMUNITY-SERVICE-----------------------------------------------
     {
-      "DownstreamPathTemplate": "/community/clubs/{everything}",
+      "DownstreamPathTemplate": "/community/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
@@ -38,27 +46,20 @@
           "Port": 8080
         }
       ],
-      "UpstreamPathTemplate": "/api/clubs/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+      "UpstreamPathTemplate": "/api/community/{everything}",
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+        "OPTIONS",
+        "HEAD",
+        "PATCH"
+      ],
       "SwaggerKey": "community"
     },
     {
-      "DownstreamPathTemplate": "/community/orders/{everything}",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "community-microservice",
-          "Port": 8080
-        }
-      ],
-      "UpstreamPathTemplate": "/api/orders/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
-      "SwaggerKey": "community"
-    },
-    //--------------------------------------------------------------------------------------------------
-    //----------------------------------IDENTITY-SERVICE-----------------------------------------------
-    {
-      "DownstreamPathTemplate": "/identity/users/{everything}",
+      "DownstreamPathTemplate": "/identity/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
@@ -66,38 +67,18 @@
           "Port": 8080
         }
       ],
-      "UpstreamPathTemplate": "/api/users/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
-      "SwaggerKey": "identity"
-    },
-    {
-      "DownstreamPathTemplate": "/identity/roles/{everything}",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "identity-microservice",
-          "Port": 8080
-        }
+      "UpstreamPathTemplate": "/api/identity/{everything}",
+      "UpstreamHttpMethod": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+        "OPTIONS"
       ],
-      "UpstreamPathTemplate": "/api/roles/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
-      "SwaggerKey": "identity"
-    },
-    {
-      "DownstreamPathTemplate": "/identity/permissions/{everything}",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "identity-microservice",
-          "Port": 8080
-        }
-      ],
-      "UpstreamPathTemplate": "/api/permissions/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+      "TimeoutInMilliseconds": 30000,
       "SwaggerKey": "identity"
     }
   ],
-  //--------------------------------------------------------------------------------------------------
   "SwaggerEndPoints": [
     {
       "Key": "academy",

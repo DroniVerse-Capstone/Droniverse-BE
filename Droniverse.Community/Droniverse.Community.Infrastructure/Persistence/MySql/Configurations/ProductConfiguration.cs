@@ -23,12 +23,12 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
         //    .HasForeignKey(p => p.ReferenceID)
         //    .OnDelete(DeleteBehavior.Restrict);
         //ReferenceID của Drone => bên service Simulation => K cần qhe ở đây
-        
+
         builder.Property(c => c.ProductNameVN).HasMaxLength(255).IsRequired();
         builder.Property(c => c.ProductNameEN).HasMaxLength(255).IsRequired();
         builder.Property(c => c.DescriptionEN).HasColumnType("text");
         builder.Property(c => c.DescriptionVN).HasColumnType("text");
-        builder.Property(p => p.Price).HasColumnType("decimal(14, 9)");
+        builder.Property(p => p.Price).HasColumnType("decimal(20, 9)");
         builder.Property(p => p.Status).HasColumnType("tinyint").HasConversion<byte>();
         builder.Property(p => p.Currency).HasMaxLength(10).HasConversion<string>().HasDefaultValue(CurrencyType.VND);
         

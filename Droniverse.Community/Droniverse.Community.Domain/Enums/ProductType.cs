@@ -1,7 +1,7 @@
 ﻿namespace Droniverse.Community.Domain.Enums;
 public enum ProductType
 {
-    CODE,
+    COURSE,
     DRONE
 }
 

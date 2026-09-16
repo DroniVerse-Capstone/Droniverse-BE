@@ -14,7 +14,7 @@ public class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
 
         builder.Property(i => i.OrderID)
             .IsRequired();
-
+        builder.Property(i => i.ClubID).IsRequired();
         builder.Property(i => i.TotalAmount)
             .IsRequired();
 
@@ -31,8 +31,19 @@ public class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
         builder.OwnsOne(i => i.CustomerInfo, customer =>
         {
             customer.Property(c => c.UserID).IsRequired();
-            customer.Property(c => c.Name).IsRequired();
-            customer.Property(c => c.TaxCode); // Nullable
+            customer.Property(c => c.FullName).IsRequired();
+            customer.Property(c => c.Email).IsRequired();
+            customer.Property(c => c.TaxCode); // nullable
+        });
+
+        builder.OwnsOne(i => i.Item, item =>
+        {
+            item.Property(i => i.ProductID).IsRequired();
+            item.Property(i => i.ProductNameVN).IsRequired();
+            item.Property(i => i.ProductNameEN).IsRequired();
+            item.Property(i => i.UnitPrice).IsRequired();
+            item.Property(i => i.Quantity).IsRequired();
+            item.Property(i => i.Total).IsRequired();
         });
     }
 }

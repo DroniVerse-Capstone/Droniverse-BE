@@ -1,10 +1,21 @@
 ﻿using Droniverse.Community.Domain.Enums;
+using Droniverse.Shared.DTOs.Response;
 
 namespace Droniverse.Community.Application.DTO.Response.Mongo;
 
-public record OrderResponseDto(Guid OrderID, decimal TotalAmount, OrderStatus Status, DateTime CreateAt, List<OrderItemDto> Items)
+public record OrderResponseDto(
+    Guid OrderID,
+    OrderType Type,
+    decimal TotalAmount,
+    OrderStatus Status,
+    DateTime CreateAt,
+    OrderItemDto Item,
+    PaymentResponseDto? Payment,
+    UserResponse User,
+    ClubMiniResponse? Club
+)
 {
-    public OrderResponseDto() : this(Guid.Empty, 0, OrderStatus.PENDING, DateTime.MinValue, new List<OrderItemDto>())
+    public OrderResponseDto() : this(Guid.Empty, default, 0, OrderStatus.PENDING, DateTime.MinValue, default, default, default, default)
     {
     }
 }

@@ -18,8 +18,8 @@ public class MediaTypeConfiguration : IEntityTypeConfiguration<MediaType>
         builder.Property(c => c.TypeNameVN).HasMaxLength(255).IsRequired();
         builder.Property(c => c.DescriptionEN).HasColumnType("text");
         builder.Property(c => c.DescriptionVN).HasColumnType("text");
-        builder.Property(m => m.CreateAt).HasColumnType("datetime").ValueGeneratedOnAdd();
-        builder.Property(m => m.UpdateAt).HasColumnType("datetime").ValueGeneratedOnUpdate();
+        builder.Property(m => m.CreatedAt).HasColumnType("datetime").ValueGeneratedOnAdd();
+        builder.Property(m => m.UpdatedAt).HasColumnType("datetime").ValueGeneratedOnUpdate();
     }
 }
 

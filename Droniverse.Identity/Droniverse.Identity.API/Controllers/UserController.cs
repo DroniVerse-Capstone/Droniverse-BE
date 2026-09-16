@@ -1,29 +1,98 @@
-﻿using Droniverse.Identity.Application.DTO.Request;
+﻿using Droniverse.Identity.Application.DTO.Extension;
+using Droniverse.Identity.Application.DTO.Extension;
+using Droniverse.Identity.Application.DTO.Request;
 using Droniverse.Identity.Application.DTO.Response;
+using Droniverse.Identity.Application.HttpClients;
 using Droniverse.Identity.Application.IService;
 using Droniverse.Identity.Domain.Entities;
+using Droniverse.Shared.DTOs;
+using Droniverse.Shared.DTOs.Request;
 using Droniverse.Shared.DTOs.Response;
+using Droniverse.Shared.Extensions;
+using Droniverse.Shared.Services.IServices;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Droniverse.Identity.API.Controllers
 {
     [Route("identity/users")]
+    [Authorize]
     [ApiController]
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;
-        public UserController(IUserService userService)
+        private readonly IRoleService _roleService;
+        private readonly AcademyMicroserviceClient _academyMicroserviceClient;
+        private readonly ICloudinaryService _cloudinaryService;
+        public UserController(IUserService userService, IRoleService roleService, AcademyMicroserviceClient academyMicroserviceClient, ICloudinaryService cloudinaryService)
         {
             _userService = userService;
+            _roleService = roleService;
+            _academyMicroserviceClient = academyMicroserviceClient;
+            _cloudinaryService = cloudinaryService;
         }
-        [HttpGet]
-        public async Task<IActionResult> GetAllUsers()
+
+        //[HttpGet("totalMemberCount")]
+        //public async Task<IActionResult> GetMembersCount()
+        //{
+        //    var summary = await _userService.GetUserDashboardSummary();
+        //    return Ok(summary.MemberCount);
+        //}
+
+        [HttpGet("summary")]
+        public async Task<IActionResult> GetUserSummary([FromQuery] string filterTimeLine = "month")
         {
-            var users = await _userService.GetAllUsers();
+            var result = await _userService.GetUserDashboardSummary(filterTimeLine);
+            return Ok(result);
+        }
+
+        [HttpGet("filter-time-lines")]
+        public async Task<IActionResult> GetFilterTimeLineOptions()
+        {
+            var options = await _userService.GetFilterTimeLineOptions();
+            return Ok(options);
+        }
+
+        [HttpGet("new-users")]
+        public async Task<IActionResult> GetNewUsers([FromQuery] string filterTimeLine = "month")
+        {
+            var result = await _userService.GetNewUsersByTimeline(filterTimeLine);
+            return Ok(result);
+        }
+
+        [HttpGet("test")]
+        public IActionResult Test()
+        {
+            var vietnamTime = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(
+                DateTime.UtcNow,
+                "SE Asia Standard Time"
+            );
+            Console.WriteLine(vietnamTime.ToString("dddd:MM:yyyy:ss"));
+            return Ok("Test successful");
+        }
+        /// <summary>
+        /// Lấy ra danh sách người dùng của hệ thống với phân trang và lọc theo username, email, role
+        /// </summary>
+        /// <param name="userSearchRequest"></param>
+        /// <returns></returns>
+        [HttpGet]
+        public async Task<IActionResult> GetAllUsers(
+            [FromQuery] UserSearchRequest userSearchRequest)
+        {
+            userSearchRequest ??= new UserSearchRequest();
+            var users = await _userService.GetAllUsers(
+                userSearchRequest,
+                userSearchRequest.CurrentPage,
+                userSearchRequest.PageSize);
             return Ok(users);
         }
 
+        /// <summary>
+        /// Lấy ra thông tin chi tiết của người dùng theo userID
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpGet("{id}")]
         public async Task<IActionResult> GetUserById(Guid id)
         {
@@ -33,6 +102,11 @@ namespace Droniverse.Identity.API.Controllers
             return Ok(account);
         }
 
+        /// <summary>
+        /// Tạo người dùng mới trong hệ thống, trả về thông tin người dùng vừa được tạo ra
+        /// </summary>
+        /// <param name="userCreateDto"></param>
+        /// <returns></returns>
         [HttpPost]
         public async Task<IActionResult> CreateUser([FromBody] UserCreateDto userCreateDto)
         {
@@ -40,6 +114,12 @@ namespace Droniverse.Identity.API.Controllers
             return CreatedAtAction(nameof(GetUserById), new { id = userResponse.UserId }, userResponse);
         }
 
+        /// <summary>
+        /// Cập nhật người dùng theo userID, trả về thông tin người dùng sau khi đã được cập nhật
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="userUpdateDto"></param>
+        /// <returns></returns>
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateUser(Guid id, [FromBody] UserUpdateDto userUpdateDto)
         {
@@ -47,15 +127,84 @@ namespace Droniverse.Identity.API.Controllers
             return Ok(updatedUser);
         }
 
-        [HttpDelete]
-        public async Task<IActionResult> DeleteUser(Guid id)
+
+        //[HttpDelete]
+        //public async Task<IActionResult> DeleteUser(Guid id)
+        //{
+        //    bool isDeleted = await _userService.DeleteUser(id);
+        //    if (!isDeleted)
+        //    {
+        //        return NotFound($"Account id not found #{id}");
+        //    }
+        //    return NoContent();
+        //}
+
+        /// <summary>
+        /// Cập nhật avatar cho user
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        [HttpPost("{userId}/upload-avatar")]
+        public async Task<IActionResult> UploadUserAvatar(Guid userId, [FromForm] FileUploadDto file)
         {
-            bool isDeleted = await _userService.DeleteUser(id);
-            if(!isDeleted)
-            {
-                return NotFound($"Account id not found #{id}");
-            }
-            return NoContent();
+            UserResponse userResponse = await _userService.UploadUserAvatar(userId, file.File);
+            return Ok(userResponse);
+        }
+
+        /// <summary>
+        /// Dùng cho giao tiếp giữa các service
+        /// </summary>
+        /// <param name="userIds">List of user IDs to retrieve</param>
+        /// <returns>List of UserResponse objects for the requested user IDs</returns>
+        [HttpPost("bulk")]
+        public async Task<IActionResult> GetUsersByIds(
+            [FromBody] IEnumerable<Guid> userIds)
+        {
+            var vietnamTime = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(
+                DateTime.UtcNow,
+                "SE Asia Standard Time"
+            );
+
+            Console.WriteLine(vietnamTime.ToString("dddd:MM:yyyy:ss"));
+            var users = await _userService.GetUsersByIds(userIds);
+            return Ok(users);
+        }
+
+        /// <summary>
+        /// Tìm kiếm người dùng theo thông tin hồ sơ (tên)
+        /// </summary>
+        /// <param name="request">Thông tin tìm kiếm</param>
+        /// <returns>Danh sách UserID theo điều kiện tìm kiếm</returns>
+        [HttpGet("search")]
+        public async Task<IActionResult> GetUsersByUserInfo(
+            [FromQuery] UserInfoSearchRequest request)
+        {
+            var userIds = await _userService.GetUsersByUserInfo(request);
+            return Ok(userIds);
+        }
+
+        /// <summary>
+        /// API call cross service
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [HttpPost("search-pagination")]
+        public async Task<IActionResult> SearchUsersWithPagination([FromBody] SearchUsersWithPaginationRequest request)
+        {
+            var result = await _userService.SearchUsersWithPagination(request);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Dùng cho giao tiếp giữa các service - Lấy danh sách user theo role
+        /// </summary>
+        /// <param name="roleName">Tên của role cần lọc (vd: ADMIN, CLUB_MANAGER, CLUB_MEMBER)</param>
+        /// <returns>Danh sách SimpleUserReponse chứa thông tin cơ bản của user</returns>
+        [HttpGet("by-role")]
+        public async Task<IActionResult> GetUsersByRole([FromQuery] string roleName)
+        {
+            var users = await _userService.GetUsersByRole(roleName);
+            return Ok(users);
         }
     }
 }

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #db4139;
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #db4139;
+        }
+
+        .header p {
+            margin: 5px 0 0 0;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .verify-section {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-left: 4px solid #db4139;
+        }
+
+        .verify-section h2 {
+            margin: 0 0 10px 0;
+            color: #db4139;
+            font-size: 16px;
+        }
+
+        .verify-section p {
+            margin: 8px 0;
+            line-height: 1.6;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background-color: #db4139;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+            margin: 20px auto;
+            text-align: center;
+            width: 200px;
+            font-size: 14px;
+        }
+
+        .cta-button:hover {
+            background-color: #c03432;
+        }
+
+        .cta-section {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .token-section {
+            background-color: #f0f0f0;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            word-break: break-all;
+            text-align: center;
+        }
+
+        .token-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .token-value {
+            font-family: monospace;
+            font-size: 12px;
+            color: #db4139;
+            font-weight: bold;
+        }
+
+        .info {
+            background-color: #e8f4f8;
+            border: 1px solid #b3e5fc;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 15px 0;
+            font-size: 12px;
+            color: #01579b;
+            line-height: 1.5;
+        }
+
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .footer p {
+            margin: 5px 0;
+        }
+
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 15px 0;
+            font-size: 12px;
+            color: #856404;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <!-- Header -->
+        <div class='header'>
+            <h1>DRONIVERSE</h1>
+            <p>Nền tảng học tập Drone</p>
+        </div>
+
+        <!-- Verify Section -->
+        <div class='verify-section'>
+            <h2>Xác Thực Email Của Bạn</h2>
+            <p>Xin chào {FullName},</p>
+            <p>Cảm ơn bạn đã đăng ký tài khoản tại Droniverse! Vui lòng xác thực địa chỉ email của bạn để hoàn tất quá trình đăng ký.</p>
+        </div>
+
+        <!-- Call to Action -->
+        <div class='cta-section'>
+            <p style='color: #333; margin-bottom: 15px; font-size: 14px;'>
+                <strong>Bước 1:</strong> Nhấn vào nút dưới đây để xác thực email của bạn:
+            </p>
+            <a href='{VerificationUrl}' class='cta-button'>Xác Thực Email</a>
+            <p style='color: #666; margin-top: 20px; font-size: 12px;'>
+                Hoặc sao chép đường dẫn này vào trình duyệt của bạn:
+            </p>
+            <p style='color: #db4139; word-break: break-all; font-size: 12px; margin: 10px 0;'>
+                {VerificationUrl}
+            </p>
+        </div>
+
+        <!-- Alternative Token Section -->
+        <div class='info'>
+            <strong style='color: #01579b;'>Nếu bạn không thể nhấn vào đường dẫn:</strong>
+            <p style='margin: 8px 0;'>
+                <strong>Bước 2:</strong> Sao chép mã xác thực dưới đây:
+            </p>
+            <div class='token-section'>
+                <div class='token-label'>Mã Xác Thực:</div>
+                <div class='token-value'>{VerificationToken}</div>
+            </div>
+            <p style='margin: 8px 0;'>
+                <strong>Bước 3:</strong> Dán mã này vào ứng dụng Droniverse để hoàn tất xác thực.
+            </p>
+        </div>
+
+        <!-- Important Notice -->
+        <div class='warning'>
+            <strong>⚠️ Lưu ý quan trọng:</strong>
+            <ul style='margin: 8px 0; padding-left: 20px;'>
+                <li>Mã xác thực này sẽ hết hạn trong 24 giờ</li>
+                <li>Không chia sẻ mã này với bất kỳ ai</li>
+                <li>Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email này</li>
+            </ul>
+        </div>
+
+        <!-- Account Details -->
+        <div style='background-color: #f9f9f9; padding: 15px; border-radius: 4px; margin: 20px 0;'>
+            <h3 style='color: #db4139; margin: 0 0 10px 0; font-size: 14px;'>THÔNG TIN TÀI KHOẢN</h3>
+            <table style='width: 100%; border-collapse: collapse;'>
+                <tr style='border-bottom: 1px solid #ddd;'>
+                    <td style='padding: 8px; font-weight: bold; color: #db4139; width: 100px;'>EMAIL</td>
+                    <td style='padding: 8px; color: #333;'>{Email}</td>
+                </tr>
+                <tr>
+                    <td style='padding: 8px; font-weight: bold; color: #db4139;'>HỌ VÀ TÊN</td>
+                    <td style='padding: 8px; color: #333;'>{FullName}</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Footer -->
+        <div class='footer'>
+            <p>Nếu bạn có bất kỳ câu hỏi nào, vui lòng liên hệ với chúng tôi tại support@droniverse.com</p>
+            <p>© 2026 Droniverse. Tất cả các quyền được bảo lưu.</p>
+        </div>
+    </div>
+</body>
+</html>

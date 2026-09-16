@@ -12,12 +12,11 @@ public class QuizConfiguration : IEntityTypeConfiguration<Quiz>
 
         builder.HasMany(e => e.QuizQuestions)
             .WithOne(c => c.Quiz);
-        builder.HasOne(e => e.Lesson)
+        builder.HasMany(e => e.QuizAttempts)
             .WithOne(c => c.Quiz)
-            .HasForeignKey<Quiz>(e => e.LessonID)
+            .HasForeignKey(c => c.QuizID)
             .OnDelete(DeleteBehavior.Restrict);
         builder.Property(e => e.QuizID).HasColumnType("char(36)");
-        builder.Property(e => e.LessonID).HasColumnType("char(36)");
         builder.Property(e => e.TitleVN).HasColumnType("varchar(255)");
         builder.Property(e => e.TitleEN).HasColumnType("varchar(255)");
         builder.Property(e => e.DescriptionVN).HasColumnType("text");

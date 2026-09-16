@@ -3,5 +3,10 @@ public enum LessonType
 {
     THEORY,
     QUIZ,
-    LAB
+    LAB,
+    PHYSIC,
+    REAL_PHYSIC,
+    LAB_PHYSIC,
+    VR,
+    ASSIGNMENT
 }

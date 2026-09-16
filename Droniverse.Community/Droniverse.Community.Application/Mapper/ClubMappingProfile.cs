@@ -9,42 +9,28 @@ public class ClubMappingProfile : Profile
 {
     public ClubMappingProfile()
     {
+        //  Club
         CreateMap<Club, ClubResponseDto>()
-            .ForMember(dest => dest.ClubID, opt => opt.MapFrom(src => src.ClubID))
-            .ForMember(dest => dest.NameVN, opt => opt.MapFrom(src => src.NameVN))
-            .ForMember(dest => dest.NameEN, opt => opt.MapFrom(src => src.NameEN))
-            .ForMember(dest => dest.DescriptionVN, opt => opt.MapFrom(src => src.DescriptionVN))
-            .ForMember(dest => dest.DescriptionEN, opt => opt.MapFrom(src => src.DescriptionEN))
-            .ForMember(dest => dest.ClubCode, opt => opt.MapFrom(src => src.ClubCode))
-            .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
-            .ForMember(dest => dest.IsPublic, opt => opt.MapFrom(src => src.IsPublic))
-            .ForMember(dest => dest.LimitParticipation, opt => opt.MapFrom(src => src.LimitParticipation))
-            .ForMember(dest => dest.LimitClubManagers, opt => opt.MapFrom(src => src.LimitClubManagers))
-            .ForMember(dest => dest.Creator, opt => opt.Ignore());
+            .ForMember(dest => dest.DescriptionVN, opt => opt.MapFrom(src => src.Description));
 
         CreateMap<ClubCreateDto, Club>()
-            .ForMember(dest => dest.ClubID, opt => opt.Ignore())
-            .ForMember(dest => dest.NameVN, opt => opt.MapFrom(src => src.NameVN))
-            .ForMember(dest => dest.NameEN, opt => opt.MapFrom(src => src.NameEN))
-            .ForMember(dest => dest.DescriptionVN, opt => opt.MapFrom(src => src.DescriptionVN))
-            .ForMember(dest => dest.DescriptionEN, opt => opt.MapFrom(src => src.DescriptionEN))
-            .ForMember(dest => dest.ClubCode, opt => opt.Ignore())
-            .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
-            .ForMember(dest => dest.IsPublic, opt => opt.MapFrom(src => src.IsPublic))
-            .ForMember(dest => dest.LimitParticipation, opt => opt.MapFrom(src => src.LimitParticipation))
-            .ForMember(dest => dest.LimitClubManagers, opt => opt.MapFrom(src => src.LimitClubManagers));
+            .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.DescriptionVN));
 
         CreateMap<ClubUpdateDto, Club>()
-            .ForMember(dest => dest.ClubID, opt => opt.Ignore())
-            .ForMember(dest => dest.NameVN, opt => opt.MapFrom(src => src.NameVN))
-            .ForMember(dest => dest.NameEN, opt => opt.MapFrom(src => src.NameEN))
-            .ForMember(dest => dest.DescriptionVN, opt => opt.MapFrom(src => src.DescriptionVN))
-            .ForMember(dest => dest.DescriptionEN, opt => opt.MapFrom(src => src.DescriptionEN))
+            .ForMember(dest => dest.CreatedBy, opt => opt.Ignore())
+            .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.ManagerID, opt => opt.Ignore())
+            .ForMember(dest => dest.DroneID, opt => opt.Ignore())
             .ForMember(dest => dest.ClubCode, opt => opt.Ignore())
-            .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
-            .ForMember(dest => dest.IsPublic, opt => opt.MapFrom(src => src.IsPublic))
-            .ForMember(dest => dest.LimitParticipation, opt => opt.MapFrom(src => src.LimitParticipation))
-            .ForMember(dest => dest.LimitClubManagers, opt => opt.MapFrom(src => src.LimitClubManagers));
+            .ForMember(dest => dest.Status, opt => opt.Ignore())
+            .ForMember(dest => dest.SuspendedReason, opt => opt.Ignore())
+            .ForMember(dest => dest.Description, opt => opt.Ignore())
+            .ForMember(dest => dest.Participations, opt => opt.Ignore())
+            .ForMember(dest => dest.Transactions, opt => opt.Ignore())
+            .ForMember(dest => dest.Competitions, opt => opt.Ignore())
+            .ForMember(dest => dest.ClubRequests, opt => opt.Ignore());
+
     }
 }
 

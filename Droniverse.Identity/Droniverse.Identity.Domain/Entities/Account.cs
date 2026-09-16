@@ -9,11 +9,16 @@ public class Account
     public AccountStatus Status { get; set; }
     public DateTime? LastLogin { get; set; }
     public bool IsEmailVerified { get; set; }
+    public string? VerificationToken { get; set; }
+    public DateTime? VerificationTokenExpiryTime { get; set; }
+    public string? RefreshToken{ get; set; }
+    public DateTime? RefreshTokenExpiryTime { get; set; }
     public DateTime CreateAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public Role Role { get; set; }
     public Guid RoleID { get; set; }
     public virtual UserInfo UserInfo { get; set; }
+    
 
 }
 

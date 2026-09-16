@@ -9,6 +9,6 @@ public record FeedbackResponseDto(
     CourseVersionResponseDto CourseVersion
     )
 {
-    public FeedbackResponseDto() : this(default, default, default, default, default, default) { }
+    public FeedbackResponseDto() : this(Guid.Empty, Guid.Empty, 0, string.Empty, DateTime.MinValue, null!) { }
 }
 
