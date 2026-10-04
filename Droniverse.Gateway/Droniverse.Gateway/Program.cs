@@ -6,13 +6,11 @@ using Newtonsoft.Json.Linq;
 using Ocelot.DependencyInjection;
 using Ocelot.Middleware;
 using System.Text;
-using DotNetEnv;
 using Microsoft.Extensions.Options;
 using Droniverse.Shared.Settings;
 using Droniverse.Shared;
 using System.IO;
 
-Env.Load("../../.env");
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddEnvironmentVariables();
 
